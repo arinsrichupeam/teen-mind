@@ -9,7 +9,7 @@ import { District, Province, SubDistrict } from "address";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/autocomplete";
 
 export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, BackStep: () => void }) => {
-    const [request, setRequest] = useState(true);
+    const [request, setRequest] = useState(false);
     const [province, setProvince] = useState<Province[]>([]);
     const [district, setDistrict] = useState<District[]>([]);
     const [subDistrict, setSubDistrict] = useState<SubDistrict[]>([]);
