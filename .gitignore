@@ -4,6 +4,9 @@
 /node_modules
 /.pnp
 .pnp.js
+.next/
+.swc/
+.*.env
 
 # testing
 /coverage
@@ -35,4 +38,3 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
-.env
