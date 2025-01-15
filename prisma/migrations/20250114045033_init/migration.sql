@@ -67,14 +67,17 @@ CREATE TABLE `Profile` (
     `userId` VARCHAR(191) NOT NULL,
     `citizenId` VARCHAR(191) NOT NULL,
     `prefix` INTEGER NOT NULL,
+    `sex` INTEGER NOT NULL,
     `firstname` VARCHAR(191) NOT NULL,
     `lastname` VARCHAR(191) NOT NULL,
-    `sex` BOOLEAN NOT NULL,
-    `currentsex` INTEGER NOT NULL,
+    `birthday` DATETIME(3) NOT NULL,
     `ethnicity` VARCHAR(191) NOT NULL,
     `nationality` VARCHAR(191) NOT NULL,
+    `tel` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
 
-    INDEX `Profile_userId_fkey`(`userId`),
+    INDEX `Profile_userId_idx`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

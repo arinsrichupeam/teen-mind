@@ -7,7 +7,7 @@ import { Checkbox } from "@nextui-org/checkbox";
 import { Textarea } from "@nextui-org/input";
 import { Link } from "@nextui-org/link";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function PrivacyPage() {
@@ -32,6 +32,12 @@ export default function PrivacyPage() {
       }));
     }
   };
+
+  const NotAgree = () => {
+    console.log("Click");
+    signOut();
+    router.push("/");
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -287,7 +293,7 @@ export default function PrivacyPage() {
         และเงื่อนไขและข้อตกลงการใช้บริการ
       </Checkbox>
       <div className="flex flex-row gap-5 w-full">
-        <Button variant="solid" radius="full" className="w-full" as={Link} href="/">ไม่ยินยอม</Button>
+        <Button variant="solid" radius="full" className="w-full" onPress={NotAgree}>ไม่ยินยอม</Button>
         <Button isDisabled={!agree} color="primary" variant="solid" radius="full" className="w-full" onPress={CheckProfile}>ยินยอม</Button>
       </div>
     </div>

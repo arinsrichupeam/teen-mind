@@ -7,9 +7,10 @@ import { Button } from "@nextui-org/button";
 import { useEffect, useState } from "react";
 import { District, Province, SubDistrict } from "address";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/autocomplete";
+import { Address } from "@prisma/client";
 
-export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, BackStep: () => void }) => {
-    const [request, setRequest] = useState(false);
+export const Step2 = ({ NextStep, BackStep, Result, HandleChange }: { NextStep: (val: any) => void; BackStep: () => void; Result: Address | undefined; HandleChange: (val: any) => void }) => {
+    const [request, setRequest] = useState(true);
     const [province, setProvince] = useState<Province[]>([]);
     const [district, setDistrict] = useState<District[]>([]);
     const [subDistrict, setSubDistrict] = useState<SubDistrict[]>([]);
@@ -18,7 +19,9 @@ export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, Ba
         fetch("https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province.json").then((res) => res.json().then((val) => {
             setProvince(val);
         }));
-    }, [province]);
+        onProvinceChange(Result?.province);
+        onDistrictChange(Result?.district);
+    }, []);
 
     const onProvinceChange = (e: any) => {
         setDistrict([]);
@@ -30,6 +33,7 @@ export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, Ba
                     }
                 })
             }));
+            HandleChange({ target: { name: "province", value: e } });
         }
     }
 
@@ -43,8 +47,13 @@ export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, Ba
                     }
                 })
             }));
+            HandleChange({ target: { name: "district", value: e } });
         }
     }
+
+    const onSubDistrictChange = (e: any) => {
+        HandleChange({ target: { name: "subdistrict", value: e } });
+    };
 
     const onSubmit = (e: any) => {
         e.preventDefault()
@@ -56,22 +65,22 @@ export const Step2 = ({ NextStep, BackStep }: { NextStep: (val: any) => void, Ba
             <CardBody>
                 <Form className="w-full max-w-xs flex flex-col gap-4" validationBehavior="native" onSubmit={onSubmit}>
                     <div className="flex flex-row gap-4 w-full">
-                        <Input label="เลขที่" placeholder="เลขที่" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกบ้านเลขที่" />
-                        <Input label="หมู่ที่" placeholder="หมู่ที่" labelPlacement="inside" variant="bordered" size="sm" radius="md" />
+                        <Input value={Result?.houseNo} name="houseNo" onChange={HandleChange} label="เลขที่" placeholder="เลขที่" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกบ้านเลขที่" />
+                        <Input value={Result?.villageNo} name="villageNo" onChange={HandleChange} label="หมู่ที่" placeholder="หมู่ที่" labelPlacement="inside" variant="bordered" size="sm" radius="md" />
                     </div>
-                    <Input label="ซอย" placeholder="ซอย" labelPlacement="inside" variant="bordered" size="sm" radius="md" />
-                    <Input label="ถนน" placeholder="ถนน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกถนน" />
-                    <Autocomplete className="max-w-xs" name="province" label="จังหวัด" placeholder="จังหวัด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกจังหวัด" onSelectionChange={onProvinceChange} >
+                    <Input value={Result?.soi} name="soi" onChange={HandleChange} label="ซอย" placeholder="ซอย" labelPlacement="inside" variant="bordered" size="sm" radius="md" />
+                    <Input value={Result?.road} name="road" onChange={HandleChange} label="ถนน" placeholder="ถนน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกถนน" />
+                    <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.province.toString()} name="province" onSelectionChange={onProvinceChange} label="จังหวัด" placeholder="จังหวัด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกจังหวัด"  >
                         {province.map((province) => (
                             <AutocompleteItem key={province.id}>{province.name_th}</AutocompleteItem>
                         ))}
                     </Autocomplete>
-                    <Autocomplete className="max-w-xs" name="district" label="เขต/อำเภอ" placeholder="เขต/อำเภอ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกเขต/อำเภอ" onSelectionChange={onDistrictChange}>
+                    <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.district.toString()} name="district" onSelectionChange={onDistrictChange} label="เขต/อำเภอ" placeholder="เขต/อำเภอ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกเขต/อำเภอ" >
                         {district.map((district) => (
                             <AutocompleteItem key={district.id}>{district.name_th}</AutocompleteItem>
                         ))}
                     </Autocomplete>
-                    <Autocomplete className="max-w-xs" name="subdistrict" label="แขวง/ตำบล" placeholder="แขวง/ตำบล" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกแขวง/ตำบล">
+                    <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.subdistrict.toString()} name="subdistrict" onSelectionChange={onSubDistrictChange} label="แขวง/ตำบล" placeholder="แขวง/ตำบล" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกแขวง/ตำบล">
                         {subDistrict.map((subDistrict) => (
                             <AutocompleteItem key={subDistrict.id}>{subDistrict.name_th}</AutocompleteItem>
                         ))}

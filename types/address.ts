@@ -18,4 +18,6 @@ declare module "address" {
         name_en: "";
         amphure_id: 0;
     }
+    
 }
+

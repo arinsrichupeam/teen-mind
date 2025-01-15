@@ -1,6 +1,5 @@
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
-import { image } from "@nextui-org/theme";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     // read query
@@ -53,9 +52,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             },
             profile: {
                 select: {
-                    id: true
-                },
-            },
+                    firstname: true,
+                    lastname: true,
+                    birthday: true,
+                    address: true
+                }
+            }
         },
     });
 

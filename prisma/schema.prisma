@@ -77,17 +77,21 @@ model Profile {
   userId      String
   citizenId   String
   prefix      Int
+  sex         Int
   firstname   String
   lastname    String
-  sex         Boolean
-  currentsex  Int
+  birthday    DateTime
   ethnicity   String
   nationality String
+  tel         String
   address     Address[]
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "Profile_userId_fkey")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Address {

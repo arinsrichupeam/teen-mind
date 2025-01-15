@@ -53,3 +53,5 @@ After modifying the `.npmrc` file, you need to run `pnpm install` again to ensur
 Licensed under the [MIT license](https://github.com/nextui-org/next-app-template/blob/main/LICENSE).
 
 ## npx prisma migrate dev --name
+## npx prisma generate
+## npx npm-check-updates -u
