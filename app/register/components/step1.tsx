@@ -1,33 +1,13 @@
 "use client"
 
-import { Card, CardBody } from "@nextui-org/card";
-import { Input } from "@nextui-org/input";
-import { Form } from "@nextui-org/form";
-import { Select, SelectItem } from "@nextui-org/select";
-import { DatePicker } from "@nextui-org/date-picker";
-import { Button } from "@nextui-org/button";
+import { Button, Card, CardBody, DatePicker, Form, Input, Select, SelectItem } from "@heroui/react";
 import { useState } from "react";
 import { Profile } from "@prisma/client";
-import { now, getLocalTimeZone } from "@internationalized/date";
+import { prefix, sex } from "@/types/systemmodel";
+import { validateCitizen } from "@/utils/validateCitizen";
 
 export const Step1 = ({ NextStep, Result, HandleChange }: { NextStep: (val: any) => void; Result: Profile | undefined; HandleChange: (val: any) => void }) => {
     const [request, setRequest] = useState(true);
-    const sex = [
-        { key: "1", label: "ชาย" },
-        { key: "2", label: "หญิง" },
-        { key: "3", label: "ไม่ระบุ" },
-    ];
-
-    const prefix = [
-        { key: "1", label: "ด.ช." },
-        { key: "2", label: "ด.ญ." },
-        { key: "3", label: "นาย" },
-        { key: "4", label: "น.ส." },
-        { key: "5", label: "นาง" },
-        { key: "99", label: "อื่นๆ" },
-    ];
-
-
 
     const onSubmit = (e: any) => {
         e.preventDefault()
@@ -42,7 +22,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: { NextStep: (val: any)
         <Card className="w-full">
             <CardBody>
                 <Form className="w-full max-w-xs items-center flex flex-col gap-4" validationBehavior="native" onSubmit={onSubmit}>
-                    <Input type="number" value={Result?.citizenId} name="citizenId" onChange={HandleChange} label="เลขบัตรประชาชน" placeholder="เลขบัตรประชาชน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกเลขบัตรประชาชน" />
+                    <Input type="number" value={Result?.citizenId} name="citizenId" validate={(val) => validateCitizen(val)} onChange={HandleChange} label="เลขบัตรประชาชน" placeholder="เลขบัตรประชาชน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} />
                     <div className="flex flex-row gap-4 w-full">
                         <Select className="max-w-xs" selectedKeys={Result?.prefix.toString()} name="prefix" onChange={HandleChange} label="คำนำหน้า" placeholder="คำนำหน้า" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกคำนำหน้า">
                             {prefix.map((prefix) => (

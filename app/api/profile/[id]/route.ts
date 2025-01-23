@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
     });
 
-    // // Update User LineName and image
+    // Update User LineName and image
     if (user?.accounts[0].provider == "line") {
         const lineProfile = await lineSdk.getProfile(user.accounts[0].providerAccountId);
         await prisma.user.update({
@@ -35,14 +35,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         });
     }
 
-    // // Get UserProfile
+    // Get UserProfile
     const profile = await prisma.user.findUnique({
         where: {
             id: userId
         },
         select: {
             id: true,
-            email: true,
             image: true,
             name: true,
             accounts: {
@@ -52,6 +51,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             },
             profile: {
                 select: {
+                    prefix: true,
                     firstname: true,
                     lastname: true,
                     birthday: true,

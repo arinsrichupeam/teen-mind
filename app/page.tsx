@@ -1,10 +1,39 @@
+"use client"
+
 import { title } from "@/components/primitives";
-import { Button } from "@nextui-org/button";
-import { Card, CardBody, CardFooter, CardHeader } from "@nextui-org/card";
-import { Image } from "@nextui-org/image";
-import { Link } from "@nextui-org/link";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Button, Card, CardBody, CardFooter, CardHeader, Image } from "@heroui/react";
 
 export default function IndexPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const CheckProfile = async () => {
+    if (status !== "loading" && status === "unauthenticated") {
+      signIn("line");
+    }
+    else {
+      // console.log(session?.user);
+      await fetch(`/api/profile/${session?.user?.id}`).then((res) => res.json().then(val => {
+        // console.log(val);
+        if (val.profile.length == 0) {
+          // console.log("No profile found");
+          router.push("/privacy");
+        }
+        else {
+          // console.log(val.profile);
+          router.push("/question/phqa");
+        }
+      }));
+    }
+  };
+
+  useEffect(() => {
+
+  }, []);
+
   return (
     <div className="flex flex-col gap-5 items-center">
       <h1 className={title()}>TEEN MIND</h1>
@@ -23,7 +52,7 @@ export default function IndexPage() {
         </CardBody>
         <CardFooter className="flex-col gap-4 items-start">
           <p className="text-tiny uppercase font-bold">คำอธิบายเกี่ยวกับแอพ</p>
-          <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" as={Link} href="/privacy">ถัดไป</Button>
+          <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" onPress={CheckProfile}>ถัดไป</Button>
         </CardFooter>
       </Card>
     </div>

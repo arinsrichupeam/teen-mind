@@ -1,58 +1,45 @@
 "use client"
-
-import { Card, CardBody } from "@nextui-org/card";
-import { Input } from "@nextui-org/input";
-import { Form } from "@nextui-org/form";
-import { Button } from "@nextui-org/button";
 import { useEffect, useState } from "react";
-import { District, Province, SubDistrict } from "address";
-import { Autocomplete, AutocompleteItem } from "@nextui-org/autocomplete";
-import { Address } from "@prisma/client";
+import { Autocomplete, AutocompleteItem, Button, Card, CardBody, Form, Input } from "@heroui/react";
+import { Address, Districts, Provinces, Subdistricts } from "@prisma/client";
 
-export const Step2 = ({ NextStep, BackStep, Result, HandleChange }: { NextStep: (val: any) => void; BackStep: () => void; Result: Address | undefined; HandleChange: (val: any) => void }) => {
+export const Step2 = ({ NextStep, BackStep, Result, HandleChange }: { NextStep: (val: any) => void; BackStep: (val: any) => void; Result: Address | undefined; HandleChange: (val: any) => void }) => {
     const [request, setRequest] = useState(true);
-    const [province, setProvince] = useState<Province[]>([]);
-    const [district, setDistrict] = useState<District[]>([]);
-    const [subDistrict, setSubDistrict] = useState<SubDistrict[]>([]);
+    const [province, setProvince] = useState<Provinces[]>([]);
+    const [district, setDistrict] = useState<Districts[]>([]);
+    const [subDistrict, setSubDistrict] = useState<Subdistricts[]>([]);
 
     useEffect(() => {
-        fetch("https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province.json").then((res) => res.json().then((val) => {
+        fetch("/api/data/province").then(res => res.json()).then(val => {
             setProvince(val);
-        }));
+        });
+
         onProvinceChange(Result?.province);
         onDistrictChange(Result?.district);
     }, []);
 
-    const onProvinceChange = (e: any) => {
+    const onProvinceChange = async (e: any) => {
         setDistrict([]);
         if (e !== null) {
-            fetch("https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_amphure.json").then((res) => res.json().then((val) => {
-                val.filter((res: District) => {
-                    if (res.province_id == e) {
-                        setDistrict((district) => [...district, res]);
-                    }
-                })
-            }));
-            HandleChange({ target: { name: "province", value: e } });
+            await fetch(`/api/data/distrince/${e}`).then(res => res.json()).then(val => {
+                setDistrict(val);
+            })
+            HandleChange({ target: { name: "province", value: parseInt(e) } });
         }
     }
 
-    const onDistrictChange = (e: any) => {
+    const onDistrictChange = async (e: any) => {
         setSubDistrict([]);
         if (e !== null) {
-            fetch("https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_tambon.json").then((res) => res.json().then((val) => {
-                val.filter((res: SubDistrict) => {
-                    if (res.amphure_id == e) {
-                        setSubDistrict((district) => [...district, res]);
-                    }
-                })
-            }));
-            HandleChange({ target: { name: "district", value: e } });
+            await fetch(`/api/data/subdistrince/${e}`).then(res => res.json()).then(val => {
+                setSubDistrict(val);
+            })
+            HandleChange({ target: { name: "district", value: parseInt(e) } });
         }
     }
 
     const onSubDistrictChange = (e: any) => {
-        HandleChange({ target: { name: "subdistrict", value: e } });
+        HandleChange({ target: { name: "subdistrict", value: parseInt(e) } });
     };
 
     const onSubmit = (e: any) => {
@@ -72,22 +59,22 @@ export const Step2 = ({ NextStep, BackStep, Result, HandleChange }: { NextStep: 
                     <Input value={Result?.road} name="road" onChange={HandleChange} label="ถนน" placeholder="ถนน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกถนน" />
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.province.toString()} name="province" onSelectionChange={onProvinceChange} label="จังหวัด" placeholder="จังหวัด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกจังหวัด"  >
                         {province.map((province) => (
-                            <AutocompleteItem key={province.id}>{province.name_th}</AutocompleteItem>
+                            <AutocompleteItem key={province.Id}>{province.NameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.district.toString()} name="district" onSelectionChange={onDistrictChange} label="เขต/อำเภอ" placeholder="เขต/อำเภอ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกเขต/อำเภอ" >
                         {district.map((district) => (
-                            <AutocompleteItem key={district.id}>{district.name_th}</AutocompleteItem>
+                            <AutocompleteItem key={district.Id}>{district.NameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.subdistrict.toString()} name="subdistrict" onSelectionChange={onSubDistrictChange} label="แขวง/ตำบล" placeholder="แขวง/ตำบล" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกแขวง/ตำบล">
                         {subDistrict.map((subDistrict) => (
-                            <AutocompleteItem key={subDistrict.id}>{subDistrict.name_th}</AutocompleteItem>
+                            <AutocompleteItem key={subDistrict.Id}>{subDistrict.NameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
-                    <div className="flex flex-row gap-4 w-full">
-                        <Button className="w-full" variant="solid" size="lg" radius="full" onPress={BackStep}>ย้อนกลับ</Button>
+                    <div className="flex flex-col pt-5 gap-2 w-full">
                         <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" type="submit">ถัดไป</Button>
+                        <Button className="w-full" variant="solid" size="lg" radius="full" onPress={() => BackStep("Address")}>ย้อนกลับ</Button>
                     </div>
 
                 </Form>

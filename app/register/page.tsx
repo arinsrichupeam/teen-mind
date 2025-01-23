@@ -1,15 +1,14 @@
 "use client"
 
 import { title } from "@/components/primitives";
-import { Tabs, Tab } from "@nextui-org/tabs";
-import { Progress } from "@nextui-org/progress";
-
 import { Step1 } from "./components/step1";
 import { Step2 } from "./components/step2";
+import { Step3 } from "./components/step3";
 import { useEffect, useState } from "react";
 import { Address, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
-import { Register } from "@/types/register";
+import { useRouter } from "next/navigation";
+import { Alert, Tab, Tabs } from "@heroui/react";
 
 const profileInitValue: Profile = {
   id: "",
@@ -30,94 +29,102 @@ const profileInitValue: Profile = {
 const addressInitValue: Address = {
   id: "",
   profileId: "",
-  houseNo: "78/350",
+  houseNo: "",
   villageNo: "",
-  soi: "เพชรเกษม 106",
-  road: "เพชรเกษม",
-  province: 1,
-  district: 1023,
-  subdistrict: 102303
-}
-
-const RegisterInitValue = {
-  register_profile: profileInitValue,
-  register_address: addressInitValue
+  soi: "",
+  road: "",
+  province: 0,
+  district: 0,
+  subdistrict: 0
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [selected, setSelected] = useState("profile");
-  const [progress, setProgress] = useState(50);
+  const [showAlert, setShowAlert] = useState(false);
 
-  // const [register, setRegister] = useState<Register>(RegisterInitValue);
   const [profile, setProfile] = useState<Profile>(profileInitValue);
   const [address, setAddress] = useState<Address>(addressInitValue);
 
-  const NextStep = async (val: any) => {
-    if (val === "Profile") {
-      setSelected("address");
-      setProgress(100);
-    }
-    else if (val === "Address") {
-      // console.log(profile, address);
+  const SaveToDB = async () => {
+    // Save to DB
+    console.log("Save to DB");
 
-      await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ register_profile: profile, register_address: address })
-      }).then((res) => {
-        if (res.status === 200) {
-          console.log("Success");
-        }
-      });
+    await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ register_profile: profile, register_address: address })
+    }).then((res) => {
+      if (res.status === 200) {
+        setShowAlert(true);
+        setTimeout(() => {
+          router.push("/question");
+        }, 3000)
+      }
+    });
+  }
 
-      // console.log(register);
-
-      // Save to DB
-      console.log("Save to DB");
+  const NextStep = (name: any) => {
+    switch (name) {
+      case "Profile":
+        setSelected("address");
+        break;
+      case "Address":
+        setSelected("confirm");
+        break;
+      case "Confirm":
+        SaveToDB();
+        break;
     }
   }
 
-  const BackStep = () => {
-    setSelected("profile");
-    setProgress(50);
+  const BackStep = (name: any) => {
+    switch (name) {
+      case "Address":
+        setSelected("profile");
+        break;
+      case "Confirm":
+        setSelected("address");
+        break;
+    }
   }
 
   const ProfileHandleChange = (e: any) => {
     if (e.target.name === "birthday") {
-      setProfile((prev) => ({
+      setProfile((prev: any) => ({
         ...prev,
-        birthday: e.target.value,
+        "birthday": e.target.value,
       }));
-      // setRegister((prev) => ({
-      //   ...prev,
-      //   register_profile: profile
-      // }));
+    }
+    else if (e.target.name === "prefix") {
+      setProfile((prev: any) => ({
+        ...prev,
+        "prefix": parseInt(e.target.value),
+      }));
+    }
+    else if (e.target.name === "sex") {
+      setProfile((prev: any) => ({
+        ...prev,
+        "sex": parseInt(e.target.value),
+      }));
     }
     else if (e.target.name === "citizenId") {
       const val = e.target.value;
       if (val.length <= 13) {
-        setProfile((prev) => ({
+        setProfile((prev: any) => ({
           ...prev,
           [e.target.name]: e.target.value,
         }));
-        // setRegister((prev) => ({
-        //   ...prev,
-        //   register_profile: profile
-        // }));
       }
     }
     else {
-      setProfile((prev) => ({
+      setProfile((prev: any) => ({
         ...prev,
         [e.target.name]: e.target.value,
       }));
-      // setRegister((prev) => ({
-      //   ...prev,
-      //   register_profile: profile
-      // }));
     }
   }
 
@@ -126,10 +133,6 @@ export default function RegisterPage() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
-    // setRegister((prev) => ({
-    //   ...prev,
-    //   register_address: address
-    // }));
   }
 
   useEffect(() => {
@@ -138,24 +141,25 @@ export default function RegisterPage() {
         ...prev,
         userId: session?.user?.id as string,
       }));
-      // setRegister((prev) => ({
-      //   ...prev,
-      //   register_profile: profile
-      // }));
     }
   }, [session]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-5">
-      <Progress aria-label="Loading..." size="md" value={progress} />
+      <div className="flex items-center my-3 absolute top-5 right-5">
+        <Alert color={"success"} title={"ลงทะเบียนเรียบร้อย"} variant="faded" isVisible={showAlert} />
+      </div>
       <h1 className={title()}>ลงทะเบียน</h1>
       <div className="flex w-full flex-col">
-        <Tabs aria-label="Options" selectedKey={selected}>
+        <Tabs aria-label="Options" selectedKey={selected} className="max-w-sm" variant="light" color="primary">
           <Tab key="profile" title="ข้อมูลส่วนตัว">
             <Step1 NextStep={NextStep} Result={profile} HandleChange={ProfileHandleChange} />
           </Tab>
           <Tab key="address" title="ที่อยู่อาศัย">
             <Step2 NextStep={NextStep} BackStep={BackStep} Result={address} HandleChange={AddressHandleChange} />
+          </Tab>
+          <Tab key="confirm" title="ยืนยันข้อมูล">
+            <Step3 NextStep={NextStep} BackStep={BackStep} Profile={profile} Address={address} />
           </Tab>
         </Tabs>
       </div>

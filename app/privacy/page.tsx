@@ -1,43 +1,11 @@
 "use client"
 
-import { title } from "@/components/primitives";
-import { Button } from "@nextui-org/button";
-import { Card, CardBody } from "@nextui-org/card";
-import { Checkbox } from "@nextui-org/checkbox";
-import { Textarea } from "@nextui-org/input";
-import { Link } from "@nextui-org/link";
-import { signIn, signOut, useSession } from "next-auth/react";
-import { redirect, useRouter } from "next/navigation";
 import { useState } from "react";
+import { title } from "@/components/primitives";
+import { Button, Card, CardBody, Checkbox, Link } from "@heroui/react";
 
 export default function PrivacyPage() {
-  const router = useRouter();
   const [agree, setAgree] = useState(false);
-  const { data: session, status } = useSession();
-
-  const CheckProfile = async () => {
-    if (status !== "loading" && status === "unauthenticated") {
-      signIn("line");
-    }
-    else {
-      console.log(session?.user);
-      await fetch(`/api/profile/${session?.user?.id}`).then((res) => res.json().then(val => {
-        if (val.profile.length === 0) {
-          console.log("No profile found");
-          router.push("/register");
-        }
-        else {
-          console.log(val.profile);
-        }
-      }));
-    }
-  };
-
-  const NotAgree = () => {
-    console.log("Click");
-    signOut();
-    router.push("/");
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -293,8 +261,8 @@ export default function PrivacyPage() {
         และเงื่อนไขและข้อตกลงการใช้บริการ
       </Checkbox>
       <div className="flex flex-row gap-5 w-full">
-        <Button variant="solid" radius="full" className="w-full" onPress={NotAgree}>ไม่ยินยอม</Button>
-        <Button isDisabled={!agree} color="primary" variant="solid" radius="full" className="w-full" onPress={CheckProfile}>ยินยอม</Button>
+        <Button variant="solid" radius="full" className="w-full" as={Link} href="/">ไม่ยินยอม</Button>
+        <Button isDisabled={!agree} color="primary" variant="solid" radius="full" className="w-full" as={Link} href="/register">ยินยอม</Button>
       </div>
     </div>
   );

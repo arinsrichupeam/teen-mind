@@ -3,8 +3,8 @@
 import {
   Navbar as NextUINavbar,
   NavbarContent
-} from "@nextui-org/navbar";
-import { User } from "@nextui-org/user";
+} from "@heroui/navbar";
+import { User } from "@heroui/user";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 

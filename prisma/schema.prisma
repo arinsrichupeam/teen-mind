@@ -108,3 +108,31 @@ model Address {
 
   @@index([profileId], map: "Address_profileId_fkey")
 }
+
+model Provinces {
+  Id         Int    @id
+  Code       Int    @unique(map: "UX_Provinces_Code")
+  NameInThai String @db.VarChar(150)
+}
+
+model Districts {
+  Id           Int            @id
+  Code         Int            @unique(map: "UX_Districts_Code")
+  NameInThai   String         @db.VarChar(150)
+  ProvinceId   Int
+  ZoneId       Int?
+  subdistricts Subdistricts[]
+
+  @@index([ZoneId], map: "FK_Districts_Zone")
+  @@index([ProvinceId], map: "IX_Districts_ProvinceId")
+}
+
+model Subdistricts {
+  Id         Int       @id
+  Code       Int       @unique(map: "UX_Subdistricts_Code")
+  NameInThai String    @db.VarChar(150)
+  DistrictId Int
+  districts  Districts @relation(fields: [DistrictId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Subdistricts_Districts")
+
+  @@index([DistrictId], map: "IX_Subdistricts_DistrictId")
+}
