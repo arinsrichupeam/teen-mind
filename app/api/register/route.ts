@@ -1,7 +1,5 @@
-import { Register } from '@/types/register';
 import { prisma } from '@/utils/prisma';
 import { Address, Profile } from '@prisma/client';
-import { NextApiRequest } from 'next';
 
 export async function GET() {
     return Response.json("GET request successful");
@@ -45,6 +43,9 @@ export async function POST(req: Request) {
                         ethnicity: profile.ethnicity,
                         nationality: profile.nationality,
                         tel: profile.tel,
+                        role: {
+                            connect: { id: 1 }
+                        },
                         address: {
                             create: [{
                                 houseNo: address.houseNo,
@@ -53,12 +54,10 @@ export async function POST(req: Request) {
                                 road: address.road,
                                 province: address.province,
                                 district: address.district,
-                                subdistrict: address.subdistrict,
+                                subdistrict: address.subdistrict
                             }]
                         }
                     }]
-
-
                 }
             }
         });

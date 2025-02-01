@@ -5,7 +5,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const data = await prisma.districts.findMany({
         where: {
-            ProvinceId: parseInt(id)
+            provinceId: parseInt(id)
         }
     });
 

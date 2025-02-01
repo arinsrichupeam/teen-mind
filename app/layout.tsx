@@ -47,7 +47,7 @@ export default function RootLayout({
         >
           <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
             {/* bg-gradient-to-b from-blue-300 to-write */}
-            <div className="pt-16 relative flex flex-col h-screen bg-gradient-to-b from-blue-300 to-write" >              
+            <div className="pt-16 relative flex flex-col h-screen bg-gradient-to-b from-blue-300 to-write" >
               {/* <Navbar /> */}
               <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
                 {children}

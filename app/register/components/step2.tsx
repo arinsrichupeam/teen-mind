@@ -59,17 +59,17 @@ export const Step2 = ({ NextStep, BackStep, Result, HandleChange }: { NextStep: 
                     <Input value={Result?.road} name="road" onChange={HandleChange} label="ถนน" placeholder="ถนน" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกถนน" />
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.province.toString()} name="province" onSelectionChange={onProvinceChange} label="จังหวัด" placeholder="จังหวัด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกจังหวัด"  >
                         {province.map((province) => (
-                            <AutocompleteItem key={province.Id}>{province.NameInThai}</AutocompleteItem>
+                            <AutocompleteItem key={province.id}>{province.nameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.district.toString()} name="district" onSelectionChange={onDistrictChange} label="เขต/อำเภอ" placeholder="เขต/อำเภอ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกเขต/อำเภอ" >
                         {district.map((district) => (
-                            <AutocompleteItem key={district.Id}>{district.NameInThai}</AutocompleteItem>
+                            <AutocompleteItem key={district.id}>{district.nameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
                     <Autocomplete className="max-w-xs" defaultSelectedKey={Result?.subdistrict.toString()} name="subdistrict" onSelectionChange={onSubDistrictChange} label="แขวง/ตำบล" placeholder="แขวง/ตำบล" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกแขวง/ตำบล">
                         {subDistrict.map((subDistrict) => (
-                            <AutocompleteItem key={subDistrict.Id}>{subDistrict.NameInThai}</AutocompleteItem>
+                            <AutocompleteItem key={subDistrict.id}>{subDistrict.nameInThai}</AutocompleteItem>
                         ))}
                     </Autocomplete>
                     <div className="flex flex-col pt-5 gap-2 w-full">

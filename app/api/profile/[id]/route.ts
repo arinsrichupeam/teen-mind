@@ -55,7 +55,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                     firstname: true,
                     lastname: true,
                     birthday: true,
-                    address: true
+                    address: true,
+                    role: true
                 }
             }
         },

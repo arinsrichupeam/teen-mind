@@ -13,16 +13,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model User {
-  id            String    @id @default(cuid())
+  id            String             @id @default(cuid())
   name          String?
-  username      String?   @unique
-  email         String?   @unique
+  username      String?            @unique
+  email         String?            @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
   profile       Profile[]
+  questions     Questions_Master[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,29 +73,8 @@ model Account {
   @@index([userId])
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
 model Profile {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   citizenId   String
   prefix      Int
@@ -84,14 +85,21 @@ model Profile {
   ethnicity   String
   nationality String
   tel         String
-  address     Address[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  address   Address[]
+  role      Roles[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Roles {
+  id      Int       @id @default(autoincrement())
+  name    String
+  profile Profile[]
 }
 
 model Address {
@@ -110,29 +118,75 @@ model Address {
 }
 
 model Provinces {
-  Id         Int    @id
-  Code       Int    @unique(map: "UX_Provinces_Code")
-  NameInThai String @db.VarChar(150)
+  id         Int    @id
+  code       Int    @unique(map: "UX_Provinces_Code")
+  nameInThai String @db.VarChar(150)
 }
 
 model Districts {
-  Id           Int            @id
-  Code         Int            @unique(map: "UX_Districts_Code")
-  NameInThai   String         @db.VarChar(150)
-  ProvinceId   Int
-  ZoneId       Int?
+  id           Int            @id
+  code         Int            @unique(map: "UX_Districts_Code")
+  nameInThai   String         @db.VarChar(150)
+  provinceId   Int
+  zoneId       Int?
   subdistricts Subdistricts[]
 
-  @@index([ZoneId], map: "FK_Districts_Zone")
-  @@index([ProvinceId], map: "IX_Districts_ProvinceId")
+  @@index([zoneId], map: "FK_Districts_Zone")
+  @@index([provinceId], map: "IX_Districts_ProvinceId")
 }
 
 model Subdistricts {
-  Id         Int       @id
-  Code       Int       @unique(map: "UX_Subdistricts_Code")
-  NameInThai String    @db.VarChar(150)
-  DistrictId Int
-  districts  Districts @relation(fields: [DistrictId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Subdistricts_Districts")
+  id         Int       @id
+  code       Int       @unique(map: "UX_Subdistricts_Code")
+  nameInThai String    @db.VarChar(150)
+  districtId Int
+  districts  Districts @relation(fields: [districtId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Subdistricts_Districts")
 
-  @@index([DistrictId], map: "IX_Subdistricts_DistrictId")
+  @@index([districtId], map: "IX_Subdistricts_DistrictId")
+}
+
+model Questions_Master {
+  id        String           @id @default(cuid())
+  userId    String
+  referent  String?
+  consult   String?
+  status    Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  phqa      Questions_PHQA[]
+  q2        Questions_2Q[]
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Questions_PHQA {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int
+  q2                 Int
+  q3                 Int
+  q4                 Int
+  q5                 Int
+  q6                 Int
+  q7                 Int
+  q8                 Int
+  q9                 Int
+  sum                Int
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id])
+
+  @@index([questions_MasterId])
+}
+
+model Questions_2Q {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int
+  q2                 Int
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id])
+
+  @@index([questions_MasterId])
 }

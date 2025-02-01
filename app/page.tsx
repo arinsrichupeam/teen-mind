@@ -15,16 +15,16 @@ export default function IndexPage() {
       signIn("line");
     }
     else {
-      // console.log(session?.user);
       await fetch(`/api/profile/${session?.user?.id}`).then((res) => res.json().then(val => {
-        // console.log(val);
-        if (val.profile.length == 0) {
-          // console.log("No profile found");
+        console.log(val);
+        if (val == null) {
+          signOut();
+        }
+        else if (val.profile?.length == 0) {
           router.push("/privacy");
         }
         else {
-          // console.log(val.profile);
-          router.push("/question/phqa");
+          router.push("/question");
         }
       }));
     }

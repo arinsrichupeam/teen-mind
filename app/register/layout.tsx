@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 
-export default function PricingLayout({
+export default function RegisterLayout({
   children,
 }: {
   children: React.ReactNode;
