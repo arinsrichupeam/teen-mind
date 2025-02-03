@@ -1,13 +1,14 @@
 "use client"
 
 import { title } from "@/components/primitives";
-import { Button, Card, CardBody, Form, Input } from "@heroui/react";
+import { Button, Card, CardBody, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from "@heroui/react";
 import { RadioGroup, Radio } from "@heroui/radio";
 import { PHQA_1, PHQA_2, PHQA_3, PHQA_4, PHQA_5, PHQA_6, PHQA_7, PHQA_8, PHQA_9 } from "./components/phqa-icons";
 import { Q1, Q2 } from "./components/q2-icons";
 import { useEffect, useState } from "react";
 import { Questions_2Q, Questions_PHQA } from "@prisma/client";
 import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function PHQAPage() {
 
@@ -68,6 +69,9 @@ export default function PHQAPage() {
   }
 
   const { data: session, status } = useSession();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const router = useRouter();
+
   const [request, setRequest] = useState(false);
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
   const [q2_data, setQ2] = useState<Questions_2Q>(q2InitValue);
@@ -84,11 +88,11 @@ export default function PHQAPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ userId: session?.user?.id, phqa: phqa_data, q2: q2_data })
-    }).then((res) => {
+    }).then((res) => res.json().then(val => {
       if (res.status === 200) {
-        console.log("Return Success");
+        router.push("/question/list");
       }
-    });
+    }));
   }
 
   const phqaChange = (e: any) => {
@@ -98,8 +102,15 @@ export default function PHQAPage() {
     }));
   }
 
+  const q2Change = (e: any) => {
+    setQ2((prev: any) => ({
+      ...prev,
+      ["q" + e.target.name]: Number(e.target.value)
+    }));
+  }
+
   return (
-    <div className="flex flex-col w-full  gap-5">
+    <div className="flex flex-col w-full gap-5">
       <Form className="w-full items-center flex flex-col gap-4" validationBehavior="native" onSubmit={onSubmit}>
         <h1 className={title({ size: "xs" })}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น (PHQ-A)</h1>
         {qPhqa.map((val, index) => {
@@ -128,7 +139,7 @@ export default function PHQAPage() {
               <CardBody>
                 <div className="flex flex-row"><p>{index + 1}.</p>&nbsp;<p>{val}</p></div>
                 <div className="flex flex-row">
-                  <RadioGroup isRequired={request} errorMessage="กรุณาระบุ" className="pl-5 pt-3" label="เลือกข้อที่รู้สึกตรงกับตัวเอง" size="sm">
+                  <RadioGroup isRequired={request} errorMessage="กรุณาระบุ" name={(index + 1).toString()} className="pl-5 pt-3" label="เลือกข้อที่รู้สึกตรงกับตัวเอง" size="sm" onChange={(val) => q2Change(val)}>
                     <Radio className="" value="1">ใช่</Radio>
                     <Radio className="pb-6" value="0">ไม่ใช่</Radio>
                   </RadioGroup>
@@ -140,7 +151,7 @@ export default function PHQAPage() {
         })}
 
         <div className="flex flex-col w-full gap-3 pt-5">
-          <Button className="w-full" variant="solid" color="default" size="lg" radius="full" type="button">ย้อนกลับ</Button>
+          <Button className="w-full" variant="solid" color="default" size="lg" radius="full" type="button" onPress={() => router.push("/")}>ย้อนกลับ</Button>
           <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" type="submit">ถัดไป</Button>
         </div>
       </Form>

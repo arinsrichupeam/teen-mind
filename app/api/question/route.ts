@@ -1,4 +1,4 @@
-import { Questions_PHQA } from "@prisma/client";
+import { Questions_2Q, Questions_PHQA } from "@prisma/client";
 import { prisma } from '@/utils/prisma';
 import lineSdk from "@/utils/linesdk";
 import { DemoNoti, GreenFlex, RedFlex, YellowFlex } from "@/config/LineResponse";
@@ -11,15 +11,11 @@ export async function POST(req: Request) {
     const data = await req.json();
     const userId = data.userId;
     const phqa_data: Questions_PHQA = data.phqa;
-    const q2_data: Questions_PHQA = data.q2;
+    const q2_data: Questions_2Q = data.q2;
+    let status = "";
 
     const phqa_sum = SumValue(phqa_data);
 
-    // console.log(userId);
-    // console.log(phqa_data, phqa_sum);
-    // console.log(q2_data);
-    // console.log("Select ProviderAccountId");
-    
     const UUID = await prisma.user.findUnique({
         where: {
             id: userId
@@ -33,10 +29,26 @@ export async function POST(req: Request) {
         }
     }).then((val) => val?.accounts[0].providerAccountId as string)
 
-    // console.log("Create Questions");
+    switch (true) {
+        case (phqa_sum >= 0 && phqa_sum <= 4):
+            status = "Green";
+            await lineSdk.pushMessage(UUID, GreenFlex);
+            break;
+        case (phqa_sum >= 5 && phqa_sum <= 14):
+            status = "Yellow";
+            await lineSdk.pushMessage(UUID, YellowFlex);
+            break;
+        case (phqa_sum >= 15):
+            status = "Red";
+            await lineSdk.pushMessage(UUID, RedFlex);
+            break;
+    }
+
+    console.log("Create Questions");
     await prisma.questions_Master.create({
         data: {
             userId: userId,
+            result: status,
             status: 0,
             phqa: {
                 create: {
@@ -51,26 +63,29 @@ export async function POST(req: Request) {
                     q9: phqa_data.q1,
                     sum: phqa_sum
                 }
+            },
+            q2: {
+                create: {
+                    q1: q2_data.q1,
+                    q2: q2_data.q2
+                }
             }
         }
     }).then(async () => {
-        switch (true) {
-            case (phqa_sum >= 0 && phqa_sum <= 4):
-                console.log("Green");
+        switch (status) {
+            case "Green":
                 await lineSdk.pushMessage(UUID, GreenFlex);
                 break;
-            case (phqa_sum >= 5 && phqa_sum <= 14):
-                console.log("Yellow");
+            case "Yellow":
                 await lineSdk.pushMessage(UUID, YellowFlex);
                 break;
-            case (phqa_sum >= 15):
-                console.log("Red");
+            case "Red":
                 await lineSdk.pushMessage(UUID, RedFlex);
                 break;
         }
     });
 
-    return new Response("Success");
+    return Response.json(status);
 }
 
 function SumValue(value: any) {

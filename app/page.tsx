@@ -23,16 +23,15 @@ export default function IndexPage() {
         else if (val.profile?.length == 0) {
           router.push("/privacy");
         }
+        else if (val.questions?.length != 0) {
+          router.push("/question/list");
+        }
         else {
           router.push("/question");
         }
       }));
     }
   };
-
-  useEffect(() => {
-
-  }, []);
 
   return (
     <div className="flex flex-col gap-5 items-center">

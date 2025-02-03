@@ -58,6 +58,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                     address: true,
                     role: true
                 }
+            },
+            questions: {
+                select: {
+                    _count: true
+                }
             }
         },
     });

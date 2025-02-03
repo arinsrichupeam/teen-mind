@@ -150,6 +150,7 @@ model Questions_Master {
   userId    String
   referent  String?
   consult   String?
+  result    String
   status    Int              @default(0)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
@@ -175,7 +176,7 @@ model Questions_PHQA {
   q9                 Int
   sum                Int
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id])
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
 
   @@index([questions_MasterId])
 }
@@ -186,7 +187,7 @@ model Questions_2Q {
   q1                 Int
   q2                 Int
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id])
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
 
   @@index([questions_MasterId])
 }
