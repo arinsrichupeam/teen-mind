@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { title } from "@/components/primitives";
-import { Button, Card, CardBody, Checkbox, Link } from "@heroui/react";
+import { Button, Card, CardBody, Checkbox } from "@heroui/react";
+import { useRouter } from "next/navigation";
 
 export default function PrivacyPage() {
   const [agree, setAgree] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-5">
@@ -261,8 +263,8 @@ export default function PrivacyPage() {
         และเงื่อนไขและข้อตกลงการใช้บริการ
       </Checkbox>
       <div className="flex flex-row gap-5 w-full">
-        <Button variant="solid" radius="full" className="w-full" as={Link} href="/">ไม่ยินยอม</Button>
-        <Button isDisabled={!agree} color="primary" variant="solid" radius="full" className="w-full" as={Link} href="/register">ยินยอม</Button>
+        <Button variant="solid" radius="full" className="w-full" onPress={() => router.push("/")}>ไม่ยินยอม</Button>
+        <Button isDisabled={!agree} color="primary" variant="solid" radius="full" className="w-full" onPress={() => router.push("/register")}>ยินยอม</Button>
       </div>
     </div>
   );

@@ -32,15 +32,12 @@ export async function POST(req: Request) {
     switch (true) {
         case (phqa_sum >= 0 && phqa_sum <= 4):
             status = "Green";
-            await lineSdk.pushMessage(UUID, GreenFlex);
             break;
         case (phqa_sum >= 5 && phqa_sum <= 14):
             status = "Yellow";
-            await lineSdk.pushMessage(UUID, YellowFlex);
             break;
         case (phqa_sum >= 15):
             status = "Red";
-            await lineSdk.pushMessage(UUID, RedFlex);
             break;
     }
 
