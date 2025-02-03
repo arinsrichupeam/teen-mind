@@ -12,7 +12,7 @@ export default function IndexPage() {
 
   const CheckProfile = async () => {
     if (status !== "loading" && status === "unauthenticated") {
-      signIn("line");
+      signIn();
     }
     else {
       await fetch(`/api/profile/${session?.user?.id}`).then((res) => res.json().then(val => {
