@@ -72,7 +72,7 @@ export default function PHQAPage() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const router = useRouter();
 
-  const [request, setRequest] = useState(false);
+  const [request, setRequest] = useState(true);
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
   const [q2_data, setQ2] = useState<Questions_2Q>(q2InitValue);
 
