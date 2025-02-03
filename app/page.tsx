@@ -12,7 +12,7 @@ export default function IndexPage() {
 
   const CheckProfile = async () => {
     if (status !== "loading" && status === "unauthenticated") {
-      signIn();
+      signIn("line");
     }
     else {
       await fetch(`/api/profile/${session?.user?.id}`).then((res) => res.json().then(val => {
@@ -33,10 +33,6 @@ export default function IndexPage() {
     }
   };
 
-  useEffect(() => {
-
-  }, [session]);
-
   return (
     <div className="flex flex-col gap-5 items-center">
       <h1 className={title()}>TEEN MIND</h1>
@@ -55,7 +51,7 @@ export default function IndexPage() {
         </CardBody>
         <CardFooter className="flex-col gap-4 items-start">
           <p className="text-tiny uppercase font-bold">คำอธิบายเกี่ยวกับแอพ</p>
-          <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" onPress={() => signOut()}>ออกจากระบบ</Button>
+          {/* <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" onPress={() => signOut()}>ออกจากระบบ</Button> */}
           <Button className="w-full" variant="solid" color="primary" size="lg" radius="full" onPress={CheckProfile}>ถัดไป</Button>
         </CardFooter>
       </Card>
