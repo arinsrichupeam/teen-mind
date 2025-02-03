@@ -5,13 +5,12 @@ import { useState } from "react";
 import { Profile } from "@prisma/client";
 import { prefix, sex } from "@/types/systemmodel";
 import { validateCitizen } from "@/utils/validateCitizen";
-import { now, getLocalTimeZone } from "@internationalized/date";
 
 export const Step1 = ({ NextStep, Result, HandleChange }: { NextStep: (val: any) => void; Result: Profile | undefined; HandleChange: (val: any) => void }) => {
     const [request, setRequest] = useState(true);
 
     const onSubmit = (e: any) => {
-        e.preventDefault()
+        e.preventDefault();
         NextStep("Profile");
     }
 
@@ -38,7 +37,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: { NextStep: (val: any)
                     </div>
                     <Input label="ชื่อ" value={Result?.firstname} name="firstname" onChange={HandleChange} placeholder="ชื่อ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกชื่อ" />
                     <Input label="นามสกุล" value={Result?.lastname} name="lastname" onChange={HandleChange} placeholder="นามสกุล" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกนามสกุล" />
-                    <DateInput className="w-full" onChange={DateChange} label="วันเกิด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกวันเกิด" />                    
+                    <DateInput className="w-full" onChange={DateChange} label="วันเกิด" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณาเลือกวันเกิด" />
                     <div className="flex flex-row gap-4 w-full">
                         <Input label="เชื้อชาติ" value={Result?.ethnicity} name="ethnicity" onChange={HandleChange} placeholder="เชื้อชาติ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกเชื้อชาติ" />
                         <Input label="สัญชาติ" value={Result?.nationality} name="nationality" onChange={HandleChange} placeholder="สัญชาติ" labelPlacement="inside" variant="bordered" size="sm" radius="md" isRequired={request} errorMessage="กรุณากรอกสัญชาติ" />

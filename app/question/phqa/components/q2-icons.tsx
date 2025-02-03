@@ -1,7 +1,6 @@
 import { IconSvgProps } from "@/types";
 
 export const Q1: React.FC<IconSvgProps> = ({
-  size = 36,
   width,
   height,
   ...props
@@ -19,7 +18,6 @@ export const Q1: React.FC<IconSvgProps> = ({
 );
 
 export const Q2: React.FC<IconSvgProps> = ({
-  size = 36,
   width,
   height,
   ...props
