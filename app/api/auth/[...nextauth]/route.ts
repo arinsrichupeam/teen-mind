@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import LineProvider from "next-auth/providers/line";
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/utils/prisma"
+import { prisma } from "@/utils/prisma";
 
-const handler = NextAuth({
+export const authOptions = NextAuth({
     adapter: PrismaAdapter(prisma),
     providers: [
         LineProvider({
@@ -30,9 +30,11 @@ const handler = NextAuth({
         },
         async redirect({ url, baseUrl }) {
             if (url.startsWith("/")) {
+                console.log(`${baseUrl}${url}`);
                 return `${baseUrl}${url}`
             }
             else if (new URL(url).origin === baseUrl) {
+                console.log("Call : ",`${url}`);
                 return url
             }
             return baseUrl
@@ -40,12 +42,18 @@ const handler = NextAuth({
     },
     session: {
         strategy: "jwt",
-        maxAge: 3 * 24 * 60 * 60, // 3 days
+        maxAge: 1 * 24 * 60 * 60, // 1 days
     },
     jwt: {
-        maxAge: 3 * 24 * 60 * 60, // 3 days
+        maxAge: 1 * 24 * 60 * 60, // 1 days
         secret: process.env.NEXTAUTH_SECRET,
     },
+    theme:{
+        colorScheme:"light",        
+    }
+    // pages: {
+    //     signIn: "/liff/auth/",
+    // },
 });
 
-export { handler as GET, handler as POST };
+export { authOptions as GET, authOptions as POST };
