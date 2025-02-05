@@ -4,25 +4,55 @@ import { Link } from "@heroui/link";
 import { Snippet } from "@heroui/snippet";
 import { Code } from "@heroui/code";
 import { button as buttonStyles } from "@heroui/theme";
+import { useEffect } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { Button } from "@heroui/button";
+import { useRouter } from "next/navigation";
 
 import { siteConfig } from "@/config/site";
 import { title, subtitle } from "@/components/primitives";
 import { GithubIcon } from "@/components/icons";
-import { useEffect } from "react";
-import { signIn, signOut, useSession } from "next-auth/react";
-import { Button } from "@heroui/button";
 
 export default function Home() {
+  const router = useRouter();
   const { data: session, status } = useSession();
 
+  const checkProfile = async (id: string) => {
+    await fetch(`/api/profile/${id}`).then((res) =>
+      res.json().then((val) => {
+        // console.log(val);
+        if (val === null) {
+          signOut();
+        } else if (val.profile?.length === 0) {
+          // console.log("Not have Profile > Send to Register Page");
+          router.push("/liff/privacy");
+        } else {
+          if (val.questions?.length === 0) {
+            // console.log("Empty Question > Send to Question Page");
+            router.push("/liff/question");
+          } else {
+            // console.log("Show QuestionList");
+            router.push("/liff/question/list");
+          }
+        }
+
+        return val;
+      })
+    );
+  };
+
   useEffect(() => {
-    if (status != "loading" && status == "unauthenticated") {
-      signIn();
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        signIn();
+      } else {
+        checkProfile(session?.user?.id as string);
+      }
     }
   }, [session]);
 
   return (
-    <section className="flex flex-col items-center justify-center gap-4  mx-6 py-8 pt-48 md:py-10">
+    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-6 py-8 md:py-10">
       <div className="inline-block max-w-xl text-center justify-center">
         <span className={title()}>Make&nbsp;</span>
         <span className={title({ color: "violet" })}>beautiful&nbsp;</span>
@@ -33,9 +63,7 @@ export default function Home() {
         <div className={subtitle({ class: "mt-4" })}>
           Beautiful, fast and modern React UI library.
         </div>
-        <div className={subtitle({ class: "mt-4" })}>
-          {status}
-        </div>
+        <div className={subtitle({ class: "mt-4" })}>{status}</div>
       </div>
 
       <div className="flex gap-3">

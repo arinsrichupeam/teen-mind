@@ -4,7 +4,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col h-full items-center justify-center bg-[url(/image/wallpaper.png)] bg-cover">
+    <section className="bg-[url(/image/BG_TEEN_MIND_1.jpg)] w-full bg-cover bg-center bg-no-repeat">
       <div className="inline-block max-w-lg text-center justify-center ">
         {children}
       </div>

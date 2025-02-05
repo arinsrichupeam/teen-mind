@@ -1,7 +1,7 @@
 import {
   Fira_Code as FontMono,
   Inter as FontSans,
-  Prompt as FontPrompt
+  Prompt as FontPrompt,
 } from "next/font/google";
 
 export const fontSans = FontSans({
