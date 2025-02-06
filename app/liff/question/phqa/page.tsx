@@ -29,7 +29,7 @@ export default function QuestionListPage() {
   }, [session]);
 
   return (
-    <section className="flex flex-col px-8 w-[calc(100vw)] h-[calc(100vh-48px)] items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)]  bg-cover bg-center bg-no-repeat">
+    <section className="flex flex-col px-8 w-[calc(100vw)] h-[calc(100vh-48px)] items-center justify-center gap-4">
       <h1 className={title({ size: "sm" })}>ผลประเมินภาวะซึมเศร้า</h1>
       <h2 className={subtitle()}>
         สำรวจตัวเองว่าคุณกำลังเคลียดมากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ 4-5
