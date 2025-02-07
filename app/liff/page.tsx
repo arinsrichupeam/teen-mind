@@ -20,18 +20,14 @@ export default function Home() {
   const checkProfile = async (id: string) => {
     await fetch(`/api/profile/${id}`).then((res) =>
       res.json().then((val) => {
-        // console.log(val);
         if (val === null) {
           signOut();
         } else if (val.profile?.length === 0) {
-          // console.log("Not have Profile > Send to Register Page");
           router.push("/liff/privacy");
         } else {
           if (val.questions?.length === 0) {
-            // console.log("Empty Question > Send to Question Page");
             router.push("/liff/question");
           } else {
-            // console.log("Show QuestionList");
             router.push("/liff/question/list");
           }
         }
@@ -46,7 +42,7 @@ export default function Home() {
       if (status === "unauthenticated") {
         signIn();
       } else {
-        // checkProfile(session?.user?.id as string);
+        checkProfile(session?.user?.id as string);
       }
     }
   }, [session]);

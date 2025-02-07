@@ -146,7 +146,6 @@ export default function PHQAPage() {
           const { accuracy, latitude, longitude } = coords;
 
           setLocation({ accuracy, latitude, longitude });
-          console.log(latitude, longitude);
         });
       }
     }
@@ -161,17 +160,20 @@ export default function PHQAPage() {
 
   const phqaChange = (e: any) => {
     const Question = parseInt(e.target.name);
+    const name = "q" + e.target.name;
+    const value = parseInt(e.target.value);
 
     setQuestion(Question.toString());
 
     if (Question == 9) {
+      setPHQA((prev: any) => ({
+        ...prev,
+        [name]: value,
+      }));
       setQuestionName("2Q");
       setPHQAShow(false);
     } else {
       setProgress(calProgress(Question + 1));
-      const name = "q" + e.target.name;
-      const value = parseInt(e.target.value);
-
       setPHQA((prev: any) => ({
         ...prev,
         [name]: value,
@@ -218,12 +220,21 @@ export default function PHQAPage() {
     );
   };
 
+  const BackStep = async () => {
+    const Question = parseInt(question);
+
+    setProgress(calProgress(Question - 1));
+    setQuestion((Question - 1).toString());
+    if (Question == 9) {
+      setPHQAShow(true);
+    } else if (Question == 0) {
+      router.back();
+    }
+  };
+
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-10">
-      <h1 className={title({ size: "xs" })}>
-        {" "}
-        แบบประเมินภาวะซึมเศร้าในวัยรุ่น{" "}
-      </h1>
+      <h1 className={title({ size: "xs" })}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น</h1>
       <Progress
         aria-label="Loading..."
         className="max-w-md"
@@ -339,7 +350,7 @@ export default function PHQAPage() {
         radius="full"
         size="lg"
         variant="solid"
-        onPress={() => router.back()}
+        onPress={() => BackStep()}
       >
         ย้อนกลับ
       </Button>

@@ -30,27 +30,25 @@ export async function POST(req: Request) {
     })
     .then((val) => val?.accounts[0].providerAccountId as string);
 
-  switch (true) {
-    case phqa_sum >= 0 && phqa_sum <= 4 && q2_data.q1 == 0 && q2_data.q2 == 0:
-      status = "Green";
-      break;
-    case (phqa_sum >= 5 && phqa_sum <= 14) ||
-      q2_data.q1 == 1 ||
-      q2_data.q2 == 1:
+  if (phqa_sum > 14) {
+    status = "Red";
+  } else if (phqa_sum > 4) {
+    status = "Yellow";
+  } else {
+    if (phqa_data.q9 > 0 || q2_data.q1 == 1 || q2_data.q2 == 1) {
       status = "Yellow";
-      break;
-    case phqa_sum >= 15 || q2_data.q1 == 1 || q2_data.q2 == 1:
-      status = "Red";
-      break;
+    } else {
+      status = "Green";
+    }
   }
 
-  // console.log(Number(location_data.latitude), Number(location_data.longitude));
   await prisma.questions_Master
     .create({
       data: {
         userId: userId,
         latitude: Number(location_data.latitude),
         longitude: Number(location_data.longitude),
+        referent: "",
         result: status,
         status: 0,
         phqa: {
