@@ -46,7 +46,7 @@ export default function Home() {
       if (status === "unauthenticated") {
         signIn();
       } else {
-        // checkProfile(session?.user?.id as string);
+        checkProfile(session?.user?.id as string);
       }
     }
   }, [session]);
