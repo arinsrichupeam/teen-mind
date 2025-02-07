@@ -14,13 +14,13 @@ export default function QuestionPage() {
   };
 
   return (
-    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-8 pt-10 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
-      <div className="flex flex-col items-center gap-5 pt-20">
+    <section className="flex flex-col min-h-[calc(100vh-48px)] px-8 items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
+      <div className="flex flex-col items-center gap-5 pt-10 pb-10">
         <h1 className={title({ size: "sm" })}>คุณกำลังเครียดอยู่หรือเปล่า?</h1>
         <h2 className={subtitle()}>
           สำรวจตัวเองว่าคุณกำลังเครียดมากแค่ไหน โดยใช้เวลาประมาณ 4-5 นาที
         </h2>
-        <Image alt="image" height={400} src="/image/Q1-04.png" />
+        <Image alt="image" src="/image/Q1-04.png" className="h-[40vh]" />
         <h2 className={subtitle()}>
           แบบทดสอบนี้อ้างอิงจากแบบประเมินความเครียด โดยกรมสุขภาพจิต
           กระทรวงสาธารณสุข

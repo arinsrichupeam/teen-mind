@@ -68,7 +68,7 @@ export const Step2 = ({
 
   return (
     <Form
-      className="flex flex-col gap-4 min-h-[690px] text-start"
+      className="flex flex-col gap-4 text-start"
       validationBehavior="native"
       onSubmit={onSubmit}
     >

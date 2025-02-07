@@ -32,20 +32,20 @@ export default function PHQAPage() {
   ];
 
   const qPhqa_Image = (key: number) => [
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-01.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-02.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-03.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-04.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-05.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-06.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-07.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-08.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q1-09.png" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-01.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-02.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-03.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-04.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-05.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-06.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-07.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-08.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q1-09.png" className="h-[20vh]" />,
   ];
 
   const q2_Image = (key: number) => [
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q2-01.png" />,
-    <Image key={key} alt="PHQA Image" height={250} src="/image/Q2-02.png" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q2-01.png" className="h-[20vh]" />,
+    <Image key={key} alt="PHQA Image" src="/image/Q2-02.png" className="h-[20vh]" />,
   ];
 
   const phqaInitValue: Questions_PHQA = {
@@ -164,7 +164,7 @@ export default function PHQAPage() {
   };
 
   return (
-    <section className="flex flex-col px-8 h-[calc(100vh-48px)] items-center justify-center gap-4">
+    <section className="flex flex-col items-center justify-center gap-4 py-10">
       <h1 className={title({ size: "xs" })}>
         {" "}
         แบบประเมินภาวะซึมเศร้าในวัยรุ่น{" "}
@@ -176,11 +176,11 @@ export default function PHQAPage() {
         value={progress}
       />
 
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-[90vw] min-h-[calc(100vh_-_350px)]">
         <h2 className={subtitle()}>{questionName}</h2>
         <Tabs
           aria-label="Options"
-          className="max-w-sm"
+          className="max-w-xs"
           classNames={{ tabList: "invisible" }}
           color="primary"
           selectedKey={question}
@@ -188,93 +188,93 @@ export default function PHQAPage() {
         >
           {showPHQA
             ? qPhqa.map((val, index) => {
-                return (
-                  <Tab key={index}>
-                    <div className="flex flex-col  gap-4 mt-[-50px]">
-                      <div className="flex flex-col items-center">
-                        {qPhqa_Image(index)[index]}
-                      </div>
-                      <div className="flex flex-col gap-4 items-start text-start">
-                        <p className="text-primary-500 font-semibold">
-                          {index + 1}. {val}
-                        </p>
-                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                          <RadioGroup
-                            key={index}
-                            className="pl-5"
-                            label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                            name={(index + 1).toString()}
-                            onChange={(val) => phqaChange(val)}
+              return (
+                <Tab key={index}>
+                  <div className="flex flex-col gap-4 mt-[-50px]">
+                    <div className="flex flex-col items-center">
+                      {qPhqa_Image(index)[index]}
+                    </div>
+                    <div className="flex flex-col gap-4 items-start text-start">
+                      <p className="text-primary-500 font-semibold">
+                        {index + 1}. {val}
+                      </p>
+                      <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                        <RadioGroup
+                          key={index}
+                          className="pl-5"
+                          label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
+                          name={(index + 1).toString()}
+                          onChange={(val) => phqaChange(val)}
+                        >
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="0"
                           >
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="0"
-                            >
-                              ไม่มีเลย
-                            </Radio>
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="1"
-                            >
-                              มีบางวัน
-                            </Radio>
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="2"
-                            >
-                              มีมากกว่า 7 วัน
-                            </Radio>
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="3"
-                            >
-                              มีแทบทุกวัน
-                            </Radio>
-                          </RadioGroup>
-                        </div>
+                            ไม่มีเลย
+                          </Radio>
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="1"
+                          >
+                            มีบางวัน
+                          </Radio>
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="2"
+                          >
+                            มีมากกว่า 7 วัน
+                          </Radio>
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="3"
+                          >
+                            มีแทบทุกวัน
+                          </Radio>
+                        </RadioGroup>
                       </div>
                     </div>
-                  </Tab>
-                );
-              })
+                  </div>
+                </Tab>
+              );
+            })
             : q2.map((val, index) => {
-                return (
-                  <Tab key={index + 9}>
-                    <div className="flex flex-col  gap-4 mt-[-50px]">
-                      <div className="flex flex-col items-center">
-                        {q2_Image(index)[index]}
-                      </div>
-                      <div className="flex flex-col gap-4 items-start text-start">
-                        <p className="text-primary-500 font-semibold">
-                          {index + 1}. {val}
-                        </p>
-                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                          <RadioGroup
-                            key={index}
-                            className="pl-5"
-                            label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                            name={"1" + index.toString()}
-                            onChange={(val) => q2Change(val)}
+              return (
+                <Tab key={index + 9}>
+                  <div className="flex flex-col  gap-4 mt-[-50px]">
+                    <div className="flex flex-col items-center">
+                      {q2_Image(index)[index]}
+                    </div>
+                    <div className="flex flex-col gap-4 items-start text-start">
+                      <p className="text-primary-500 font-semibold">
+                        {index + 1}. {val}
+                      </p>
+                      <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                        <RadioGroup
+                          key={index}
+                          className="pl-5"
+                          label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                          name={"1" + index.toString()}
+                          onChange={(val) => q2Change(val)}
+                        >
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="1"
                           >
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="1"
-                            >
-                              ใช่
-                            </Radio>
-                            <Radio
-                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="0"
-                            >
-                              ไม่ใช่
-                            </Radio>
-                          </RadioGroup>
-                        </div>
+                            ใช่
+                          </Radio>
+                          <Radio
+                            className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="0"
+                          >
+                            ไม่ใช่
+                          </Radio>
+                        </RadioGroup>
                       </div>
                     </div>
-                  </Tab>
-                );
-              })}
+                  </div>
+                </Tab>
+              );
+            })}
         </Tabs>
       </div>
 
