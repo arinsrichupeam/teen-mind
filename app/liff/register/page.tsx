@@ -63,24 +63,24 @@ export default function RegisterPage() {
   );
 
   const SaveToDB = async () => {
-    // await fetch("/api/register", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({
-    //     register_profile: profile,
-    //     register_address: address,
-    //     register_emergency: emergency,
-    //   }),
-    // }).then((res) => {
-    //   if (res.status === 200) {
+    await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        register_profile: profile,
+        register_address: address,
+        register_emergency: emergency,
+      }),
+    }).then((res) => {
+      if (res.status === 200) {
         setShowAlert(true);
-    //     setTimeout(() => {
-    //       router.push("/liff/question");
-    //     }, 3000);
-    //   }
-    // });
+        setTimeout(() => {
+          router.push("/liff/question");
+        }, 3000);
+      }
+    });
   };
 
   const NextStep = (name: any) => {
