@@ -46,13 +46,13 @@ export default function Home() {
       if (status === "unauthenticated") {
         signIn();
       } else {
-        checkProfile(session?.user?.id as string);
+        // checkProfile(session?.user?.id as string);
       }
     }
   }, [session]);
 
   return (
-    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-6 py-8 md:py-10">
+    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-6">
       <div className="inline-block max-w-xl text-center justify-center">
         <span className={title()}>Make&nbsp;</span>
         <span className={title({ color: "violet" })}>beautiful&nbsp;</span>

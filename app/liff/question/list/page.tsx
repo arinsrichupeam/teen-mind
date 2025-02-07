@@ -29,7 +29,7 @@ export default function QuestionListPage() {
   }, [session]);
 
   return (
-    <section className="flex flex-col px-8 w-[calc(100vw)] h-[calc(100vh-48px)] items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)]  bg-cover bg-center bg-no-repeat">
+    <section className="flex flex-col px-8 py-10 w-[calc(100vw)] h-[calc(100vh-48px)] items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)]  bg-cover bg-center bg-no-repeat">
       <h1 className={title({ size: "sm" })}>ผลประเมินภาวะซึมเศร้า</h1>
       <h2 className={subtitle()}>
         สำรวจตัวเองว่าคุณกำลังเคลียดมากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ 4-5
@@ -47,7 +47,7 @@ export default function QuestionListPage() {
       </Button>
       <h2 className={title({ size: "xs" })}>ประวัติการทำรายการ</h2>
       <ScrollShadow
-        className="w-full h-[350px] p-3"
+        className="w-full h-[calc(40vh)] p-3"
         offset={100}
         orientation="horizontal"
       >
@@ -55,7 +55,7 @@ export default function QuestionListPage() {
           {questionList.map((val, index) => {
             return (
               <Card key={index}>
-                <CardBody>
+                <CardBody className="text-sm">
                   <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
                   <p>
                     วันที่{" "}

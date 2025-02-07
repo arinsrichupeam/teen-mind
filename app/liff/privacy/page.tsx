@@ -26,8 +26,8 @@ export default function PrivacyPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
-    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-8 pt-10">
-      <div className="flex flex-col gap-5 pt-8">
+    <section className="flex flex-col items-center justify-center gap-4 px-8 pt-8">
+      <div className="flex flex-col gap-5">
         <h1 className={title({ size: "xs" })}>ข้อกำหนดการใช้งาน</h1>
         <Tabs
           aria-label="Options"
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
         >
           <Tab key="step1" title="ข้อกำหนดและเงื่อนไข">
             <ScrollShadow
-              className="h-[500px]"
+              className="h-[60vh]"
               offset={100}
               orientation="horizontal"
             >
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           </Tab>
           <Tab key="step2" title="นโยบายความเป็นส่วนตัว">
             <ScrollShadow
-              className="h-[500px]"
+              className="h-[60vh]"
               offset={100}
               orientation="horizontal"
             >
@@ -57,6 +57,7 @@ export default function PrivacyPage() {
         <Checkbox
           className="text-start"
           color="primary"
+          size="sm"
           onChange={() => setAgree(!agree)}
         >
           <p>

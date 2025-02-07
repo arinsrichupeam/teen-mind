@@ -63,24 +63,24 @@ export default function RegisterPage() {
   );
 
   const SaveToDB = async () => {
-    await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        register_profile: profile,
-        register_address: address,
-        register_emergency: emergency,
-      }),
-    }).then((res) => {
-      if (res.status === 200) {
+    // await fetch("/api/register", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     register_profile: profile,
+    //     register_address: address,
+    //     register_emergency: emergency,
+    //   }),
+    // }).then((res) => {
+    //   if (res.status === 200) {
         setShowAlert(true);
-        setTimeout(() => {
-          router.push("/question");
-        }, 3000);
-      }
-    });
+    //     setTimeout(() => {
+    //       router.push("/liff/question");
+    //     }, 3000);
+    //   }
+    // });
   };
 
   const NextStep = (name: any) => {
@@ -165,7 +165,7 @@ export default function RegisterPage() {
   }, [session]);
 
   return (
-    <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-8 pt-10">
+    <section className="flex flex-col items-center justify-center gap-4 px-2">
       <div className="flex items-center my-3 absolute top-5 right-5">
         <Alert
           color={"success"}
@@ -176,7 +176,7 @@ export default function RegisterPage() {
       </div>
       <div className="flex flex-col gap-5 pt-8">
         <h1 className={title()}>ลงทะเบียน</h1>
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full min-h-[calc(100vh_-_135px)]">
           <Tabs
             aria-label="Options"
             className="max-w-sm"
