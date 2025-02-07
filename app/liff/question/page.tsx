@@ -10,8 +10,8 @@ export default function QuestionPage() {
   const router = useRouter();
 
   const Submit = () => {
-    router.push("/liff/question/phqa")   
-  }
+    router.push("/liff/question/phqa");
+  };
 
   return (
     <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-8 pt-10 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
@@ -25,11 +25,7 @@ export default function QuestionPage() {
           แบบทดสอบนี้อ้างอิงจากแบบประเมินความเครียด โดยกรมสุขภาพจิต
           กระทรวงสาธารณสุข
         </h2>
-        <Button
-          className="w-full"
-          color="primary"
-          onPress={() => Submit()}
-        >
+        <Button className="w-full" color="primary" onPress={() => Submit()}>
           เริ่มเลย
         </Button>
       </div>

@@ -575,7 +575,13 @@ export const RedFlex: FlexMessage = {
   },
 };
 
-export const EmergencyAlertFlex = ({ name, tel }: { name: string; tel: string; }) => {
+export const EmergencyAlertFlex = ({
+  name,
+  tel,
+}: {
+  name: string;
+  tel: string;
+}) => {
   ({
     type: "flex",
     altText:
