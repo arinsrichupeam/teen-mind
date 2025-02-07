@@ -83,8 +83,12 @@ export default function PrivacyPage() {
         <ModalContent>
           {() => (
             <>
-              <ModalBody className="items-center text-center">
-                <Image alt="Privacy Image" height={230} src="../image/05.png" />
+              <ModalBody className="items-center text-center pt-10">
+                <Image
+                  alt="Privacy Image"
+                  height={200}
+                  src="../image/Q1-05.png"
+                />
                 <h2 className={title({ size: "xs" })}>
                   จัดการความยินยอมของคุณ
                 </h2>

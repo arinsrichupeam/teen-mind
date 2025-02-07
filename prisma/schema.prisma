@@ -163,6 +163,8 @@ model Questions_Master {
   userId    String
   referent  String?
   consult   String?
+  latitude  Decimal?         @db.Decimal(10, 7)
+  longitude Decimal?         @db.Decimal(10, 7)
   result    String
   status    Int              @default(0)
   createdAt DateTime         @default(now())

@@ -4,6 +4,12 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
+export type LocationData = {
+  accuracy: number;
+  latitude: Number;
+  longitude: Number;
+};
+
 export const sex = [
   { key: "1", label: "ชาย" },
   { key: "2", label: "หญิง" },

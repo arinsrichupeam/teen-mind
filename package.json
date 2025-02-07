@@ -25,6 +25,8 @@
   "@heroui/listbox": "2.3.9",
   "@heroui/modal": "^2.2.8",
   "@heroui/navbar": "2.2.8",
+  "@heroui/progress": "^2.2.7",
+  "@heroui/radio": "^2.3.9",
   "@heroui/scroll-shadow": "^2.3.6",
   "@heroui/select": "^2.4.10",
   "@heroui/snippet": "2.2.10",

@@ -41,7 +41,7 @@ export default function QuestionListPage() {
         radius="full"
         size="lg"
         variant="solid"
-        onPress={() => router.push("/question")}
+        onPress={() => router.push("/liff/question")}
       >
         ทำแบบสำรวจ
       </Button>
@@ -62,7 +62,7 @@ export default function QuestionListPage() {
                     {moment(val.createdAt.toString())
                       .add(543, "year")
                       .locale("th")
-                      .format("d MMM yyyy")}
+                      .format("DD MMM yyyy")}
                   </p>
                   {val.result == "Green" ? (
                     <p>ไม่พบความเสี่ยง</p>

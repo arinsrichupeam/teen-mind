@@ -25,7 +25,8 @@ export default function AboutLayout({
           title="heroui.com homepage"
         >
           <span className="text-default-600">Powered by</span>
-          <p className="text-primary">Ratchapiphat Hospital</p>
+          {/* <p className="text-primary">Ratchapiphat Hospital</p> */}
+          <p className="text-primary">โรงพยาบาลราชพิพัฒน์ (ฝ่ายวิชาการ)</p>
         </Link>
       </footer>
     </div>

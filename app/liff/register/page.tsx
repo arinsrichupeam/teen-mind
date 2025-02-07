@@ -5,6 +5,7 @@ import { Address, EmergencyContact, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Alert } from "@heroui/alert";
 
 import { Step1 } from "./components/step1";
 import { Step2 } from "./components/step2";
@@ -165,6 +166,14 @@ export default function RegisterPage() {
 
   return (
     <section className="flex flex-col h-[calc(100vh-48px)] items-center justify-center gap-4 px-8 pt-10">
+      <div className="flex items-center my-3 absolute top-5 right-5">
+        <Alert
+          color={"success"}
+          isVisible={showAlert}
+          title={"ลงทะเบียนเรียบร้อย"}
+          variant="faded"
+        />
+      </div>
       <div className="flex flex-col gap-5 pt-8">
         <h1 className={title()}>ลงทะเบียน</h1>
         <div className="flex flex-col w-full">
