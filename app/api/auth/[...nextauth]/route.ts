@@ -1,51 +1,59 @@
 import NextAuth from "next-auth";
 import LineProvider from "next-auth/providers/line";
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/utils/prisma"
+import { PrismaAdapter } from "@auth/prisma-adapter";
 
-const handler = NextAuth({
-    adapter: PrismaAdapter(prisma),
-    providers: [
-        LineProvider({
-            clientId: process.env.LINE_CLIENT_ID as string,
-            clientSecret: process.env.LINE_CLIENT_SECRET as string,
-            authorization: {
-                params: {
-                    scope: "profile openid email",
-                    bot_prompt: "aggressive",
-                },
-            },
-        })
-    ],
-    callbacks: {
-        session: async ({ session, token }) => {
-            session = {
-                ...session,
-                user: {
-                    id: token.sub as string,
-                    ...session.user,
-                },
-            };
-            return session;
+import { prisma } from "@/utils/prisma";
+
+const authOptions = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    LineProvider({
+      clientId: process.env.LINE_CLIENT_ID as string,
+      clientSecret: process.env.LINE_CLIENT_SECRET as string,
+      authorization: {
+        params: {
+          scope: "profile openid email",
+          bot_prompt: "aggressive",
         },
-        async redirect({ url, baseUrl }) {
-            if (url.startsWith("/")) {
-                return `${baseUrl}${url}`
-            }
-            else if (new URL(url).origin === baseUrl) {
-                return url
-            }
-            return baseUrl
-        }
+      },
+    }),
+  ],
+  callbacks: {
+    session: async ({ session, token }) => {
+      session = {
+        ...session,
+        user: {
+          id: token.sub as string,
+          ...session.user,
+        },
+      };
+
+      return session;
     },
-    session: {
-        strategy: "jwt",
-        maxAge: 3 * 24 * 60 * 60, // 3 days
+    async redirect({ baseUrl }) {
+      // if (url.startsWith("/liff")) {
+      //   return `${baseUrl}${url}`;
+      // } else if (new URL(url).origin === baseUrl) {
+      //   return url;
+      // }
+
+      return baseUrl;
     },
-    jwt: {
-        maxAge: 3 * 24 * 60 * 60, // 3 days
-        secret: process.env.NEXTAUTH_SECRET,
-    },
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 1 * 24 * 60 * 60, // 1 days
+  },
+  jwt: {
+    maxAge: 1 * 24 * 60 * 60, // 1 days
+    secret: process.env.NEXTAUTH_SECRET,
+  },
+  // theme: {
+  //   colorScheme: "light",
+  // },
+  pages: {
+    signIn: "/liff/auth/",
+  },
 });
 
-export { handler as GET, handler as POST };
+export { authOptions as GET, authOptions as POST };
