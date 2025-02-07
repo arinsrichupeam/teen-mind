@@ -26,7 +26,7 @@ export default function QuestionListPage() {
         })
       );
     }
-  }, [questionList]);
+  }, []);
 
   return (
     <section className="flex flex-col px-8 py-10 w-[calc(100vw)] h-[calc(100vh-48px)] items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)]  bg-cover bg-center bg-no-repeat">
