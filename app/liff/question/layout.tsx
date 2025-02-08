@@ -5,9 +5,7 @@ export default function QuestionLayout({
 }) {
   return (
     <section className="w-full">
-      <div className="inline-block max-w-lg text-center justify-center ">
-        {children}
-      </div>
+      <div className="inline-block text-center justify-center ">{children}</div>
     </section>
   );
 }

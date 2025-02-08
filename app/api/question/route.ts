@@ -8,6 +8,7 @@ import { LocationData } from "@/types";
 export async function POST(req: Request) {
   const data = await req.json();
   const userId = data.userId;
+  const referenceId = data.reference;
   const phqa_data: Questions_PHQA = data.phqa;
   const q2_data: Questions_2Q = data.q2;
   const location_data: LocationData = data.location;
@@ -46,9 +47,9 @@ export async function POST(req: Request) {
     .create({
       data: {
         userId: userId,
-        latitude: Number(location_data.latitude),
-        longitude: Number(location_data.longitude),
-        referent: "",
+        latitude: location_data.latitude,
+        longitude: location_data.longitude,
+        referent: referenceId,
         result: status,
         status: 0,
         phqa: {

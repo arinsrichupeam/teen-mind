@@ -6,9 +6,12 @@ import { Form } from "@heroui/form";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
 import { DateInput } from "@heroui/date-input";
+import { CalendarDate, parseDate } from "@internationalized/date";
+import { useEffect, useState } from "react";
+import moment from "moment";
 
-import { prefix, sex } from "@/types";
 import { validateCitizen } from "@/utils/validateCitizen";
+import { prefix, sex } from "@/types";
 
 export const Step1 = ({
   NextStep,
@@ -20,6 +23,7 @@ export const Step1 = ({
   HandleChange: (val: any) => void;
 }) => {
   const request = true;
+  const [birthday, setBirthday] = useState<CalendarDate | null>();
   const onSubmit = (e: any) => {
     e.preventDefault();
     NextStep("Profile");
@@ -28,6 +32,12 @@ export const Step1 = ({
   const DateChange = (val: any) => {
     HandleChange({ target: { name: "birthday", value: new Date(val) } });
   };
+
+  useEffect(() => {
+    if (Result?.birthday.getDate() != new Date().getDate()) {
+      setBirthday(parseDate(moment(Result?.birthday).format("YYYY-MM-DD")));
+    }
+  }, []);
 
   return (
     <Form
@@ -121,6 +131,7 @@ export const Step1 = ({
         labelPlacement="inside"
         radius="md"
         size="sm"
+        value={birthday}
         variant="faded"
         onChange={DateChange}
       />

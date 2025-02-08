@@ -6,8 +6,8 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 
 export type LocationData = {
   accuracy: number;
-  latitude: Number;
-  longitude: Number;
+  latitude: number;
+  longitude: number;
 };
 
 export const sex = [

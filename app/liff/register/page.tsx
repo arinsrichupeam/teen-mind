@@ -4,7 +4,7 @@ import { Tab, Tabs } from "@heroui/tabs";
 import { Address, EmergencyContact, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Alert } from "@heroui/alert";
 
 import { Step1 } from "./components/step1";
@@ -12,6 +12,7 @@ import { Step2 } from "./components/step2";
 import { Step3 } from "./components/step3";
 
 import { title } from "@/components/primitives";
+import Loading from "@/app/loading";
 
 const profileInitValue: Profile = {
   id: "",
@@ -165,52 +166,53 @@ export default function RegisterPage() {
   }, [session]);
 
   return (
-    <section className="flex flex-col items-center justify-center gap-4 px-2">
-      <div className="flex items-center my-3 absolute top-5 right-5">
-        <Alert
-          color={"success"}
-          isVisible={showAlert}
-          title={"ลงทะเบียนเรียบร้อย"}
-          variant="faded"
-        />
-      </div>
-      <div className="flex flex-col gap-5 pt-8">
-        <h1 className={title()}>ลงทะเบียน</h1>
-        <div className="flex flex-col w-full min-h-[calc(100vh_-_135px)]">
-          <Tabs
-            aria-label="Options"
-            className="max-w-sm"
-            color="primary"
-            fullWidth={true}
-            selectedKey={selected}
-            variant="underlined"
-          >
-            <Tab key="profile" title="ข้อมูลส่วนตัว">
-              <Step1
-                HandleChange={ProfileHandleChange}
-                NextStep={NextStep}
-                Result={profile}
-              />
-            </Tab>
-            <Tab key="address" title="ที่อยู่อาศัย">
-              <Step2
-                BackStep={BackStep}
-                HandleChange={AddressHandleChange}
-                NextStep={NextStep}
-                Result={address}
-              />
-            </Tab>
-            <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
-              <Step3
-                BackStep={BackStep}
-                HandleChange={EmergencyHandleChange}
-                NextStep={NextStep}
-                Result={emergency}
-              />
-            </Tab>
-          </Tabs>
+    <section className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
+      <Suspense fallback={<Loading />}>
+        <div className="flex items-center my-3 absolute top-5 right-5">
+          <Alert
+            color={"success"}
+            isVisible={showAlert}
+            title={"ลงทะเบียนเรียบร้อย"}
+            variant="faded"
+          />
         </div>
-      </div>
+        <div className="flex flex-col gap-5">
+          <h1 className={title()}>ลงทะเบียน</h1>
+          <div className="flex flex-col w-full min-h-[calc(100vh_-_350px)]">
+            <Tabs
+              aria-label="Options"
+              color="primary"
+              fullWidth={true}
+              selectedKey={selected}
+              variant="underlined"
+            >
+              <Tab key="profile" title="ข้อมูลส่วนตัว">
+                <Step1
+                  HandleChange={ProfileHandleChange}
+                  NextStep={NextStep}
+                  Result={profile}
+                />
+              </Tab>
+              <Tab key="address" title="ที่อยู่อาศัย">
+                <Step2
+                  BackStep={BackStep}
+                  HandleChange={AddressHandleChange}
+                  NextStep={NextStep}
+                  Result={address}
+                />
+              </Tab>
+              <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
+                <Step3
+                  BackStep={BackStep}
+                  HandleChange={EmergencyHandleChange}
+                  NextStep={NextStep}
+                  Result={emergency}
+                />
+              </Tab>
+            </Tabs>
+          </div>
+        </div>
+      </Suspense>
     </section>
   );
 }
