@@ -9,6 +9,14 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Radio, RadioGroup } from "@heroui/radio";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/modal";
+import { Input } from "@heroui/input";
 
 import { subtitle, title } from "@/components/primitives";
 import { LocationData } from "@/types";
@@ -144,11 +152,13 @@ export default function PHQAPage() {
   const [showPHQA, setPHQAShow] = useState(true);
   const [submit, setSubmit] = useState(true);
   const [userId, setUserId] = useState("");
-
+  const [referenceId, setReferenceId] = useState("");
   const [question, setQuestion] = useState("0");
+
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
   const [q2_data, setQ2] = useState<Questions_2Q>(q2InitValue);
   const [location, setLocation] = useState<LocationData>();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
@@ -160,6 +170,7 @@ export default function PHQAPage() {
           setLocation({ accuracy, latitude, longitude });
         });
       }
+      onOpen();
     }
   }, [session]);
 
@@ -222,6 +233,7 @@ export default function PHQAPage() {
         phqa: phqa_data,
         q2: q2_data,
         location: location,
+        reference: referenceId,
       }),
     }).then((res) =>
       res.json().then(() => {
@@ -244,9 +256,52 @@ export default function PHQAPage() {
     }
   };
 
+  const ReferChange = (e: any) => {
+    setReferenceId(e.target.value);
+  };
+
   return (
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
+        <Modal
+          backdrop="opaque"
+          isOpen={isOpen}
+          placement="center"
+          size="xs"
+          onOpenChange={onOpenChange}
+        >
+          <ModalContent>
+            {() => (
+              <>
+                <ModalBody className="items-center text-center pt-10">
+                  <h2 className={title({ size: "xs" })}>
+                    กรอกรหัสผู้ให้คำแนะนำ
+                  </h2>
+                  <Input
+                    name="ethnicity"
+                    placeholder="รหัสผู้ให้คำแนะนำ"
+                    radius="md"
+                    size="sm"
+                    value={referenceId}
+                    variant="faded"
+                    onChange={(val) => ReferChange(val)}
+                  />
+                </ModalBody>
+                <ModalFooter className="justify-center">
+                  <Button
+                    className="w-full"
+                    color="primary"
+                    radius="full"
+                    variant="solid"
+                    onPress={() => onOpenChange()}
+                  >
+                    ถัดไป
+                  </Button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
         <h1 className={title({ size: "xs" })}>
           แบบประเมินภาวะซึมเศร้าในวัยรุ่น
         </h1>
@@ -339,15 +394,15 @@ export default function PHQAPage() {
                             >
                               <Radio
                                 className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                ใช่
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
                                 value="0"
                               >
                                 ไม่ใช่
+                              </Radio>
+                              <Radio
+                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                                value="1"
+                              >
+                                ใช่
                               </Radio>
                             </RadioGroup>
                           </div>
