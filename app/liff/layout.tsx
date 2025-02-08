@@ -17,7 +17,7 @@ export default function AboutLayout({
           </div>
         </section>
       </main>
-      <footer className="w-full text-xs flex items-center justify-center py-3">
+      <footer className="w-full max-h-[48px] text-xs flex items-center justify-center py-3">
         <Link
           isExternal
           className="flex items-center gap-1 text-sm"
