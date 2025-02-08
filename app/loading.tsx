@@ -8,17 +8,17 @@ export default function Loading() {
       <div className="flex flex-col text-center text-primary-500 items-center justify-center gap-8 ">
         <Image
           alt="app logo"
-          className="w-[calc(80vw)]"
+          className="h-[calc(7vh)]"
           loading="lazy"
           src="../image/logo_App.png"
         />
         <Image
           alt="loading"
-          className="h-[calc(25vh)]"
+          className="h-[calc(35vh)]"
           loading="lazy"
           src="../image/Loading.gif"
         />
-        <h1 className={title({ size: "md" })}>รอสักครู่นะทุกคน</h1>
+        <h1 className={title({ size: "sm" })}>รอสักครู่นะทุกคน</h1>
       </div>
     </section>
   );

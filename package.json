@@ -3,7 +3,7 @@
  "version": "0.0.1",
  "private": true,
  "scripts": {
-  "dev": "next dev --turbopack -p 3000",
+  "dev": "next dev -p 3000",
   "build": "next build",
   "start": "next start",
   "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
@@ -16,6 +16,7 @@
   "@heroui/card": "^2.2.10",
   "@heroui/checkbox": "^2.3.9",
   "@heroui/date-input": "^2.3.9",
+  "@heroui/date-picker": "^2.3.10",
   "@heroui/image": "^2.2.6",
   "@heroui/input": "^2.4.10",
   "@heroui/kbd": "^2.2.7",
