@@ -172,6 +172,7 @@ export const Step1 = ({
         placeholder="เบอร์โทรศัพท์"
         radius="md"
         size="sm"
+        type="number"
         value={Result?.tel}
         variant="faded"
         onChange={HandleChange}

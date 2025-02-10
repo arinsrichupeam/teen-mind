@@ -50,6 +50,7 @@ export const Step3 = ({
           placeholder="เบอร์โทรศัพท์"
           radius="md"
           size="sm"
+          type="number"
           value={Result?.tel}
           variant="faded"
           onChange={HandleChange}

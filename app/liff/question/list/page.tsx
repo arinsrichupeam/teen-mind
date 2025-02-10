@@ -7,7 +7,6 @@ import { Questions_Master } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import moment from "moment";
 
 import { subtitle, title } from "@/components/primitives";
 import Loading from "@/app/loading";
@@ -61,10 +60,11 @@ export default function QuestionListPage() {
                     <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
                     <p>
                       วันที่{" "}
-                      {moment(val.createdAt.toString())
-                        .add(543, "year")
-                        .locale("th")
-                        .format("DD MMM yyyy")}
+                      {new Date(val.createdAt).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
                     </p>
                     {val.result == "Green" ? (
                       <p>ไม่พบความเสี่ยง</p>
