@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import Loading from "../loading";
 
-export default function Home() {
+export default function LiffHome() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
