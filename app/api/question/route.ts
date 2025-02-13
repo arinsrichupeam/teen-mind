@@ -30,7 +30,7 @@ export async function GET() {
       latitude: true,
       longitude: true,
     },
-    distinct: "userId",
+    // distinct: "userId",
   });
 
   return Response.json({ count: total, questions_data });

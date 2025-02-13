@@ -5,19 +5,12 @@ import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
 
-import { QuestionsData } from "@/types/index";
-import { useDisclosure } from "@heroui/modal";
-
 interface Props {
-  data: QuestionsData;
-  index: number;
+  data: any;
   columnKey: string | React.Key;
-  showDetail: any;
 }
 
-export const RenderCell = ({ data, index, columnKey, showDetail }: Props) => {
-
-
+export const RenderCell = ({ data, columnKey }: Props) => {
   function timeAgo(date: string) {
     moment.updateLocale("th", {
       relativeTime: {
@@ -42,8 +35,8 @@ export const RenderCell = ({ data, index, columnKey, showDetail }: Props) => {
   }
 
   switch (columnKey) {
-    case "id":
-      return <p>{index}</p>;
+    // case "id":
+    //   return <p>{index}</p>;
     case "name":
       return (
         <User
@@ -66,8 +59,8 @@ export const RenderCell = ({ data, index, columnKey, showDetail }: Props) => {
         <div>
           <span>{data.User.profile[0].school}</span>
         </div>
-      )
-    case "role":
+      );
+    case "result":
       return (
         <Chip
           color={
@@ -82,6 +75,18 @@ export const RenderCell = ({ data, index, columnKey, showDetail }: Props) => {
         >
           <span className="capitalize text-xs">{data.result}</span>
         </Chip>
+      );
+    case "date":
+      return (
+        <div>
+          <span>
+            {new Date(data.createdAt).toLocaleDateString("th-TH", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </span>
+        </div>
       );
     case "status":
       return (
@@ -104,7 +109,9 @@ export const RenderCell = ({ data, index, columnKey, showDetail }: Props) => {
         <div className="flex items-center justify-center gap-4 ">
           <div>
             <Tooltip content="Details">
-              <button onClick={(val) => showDetail(val)}>
+              <button
+                onClick={(val) => console.log("View Question : ", data.id)}
+              >
                 <EyeIcon className="size-6 text-primary-400" />
               </button>
             </Tooltip>
