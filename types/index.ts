@@ -24,3 +24,31 @@ export const prefix = [
   { key: "5", label: "นาง" },
   { key: "99", label: "อื่นๆ" },
 ];
+
+export type Questions_List = {
+  count: number;
+  questions_data: QuestionsData[];
+};
+
+export type QuestionsData = {
+  id: string;
+  createdAt: string;
+  result: string;
+  status: number;
+  consult: any;
+  User: User;
+  latitude: string;
+  longitude: string;
+};
+
+export interface User {
+  image: string;
+  profile: Profile[];
+}
+
+export interface Profile {
+  firstname: string;
+  lastname: string;
+  birthday: string;
+  school: string;
+}

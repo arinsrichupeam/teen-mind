@@ -1,10 +1,13 @@
 import { usePathname } from "next/navigation";
 import {
-  ChartBarIcon,
+  ClipboardDocumentCheckIcon,
   CreditCardIcon,
+  HomeIcon,
+  HomeModernIcon,
+  MapIcon,
   UserGroupIcon,
   UserIcon,
-} from "@heroicons/react/24/outline";
+} from "@heroicons/react/24/solid";
 import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
@@ -37,21 +40,21 @@ export const SidebarWrapper = () => {
           <div className={Sidebar.Body()}>
             <SidebarItem
               href="/admin"
-              icon={<ChartBarIcon className="size-6" />}
+              icon={<HomeIcon className="size-6" />}
               isActive={pathname === "/admin"}
               title="หน้าหลัก"
             />
             <SidebarMenu title="Main Menu">
               <SidebarItem
-                href="/admin/accounts"
-                icon={<UserIcon className="size-6" />}
-                isActive={pathname === "/admin/accounts"}
+                href="/admin/question"
+                icon={<ClipboardDocumentCheckIcon className="size-6" />}
+                isActive={pathname === "/admin/question"}
                 title="แบบสอบถาม"
               />
               <SidebarItem
-                href="/admin/accounts"
+                href="#"
                 icon={<UserIcon className="size-6" />}
-                isActive={pathname === "/admin/accounts"}
+                isActive={pathname === "/admin/case"}
                 title="เคสที่ดูแล"
               />
               {/* <SidebarItem
@@ -72,20 +75,20 @@ export const SidebarWrapper = () => {
             </SidebarMenu>
             <SidebarMenu title="Admin Menu">
               <SidebarItem
-                href="/admin/accounts"
+                href="#"
                 icon={<UserGroupIcon className="size-6" />}
                 isActive={pathname === "/admin/accounts"}
                 title="จัดการสมาชิก"
               />
               <SidebarItem
-                href="/admin/accounts"
-                icon={<UserGroupIcon className="size-6" />}
-                isActive={pathname === "/admin/accounts"}
+                href="#"
+                icon={<HomeModernIcon className="size-6" />}
+                isActive={pathname === "/admin/school"}
                 title="รายชื่อโรงเรียน"
               />
               <SidebarItem
                 icon={<CreditCardIcon className="size-6" />}
-                isActive={pathname === "/payments"}
+                isActive={pathname === "/admin/emergency"}
                 title="รายชื่อผู้รับเคสฉุกเฉิน"
               />
               {/*<CollapseItems
@@ -94,8 +97,8 @@ export const SidebarWrapper = () => {
                 title="Balances"
               />*/}
               <SidebarItem
-                icon={<UserGroupIcon className="size-6" />}
-                isActive={pathname === "/customers"}
+                icon={<MapIcon className="size-6" />}
+                isActive={pathname === "/admin/area"}
                 title="พื้นที่อยู่อาศัย"
               />
             </SidebarMenu>
