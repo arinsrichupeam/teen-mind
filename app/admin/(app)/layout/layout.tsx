@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { SidebarWrapper } from "../sidebar/sidebar";
+import { SidebarWrapper } from "../components/sidebar/sidebar";
 
 import { SidebarContext } from "@/app/admin/(app)/layout/layout-context";
 import { NavbarWrapper } from "@/app/admin/(app)/components/navbar_admin";

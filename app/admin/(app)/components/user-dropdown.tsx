@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-// import { DarkModeSwitch } from "./darkmodeswitch";
 import { useRouter } from "next/navigation";
 // import { deleteAuthCookie } from "@/actions/auth.action";
 import {
