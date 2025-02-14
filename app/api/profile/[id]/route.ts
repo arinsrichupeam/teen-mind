@@ -73,7 +73,8 @@ export async function GET(
       },
       questions: {
         select: {
-          _count: true,
+          createdAt: true,
+          result: true,
         },
       },
     },

@@ -20,9 +20,9 @@ export default function QuestionListPage() {
     if (status !== "loading" && status === "authenticated") {
       const userId = session?.user?.id;
 
-      fetch(`/api/question/${userId}`).then((res) =>
+      fetch(`/api/profile/${userId}`).then((res) =>
         res.json().then((val) => {
-          setQuestionList(val);
+          setQuestionList(val.questions);
         })
       );
     }

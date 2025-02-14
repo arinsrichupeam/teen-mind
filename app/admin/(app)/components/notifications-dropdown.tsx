@@ -1,3 +1,4 @@
+import { BellIcon } from "@heroicons/react/24/outline";
 import {
   Dropdown,
   DropdownItem,
@@ -13,8 +14,7 @@ export const NotificationsDropdown = () => {
     <Dropdown placement="bottom-end">
       <DropdownTrigger>
         <NavbarItem>
-          <p>Noti</p>
-          {/* <NotificationIcon /> */}
+          <BellIcon className="size-6" />
         </NavbarItem>
       </DropdownTrigger>
       <DropdownMenu aria-label="Avatar Actions" className="w-80">

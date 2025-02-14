@@ -3,7 +3,7 @@ import React from "react";
 import clsx from "clsx";
 import { Button } from "@heroui/button";
 
-import { useSidebarContext } from "@/app/admin/(app)/layout/layout-context";
+import { useSidebarContext } from "@/app/admin/(app)/layout-context";
 
 interface Props {
   title: string;
