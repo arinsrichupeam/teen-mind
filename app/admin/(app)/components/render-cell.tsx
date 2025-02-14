@@ -5,12 +5,16 @@ import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
 
+import { capitalize, statusOptions } from "../question/page";
+
 interface Props {
   data: any;
   columnKey: string | React.Key;
+  index: number;
+  selectKey(id: String): void;
 }
 
-export const RenderCell = ({ data, columnKey }: Props) => {
+export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
   function timeAgo(date: string) {
     moment.updateLocale("th", {
       relativeTime: {
@@ -35,8 +39,12 @@ export const RenderCell = ({ data, columnKey }: Props) => {
   }
 
   switch (columnKey) {
-    // case "id":
-    //   return <p>{index}</p>;
+    case "id":
+      return (
+        <div>
+          <span>{index}</span>
+        </div>
+      );
     case "name":
       return (
         <User
@@ -84,6 +92,8 @@ export const RenderCell = ({ data, columnKey }: Props) => {
               year: "numeric",
               month: "long",
               day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </span>
         </div>
@@ -92,16 +102,18 @@ export const RenderCell = ({ data, columnKey }: Props) => {
       return (
         <Chip
           color={
-            data.status.toString() === "3"
+            data.status.toString() === "0"
               ? "success"
-              : data.status.toString() === "0"
+              : data.status.toString() === "2"
                 ? "danger"
                 : "warning"
           }
           size="sm"
           variant="flat"
         >
-          <span className="capitalize text-xs">{data.status.toString()}</span>
+          <span className="capitalize text-xs">
+            {capitalize(statusOptions[data.status].name)}
+          </span>
         </Chip>
       );
     case "actions":
@@ -109,11 +121,10 @@ export const RenderCell = ({ data, columnKey }: Props) => {
         <div className="flex items-center justify-center gap-4 ">
           <div>
             <Tooltip content="Details">
-              <button
-                onClick={(val) => console.log("View Question : ", data.id)}
-              >
+              <button onClick={() => selectKey(data.id)}>
                 <EyeIcon className="size-6 text-primary-400" />
               </button>
+              {/* <Button onPress={() => selectKey(data.id)} variant="light"><EyeIcon className="size-6 text-primary-400" /></Button> */}
             </Tooltip>
           </div>
           <div>

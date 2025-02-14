@@ -49,6 +49,21 @@ export interface User {
 export interface Profile {
   firstname: string;
   lastname: string;
+  prefix: number;
   birthday: string;
-  school: string;
+  ethnicity: string;
+  nationality: string;
+  citizenId: string;
+  tel: string;
+  address: Address[];
+}
+
+export interface Address {
+  houseNo: string;
+  villageNo: string;
+  soi: string;
+  road: string;
+  subdistrict: number;
+  district: number;
+  province: number;
 }

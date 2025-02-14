@@ -16,7 +16,7 @@ import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
 
 import { Sidebar } from "@/components/primitives";
-import { useSidebarContext } from "@/app/admin/(app)/layout/layout-context";
+import { useSidebarContext } from "@/app/admin/(app)/layout-context";
 import { siteConfig } from "@/config/site";
 
 export const SidebarWrapper = () => {

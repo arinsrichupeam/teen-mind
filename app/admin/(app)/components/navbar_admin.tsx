@@ -10,8 +10,7 @@ import React from "react";
 import { Navbar, NavbarContent } from "@heroui/navbar";
 import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
-
-import { GithubIcon, SearchIcon } from "../../../../components/icons";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { BurguerButton } from "./burguer-button";
@@ -43,7 +42,7 @@ export const NavbarWrapper = ({ children }: Props) => {
               mainWrapper: "w-full",
             }}
             placeholder="Search..."
-            startContent={<SearchIcon />}
+            startContent={<MagnifyingGlassIcon className="size-6" />}
           />
         </NavbarContent>
         <NavbarContent
@@ -63,7 +62,7 @@ export const NavbarWrapper = ({ children }: Props) => {
             href="https://github.com/Siumauricio/nextui-dashboard-template"
             target={"_blank"}
           >
-            <GithubIcon />
+            {/* <GithubIcon /> */}
           </Link>
           <NavbarContent>
             <UserDropdown />

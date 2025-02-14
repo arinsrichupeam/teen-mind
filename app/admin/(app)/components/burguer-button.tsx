@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@heroui/button";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 
-import { useSidebarContext } from "@/app/admin/(app)/layout/layout-context";
+import { useSidebarContext } from "@/app/admin/(app)/layout-context";
 
 export const BurguerButton = () => {
   const { setCollapsed } = useSidebarContext();
