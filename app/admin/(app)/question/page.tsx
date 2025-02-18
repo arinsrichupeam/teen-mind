@@ -1,6 +1,6 @@
 "use client";
 
-import { Spinner } from "@heroui/spinner";
+import { Spinner } from "@heroui/react";
 import {
   SortDescriptor,
   Table,
@@ -63,7 +63,7 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "id",
+    column: "age",
     direction: "ascending",
   });
 
@@ -284,7 +284,7 @@ export default function App() {
             classNames={{
               wrapper: "max-h-[calc(65vh)]",
             }}
-            sortDescriptor={sortDescriptor}
+            // sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
             onSortChange={setSortDescriptor}
@@ -309,7 +309,7 @@ export default function App() {
               {(item) => (
                 <TableRow>
                   {(columnKey) => (
-                    <TableCell>
+                    <TableCell className="text-nowrap">
                       {RenderCell({
                         data: item,
                         columnKey: columnKey,
