@@ -27,7 +27,7 @@ export default function PrivacyPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
-    <section className="flex flex-col w-screen items-center justify-center gap-4 pt-10 px-7 py-8 md:py-10">
+    <section className="flex flex-col w-screen items-center justify-center gap-4 pt-10 px-6 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
         <div className="flex flex-col gap-5">
           <h1 className={title({ size: "sm" })}>ข้อกำหนดการใช้งาน</h1>
