@@ -25,7 +25,7 @@ export default function QuestionPage() {
           <h2 className={subtitle()}>
             สำรวจตัวเองว่าคุณกำลังเครียดมากแค่ไหน โดยใช้เวลาประมาณ 4-5 นาที
           </h2>
-          <Image alt="image" className="h-[40vh]" src="/image/Q1-04.png" />
+          <Image alt="image" className="h-[40vh]" src="/image/Yallow.png" />
           <h2 className={subtitle()}>
             แบบทดสอบนี้อ้างอิงจากแบบประเมินความเครียด โดยกรมสุขภาพจิต
             กระทรวงสาธารณสุข

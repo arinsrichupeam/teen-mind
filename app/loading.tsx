@@ -10,7 +10,7 @@ export default function Loading() {
           alt="app logo"
           className="h-[calc(7vh)]"
           loading="lazy"
-          src="../image/logo_App.png"
+          src="../image/Logo_App.png"
         />
         <Image
           alt="loading"

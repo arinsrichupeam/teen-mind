@@ -91,7 +91,7 @@ export default function PrivacyPage() {
                     alt="Privacy Image"
                     height={200}
                     loading="lazy"
-                    src="../image/Q1-05.png"
+                    src="../image/Privacy.png"
                   />
                   <h2 className={title({ size: "xs" })}>
                     จัดการความยินยอมของคุณ
