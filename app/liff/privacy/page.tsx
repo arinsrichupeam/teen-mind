@@ -27,11 +27,18 @@ export default function PrivacyPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
-    <section className="flex flex-col w-screen items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
+    <section className="flex flex-col w-screen items-center justify-center gap-4 pt-10 px-7 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
         <div className="flex flex-col gap-5">
           <h1 className={title({ size: "sm" })}>ข้อกำหนดการใช้งาน</h1>
-          <Tabs
+          <ScrollShadow
+            className="h-[60vh]"
+            offset={100}
+            orientation="horizontal"
+          >
+            <Step1 />
+          </ScrollShadow>
+          {/* <Tabs
             aria-label="Options"
             color="primary"
             fullWidth={true}
@@ -55,7 +62,7 @@ export default function PrivacyPage() {
                 <Step2 />
               </ScrollShadow>
             </Tab>
-          </Tabs>
+          </Tabs> */}
           <Checkbox
             className="text-start"
             color="primary"
