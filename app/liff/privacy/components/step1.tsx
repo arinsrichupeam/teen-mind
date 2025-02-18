@@ -1,9 +1,6 @@
-import { title } from "@/components/primitives";
-
 export const Step1 = () => {
   return (
     <div className="text-start flex flex-col gap-5 text-sm">
-      {/* <h2 className={title({ size: "xs" })}>ข้อกำหนดและเงื่อนไข</h2> */}
       <div className="flex flex-col gap-3">
         <span className="font-semibold">
           ประกาศความเป็นส่วนตัวสำหรับแอปประเมินสุขภาพจิต
