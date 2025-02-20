@@ -1,43 +1,37 @@
 "use client";
 
-import { Spinner } from "@heroui/react";
-import {
-  SortDescriptor,
-  Table,
-  TableBody,
-  TableColumn,
-  TableHeader,
-  Selection,
-  TableRow,
-  TableCell,
-} from "@heroui/table";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Button,
+  Pagination,
+  Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+  useDisclosure,
+  Selection,
+  Input,
   Dropdown,
-  DropdownItem,
-  DropdownMenu,
   DropdownTrigger,
-} from "@heroui/dropdown";
-import { Button } from "@heroui/button";
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/react";
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import { Input } from "@heroui/input";
-import { Pagination } from "@heroui/pagination";
-import { useDisclosure } from "@heroui/modal";
 
 import { RenderCell } from "../components/render-cell";
 
 import { QuestionDrawer } from "./components/question-drawer";
+import { statusOptions } from "./data";
 
 import { QuestionsData, User } from "@/types";
 
-export function capitalize(s: string) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-}
-
-export const columns = [
+const columns = [
   { name: "ลำดับที่", uid: "id", sortable: true },
   { name: "ชื่อ - สกุล", uid: "name", sortable: true },
   { name: "อายุ", uid: "age" },
@@ -48,28 +42,25 @@ export const columns = [
   { name: "", uid: "actions" },
 ];
 
-export const statusOptions = [
-  { name: "Active", uid: "0" },
-  { name: "Paused", uid: "1" },
-  { name: "Vacation", uid: "2" },
-];
+// export function capitalize({ s }: { s: string }) {
+//   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+// };
 
-export default function App() {
+export default function QuestionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<User>();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
   const [questionsList, setQuestionsList] = useState<QuestionsData[]>([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "age",
+  const [sortDescriptor, setSortDescriptor] = useState<any>({
+    column: "id",
     direction: "ascending",
   });
 
   const pages = Math.ceil(questionsList.length / rowsPerPage);
-
-  type Questions = (typeof questionsList)[0];
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -103,9 +94,9 @@ export default function App() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: Questions, b: Questions) => {
-      const first = a[sortDescriptor.column as keyof Questions] as number;
-      const second = b[sortDescriptor.column as keyof Questions] as number;
+    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
+      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
+      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -182,7 +173,7 @@ export default function App() {
               >
                 {statusOptions.map((status) => (
                   <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
+                    {status.name}
                   </DropdownItem>
                 ))}
               </DropdownMenu>
@@ -268,9 +259,7 @@ export default function App() {
         setQuestionsList(val.questions_data);
         setIsLoading(false);
       });
-  }, []);
-
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  }, [isLoading]);
 
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
@@ -284,7 +273,7 @@ export default function App() {
             classNames={{
               wrapper: "max-h-[calc(65vh)]",
             }}
-            // sortDescriptor={sortDescriptor}
+            sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
             onSortChange={setSortDescriptor}

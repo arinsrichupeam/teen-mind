@@ -4,8 +4,9 @@ import { Tooltip } from "@heroui/tooltip";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
+import { statusOptions } from "../question/data";
 
-import { capitalize, statusOptions } from "../question/page";
+// import { capitalize, statusOptions } from "../question/page";
 
 interface Props {
   data: any;
@@ -112,7 +113,7 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
           variant="flat"
         >
           <span className="capitalize text-xs">
-            {capitalize(statusOptions[data.status].name)}
+            {statusOptions[data.status].name}
           </span>
         </Chip>
       );
@@ -124,7 +125,6 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
               <button onClick={() => selectKey(data.id)}>
                 <EyeIcon className="size-6 text-primary-400" />
               </button>
-              {/* <Button onPress={() => selectKey(data.id)} variant="light"><EyeIcon className="size-6 text-primary-400" /></Button> */}
             </Tooltip>
           </div>
           <div>
