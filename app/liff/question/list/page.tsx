@@ -33,7 +33,7 @@ export default function QuestionListPage() {
       <Suspense fallback={<Loading />}>
         <h1 className={title({ size: "sm" })}>ผลประเมินภาวะซึมเศร้า</h1>
         <h2 className={subtitle()}>
-          สำรวจตัวเองว่าคุณกำลังเคลียดมากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
+          สำรวจตัวเองว่าคุณกำลังเครียดมากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
           4-5 นาที
         </h2>
         <Button
