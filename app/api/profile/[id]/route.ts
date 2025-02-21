@@ -21,6 +21,12 @@ export async function GET(
           providerAccountId: true,
         },
       },
+      questions: {
+        select: {
+          createdAt: true,
+          result: true,
+        },
+      },
     },
   });
 
@@ -67,7 +73,8 @@ export async function GET(
       },
       questions: {
         select: {
-          _count: true,
+          createdAt: true,
+          result: true,
         },
       },
     },

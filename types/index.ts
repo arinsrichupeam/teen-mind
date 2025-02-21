@@ -24,3 +24,50 @@ export const prefix = [
   { key: "5", label: "นาง" },
   { key: "99", label: "อื่นๆ" },
 ];
+
+export type QuestionsList = {
+  id: string;
+  firstname: string;
+  lastname: string;
+  birthday: string;
+  school: string;
+  result: string;
+  phqa: number;
+  createdAt: string;
+  status: number;
+};
+
+export type QuestionsData = {
+  id: string;
+  latitude: number | undefined;
+  longitude: number;
+  User: User;
+};
+
+export interface User {
+  image: string;
+  profile: Profile[];
+}
+
+export interface Profile {
+  firstname: string;
+  lastname: string;
+  prefix: number;
+  birthday: string;
+  ethnicity: string;
+  nationality: string;
+  citizenId: string;
+  tel: string;
+  school: string;
+  address: Address[];
+}
+
+export interface Address {
+  houseNo: string;
+  villageNo: string;
+  soi: string;
+  road: string;
+  subdistrict: number;
+  district: number;
+  province: number;
+}

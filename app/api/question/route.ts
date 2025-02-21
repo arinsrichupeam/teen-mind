@@ -5,6 +5,38 @@ import lineSdk from "@/utils/linesdk";
 import { GreenFlex, RedFlex, YellowFlex } from "@/config/site";
 import { LocationData } from "@/types";
 
+export async function GET() {
+  const questionsList = await prisma.questions_Master.findMany({
+    select: {
+      id: true,
+      createdAt: true,
+      result: true,
+      status: true,
+      consult: true,
+      User: {
+        select: {
+          image: true,
+          profile: {
+            select: {
+              firstname: true,
+              lastname: true,
+              birthday: true,
+              school: true,
+            },
+          },
+        },
+      },
+      phqa: {
+        select: {
+          sum: true,
+        },
+      },
+    },
+  });
+
+  return Response.json({ questionsList });
+}
+
 export async function POST(req: Request) {
   const data = await req.json();
   const userId = data.userId;
@@ -46,8 +78,8 @@ export async function POST(req: Request) {
   await prisma.questions_Master
     .create({
       data: {
-        userId: userId,
         latitude: location_data.latitude,
+        userId: userId,
         longitude: location_data.longitude,
         referent: referenceId,
         result: status,
