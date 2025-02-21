@@ -4,9 +4,10 @@ import { Tooltip } from "@heroui/tooltip";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
-import { statusOptions } from "../question/data";
 
-// import { capitalize, statusOptions } from "../question/page";
+import { statusOptions } from "../data";
+
+import { capitalize } from "@/utils/helper";
 
 interface Props {
   data: any;
@@ -38,6 +39,9 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
 
     return moment(date).fromNow();
   }
+
+  // @ts-ignore
+  const cellValue = data[columnKey];
 
   switch (columnKey) {
     case "id":
@@ -85,6 +89,9 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
           <span className="capitalize text-xs">{data.result}</span>
         </Chip>
       );
+    case "phqa": {
+      return <span>{data.phqa[0].sum}</span>;
+    }
     case "date":
       return (
         <div>
@@ -113,7 +120,7 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
           variant="flat"
         >
           <span className="capitalize text-xs">
-            {statusOptions[data.status].name}
+            {capitalize(statusOptions[data.status].name)}
           </span>
         </Chip>
       );
@@ -147,5 +154,7 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
           </div>
         </div>
       );
+    default:
+      return cellValue;
   }
 };

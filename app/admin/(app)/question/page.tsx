@@ -24,35 +24,21 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 
-import { RenderCell } from "../components/render-cell";
-
 import { QuestionDrawer } from "./components/question-drawer";
-import { statusOptions } from "./data";
+import { columns, statusOptions } from "./data";
+import { RenderCell } from "./components/render-cell";
 
-import { QuestionsData, User } from "@/types";
-
-const columns = [
-  { name: "ลำดับที่", uid: "id", sortable: true },
-  { name: "ชื่อ - สกุล", uid: "name", sortable: true },
-  { name: "อายุ", uid: "age" },
-  { name: "โรงเรียน", uid: "school" },
-  { name: "ผลการประเมิน", uid: "result", sortable: true },
-  { name: "วันที่ประเมิน", uid: "date" },
-  { name: "สถานะ", uid: "status", sortable: true },
-  { name: "", uid: "actions" },
-];
-
-// export function capitalize({ s }: { s: string }) {
-//   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-// };
+// import { QuestionsData, User } from "@/types";
+import { capitalize } from "@/utils/helper";
+import { QuestionsData, QuestionsList } from "@/types";
 
 export default function QuestionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterValue, setFilterValue] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<User>();
+  const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [questionsList, setQuestionsList] = useState<QuestionsData[]>([]);
+  const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
@@ -69,9 +55,7 @@ export default function QuestionPage() {
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        user.User.profile[0].firstname
-          .toLowerCase()
-          .includes(filterValue.toLowerCase())
+        user.firstname.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (
@@ -94,9 +78,9 @@ export default function QuestionPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
-      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
-      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
+    return [...items].sort((a: QuestionsList, b: QuestionsList) => {
+      const first = a[sortDescriptor.column as keyof QuestionsList] as number;
+      const second = b[sortDescriptor.column as keyof QuestionsList] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -173,7 +157,7 @@ export default function QuestionPage() {
               >
                 {statusOptions.map((status) => (
                   <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
+                    {capitalize(status.name)}
                   </DropdownItem>
                 ))}
               </DropdownMenu>
@@ -247,7 +231,7 @@ export default function QuestionPage() {
     fetch("/api/question/" + e)
       .then((res) => res.json())
       .then((val) => {
-        setSelectedKeys(val[0].User);
+        setSelectedKeys(val[0]);
         onOpen();
       });
   }, []);
@@ -256,7 +240,7 @@ export default function QuestionPage() {
     fetch("/api/question")
       .then((res) => res.json())
       .then((val) => {
-        setQuestionsList(val.questions_data);
+        setQuestionsList(val.questionsList);
         setIsLoading(false);
       });
   }, [isLoading]);

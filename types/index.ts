@@ -25,20 +25,23 @@ export const prefix = [
   { key: "99", label: "อื่นๆ" },
 ];
 
-export type Questions_List = {
-  count: number;
-  questions_data: QuestionsData[];
+export type QuestionsList = {
+  id: string;
+  firstname: string;
+  lastname: string;
+  birthday: string;
+  school: string;
+  result: string;
+  phqa: number;
+  createdAt: string;
+  status: number;
 };
 
 export type QuestionsData = {
   id: string;
-  createdAt: string;
-  result: string;
-  status: number;
-  consult: any;
+  latitude: number | undefined;
+  longitude: number;
   User: User;
-  latitude: string;
-  longitude: string;
 };
 
 export interface User {
@@ -55,6 +58,7 @@ export interface Profile {
   nationality: string;
   citizenId: string;
   tel: string;
+  school: string;
   address: Address[];
 }
 

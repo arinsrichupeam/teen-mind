@@ -18,7 +18,7 @@ import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import { Input } from "@heroui/input";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
-import { prefix, User } from "@/types";
+import { prefix, QuestionsData } from "@/types";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
@@ -31,7 +31,7 @@ export const QuestionDrawer = ({
 }: {
   isOpen: any;
   onClose: any;
-  data: User | undefined;
+  data: QuestionsData | undefined;
 }) => {
   const [distrince, setDistrince] = useState<Districts[]>();
   const [province, setProvince] = useState<Provinces[]>();
@@ -57,6 +57,9 @@ export const QuestionDrawer = ({
       });
   }, []);
 
+  const latitude = data?.latitude as number;
+  const longitude = data?.longitude as number;
+
   return (
     <Drawer isOpen={isOpen} size={"4xl"} onClose={onClose}>
       <DrawerContent>
@@ -73,29 +76,34 @@ export const QuestionDrawer = ({
                       alt="user profile"
                       height={100}
                       radius="sm"
-                      src={data?.image}
+                      src={data?.User.image}
                       width={100}
                     />
                     <div className="flex flex-col">
                       <p className="text-md">
-                        {prefix[(data?.profile[0].prefix as number) - 1].label}{" "}
-                        {data?.profile[0].firstname} {data?.profile[0].lastname}
+                        {
+                          prefix[(data?.User.profile[0].prefix as number) - 1]
+                            .label
+                        }{" "}
+                        {data?.User.profile[0].firstname}{" "}
+                        {data?.User.profile[0].lastname}
                       </p>
                       <p className="text-small">
-                        เลขที่บัตรประชาชน : <b>{data?.profile[0].citizenId}</b>
+                        เลขที่บัตรประชาชน :{" "}
+                        <b>{data?.User.profile[0].citizenId}</b>
                       </p>
                       <p className="text-small">
                         วัน/เดือน/ปี เกิด :{" "}
                         <b>
-                          {moment(data?.profile[0].birthday)
+                          {moment(data?.User.profile[0].birthday)
                             .add(543, "year")
                             .locale("th-TH")
                             .format("DD/MM/YYYY")}
                         </b>
                       </p>
                       <p className="text-small">
-                        เชื้อชาติ : <b>{data?.profile[0].ethnicity}</b> สัญชาติ
-                        : <b>{data?.profile[0].nationality}</b>
+                        เชื้อชาติ : <b>{data?.User.profile[0].ethnicity}</b>{" "}
+                        สัญชาติ : <b>{data?.User.profile[0].nationality}</b>
                       </p>
                     </div>
                   </CardHeader>
@@ -103,22 +111,25 @@ export const QuestionDrawer = ({
                   <CardBody>
                     <div>
                       <p className="text-small">
-                        ที่อยู่ : <b>{data?.profile[0].address[0].houseNo}</b>{" "}
+                        ที่อยู่ :{" "}
+                        <b>{data?.User.profile[0].address[0].houseNo}</b>{" "}
                         หมู่ที่ :{" "}
                         <b>
-                          {data?.profile[0].address[0].villageNo == ""
+                          {data?.User.profile[0].address[0].villageNo == ""
                             ? "-"
-                            : data?.profile[0].address[0].villageNo}
+                            : data?.User.profile[0].address[0].villageNo}
                         </b>{" "}
-                        ซอย : <b>{data?.profile[0].address[0].soi}</b>
+                        ซอย : <b>{data?.User.profile[0].address[0].soi}</b>
                       </p>
                       <p className="text-small">
-                        ถนน : <b>{data?.profile[0].address[0].road}</b> ตำบล :{" "}
+                        ถนน : <b>{data?.User.profile[0].address[0].road}</b>{" "}
+                        ตำบล :{" "}
                         <b>
                           {
                             subdistrince?.find(
                               (x) =>
-                                x.id == data?.profile[0].address[0].subdistrict
+                                x.id ==
+                                data?.User.profile[0].address[0].subdistrict
                             )?.nameInThai
                           }
                         </b>{" "}
@@ -127,7 +138,8 @@ export const QuestionDrawer = ({
                           {
                             distrince?.find(
                               (x) =>
-                                x.id == data?.profile[0].address[0].district
+                                x.id ==
+                                data?.User.profile[0].address[0].district
                             )?.nameInThai
                           }
                         </b>
@@ -138,11 +150,12 @@ export const QuestionDrawer = ({
                           {
                             province?.find(
                               (x) =>
-                                x.id == data?.profile[0].address[0].province
+                                x.id ==
+                                data?.User.profile[0].address[0].province
                             )?.nameInThai
                           }
                         </b>{" "}
-                        โทรศัพท์ : <b>{data?.profile[0].tel}</b>
+                        โทรศัพท์ : <b>{data?.User.profile[0].tel}</b>
                       </p>
                     </div>
                   </CardBody>
@@ -167,7 +180,7 @@ export const QuestionDrawer = ({
                   <CardBody>
                     <div className="mx-auto w-[352px] h-[200px]">
                       <MapContainer
-                        center={[13.7096451, 100.5439349]}
+                        center={[latitude, longitude]}
                         doubleClickZoom={false}
                         dragging={false}
                         scrollWheelZoom={false}
@@ -181,7 +194,7 @@ export const QuestionDrawer = ({
                         />
                         <Marker
                           draggable={false}
-                          position={[13.7096451, 100.5439349]}
+                          position={[latitude, longitude]}
                         >
                           <Popup>Hey ! I study here</Popup>
                         </Marker>

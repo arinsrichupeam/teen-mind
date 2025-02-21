@@ -6,8 +6,7 @@ import { GreenFlex, RedFlex, YellowFlex } from "@/config/site";
 import { LocationData } from "@/types";
 
 export async function GET() {
-  const total = await prisma.questions_Master.count();
-  const questions_data = await prisma.questions_Master.findMany({
+  const questionsList = await prisma.questions_Master.findMany({
     select: {
       id: true,
       createdAt: true,
@@ -27,12 +26,15 @@ export async function GET() {
           },
         },
       },
-      latitude: true,
-      longitude: true,
+      phqa: {
+        select: {
+          sum: true,
+        },
+      },
     },
   });
 
-  return Response.json({ count: total, questions_data });
+  return Response.json({ questionsList });
 }
 
 export async function POST(req: Request) {

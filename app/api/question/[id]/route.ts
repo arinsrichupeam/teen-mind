@@ -43,6 +43,8 @@ export async function GET(
           },
         },
       },
+      phqa: true,
+      q2: true,
     },
   });
 
