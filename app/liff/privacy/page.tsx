@@ -2,7 +2,6 @@
 
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
-import { Tabs, Tab } from "@heroui/tabs";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { Suspense, useState } from "react";
 import { Image } from "@heroui/image";
@@ -16,7 +15,6 @@ import {
 import { useRouter } from "next/navigation";
 
 import { Step1 } from "./components/step1";
-import { Step2 } from "./components/step2";
 
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
@@ -32,37 +30,13 @@ export default function PrivacyPage() {
         <div className="flex flex-col gap-5">
           <h1 className={title({ size: "sm" })}>ข้อกำหนดการใช้งาน</h1>
           <ScrollShadow
-            className="h-[60vh]"
+            key={0}
+            className="h-[68vh]"
             offset={100}
             orientation="horizontal"
           >
             <Step1 />
           </ScrollShadow>
-          {/* <Tabs
-            aria-label="Options"
-            color="primary"
-            fullWidth={true}
-            variant="underlined"
-          >
-            <Tab key="step1" title="ข้อกำหนดและเงื่อนไข">
-              <ScrollShadow
-                className="h-[60vh]"
-                offset={100}
-                orientation="horizontal"
-              >
-                <Step1 />
-              </ScrollShadow>
-            </Tab>
-            <Tab key="step2" title="นโยบายความเป็นส่วนตัว">
-              <ScrollShadow
-                className="h-[60vh]"
-                offset={100}
-                orientation="horizontal"
-              >
-                <Step2 />
-              </ScrollShadow>
-            </Tab>
-          </Tabs> */}
           <Checkbox
             className="text-start"
             color="primary"
