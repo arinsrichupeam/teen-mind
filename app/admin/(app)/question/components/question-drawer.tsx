@@ -1,28 +1,41 @@
 "use client";
 
-import { Button } from "@heroui/button";
-import { Card, CardBody, CardFooter, CardHeader } from "@heroui/card";
-import { Divider } from "@heroui/divider";
+import moment from "moment";
+import { useEffect, useState } from "react";
+import { Districts, Provinces, Subdistricts } from "@prisma/client";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
-} from "@heroui/drawer";
-import { Image } from "@heroui/image";
-import { Link } from "@heroui/link";
-import moment from "moment";
-import { useEffect, useState } from "react";
-import { Districts, Provinces, Subdistricts } from "@prisma/client";
-import { Input } from "@heroui/input";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+  Image,
+  Input,
+  Link,
+  Radio,
+  RadioGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+} from "@heroui/react";
 
 import { prefix, QuestionsData } from "@/types";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
+import { q2, qPhqa } from "@/app/data";
+import { subtitle } from "@/components/primitives";
 
 export const QuestionDrawer = ({
   isOpen,
@@ -66,7 +79,7 @@ export const QuestionDrawer = ({
         {(onClose) => (
           <>
             <DrawerHeader className="flex flex-col gap-1">
-              {/* QuestionID : {data?.} */}
+              QuestionID : {data?.id}
             </DrawerHeader>
             <DrawerBody>
               <div className="flex flex-col sm:flex-row gap-5 mx-auto">
@@ -167,13 +180,6 @@ export const QuestionDrawer = ({
                         บันทึก
                       </Button>
                     </div>
-                    {/* <Link
-                                            isExternal
-                                            showAnchorIcon
-                                            href="https://github.com/heroui-inc/heroui"
-                                        >
-                                            Visit source code on GitHub.
-                                        </Link> */}
                   </CardFooter>
                 </Card>
                 <Card className="max-w-[400px]">
@@ -189,7 +195,7 @@ export const QuestionDrawer = ({
                         zoomControl={false}
                       >
                         <TileLayer
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          attribution=""
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
                         <Marker
@@ -213,17 +219,116 @@ export const QuestionDrawer = ({
                   </CardFooter>
                 </Card>
               </div>
-              <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-                pulvinar risus non risus hendrerit venenatis. Pellentesque sit
-                amet hendrerit risus, sed porttitor quam.
-              </p>
-              <p>
-                Magna exercitation reprehenderit magna aute tempor cupidatat
-                consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
-                incididunt cillum quis. Velit duis sit officia eiusmod Lorem
-                aliqua enim laboris do dolor eiusmod.
-              </p>
+              <div>
+                <h2 className={subtitle()}>PHQ-A</h2>
+                <div className="flex flex-col gap-4">
+                  <Table>
+                    <TableHeader>
+                      <TableColumn>Question</TableColumn>
+                      <TableColumn align="center">Anwser</TableColumn>
+                    </TableHeader>
+                    <TableBody>
+                      {qPhqa.map((val, index) => {
+                        return (
+                          <TableRow key={index}>
+                            <TableCell className="min-w-[250px]">
+                              {index + 1} {val}
+                            </TableCell>
+                            <TableCell className="min-w-[250px]">
+                              {data?.phqa.map((val) => {
+                                return (
+                                  <RadioGroup
+                                    key={index}
+                                    className="items-center"
+                                    name={(index + 1).toString()}
+                                    orientation="horizontal"
+                                    value={Object.entries(val)
+                                      [index + 2].toString()
+                                      .substring(3)}
+                                  >
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="0"
+                                    >
+                                      0
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="1"
+                                    >
+                                      1
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="2"
+                                    >
+                                      2
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="3"
+                                    >
+                                      3
+                                    </Radio>
+                                  </RadioGroup>
+                                );
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              <div>
+                <h2 className={subtitle()}>คำถามแนบท้าย</h2>
+                <Table>
+                  <TableHeader>
+                    <TableColumn>Question</TableColumn>
+                    <TableColumn align="center">Anwser</TableColumn>
+                  </TableHeader>
+                  <TableBody>
+                    {q2.map((val, index) => {
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="min-w-[250px]">
+                            {index + 1} {val}
+                          </TableCell>
+                          <TableCell className="min-w-[250px]">
+                            {data?.q2.map((val) => {
+                              return (
+                                <RadioGroup
+                                  key={index}
+                                  className="items-center"
+                                  name={(index + 1).toString()}
+                                  orientation="horizontal"
+                                  value={Object.entries(val)
+                                    [index + 2].toString()
+                                    .substring(3)}
+                                >
+                                  <Radio
+                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                                    value="1"
+                                  >
+                                    ใช่
+                                  </Radio>
+                                  <Radio
+                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                                    value="0"
+                                  >
+                                    ไม่ใช่
+                                  </Radio>
+                                </RadioGroup>
+                              );
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </DrawerBody>
             <DrawerFooter>
               <Button color="danger" variant="light" onPress={onClose}>

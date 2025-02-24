@@ -39,9 +39,12 @@ export type QuestionsList = {
 
 export type QuestionsData = {
   id: string;
-  latitude: number | undefined;
+  result: string;
+  latitude: number;
   longitude: number;
   User: User;
+  phqa: Phqa[];
+  q2: Q2[];
 };
 
 export interface User {
@@ -70,4 +73,21 @@ export interface Address {
   subdistrict: number;
   district: number;
   province: number;
+}
+
+export interface Phqa {
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  q5: number;
+  q6: number;
+  q7: number;
+  q8: number;
+  q9: number;
+}
+
+export interface Q2 {
+  q1: number;
+  q2: number;
 }
