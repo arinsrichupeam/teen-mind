@@ -1,17 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { ReactNode, useState } from "react";
 
 import { SidebarContext } from "./layout-context";
 import { SidebarWrapper } from "./components/sidebar/sideba-wrapperr";
 import { NavbarWrapper } from "./components/navbar_admin";
 
-interface Props {
-  children: React.ReactNode;
-}
-
-export const Layout = ({ children }: Props) => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+export const Layout = ({ children }: { children: ReactNode }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };

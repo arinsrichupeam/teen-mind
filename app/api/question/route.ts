@@ -18,6 +18,7 @@ export async function GET() {
           image: true,
           profile: {
             select: {
+              prefix: true,
               firstname: true,
               lastname: true,
               birthday: true,

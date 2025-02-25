@@ -1,7 +1,7 @@
-import NextLink from "next/link";
 import React from "react";
 import clsx from "clsx";
-import { Button } from "@heroui/button";
+import { useRouter } from "next/navigation";
+import { Button, Link } from "@heroui/react";
 
 import { useSidebarContext } from "@/app/admin/(app)/layout-context";
 
@@ -14,30 +14,28 @@ interface Props {
 
 export const SidebarItem = ({ icon, title, isActive, href = "" }: Props) => {
   const { setCollapsed } = useSidebarContext();
+  const route = useRouter();
 
-  const handleClick = () => {
+  const handleClick = (e: string) => {
+    route.push(e);
     if (window.innerWidth < 768) {
       setCollapsed();
     }
   };
 
   return (
-    <NextLink
-      className="text-default-400 active:bg-none max-w-full"
-      href={href}
+    <Button
+      as={Link}
+      className={clsx(
+        isActive
+          ? "bg-primary-100 [&_svg_path]:fill-primary-500"
+          : "hover:bg-default-100",
+        "flex gap-2 w-full min-h-[44px] h-full bg-transparent text-default-400 items-center justify-start px-3.5 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.98]"
+      )}
+      onPress={() => handleClick(href)}
     >
-      <Button
-        className={clsx(
-          isActive
-            ? "bg-primary-100 [&_svg_path]:fill-primary-500"
-            : "hover:bg-default-100",
-          "flex gap-2 w-full min-h-[44px] h-full bg-transparent text-default-400 items-center justify-start px-3.5 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.98]"
-        )}
-        onPress={handleClick}
-      >
-        {icon}
-        <span className="text-default-900">{title}</span>
-      </Button>
-    </NextLink>
+      {icon}
+      <span className="text-default-900">{title}</span>
+    </Button>
   );
 };

@@ -25,10 +25,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { QuestionDrawer } from "./components/question-drawer";
-import { columns, statusOptions } from "./data";
+import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
-// import { QuestionsData, User } from "@/types";
 import { capitalize } from "@/utils/helper";
 import { QuestionsData, QuestionsList } from "@/types";
 
@@ -54,9 +53,9 @@ export default function QuestionPage() {
     let filteredUsers = [...questionsList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((user) =>
-        user.firstname.toLowerCase().includes(filterValue.toLowerCase())
-      );
+      filteredUsers = filteredUsers.filter((val: QuestionsList) => {
+        val.firstname.toLowerCase().includes(filterValue.toLowerCase());
+      });
     }
     if (
       statusFilter !== "all" &&
@@ -86,18 +85,6 @@ export default function QuestionPage() {
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
-
-  const onNextPage = useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
-
-  const onPreviousPage = useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -164,21 +151,6 @@ export default function QuestionPage() {
             </Dropdown>
           </div>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small" />
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              defaultValue={rowsPerPage}
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label>
-        </div>
       </div>
     );
   }, [
@@ -205,7 +177,22 @@ export default function QuestionPage() {
           total={pages}
           onChange={setPage}
         />
-        <div className="hidden sm:flex w-[30%] justify-end gap-2">
+        <div className="flex justify-between items-center">
+          <span className="text-default-400 text-small" />
+          <label className="flex items-center text-default-400 text-small">
+            Rows per page:
+            <select
+              className="bg-transparent outline-none text-default-400 text-small"
+              defaultValue={rowsPerPage}
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+        {/* <div className="hidden sm:flex w-[30%] justify-end gap-2">
           <Button
             isDisabled={pages === 1}
             size="sm"
@@ -222,7 +209,7 @@ export default function QuestionPage() {
           >
             Next
           </Button>
-        </div>
+        </div> */}
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -249,7 +236,7 @@ export default function QuestionPage() {
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
       <div className="max-w-[95rem] mx-auto w-full">
         <QuestionDrawer data={selectedKeys} isOpen={isOpen} onClose={onClose} />
-        <div className=" w-full flex flex-col gap-4 text-nowrap">
+        <div className="w-full flex flex-col gap-4 text-nowrap">
           <Table
             isHeaderSticky
             bottomContent={bottomContent}
@@ -266,8 +253,7 @@ export default function QuestionPage() {
               {(column) => (
                 <TableColumn
                   key={column.uid}
-                  align={column.uid === "actions" ? "center" : "start"}
-                  allowsSorting={column.sortable}
+                  align={column.align as "center" | "start" | "end"}
                 >
                   {column.name}
                 </TableColumn>

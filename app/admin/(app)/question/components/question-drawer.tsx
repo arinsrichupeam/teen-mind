@@ -1,28 +1,41 @@
 "use client";
 
-import { Button } from "@heroui/button";
-import { Card, CardBody, CardFooter, CardHeader } from "@heroui/card";
-import { Divider } from "@heroui/divider";
+import moment from "moment";
+import { useEffect, useState } from "react";
+import { Districts, Provinces, Subdistricts } from "@prisma/client";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Chip,
+  Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
-} from "@heroui/drawer";
-import { Image } from "@heroui/image";
-import { Link } from "@heroui/link";
-import moment from "moment";
-import { useEffect, useState } from "react";
-import { Districts, Provinces, Subdistricts } from "@prisma/client";
-import { Input } from "@heroui/input";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+  Image,
+  Input,
+  Link,
+  Radio,
+  RadioGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+} from "@heroui/react";
 
 import { prefix, QuestionsData } from "@/types";
-
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
+import { q2, qPhqa } from "@/app/data";
+import { subtitle } from "@/components/primitives";
 
 export const QuestionDrawer = ({
   isOpen,
@@ -64,9 +77,40 @@ export const QuestionDrawer = ({
     <Drawer isOpen={isOpen} size={"4xl"} onClose={onClose}>
       <DrawerContent>
         {(onClose) => (
-          <>
-            <DrawerHeader className="flex flex-col gap-1">
-              {/* QuestionID : {data?.} */}
+          <div>
+            <DrawerHeader className="flex flex-row justify-between gap-1">
+              <div>
+                ผลการประเมิน :
+                <Chip
+                  className="ml-3"
+                  color={
+                    data?.result === "Green"
+                      ? "success"
+                      : data?.result === "Red"
+                        ? "danger"
+                        : "warning"
+                  }
+                  size="lg"
+                  variant="flat"
+                >
+                  <span className="capitalize text-xs">{data?.result}</span>
+                </Chip>
+              </div>
+              <p className="pr-10">
+                วันที่ประเมิน :{" "}
+                <span>
+                  {new Date(data?.createdAt as string).toLocaleDateString(
+                    "th-TH",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
+                </span>
+              </p>
             </DrawerHeader>
             <DrawerBody>
               <div className="flex flex-col sm:flex-row gap-5 mx-auto">
@@ -82,8 +126,9 @@ export const QuestionDrawer = ({
                     <div className="flex flex-col">
                       <p className="text-md">
                         {
-                          prefix[(data?.User.profile[0].prefix as number) - 1]
-                            .label
+                          prefix.find(
+                            (val) => val.key == data?.User.profile[0].prefix
+                          )?.label
                         }{" "}
                         {data?.User.profile[0].firstname}{" "}
                         {data?.User.profile[0].lastname}
@@ -162,18 +207,15 @@ export const QuestionDrawer = ({
                   <Divider />
                   <CardFooter>
                     <div className="flex flex-row gap-4">
-                      <Input startContent={<p> HN:</p>} variant="bordered" />
+                      <Input
+                        isDisabled
+                        startContent={<p> HN:</p>}
+                        variant="bordered"
+                      />
                       <Button isDisabled color="primary">
                         บันทึก
                       </Button>
                     </div>
-                    {/* <Link
-                                            isExternal
-                                            showAnchorIcon
-                                            href="https://github.com/heroui-inc/heroui"
-                                        >
-                                            Visit source code on GitHub.
-                                        </Link> */}
                   </CardFooter>
                 </Card>
                 <Card className="max-w-[400px]">
@@ -189,7 +231,7 @@ export const QuestionDrawer = ({
                         zoomControl={false}
                       >
                         <TileLayer
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          attribution=""
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
                         <Marker
@@ -206,34 +248,133 @@ export const QuestionDrawer = ({
                     <Link
                       isExternal
                       showAnchorIcon
-                      href="https://www.google.co.th/maps/@13.7129260,100.3635441,16z"
+                      href={`https://www.google.co.th/maps/place/${data?.latitude},${data?.longitude}`}
                     >
                       ดูบนแผนที่
                     </Link>
                   </CardFooter>
                 </Card>
               </div>
-              <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam
-                pulvinar risus non risus hendrerit venenatis. Pellentesque sit
-                amet hendrerit risus, sed porttitor quam.
-              </p>
-              <p>
-                Magna exercitation reprehenderit magna aute tempor cupidatat
-                consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
-                incididunt cillum quis. Velit duis sit officia eiusmod Lorem
-                aliqua enim laboris do dolor eiusmod.
-              </p>
+              <div>
+                <h2 className={subtitle()}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น</h2>
+                <div className="flex flex-col gap-4">
+                  <Table>
+                    <TableHeader>
+                      <TableColumn>Question</TableColumn>
+                      <TableColumn align="center">Anwser</TableColumn>
+                    </TableHeader>
+                    <TableBody>
+                      {qPhqa.map((val, index) => {
+                        return (
+                          <TableRow key={index}>
+                            <TableCell className="min-w-[250px]">
+                              {index + 1} {val}
+                            </TableCell>
+                            <TableCell className="min-w-[250px]">
+                              {data?.phqa.map((val) => {
+                                return (
+                                  <RadioGroup
+                                    key={index}
+                                    className="items-center"
+                                    name={(index + 1).toString()}
+                                    orientation="horizontal"
+                                    value={Object.entries(val)
+                                    [index + 2].toString()
+                                      .substring(3)}
+                                  >
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="0"
+                                    >
+                                      0
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="1"
+                                    >
+                                      1
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="2"
+                                    >
+                                      2
+                                    </Radio>
+                                    <Radio
+                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
+                                      value="3"
+                                    >
+                                      3
+                                    </Radio>
+                                  </RadioGroup>
+                                );
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              <div>
+                <h2 className={subtitle()}>คำถามแนบท้าย</h2>
+                <Table>
+                  <TableHeader>
+                    <TableColumn>Question</TableColumn>
+                    <TableColumn align="center">Anwser</TableColumn>
+                  </TableHeader>
+                  <TableBody>
+                    {q2.map((val, index) => {
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="min-w-[250px]">
+                            {index + 1} {val}
+                          </TableCell>
+                          <TableCell className="min-w-[250px]">
+                            {data?.q2.map((val) => {
+                              return (
+                                <RadioGroup
+                                  key={index}
+                                  className="items-center"
+                                  name={(index + 1).toString()}
+                                  orientation="horizontal"
+                                  value={Object.entries(val)
+                                  [index + 2].toString()
+                                    .substring(3)}
+                                >
+                                  <Radio
+                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                                    value="1"
+                                  >
+                                    ใช่
+                                  </Radio>
+                                  <Radio
+                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                                    value="0"
+                                  >
+                                    ไม่ใช่
+                                  </Radio>
+                                </RadioGroup>
+                              );
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </DrawerBody>
             <DrawerFooter>
               <Button color="danger" variant="light" onPress={onClose}>
-                Close
+                ปิด
               </Button>
-              <Button color="primary" onPress={onClose}>
-                Action
+              <Button color="primary" isDisabled={true} onPress={onClose}>
+                บันทึก
               </Button>
             </DrawerFooter>
-          </>
+          </div>
         )}
       </DrawerContent>
     </Drawer>
