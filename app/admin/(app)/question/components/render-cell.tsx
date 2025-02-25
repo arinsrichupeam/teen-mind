@@ -8,6 +8,7 @@ import { Chip } from "@heroui/chip";
 import { statusOptions } from "../data";
 
 import { capitalize } from "@/utils/helper";
+import { prefix } from "@/types";
 
 interface Props {
   data: any;
@@ -57,7 +58,12 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
             src: data.User.image as string,
           }}
           name={
-            data.User.profile[0].firstname + " " + data.User.profile[0].lastname
+            prefix.find((val) => val.key == data.User.profile[0].prefix)
+              ?.label +
+            " " +
+            data.User.profile[0].firstname +
+            " " +
+            data.User.profile[0].lastname
           }
         />
       );
@@ -89,9 +95,8 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
           <span className="capitalize text-xs">{data.result}</span>
         </Chip>
       );
-    case "phqa": {
+    case "phqa":
       return <span>{data.phqa[0].sum}</span>;
-    }
     case "date":
       return (
         <div>
@@ -108,25 +113,13 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
       );
     case "status":
       return (
-        <Chip
-          color={
-            data.status.toString() === "0"
-              ? "success"
-              : data.status.toString() === "2"
-                ? "danger"
-                : "warning"
-          }
-          size="sm"
-          variant="flat"
-        >
-          <span className="capitalize text-xs">
-            {capitalize(statusOptions[data.status].name)}
-          </span>
-        </Chip>
+        <span className="text-xs font-semibold">
+          {statusOptions[data.status].name}
+        </span>
       );
     case "actions":
       return (
-        <div className="flex items-center justify-center gap-4 ">
+        <div className="flex gap-4">
           <div>
             <Tooltip content="Details">
               <button onClick={() => selectKey(data.id)}>

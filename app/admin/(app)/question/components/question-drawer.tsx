@@ -10,6 +10,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Chip,
   Divider,
   Drawer,
   DrawerBody,
@@ -30,7 +31,6 @@ import {
 } from "@heroui/react";
 
 import { prefix, QuestionsData } from "@/types";
-
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
@@ -77,9 +77,40 @@ export const QuestionDrawer = ({
     <Drawer isOpen={isOpen} size={"4xl"} onClose={onClose}>
       <DrawerContent>
         {(onClose) => (
-          <>
-            <DrawerHeader className="flex flex-col gap-1">
-              QuestionID : {data?.id}
+          <div>
+            <DrawerHeader className="flex flex-row justify-between gap-1">
+              <div>
+                ผลการประเมิน :
+                <Chip
+                  className="ml-3"
+                  color={
+                    data?.result === "Green"
+                      ? "success"
+                      : data?.result === "Red"
+                        ? "danger"
+                        : "warning"
+                  }
+                  size="lg"
+                  variant="flat"
+                >
+                  <span className="capitalize text-xs">{data?.result}</span>
+                </Chip>
+              </div>
+              <p className="pr-10">
+                วันที่ประเมิน :{" "}
+                <span>
+                  {new Date(data?.createdAt as string).toLocaleDateString(
+                    "th-TH",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
+                </span>
+              </p>
             </DrawerHeader>
             <DrawerBody>
               <div className="flex flex-col sm:flex-row gap-5 mx-auto">
@@ -95,8 +126,9 @@ export const QuestionDrawer = ({
                     <div className="flex flex-col">
                       <p className="text-md">
                         {
-                          prefix[(data?.User.profile[0].prefix as number) - 1]
-                            .label
+                          prefix.find(
+                            (val) => val.key == data?.User.profile[0].prefix
+                          )?.label
                         }{" "}
                         {data?.User.profile[0].firstname}{" "}
                         {data?.User.profile[0].lastname}
@@ -175,7 +207,11 @@ export const QuestionDrawer = ({
                   <Divider />
                   <CardFooter>
                     <div className="flex flex-row gap-4">
-                      <Input startContent={<p> HN:</p>} variant="bordered" />
+                      <Input
+                        isDisabled
+                        startContent={<p> HN:</p>}
+                        variant="bordered"
+                      />
                       <Button isDisabled color="primary">
                         บันทึก
                       </Button>
@@ -212,7 +248,7 @@ export const QuestionDrawer = ({
                     <Link
                       isExternal
                       showAnchorIcon
-                      href="https://www.google.co.th/maps/@13.7129260,100.3635441,16z"
+                      href={`https://www.google.co.th/maps/place/${data?.latitude},${data?.longitude}`}
                     >
                       ดูบนแผนที่
                     </Link>
@@ -220,7 +256,7 @@ export const QuestionDrawer = ({
                 </Card>
               </div>
               <div>
-                <h2 className={subtitle()}>PHQ-A</h2>
+                <h2 className={subtitle()}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น</h2>
                 <div className="flex flex-col gap-4">
                   <Table>
                     <TableHeader>
@@ -243,7 +279,7 @@ export const QuestionDrawer = ({
                                     name={(index + 1).toString()}
                                     orientation="horizontal"
                                     value={Object.entries(val)
-                                      [index + 2].toString()
+                                    [index + 2].toString()
                                       .substring(3)}
                                   >
                                     <Radio
@@ -304,7 +340,7 @@ export const QuestionDrawer = ({
                                   name={(index + 1).toString()}
                                   orientation="horizontal"
                                   value={Object.entries(val)
-                                    [index + 2].toString()
+                                  [index + 2].toString()
                                     .substring(3)}
                                 >
                                   <Radio
@@ -332,13 +368,13 @@ export const QuestionDrawer = ({
             </DrawerBody>
             <DrawerFooter>
               <Button color="danger" variant="light" onPress={onClose}>
-                Close
+                ปิด
               </Button>
-              <Button color="primary" onPress={onClose}>
-                Action
+              <Button color="primary" isDisabled={true} onPress={onClose}>
+                บันทึก
               </Button>
             </DrawerFooter>
-          </>
+          </div>
         )}
       </DrawerContent>
     </Drawer>

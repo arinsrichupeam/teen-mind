@@ -27,6 +27,7 @@ export const prefix = [
 
 export type QuestionsList = {
   id: string;
+  prefix: string;
   firstname: string;
   lastname: string;
   birthday: string;
@@ -42,6 +43,7 @@ export type QuestionsData = {
   result: string;
   latitude: number;
   longitude: number;
+  createdAt: string;
   User: User;
   phqa: Phqa[];
   q2: Q2[];
@@ -55,7 +57,7 @@ export interface User {
 export interface Profile {
   firstname: string;
   lastname: string;
-  prefix: number;
+  prefix: string;
   birthday: string;
   ethnicity: string;
   nationality: string;

@@ -25,7 +25,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { QuestionDrawer } from "./components/question-drawer";
-import { columns, statusOptions } from "./data";
+import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
 import { capitalize } from "@/utils/helper";
@@ -85,18 +85,6 @@ export default function QuestionPage() {
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
-
-  const onNextPage = useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
-
-  const onPreviousPage = useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -265,7 +253,7 @@ export default function QuestionPage() {
               {(column) => (
                 <TableColumn
                   key={column.uid}
-                  align={column.uid === "actions" ? "center" : "start"}
+                  align={column.align as "center" | "start" | "end"}
                 >
                   {column.name}
                 </TableColumn>
