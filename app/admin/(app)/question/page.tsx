@@ -86,17 +86,17 @@ export default function QuestionPage() {
     });
   }, [sortDescriptor, items]);
 
-  const onNextPage = useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
+  // const onNextPage = useCallback(() => {
+  //   if (page < pages) {
+  //     setPage(page + 1);
+  //   }
+  // }, [page, pages]);
 
-  const onPreviousPage = useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
+  // const onPreviousPage = useCallback(() => {
+  //   if (page > 1) {
+  //     setPage(page - 1);
+  //   }
+  // }, [page]);
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {

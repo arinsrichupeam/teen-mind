@@ -81,7 +81,7 @@ export const SidebarWrapper = () => {
                 title="จัดการสมาชิก"
               />
               <SidebarItem
-                href="#"
+                href="/admin/school"
                 icon={<HomeModernIcon className="size-6" />}
                 isActive={pathname === "/admin/school"}
                 title="รายชื่อโรงเรียน"
