@@ -169,12 +169,23 @@ model Questions_Master {
   status    Int              @default(0)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
-  phqa      Questions_PHQA[]
   q2        Questions_2Q[]
+  phqa      Questions_PHQA[]
 
   User User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Questions_2Q {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int
+  q2                 Int
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+
+  @@index([questions_MasterId])
 }
 
 model Questions_PHQA {
@@ -189,6 +200,8 @@ model Questions_PHQA {
   q7                 Int
   q8                 Int
   q9                 Int
+  q10                Int?
+  q11                Int?
   sum                Int
 
   Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
@@ -196,13 +209,11 @@ model Questions_PHQA {
   @@index([questions_MasterId])
 }
 
-model Questions_2Q {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int
-  q2                 Int
-
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
-
-  @@index([questions_MasterId])
+model School {
+  id         Int      @id @default(autoincrement())
+  name       String
+  districtId Int
+  status     Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

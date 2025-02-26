@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE `questions_phqa` ADD COLUMN `q10` INTEGER NULL,
+    ADD COLUMN `q11` INTEGER NULL;
+
+-- CreateTable
+CREATE TABLE `School` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(191) NOT NULL,
+    `districtId` INTEGER NOT NULL,
+    `status` INTEGER NOT NULL DEFAULT 0,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

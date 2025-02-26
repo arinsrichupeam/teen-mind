@@ -7,7 +7,6 @@ import { Chip } from "@heroui/chip";
 
 import { statusOptions } from "../data";
 
-import { capitalize } from "@/utils/helper";
 import { prefix } from "@/types";
 
 interface Props {
