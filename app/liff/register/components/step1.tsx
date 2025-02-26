@@ -193,8 +193,8 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         name="school"
         placeholder="โรงเรียน"
         radius="md"
-        value={Result?.schoolId as number}
         size="sm"
+        value={Result?.schoolId as number}
         variant="faded"
         onSelectionChange={(val) =>
           HandleChange({ target: { name: "school", value: val } })
