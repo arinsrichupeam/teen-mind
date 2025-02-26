@@ -46,7 +46,7 @@ export type QuestionsData = {
   createdAt: string;
   User: User;
   phqa: Phqa[];
-  phqa_addon: Phqa_Addon[];
+  addon: Phqa_Addon[];
 };
 
 export interface User {

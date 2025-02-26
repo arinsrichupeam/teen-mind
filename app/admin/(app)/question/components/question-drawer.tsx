@@ -34,7 +34,7 @@ import { prefix, QuestionsData } from "@/types";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
-import { q2, qPhqa } from "@/app/data";
+import { qPhqa_addon, qPhqa } from "@/app/data";
 import { subtitle } from "@/components/primitives";
 
 export const QuestionDrawer = ({
@@ -325,14 +325,14 @@ export const QuestionDrawer = ({
                     <TableColumn align="center">Anwser</TableColumn>
                   </TableHeader>
                   <TableBody>
-                    {q2.map((val, index) => {
+                    {qPhqa_addon.map((val, index) => {
                       return (
                         <TableRow key={index}>
                           <TableCell className="min-w-[250px]">
                             {index + 1} {val}
                           </TableCell>
                           <TableCell className="min-w-[250px]">
-                            {data?.q2.map((val) => {
+                            {data?.addon.map((val) => {
                               return (
                                 <RadioGroup
                                   key={index}
