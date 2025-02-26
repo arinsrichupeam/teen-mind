@@ -29,6 +29,11 @@ export async function GET(
               nationality: true,
               citizenId: true,
               tel: true,
+              school: {
+                select: {
+                  name: true,
+                },
+              },
               address: {
                 select: {
                   houseNo: true,
@@ -45,7 +50,7 @@ export async function GET(
         },
       },
       phqa: true,
-      q2: true,
+      addon: true,
     },
   });
 

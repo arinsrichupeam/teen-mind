@@ -316,93 +316,93 @@ export default function PHQAPage() {
           >
             {showPHQA
               ? qPhqa.map((val, index) => {
-                  return (
-                    <Tab key={index}>
-                      <div className="flex flex-col gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_Image(index)[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                              name={(index + 1).toString()}
-                              onChange={(val) => phqaChange(val)}
+                return (
+                  <Tab key={index}>
+                    <div className="flex flex-col gap-4 mt-[-50px]">
+                      <div className="flex flex-col items-center">
+                        {qPhqa_Image(index)[index]}
+                      </div>
+                      <div className="flex flex-col gap-4 items-start text-start">
+                        <p className="text-primary-500 font-semibold">
+                          {index + 1}. {val}
+                        </p>
+                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                          <RadioGroup
+                            key={index}
+                            className="pl-5"
+                            label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
+                            name={(index + 1).toString()}
+                            onChange={(val) => phqaChange(val)}
+                          >
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="0"
                             >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่มีเลย
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                มีบางวัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="2"
-                              >
-                                มีมากกว่า 7 วัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="3"
-                              >
-                                มีแทบทุกวัน
-                              </Radio>
-                            </RadioGroup>
-                          </div>
+                              ไม่มีเลย
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="1"
+                            >
+                              มีบางวัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="2"
+                            >
+                              มีมากกว่า 7 วัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="3"
+                            >
+                              มีแทบทุกวัน
+                            </Radio>
+                          </RadioGroup>
                         </div>
                       </div>
-                    </Tab>
-                  );
-                })
+                    </div>
+                  </Tab>
+                );
+              })
               : qPhqa_addon.map((val, index) => {
-                  return (
-                    <Tab key={index + 9}>
-                      <div className="flex flex-col  gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_addon_Image(index)[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                              name={"1" + index.toString()}
-                              onChange={(val) => phqaAddonChange(val)}
+                return (
+                  <Tab key={index + 9}>
+                    <div className="flex flex-col  gap-4 mt-[-50px]">
+                      <div className="flex flex-col items-center">
+                        {qPhqa_addon_Image(index)[index]}
+                      </div>
+                      <div className="flex flex-col gap-4 items-start text-start">
+                        <p className="text-primary-500 font-semibold">
+                          {index + 1}. {val}
+                        </p>
+                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                          <RadioGroup
+                            key={index}
+                            className="pl-5"
+                            label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                            name={"1" + index.toString()}
+                            onChange={(val) => phqaAddonChange(val)}
+                          >
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="0"
                             >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่ใช่
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                ใช่
-                              </Radio>
-                            </RadioGroup>
-                          </div>
+                              ไม่ใช่
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="1"
+                            >
+                              ใช่
+                            </Radio>
+                          </RadioGroup>
                         </div>
                       </div>
-                    </Tab>
-                  );
-                })}
+                    </div>
+                  </Tab>
+                );
+              })}
           </Tabs>
         </div>
 

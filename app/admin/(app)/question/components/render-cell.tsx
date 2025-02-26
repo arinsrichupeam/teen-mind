@@ -75,7 +75,7 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
     case "school":
       return (
         <div>
-          <span>{data.User.profile[0].school}</span>
+          <span>{data.User.profile[0].school?.name.toString()}</span>
         </div>
       );
     case "result":
