@@ -46,7 +46,7 @@ export type QuestionsData = {
   createdAt: string;
   User: User;
   phqa: Phqa[];
-  q2: Q2[];
+  phqa_addon: Phqa_Addon[];
 };
 
 export interface User {
@@ -89,7 +89,7 @@ export interface Phqa {
   q9: number;
 }
 
-export interface Q2 {
+export interface Phqa_Addon {
   q1: number;
   q2: number;
 }

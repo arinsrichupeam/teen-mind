@@ -1,4 +1,4 @@
-import { Questions_2Q, Questions_PHQA } from "@prisma/client";
+import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 
 import { prisma } from "@/utils/prisma";
 import lineSdk from "@/utils/linesdk";
@@ -40,10 +40,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const data = await req.json();
+
   const userId = data.userId;
   const referenceId = data.reference;
   const phqa_data: Questions_PHQA = data.phqa;
-  const q2_data: Questions_2Q = data.q2;
+  const phqa_addon: Questions_PHQA_Addon = data.phqa_addon;
   const location_data: LocationData = data.location;
   let status = "";
 
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
   } else if (phqa_sum > 4) {
     status = "Yellow";
   } else {
-    if (phqa_data.q9 > 0 || q2_data.q1 == 1 || q2_data.q2 == 1) {
+    if (phqa_data.q9 > 0 || phqa_addon.q1 == 1 || phqa_addon.q2 == 1) {
       status = "Yellow";
     } else {
       status = "Green";
@@ -99,10 +100,10 @@ export async function POST(req: Request) {
             sum: phqa_sum,
           },
         },
-        q2: {
+        addon: {
           create: {
-            q1: q2_data.q1,
-            q2: q2_data.q2,
+            q1: phqa_addon.q1,
+            q2: phqa_addon.q2,
           },
         },
       },

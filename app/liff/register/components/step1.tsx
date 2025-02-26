@@ -1,42 +1,49 @@
 "use client";
 
-import { Profile } from "@prisma/client";
+import { Profile, School } from "@prisma/client";
 import { Input } from "@heroui/input";
 import { Form } from "@heroui/form";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
 import { DateInput } from "@heroui/date-input";
 import { CalendarDate, parseDate } from "@internationalized/date";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
+import { Autocomplete, AutocompleteItem } from "@heroui/react";
 
 import { validateCitizen } from "@/utils/validateCitizen";
 import { prefix, sex } from "@/types";
 
-export const Step1 = ({
-  NextStep,
-  Result,
-  HandleChange,
-}: {
+interface Props {
   NextStep: (val: any) => void;
   Result: Profile | undefined;
   HandleChange: (val: any) => void;
-}) => {
+}
+
+export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const request = true;
-  const [birthday, setBirthday] = useState<CalendarDate | null>();
-  const onSubmit = (e: any) => {
+  const [birthday, setBirthday] = useState<CalendarDate>();
+  const [school, setSchool] = useState<School[]>([]);
+
+  const onSubmit = useCallback((e: any) => {
     e.preventDefault();
     NextStep("Profile");
-  };
+  }, []);
 
-  const DateChange = (val: any) => {
+  const DateChange = useCallback((val: any) => {
     HandleChange({ target: { name: "birthday", value: new Date(val) } });
-  };
+  }, []);
 
   useEffect(() => {
     if (Result?.birthday.getDate() != new Date().getDate()) {
       setBirthday(parseDate(moment(Result?.birthday).format("YYYY-MM-DD")));
     }
+
+    fetch("/api/data/school")
+      .then((res) => res.json())
+      .then((val) => {
+        setSchool(val);
+      });
   }, []);
 
   return (
@@ -69,7 +76,7 @@ export const Step1 = ({
           name="prefix"
           placeholder="คำนำหน้า"
           radius="md"
-          selectedKeys={Result?.prefix.toString()}
+          selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
           size="sm"
           variant="faded"
           onChange={HandleChange}
@@ -87,7 +94,7 @@ export const Step1 = ({
           name="sex"
           placeholder="เพศ"
           radius="md"
-          selectedKeys={Result?.sex.toString()}
+          selectedKeys={Result?.sex === 0 ? "" : Result?.sex.toString()}
           size="sm"
           variant="faded"
           onChange={HandleChange}
@@ -177,7 +184,8 @@ export const Step1 = ({
         variant="faded"
         onChange={HandleChange}
       />
-      <Input
+      <Autocomplete
+        defaultItems={school}
         errorMessage="กรุณากรอกสถานศึกษา"
         isRequired={request}
         label="สถานศึกษา"
@@ -185,11 +193,19 @@ export const Step1 = ({
         name="school"
         placeholder="โรงเรียน"
         radius="md"
+        selectedKey={Result?.school}
         size="sm"
-        value={Result?.school!}
         variant="faded"
-        onChange={HandleChange}
-      />
+        onSelectionChange={(val) =>
+          HandleChange({ target: { name: "school", value: val } })
+        }
+      >
+        {(item) => (
+          <AutocompleteItem key={item.id} value={item.name}>
+            {item.name}
+          </AutocompleteItem>
+        )}
+      </Autocomplete>
       <Button
         className="w-full"
         color="primary"

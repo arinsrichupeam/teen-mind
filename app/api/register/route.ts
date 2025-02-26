@@ -43,7 +43,7 @@ export async function POST(req: Request) {
               ethnicity: profile.ethnicity,
               nationality: profile.nationality,
               tel: profile.tel,
-              school: profile.school,
+              schoolId: profile.schoolId,
               role: {
                 connect: { id: 1 },
               },
@@ -62,9 +62,9 @@ export async function POST(req: Request) {
               },
               emergency: {
                 create: {
-                  name: emergency.name,
-                  tel: emergency.tel,
-                  relation: emergency.relation,
+                  name: emergency.name as string,
+                  tel: emergency.tel as string,
+                  relation: emergency.relation as string,
                 },
               },
             },
