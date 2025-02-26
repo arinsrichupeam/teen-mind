@@ -1,3 +1,4 @@
+import { Input } from "@heroui/input";
 import {
   Modal,
   ModalContent,
@@ -6,65 +7,115 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
+  Form,
 } from "@heroui/react";
+import React, { useEffect, useState } from "react";
+import { Districts } from "@prisma/client";
+import { Autocomplete, AutocompleteItem } from "@heroui/react";
 
 
-const ModalFrom = ({ isOpen,onOpen  }: { isOpen: any; onOpen:any;  }) => {
 
+
+const ModalFrom = ({ isOpen, onOpen, onOpenChange }: { isOpen: any; onOpen: any; onOpenChange: any; }) => {
+
+  const [districts, setDistricts] = useState<Districts[]>([]);
+
+
+
+  const onSubmit = (e: any) => {
+    e.preventDefault();
+
+   
+  };
+
+
+
+  useEffect(() => {
+    fetch("/api/data/distrince/1")
+      .then((res) => res.json())
+      .then((val) => setDistricts(val));
+
+  }, [])
 
   return (
     <div>
-      <Button color="secondary" onPress={onOpen}>
+      <Button className="font-bold text-medium" color="primary" onPress={onOpen}>
         เพิ่ม
       </Button>
-      <Modal
-        backdrop="opaque"
-        classNames={{
-          body: "py-6",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
-          base: "border-[#292f46] bg-[#19172c] dark:bg-[#19172c] text-[#a8b0d3]",
-          header: "border-b-[1px] border-[#292f46]",
-          footer: "border-t-[1px] border-[#292f46]",
-          closeButton: "hover:bg-white/5 active:bg-white/10",
-        }}
-        isOpen={isOpen}
-        radius="lg"
+
+
+      <Form
+        onSubmit={onSubmit}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">Modal Title</ModalHeader>
-              <ModalBody>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pulvinar risus non
-                  risus hendrerit venenatis. Pellentesque sit amet hendrerit risus, sed porttitor
-                  quam.
-                </p>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pulvinar risus non
-                  risus hendrerit venenatis. Pellentesque sit amet hendrerit risus, sed porttitor
-                  quam.
-                </p>
-                <p>
-                  Magna exercitation reprehenderit magna aute tempor cupidatat consequat elit dolor
-                  adipisicing. Mollit dolor eiusmod sunt ex incididunt cillum quis. Velit duis sit
-                  officia eiusmod Lorem aliqua enim laboris do dolor eiusmod. Et mollit incididunt
-                  nisi consectetur esse laborum eiusmod pariatur proident Lorem eiusmod et. Culpa
-                  deserunt nostrud ad veniam.
-                </p>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="success" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button className="bg-[#6f4ef2] shadow-lg shadow-indigo-500/20" onPress={onClose}>
-                  Action
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+        <Modal
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
+          backdrop="opaque"
+          classNames={{
+            body: "py-6",
+            backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
+            // base: "border-[#292f46] bg-[#19172c] dark:bg-[#19172c] text-[#a8b0d3]",
+            // header: "border-b-[1px] border-[#292f46]",
+            // footer: "border-t-[1px] border-[#292f46]",
+            closeButton: "hover:bg-white/5 active:bg-white/10",
+          }}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+
+          radius="lg"
+        >
+          <ModalContent >
+            {(onClose) => (
+              <>
+                <ModalHeader className="flex flex-col gap-1">เพิ่มโรงเรียน</ModalHeader>
+                <ModalBody>
+                  <div className="flex flex-col gap-4">
+                    <Input
+                      isRequired
+                      label="ชื่อโรงเรียน"
+                      labelPlacement="outside"
+                      placeholder="กรุณากรอกชื่อโรงเรียน"
+                      type="input"
+                      variant="bordered"
+                      errorMessage="กรุณากรอกชื่อโรงเรียน"
+                    />
+                    <Autocomplete
+                      defaultItems={districts}
+                      label="เขต"
+                      placeholder="กรุณาเลือกเขต"
+                      labelPlacement="outside"
+                      errorMessage="กรุณาเลือกเขต"
+                      isRequired
+                    >
+                      {
+                        (district) => (
+                          <AutocompleteItem key={district.id}>
+                            {district.nameInThai}
+                          </AutocompleteItem>
+                        )
+                      }
+
+                    </Autocomplete>
+
+                  </div>
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="default" variant="light" onPress={onClose}>
+                    ปิด
+                  </Button>
+                  <Button className="bg-success shadow-lg shadow-indigo-500/20 font-bold text-white "
+                    type="submit"
+                    variant="bordered"
+                  >
+                    เพิ่ม
+                  </Button>
+                  
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      </Form>
     </div>
 
   )

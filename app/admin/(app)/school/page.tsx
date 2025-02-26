@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, Pagination, useDisclosure } from "@heroui/react";
+import {  Pagination, useDisclosure } from "@heroui/react";
 import TableSchool from "./components/table-scool";
 import TableSearch from "./components/search-scool";
 
@@ -9,7 +9,7 @@ import ModalFrom from "./components/modal-scool";
 export default function School() {
 
 
-  const { isOpen,onOpen,onClose } = useDisclosure();
+  const { isOpen,onOpen,onOpenChange } = useDisclosure();
 
 
 
@@ -75,7 +75,7 @@ export default function School() {
 
         <div className="flex gap-4">
           <TableSearch />
-          <ModalFrom isOpen={isOpen} onOpen={onOpen}/>
+          <ModalFrom isOpen={isOpen} onOpen={onOpen} onOpenChange={onOpenChange} />
         </div>
       </div>
 
