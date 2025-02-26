@@ -272,7 +272,8 @@ export default function QuestionPage() {
                       {RenderCell({
                         data: item,
                         columnKey: columnKey,
-                        index: questionsList.findIndex((x) => x.id == item.id) + 1,
+                        index:
+                          questionsList.findIndex((x) => x.id == item.id) + 1,
                         selectKey: onRowPress,
                       })}
                     </TableCell>
