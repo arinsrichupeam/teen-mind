@@ -85,7 +85,6 @@ model Profile {
   ethnicity   String
   nationality String
   tel         String
-  school      String?
 
   address   Address[]
   emergency EmergencyContact[]
@@ -93,7 +92,10 @@ model Profile {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School? @relation(fields: [schoolId], references: [id])
+
+  schoolId Int?
 
   @@index([userId])
 }
@@ -159,18 +161,19 @@ model Subdistricts {
 }
 
 model Questions_Master {
-  id        String           @id @default(cuid())
+  id        String                 @id @default(cuid())
   userId    String
   referent  String?
   consult   String?
-  latitude  Decimal?         @db.Decimal(10, 7)
-  longitude Decimal?         @db.Decimal(10, 7)
+  latitude  Decimal?               @db.Decimal(10, 7)
+  longitude Decimal?               @db.Decimal(10, 7)
   result    String
-  status    Int              @default(0)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  status    Int                    @default(0)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
   q2        Questions_2Q[]
   phqa      Questions_PHQA[]
+  addon     Questions_PHQA_Addon[]
 
   User User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -200,8 +203,6 @@ model Questions_PHQA {
   q7                 Int
   q8                 Int
   q9                 Int
-  q10                Int?
-  q11                Int?
   sum                Int
 
   Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
@@ -209,11 +210,23 @@ model Questions_PHQA {
   @@index([questions_MasterId])
 }
 
+model Questions_PHQA_Addon {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int
+  q2                 Int
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+
+  @@index([questions_MasterId])
+}
+
 model School {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   name       String
   districtId Int
-  status     Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  status     Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  Profile    Profile[]
 }

@@ -4,7 +4,7 @@ import { Tab, Tabs } from "@heroui/tabs";
 import { Address, EmergencyContact, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Alert } from "@heroui/alert";
 
 import { Step1 } from "./components/step1";
@@ -26,7 +26,7 @@ const profileInitValue: Profile = {
   ethnicity: "",
   nationality: "",
   tel: "",
-  school: "",
+  schoolId: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -63,53 +63,47 @@ export default function RegisterPage() {
     emergencyContactInitValue
   );
 
-  const SaveToDB = async () => {
-    await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        register_profile: profile,
-        register_address: address,
-        register_emergency: emergency,
-      }),
-    }).then((res) => {
-      if (res.status === 200) {
-        setShowAlert(true);
-        setTimeout(() => {
-          router.push("/liff/question");
-        }, 3000);
+  useEffect(() => {
+    if (status !== "loading" && status === "authenticated") {
+      setProfile((prev) => ({
+        ...prev,
+        userId: session?.user?.id as string,
+      }));
+    }
+  }, [session]);
+
+  const NextStep = useCallback(
+    (name: any) => {
+      switch (name) {
+        case "Profile":
+          setSelected("address");
+          break;
+        case "Address":
+          setSelected("emergency");
+          break;
+        case "Emergency":
+          SaveToDB();
+          break;
       }
-    });
-  };
+    },
+    [selected]
+  );
 
-  const NextStep = (name: any) => {
-    switch (name) {
-      case "Profile":
-        setSelected("address");
-        break;
-      case "Address":
-        setSelected("emergency");
-        break;
-      case "Emergency":
-        SaveToDB();
-        break;
-    }
-  };
+  const BackStep = useCallback(
+    (name: any) => {
+      switch (name) {
+        case "Address":
+          setSelected("profile");
+          break;
+        case "Emergency":
+          setSelected("address");
+          break;
+      }
+    },
+    [selected]
+  );
 
-  const BackStep = (name: any) => {
-    switch (name) {
-      case "Address":
-        setSelected("profile");
-        break;
-      case "Emergency":
-        setSelected("address");
-        break;
-    }
-  };
-
-  const ProfileHandleChange = (e: any) => {
+  const ProfileHandleChange = useCallback((e: any) => {
     if (e.target.name === "birthday") {
       setProfile((prev: any) => ({
         ...prev,
@@ -134,36 +128,55 @@ export default function RegisterPage() {
           [e.target.name]: e.target.value,
         }));
       }
+    } else if (e.target.name === "school") {
+      setProfile((prev: any) => ({
+        ...prev,
+        schoolId: parseInt(e.target.value),
+      }));
     } else {
       setProfile((prev: any) => ({
         ...prev,
         [e.target.name]: e.target.value,
       }));
     }
-  };
+  }, []);
 
-  const AddressHandleChange = (e: any) => {
+  const AddressHandleChange = useCallback((e: any) => {
     setAddress((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
-  };
+  }, []);
 
-  const EmergencyHandleChange = (e: any) => {
+  const EmergencyHandleChange = useCallback((e: any) => {
     setEmergency((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
-  };
+  }, []);
 
-  useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      setProfile((prev) => ({
-        ...prev,
-        userId: session?.user?.id as string,
-      }));
-    }
-  }, [session]);
+  const SaveToDB = async () => {
+    const data = JSON.stringify({
+      register_profile: profile,
+      register_address: address,
+      register_emergency: emergency,
+    });
+
+    await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: data,
+    }).then((res) => {
+      if (res.status === 200) {
+        setShowAlert(true);
+        setTimeout(() => {
+          router.push("/liff/question");
+        }, 3000);
+      }
+    });
+  };
 
   return (
     <section className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">

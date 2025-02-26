@@ -4,10 +4,10 @@ import { Button } from "@heroui/button";
 import { Tab, Tabs } from "@heroui/tabs";
 import { Progress } from "@heroui/progress";
 import { Image } from "@heroui/image";
-import { Questions_2Q, Questions_PHQA } from "@prisma/client";
+import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Radio, RadioGroup } from "@heroui/radio";
 import {
   Modal,
@@ -21,7 +21,7 @@ import { Input } from "@heroui/input";
 import { subtitle, title } from "@/components/primitives";
 import { LocationData } from "@/types";
 import Loading from "@/app/loading";
-import { q2, qPhqa } from "@/app/data";
+import { qPhqa_addon, qPhqa } from "@/app/data";
 
 export default function PHQAPage() {
   const qPhqa_Image = (key: number) => [
@@ -90,7 +90,7 @@ export default function PHQAPage() {
     />,
   ];
 
-  const q2_Image = (key: number) => [
+  const qPhqa_addon_Image = (key: number) => [
     <Image
       key={key}
       alt="PHQA Image"
@@ -122,7 +122,7 @@ export default function PHQAPage() {
     sum: 0,
   };
 
-  const q2InitValue: Questions_2Q = {
+  const phqaAddonInitValue: Questions_PHQA_Addon = {
     id: "",
     questions_MasterId: "",
     q1: 1,
@@ -140,13 +140,15 @@ export default function PHQAPage() {
   const [question, setQuestion] = useState("0");
 
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
-  const [q2_data, setQ2] = useState<Questions_2Q>(q2InitValue);
+  const [phqa_addon_data, setPhqaAddon] =
+    useState<Questions_PHQA_Addon>(phqaAddonInitValue);
   const [location, setLocation] = useState<LocationData>();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
       setUserId(session?.user?.id as string);
+
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(({ coords }) => {
           const { accuracy, latitude, longitude } = coords;
@@ -154,18 +156,21 @@ export default function PHQAPage() {
           setLocation({ accuracy, latitude, longitude });
         });
       }
-      onOpen();
+
+      if (referenceId === "") {
+        onOpen();
+      }
     }
   }, [session]);
 
-  const calProgress = (e: number) => {
-    const total = qPhqa.length + q2.length;
+  const calProgress = useCallback((e: number) => {
+    const total = qPhqa.length + qPhqa_addon.length;
     const question = e;
 
     return (question * 100) / total;
-  };
+  }, []);
 
-  const phqaChange = (e: any) => {
+  const phqaChange = useCallback((e: any) => {
     const Question = parseInt(e.target.name);
     const name = "q" + e.target.name;
     const value = parseInt(e.target.value);
@@ -177,7 +182,7 @@ export default function PHQAPage() {
         ...prev,
         [name]: value,
       }));
-      setQuestionName("2Q");
+      setQuestionName("คำถามแนบท้าย");
       setPHQAShow(false);
     } else {
       setProgress(calProgress(Question + 1));
@@ -186,9 +191,9 @@ export default function PHQAPage() {
         [name]: value,
       }));
     }
-  };
+  }, []);
 
-  const q2Change = (e: any) => {
+  const phqaAddonChange = useCallback((e: any) => {
     const Question = parseInt(e.target.name);
     const name = "q" + (parseInt(e.target.name) - 9);
     const value = parseInt(e.target.value);
@@ -200,25 +205,31 @@ export default function PHQAPage() {
       setSubmit(false);
     }
 
-    setQ2((prev: any) => ({
+    setPhqaAddon((prev: any) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }, []);
+
+  const ReferChange = useCallback((e: any) => {
+    setReferenceId(e.target.value);
+  }, []);
 
   const SaveToDB = async () => {
+    const data = JSON.stringify({
+      userId: userId,
+      phqa: phqa_data,
+      phqa_addon: phqa_addon_data,
+      location: location,
+      reference: referenceId,
+    });
+
     await fetch("/api/question", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        userId: userId,
-        phqa: phqa_data,
-        q2: q2_data,
-        location: location,
-        reference: referenceId,
-      }),
+      body: data,
     }).then((res) =>
       res.json().then(() => {
         if (res.status === 200) {
@@ -228,7 +239,7 @@ export default function PHQAPage() {
     );
   };
 
-  const BackStep = async () => {
+  const BackStep = useCallback(async () => {
     const Question = parseInt(question);
 
     setProgress(calProgress(Question - 1));
@@ -238,11 +249,7 @@ export default function PHQAPage() {
     } else if (Question == 0) {
       router.back();
     }
-  };
-
-  const ReferChange = (e: any) => {
-    setReferenceId(e.target.value);
-  };
+  }, [question]);
 
   return (
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
@@ -266,6 +273,7 @@ export default function PHQAPage() {
                     placeholder="รหัสผู้ให้คำแนะนำ"
                     radius="md"
                     size="sm"
+                    type="number"
                     value={referenceId}
                     variant="faded"
                     onChange={(val) => ReferChange(val)}
@@ -357,12 +365,12 @@ export default function PHQAPage() {
                     </Tab>
                   );
                 })
-              : q2.map((val, index) => {
+              : qPhqa_addon.map((val, index) => {
                   return (
                     <Tab key={index + 9}>
                       <div className="flex flex-col  gap-4 mt-[-50px]">
                         <div className="flex flex-col items-center">
-                          {q2_Image(index)[index]}
+                          {qPhqa_addon_Image(index)[index]}
                         </div>
                         <div className="flex flex-col gap-4 items-start text-start">
                           <p className="text-primary-500 font-semibold">
@@ -374,7 +382,7 @@ export default function PHQAPage() {
                               className="pl-5"
                               label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
                               name={"1" + index.toString()}
-                              onChange={(val) => q2Change(val)}
+                              onChange={(val) => phqaAddonChange(val)}
                             >
                               <Radio
                                 className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
