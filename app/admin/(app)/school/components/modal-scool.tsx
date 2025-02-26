@@ -6,50 +6,45 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  useDisclosure,
   Form,
 } from "@heroui/react";
 import React, { useEffect, useState } from "react";
 import { Districts } from "@prisma/client";
 import { Autocomplete, AutocompleteItem } from "@heroui/react";
 
-
-
-
-const ModalFrom = ({ isOpen, onOpen, onOpenChange }: { isOpen: any; onOpen: any; onOpenChange: any; }) => {
-
+const ModalFrom = ({
+  isOpen,
+  onOpen,
+  onOpenChange,
+}: {
+  isOpen: any;
+  onOpen: any;
+  onOpenChange: any;
+}) => {
   const [districts, setDistricts] = useState<Districts[]>([]);
-
-
 
   const onSubmit = (e: any) => {
     e.preventDefault();
-
-   
   };
-
-
 
   useEffect(() => {
     fetch("/api/data/distrince/1")
       .then((res) => res.json())
       .then((val) => setDistricts(val));
-
-  }, [])
+  }, []);
 
   return (
     <div>
-      <Button className="font-bold text-medium" color="primary" onPress={onOpen}>
+      <Button
+        className="font-bold text-medium"
+        color="primary"
+        onPress={onOpen}
+      >
         เพิ่ม
       </Button>
 
-
-      <Form
-        onSubmit={onSubmit}
-      >
+      <Form onSubmit={onSubmit}>
         <Modal
-          isDismissable={false}
-          isKeyboardDismissDisabled={true}
           backdrop="opaque"
           classNames={{
             body: "py-6",
@@ -59,57 +54,56 @@ const ModalFrom = ({ isOpen, onOpen, onOpenChange }: { isOpen: any; onOpen: any;
             // footer: "border-t-[1px] border-[#292f46]",
             closeButton: "hover:bg-white/5 active:bg-white/10",
           }}
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
-
           radius="lg"
+          onOpenChange={onOpenChange}
         >
-          <ModalContent >
+          <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="flex flex-col gap-1">เพิ่มโรงเรียน</ModalHeader>
+                <ModalHeader className="flex flex-col gap-1">
+                  เพิ่มโรงเรียน
+                </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-4">
                     <Input
                       isRequired
+                      errorMessage="กรุณากรอกชื่อโรงเรียน"
                       label="ชื่อโรงเรียน"
                       labelPlacement="outside"
                       placeholder="กรุณากรอกชื่อโรงเรียน"
                       type="input"
                       variant="bordered"
-                      errorMessage="กรุณากรอกชื่อโรงเรียน"
                     />
                     <Autocomplete
-                      defaultItems={districts}
-                      label="เขต"
-                      placeholder="กรุณาเลือกเขต"
-                      labelPlacement="outside"
-                      errorMessage="กรุณาเลือกเขต"
                       isRequired
+                      defaultItems={districts}
+                      errorMessage="กรุณาเลือกเขต"
+                      label="เขต"
+                      labelPlacement="outside"
+                      placeholder="กรุณาเลือกเขต"
                     >
-                      {
-                        (district) => (
-                          <AutocompleteItem key={district.id}>
-                            {district.nameInThai}
-                          </AutocompleteItem>
-                        )
-                      }
-
+                      {(district) => (
+                        <AutocompleteItem key={district.id}>
+                          {district.nameInThai}
+                        </AutocompleteItem>
+                      )}
                     </Autocomplete>
-
                   </div>
                 </ModalBody>
                 <ModalFooter>
                   <Button color="default" variant="light" onPress={onClose}>
                     ปิด
                   </Button>
-                  <Button className="bg-success shadow-lg shadow-indigo-500/20 font-bold text-white "
+                  <Button
+                    className="bg-success shadow-lg shadow-indigo-500/20 font-bold text-white "
                     type="submit"
                     variant="bordered"
                   >
                     เพิ่ม
                   </Button>
-                  
                 </ModalFooter>
               </>
             )}
@@ -117,8 +111,7 @@ const ModalFrom = ({ isOpen, onOpen, onOpenChange }: { isOpen: any; onOpen: any;
         </Modal>
       </Form>
     </div>
+  );
+};
 
-  )
-}
-
-export default ModalFrom
+export default ModalFrom;

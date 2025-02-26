@@ -8,30 +8,16 @@ import {
   TableRow,
   TableCell,
   getKeyValue,
-  Pagination,
-  Tooltip,
 } from "@heroui/react";
-import RenderCellScool from "./rendercell-scool";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import React from "react";
+
 import { users } from "../data";
 
- 
-
-
-
-
 const TableSchool = ({ bottomContent }: { bottomContent: any }) => {
-
-
-
-
   return (
     <div className="">
-      <Table bottomContent={bottomContent}
-        bottomContentPlacement="outside">
-          
-        <TableHeader >
+      <Table bottomContent={bottomContent} bottomContentPlacement="outside">
+        <TableHeader>
           <TableColumn key="id" className="">
             ลำดับที่
           </TableColumn>
@@ -39,19 +25,22 @@ const TableSchool = ({ bottomContent }: { bottomContent: any }) => {
             ชื่อโรงเรียน
           </TableColumn>
           <TableColumn key="area" className="">
-            เขต</TableColumn>
+            เขต
+          </TableColumn>
           <TableColumn key="status" className="">
-            สถานะ</TableColumn>
+            สถานะ
+          </TableColumn>
           <TableColumn key="actions" className="">
-            acation</TableColumn>
+            acation
+          </TableColumn>
         </TableHeader>
 
         <TableBody items={users}>
           {(item) => (
             <TableRow key={item.id}>
-              {(columnKey) => <TableCell
-              >{getKeyValue(item, columnKey)}</TableCell>
-              }
+              {(columnKey) => (
+                <TableCell>{getKeyValue(item, columnKey)}</TableCell>
+              )}
             </TableRow>
           )}
         </TableBody>

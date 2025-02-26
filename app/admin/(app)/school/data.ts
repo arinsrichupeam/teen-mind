@@ -1,50 +1,47 @@
 export const columns = [
-    { name: "ลำดับที่", uid: "id", sortable: true },
-    { name: "โรงเรียน", uid: "school" },
-    { name: "เขต", uid: "area"},
-    { name: "สถานะ", uid: "status"},
-    { name: "actions", uid: "actions" },
-  ];
+  { name: "ลำดับที่", uid: "id", sortable: true },
+  { name: "โรงเรียน", uid: "school" },
+  { name: "เขต", uid: "area" },
+  { name: "สถานะ", uid: "status" },
+  { name: "actions", uid: "actions" },
+];
 
-  
-  export const users = [
-    {
-        id: 1,
-        school: "โรงเรียนอนุบาลเทพศาสตร์",
-        area: "เขต 1",
-        status:"ใช้งาน",
-        actions:"actions",
-    },
-    {
-      id: 2,
-      school: "โรงเรียนอนุบาลเทพศาสตร์",
-      area: "เขต 1",
-      status:"ใช้งาน",
-      actions:"actions",
+export const users = [
+  {
+    id: 1,
+    school: "โรงเรียนอนุบาลเทพศาสตร์",
+    area: "เขต 1",
+    status: "ใช้งาน",
+    actions: "actions",
+  },
+  {
+    id: 2,
+    school: "โรงเรียนอนุบาลเทพศาสตร์",
+    area: "เขต 1",
+    status: "ใช้งาน",
+    actions: "actions",
   },
   {
     id: 3,
     school: "โรงเรียนอนุบาลเทพศาสตร์",
     area: "เขต 1",
-    status:"ใช้งาน",
-    actions:"actions",
+    status: "ใช้งาน",
+    actions: "actions",
   },
-    
-  ];
+];
 
-
-  export const animals = [
-    {key: "cat", label: "Cat"},
-    {key: "dog", label: "Dog"},
-    {key: "elephant", label: "Elephant"},
-    {key: "lion", label: "Lion"},
-    {key: "tiger", label: "Tiger"},
-    {key: "giraffe", label: "Giraffe"},
-    {key: "dolphin", label: "Dolphin"},
-    {key: "penguin", label: "Penguin"},
-    {key: "zebra", label: "Zebra"},
-    {key: "shark", label: "Shark"},
-    {key: "whale", label: "Whale"},
-    {key: "otter", label: "Otter"},
-    {key: "crocodile", label: "Crocodile"},
-  ];
+export const animals = [
+  { key: "cat", label: "Cat" },
+  { key: "dog", label: "Dog" },
+  { key: "elephant", label: "Elephant" },
+  { key: "lion", label: "Lion" },
+  { key: "tiger", label: "Tiger" },
+  { key: "giraffe", label: "Giraffe" },
+  { key: "dolphin", label: "Dolphin" },
+  { key: "penguin", label: "Penguin" },
+  { key: "zebra", label: "Zebra" },
+  { key: "shark", label: "Shark" },
+  { key: "whale", label: "Whale" },
+  { key: "otter", label: "Otter" },
+  { key: "crocodile", label: "Crocodile" },
+];

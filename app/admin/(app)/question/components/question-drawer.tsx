@@ -279,7 +279,7 @@ export const QuestionDrawer = ({
                                     name={(index + 1).toString()}
                                     orientation="horizontal"
                                     value={Object.entries(val)
-                                    [index + 2].toString()
+                                      [index + 2].toString()
                                       .substring(3)}
                                   >
                                     <Radio
@@ -340,7 +340,7 @@ export const QuestionDrawer = ({
                                   name={(index + 1).toString()}
                                   orientation="horizontal"
                                   value={Object.entries(val)
-                                  [index + 2].toString()
+                                    [index + 2].toString()
                                     .substring(3)}
                                 >
                                   <Radio

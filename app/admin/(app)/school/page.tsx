@@ -1,17 +1,13 @@
-"use client"
+"use client";
 
-import {  Pagination, useDisclosure } from "@heroui/react";
+import { Pagination, useDisclosure } from "@heroui/react";
+import { useMemo } from "react";
+
 import TableSchool from "./components/table-scool";
 import TableSearch from "./components/search-scool";
-
-import { useMemo } from "react";
 import ModalFrom from "./components/modal-scool";
 export default function School() {
-
-
-  const { isOpen,onOpen,onOpenChange } = useDisclosure();
-
-
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const bottomContent = useMemo(() => {
     return (
@@ -26,7 +22,7 @@ export default function School() {
           color="primary"
           page={1}
           total={10}
-        // onChange={setPage}
+          // onChange={setPage}
         />
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small" />
@@ -34,8 +30,8 @@ export default function School() {
             Rows per page:
             <select
               className="bg-transparent outline-none text-default-400 text-small"
-            // defaultValue={rowsPerPage}
-            // onChange={onRowsPerPageChange}
+              // defaultValue={rowsPerPage}
+              // onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
               <option value="10">10</option>
@@ -75,7 +71,11 @@ export default function School() {
 
         <div className="flex gap-4">
           <TableSearch />
-          <ModalFrom isOpen={isOpen} onOpen={onOpen} onOpenChange={onOpenChange} />
+          <ModalFrom
+            isOpen={isOpen}
+            onOpen={onOpen}
+            onOpenChange={onOpenChange}
+          />
         </div>
       </div>
 
@@ -86,5 +86,3 @@ export default function School() {
     </div>
   );
 }
-
-
