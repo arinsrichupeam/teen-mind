@@ -52,54 +52,59 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
       );
     case "name":
       return (
-        <User
-          avatarProps={{
-            src: data.User.image as string,
-          }}
-          name={
-            prefix.find((val) => val.key == data.User.profile[0].prefix)
-              ?.label +
-            " " +
-            data.User.profile[0].firstname +
-            " " +
-            data.User.profile[0].lastname
-          }
-        />
+        // <User
+        //   avatarProps={{
+        //     src: data.User.image as string,
+        //   }}
+        //   name={
+        //     prefix.find((val) => val.key == data.User.profile[0].prefix)
+        //       ?.label +
+        //     " " +
+        //     data.User.profile[0].firstname +
+        //     " " +
+        //     data.User.profile[0].lastname
+        //   }
+        // />
+        <></>
       );
     case "age":
       return (
         <div>
-          <span>{timeAgo(data.User.profile[0].birthday)}</span>
+          {/* <span>{timeAgo(data.User.profile[0].birthday)}</span> */}
         </div>
       );
     case "school":
       return (
         <div>
-          <span>{data.User.profile[0].school?.name.toString()}</span>
+          {/* <span>{data.User.profile[0].school?.name.toString()}</span> */}
         </div>
       );
     case "result":
       return (
-        <Chip
-          color={
-            data.result === "Green"
-              ? "success"
-              : data.result === "Red"
-                ? "danger"
-                : "warning"
-          }
-          size="sm"
-          variant="flat"
-        >
-          <span className="capitalize text-xs">{data.result}</span>
-        </Chip>
+        // <Chip
+        //   color={
+        //     data.result === "Green"
+        //       ? "success"
+        //       : data.result === "Red"
+        //         ? "danger"
+        //         : "warning"
+        //   }
+        //   size="sm"
+        //   variant="flat"
+        // >
+        //   <span className="capitalize text-xs">{data.result}</span>
+        // </Chip>
+        <></>
       );
     case "phqa":
-      return <span>{data.phqa[0].sum}</span>;
+      return (
+        // <span>{data.phqa[0].sum}</span>
+        <></>
+      );
     case "date":
       return (
         <div>
-          <span>
+          {/* <span>
             {new Date(data.createdAt).toLocaleDateString("th-TH", {
               year: "numeric",
               month: "long",
@@ -107,19 +112,20 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
               hour: "2-digit",
               minute: "2-digit",
             })}
-          </span>
+          </span> */}
         </div>
       );
     case "status":
       return (
-        <span className="text-xs font-semibold">
-          {statusOptions[data.status].name}
-        </span>
+        // <span className="text-xs font-semibold">
+        //   {statusOptions[data.status].name}
+        // </span>
+        <></>
       );
     case "actions":
       return (
         <div className="flex gap-4">
-          <div>
+          {/* <div>
             <Tooltip content="Details">
               <button onClick={() => selectKey(data.id)}>
                 <EyeIcon className="size-6 text-primary-400" />
@@ -143,7 +149,7 @@ export const RenderCell = ({ data, columnKey, index, selectKey }: Props) => {
                 <TrashIcon className="size-6 text-danger-500" />
               </button>
             </Tooltip>
-          </div>
+          </div> */}
         </div>
       );
     default:

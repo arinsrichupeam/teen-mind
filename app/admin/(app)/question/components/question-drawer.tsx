@@ -78,39 +78,41 @@ export const QuestionDrawer = ({
       <DrawerContent>
         {(onClose) => (
           <div>
-            <DrawerHeader className="flex flex-row justify-between gap-1">
-              <div>
-                ผลการประเมิน :
-                <Chip
-                  className="ml-3"
-                  color={
-                    data?.result === "Green"
-                      ? "success"
-                      : data?.result === "Red"
-                        ? "danger"
-                        : "warning"
-                  }
-                  size="lg"
-                  variant="flat"
-                >
-                  <span className="capitalize text-xs">{data?.result}</span>
-                </Chip>
-              </div>
-              <p className="pr-10">
-                วันที่ประเมิน :{" "}
-                <span>
-                  {new Date(data?.createdAt as string).toLocaleDateString(
-                    "th-TH",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
+            <DrawerHeader>
+              <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm">
+                <div className="pt-2">
+                  วันที่ประเมิน :{" "}
+                  <span>
+                    {new Date(data?.createdAt as string).toLocaleDateString(
+                      "th-TH",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
+                  </span>
+                </div>
+                <div className="pr-5">
+                  ผลการประเมิน :
+                  <Chip
+                    className="ml-3"
+                    color={
+                      data?.result === "Green"
+                        ? "success"
+                        : data?.result === "Red"
+                          ? "danger"
+                          : "warning"
                     }
-                  )}
-                </span>
-              </p>
+                    size="lg"
+                    variant="flat"
+                  >
+                    <span className="capitalize text-xs">{data?.result}</span>
+                  </Chip>
+                </div>
+              </div>
             </DrawerHeader>
             <DrawerBody>
               <div className="flex flex-col sm:flex-row gap-5 mx-auto">

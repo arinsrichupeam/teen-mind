@@ -39,13 +39,12 @@ export default function QuestionPage() {
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
   const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
   const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
     column: "id",
     direction: "ascending",
   });
-
-  const pages = Math.ceil(questionsList.length / rowsPerPage);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -88,10 +87,11 @@ export default function QuestionPage() {
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(e.target.value));
+      setRowsPerPage(parseInt(e.target.value));
+      setPages(Math.ceil(items.length / parseInt(e.target.value)));
       setPage(1);
     },
-    []
+    [pages]
   );
 
   const onSearchChange = useCallback((value?: string) => {
@@ -164,52 +164,38 @@ export default function QuestionPage() {
 
   const bottomContent = useMemo(() => {
     return (
-      <div className="py-2 px-2 flex justify-between items-center">
-        <span className="w-[30%] text-small text-default-400">
-          หน้า {page}/{pages} ({questionsList.length} รายการ)
-        </span>
-        <Pagination
-          isCompact
-          showControls
-          showShadow
-          color="primary"
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
-        <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small" />
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              defaultValue={rowsPerPage}
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label>
+      <div>
+        <div className="flex justify-center w-96">
+          <Pagination
+            isCompact
+            showControls
+            showShadow
+            color="primary"
+            page={page}
+            total={pages}
+            onChange={setPage}
+          />
         </div>
-        {/* <div className="hidden sm:flex w-[30%] justify-end gap-2">
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onPreviousPage}
-          >
-            Previous
-          </Button>
-          <Button
-            isDisabled={pages === 1}
-            size="sm"
-            variant="flat"
-            onPress={onNextPage}
-          >
-            Next
-          </Button>
-        </div> */}
+        <div className="py-2 px-2 flex justify-between items-center">
+          <div className="w-[30%] text-small text-default-400">
+            หน้า {page}/{pages} ({questionsList.length} รายการ)
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-default-400 text-small" />
+            <label className="flex items-center text-default-400 text-small">
+              Rows per page:
+              <select
+                className="bg-transparent outline-none text-default-400 text-small"
+                defaultValue={rowsPerPage}
+                onChange={onRowsPerPageChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </label>
+          </div>
+        </div>
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -228,6 +214,7 @@ export default function QuestionPage() {
       .then((res) => res.json())
       .then((val) => {
         setQuestionsList(val.questionsList);
+        setPages(Math.ceil(val.questionsList.length / rowsPerPage));
         setIsLoading(false);
       });
   }, [isLoading]);
@@ -239,13 +226,13 @@ export default function QuestionPage() {
         <div className="w-full flex flex-col gap-4 text-nowrap">
           <Table
             isHeaderSticky
-            bottomContent={bottomContent}
+            // bottomContent={bottomContent}
             bottomContentPlacement="outside"
             classNames={{
               wrapper: "max-h-[calc(65vh)]",
             }}
             sortDescriptor={sortDescriptor}
-            topContent={topContent}
+            // topContent={topContent}
             topContentPlacement="outside"
             onSortChange={setSortDescriptor}
           >
