@@ -1,13 +1,31 @@
 "use client";
 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableColumn,
+  TableRow,
+  TableCell,
+  getKeyValue,
+} from "@heroui/react";
 import { Pagination, useDisclosure } from "@heroui/react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import TableSchool from "./components/table-scool";
-import TableSearch from "./components/search-scool";
+
+// import TableSchool from "./components/table-scool";
+// import TableSearch from "./components/search-scool";
 import ModalFrom from "./components/modal-scool";
+import { SchoolRenderCell } from "./components/rendercell-scool";
+import { columns } from "./data";
+
+
+
+
 export default function School() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [schoolList, setSchoolList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const bottomContent = useMemo(() => {
     return (
@@ -22,7 +40,7 @@ export default function School() {
           color="primary"
           page={1}
           total={10}
-          // onChange={setPage}
+        // onChange={setPage}
         />
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small" />
@@ -30,8 +48,8 @@ export default function School() {
             Rows per page:
             <select
               className="bg-transparent outline-none text-default-400 text-small"
-              // defaultValue={rowsPerPage}
-              // onChange={onRowsPerPageChange}
+            // defaultValue={rowsPerPage}
+            // onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
               <option value="10">10</option>
@@ -61,6 +79,18 @@ export default function School() {
     );
   }, []);
 
+  
+    useEffect(() => {
+      fetch("/api/data/school")
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Fetched Data:", data); // Debug
+          setSchoolList(Array.isArray(data?.schoolList) ? data.schoolList : []);
+          setIsLoading(false);
+        })
+      
+  }, [isLoading]);
+
   return (
     <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
       {/* บน */}
@@ -70,7 +100,7 @@ export default function School() {
         </h3>
 
         <div className="flex gap-4">
-          <TableSearch />
+          {/* <TableSearch /> */}
           <ModalFrom
             isOpen={isOpen}
             onOpen={onOpen}
@@ -80,8 +110,33 @@ export default function School() {
       </div>
 
       {/* ล่าง */}
-      <div className="">
-        <TableSchool bottomContent={bottomContent} />
+      <div className=""><Table bottomContent={bottomContent} bottomContentPlacement="outside">
+        <TableHeader>
+          <TableColumn key="id" className="">
+            ลำดับที่
+          </TableColumn>
+          <TableColumn key="school" className="">
+            ชื่อโรงเรียน
+          </TableColumn>
+          <TableColumn key="area" className="">
+            เขต
+          </TableColumn>
+          <TableColumn key="status" className="">
+            สถานะ
+          </TableColumn>
+          <TableColumn key="actions" className="">
+            acation
+          </TableColumn>
+        </TableHeader>
+
+        <TableBody emptyContent="ไม่มีข้อมูล" items={schoolList} >
+        {schoolList.map((item) =>
+          <TableRow key={item}>
+            {(columnKey) => <TableCell>{getKeyValue(item, columnKey)}</TableCell>}
+          </TableRow>
+        )}
+        </TableBody>
+      </Table>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ const ModalFrom = ({
 
   const onSubmit = (e: any) => {
     e.preventDefault();
+
   };
 
   useEffect(() => {
@@ -43,57 +44,56 @@ const ModalFrom = ({
         เพิ่ม
       </Button>
 
-      <Form onSubmit={onSubmit}>
-        <Modal
-          backdrop="opaque"
-          classNames={{
-            body: "py-6",
-            backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
-            // base: "border-[#292f46] bg-[#19172c] dark:bg-[#19172c] text-[#a8b0d3]",
-            // header: "border-b-[1px] border-[#292f46]",
-            // footer: "border-t-[1px] border-[#292f46]",
-            closeButton: "hover:bg-white/5 active:bg-white/10",
-          }}
-          isDismissable={false}
-          isKeyboardDismissDisabled={true}
-          isOpen={isOpen}
-          radius="lg"
-          onOpenChange={onOpenChange}
-        >
-          <ModalContent>
-            {(onClose) => (
-              <>
+      <Modal
+        backdrop="opaque"
+        classNames={{
+          body: "py-6",
+          backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
+          // base: "border-[#292f46] bg-[#19172c] dark:bg-[#19172c] text-[#a8b0d3]",
+          // header: "border-b-[1px] border-[#292f46]",
+          // footer: "border-t-[1px] border-[#292f46]",
+          closeButton: "hover:bg-white/5 active:bg-white/10",
+        }}
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+        isOpen={isOpen}
+        radius="lg"
+        onOpenChange={onOpenChange}
+      >
+        <ModalContent>
+          {(onClose) => (
+
+              <Form onSubmit={onSubmit}>
+
                 <ModalHeader className="flex flex-col gap-1">
                   เพิ่มโรงเรียน
                 </ModalHeader>
-                <ModalBody>
-                  <div className="flex flex-col gap-4">
-                    <Input
-                      isRequired
-                      errorMessage="กรุณากรอกชื่อโรงเรียน"
-                      label="ชื่อโรงเรียน"
-                      labelPlacement="outside"
-                      placeholder="กรุณากรอกชื่อโรงเรียน"
-                      type="input"
-                      variant="bordered"
-                    />
-                    <Autocomplete
-                      isRequired
-                      defaultItems={districts}
-                      errorMessage="กรุณาเลือกเขต"
-                      label="เขต"
-                      labelPlacement="outside"
-                      placeholder="กรุณาเลือกเขต"
-                    >
-                      {(district) => (
-                        <AutocompleteItem key={district.id}>
-                          {district.nameInThai}
-                        </AutocompleteItem>
-                      )}
-                    </Autocomplete>
-                  </div>
+                <ModalBody className="flex w-full">
+                  <Input
+                    isRequired
+                    errorMessage="กรุณากรอกชื่อโรงเรียน"
+                    label="ชื่อโรงเรียน"
+                    labelPlacement="outside"
+                    placeholder="กรุณากรอกชื่อโรงเรียน"
+                    type="input"
+                    variant="bordered"
+                  />
+                  <Autocomplete
+                    isRequired
+                    defaultItems={districts}
+                    errorMessage="กรุณาเลือกเขต"
+                    label="เขต"
+                    labelPlacement="outside"
+                    placeholder="กรุณาเลือกเขต"
+                  >
+                    {(district) => (
+                      <AutocompleteItem key={district.id}>
+                        {district.nameInThai}
+                      </AutocompleteItem>
+                    )}
+                  </Autocomplete>
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="flex w-full items-end">
                   <Button color="default" variant="light" onPress={onClose}>
                     ปิด
                   </Button>
@@ -105,11 +105,12 @@ const ModalFrom = ({
                     เพิ่ม
                   </Button>
                 </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-      </Form>
+              </Form>
+
+          )}
+
+        </ModalContent>
+      </Modal>
     </div>
   );
 };
