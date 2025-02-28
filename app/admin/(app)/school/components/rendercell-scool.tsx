@@ -1,6 +1,9 @@
-import React from "react"
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid"
-import { Tooltip } from "@heroui/react";
+
+import React from "react";
+import { Tooltip } from "@heroui/tooltip";
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { School } from "@prisma/client";
+
 
 
 interface Props {
@@ -9,8 +12,29 @@ interface Props {
   index: number;
 }
 
+export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
+  // function timeAgo(date: string) {
+  //   moment.updateLocale("th", {
+  //     relativeTime: {
+  //       future: "in %s",
+  //       past: "%s",
+  //       s: (number) => number + "s ago",
+  //       ss: "%ds ago",
+  //       m: "1m ago",
+  //       mm: "%dm ago",
+  //       h: "1h ago",
+  //       hh: "%dh ago",
+  //       d: "1d ago",
+  //       dd: "%dd ago",
+  //       M: "a month ago",
+  //       MM: "%d months ago",
+  //       y: "a year ago",
+  //       yy: "%d ปี",
+  //     },
+  //   });
 
-export const SchoolRenderCell = ({ data, columnKey, index, }: Props) => {
+  //   return moment(date).fromNow();
+  // }
 
   // @ts-ignore
   const cellValue = data[columnKey];
@@ -25,7 +49,19 @@ export const SchoolRenderCell = ({ data, columnKey, index, }: Props) => {
     case "school":
       return (
         <div>
-          <span>{data.User.profile[0].school}</span>
+          <span>{data.name}</span>
+        </div>
+      );
+    case "area":
+      return (
+        <div>
+          {/* <span>{}</span> */}
+        </div>
+      );
+    case "status":
+      return (
+        <div>
+          {/* <span>feys</span> */}
         </div>
       );
     case "actions":
@@ -33,7 +69,7 @@ export const SchoolRenderCell = ({ data, columnKey, index, }: Props) => {
         <div className="flex gap-4">
           <div>
             <Tooltip content="Details">
-              <button >
+              <button>
                 <EyeIcon className="size-6 text-primary-400" />
               </button>
             </Tooltip>

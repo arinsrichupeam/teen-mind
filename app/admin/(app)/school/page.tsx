@@ -17,14 +17,14 @@ import { useEffect, useMemo, useState } from "react";
 // import TableSearch from "./components/search-scool";
 import ModalFrom from "./components/modal-scool";
 import { SchoolRenderCell } from "./components/rendercell-scool";
-import { columns } from "./data";
+import { School } from "@prisma/client";
 
 
 
 
-export default function School() {
+export default function schoolLists() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [schoolList, setSchoolList] = useState([]);
+  const [schoolList, setSchoolList] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const bottomContent = useMemo(() => {
@@ -79,16 +79,16 @@ export default function School() {
     );
   }, []);
 
-  
-    useEffect(() => {
-      fetch("/api/data/school")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Fetched Data:", data); // Debug
-          setSchoolList(Array.isArray(data?.schoolList) ? data.schoolList : []);
-          setIsLoading(false);
-        })
-      
+
+  useEffect(() => {
+    fetch("/api/data/school")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched Data:", data); // Debug
+        setSchoolList(data);
+        // setIsLoading(false);
+      })
+
   }, [isLoading]);
 
   return (
@@ -110,33 +110,43 @@ export default function School() {
       </div>
 
       {/* ล่าง */}
-      <div className=""><Table bottomContent={bottomContent} bottomContentPlacement="outside">
-        <TableHeader>
-          <TableColumn key="id" className="">
-            ลำดับที่
-          </TableColumn>
-          <TableColumn key="school" className="">
-            ชื่อโรงเรียน
-          </TableColumn>
-          <TableColumn key="area" className="">
-            เขต
-          </TableColumn>
-          <TableColumn key="status" className="">
-            สถานะ
-          </TableColumn>
-          <TableColumn key="actions" className="">
-            acation
-          </TableColumn>
-        </TableHeader>
+      <div className="">
 
-        <TableBody emptyContent="ไม่มีข้อมูล" items={schoolList} >
-        {schoolList.map((item) =>
-          <TableRow key={item}>
-            {(columnKey) => <TableCell>{getKeyValue(item, columnKey)}</TableCell>}
-          </TableRow>
-        )}
-        </TableBody>
-      </Table>
+        <Table bottomContent={bottomContent} bottomContentPlacement="outside">
+          <TableHeader>
+            <TableColumn key="id" className="">
+              ลำดับที่
+            </TableColumn>
+            <TableColumn key="school" className="">
+              ชื่อโรงเรียน
+            </TableColumn>
+            <TableColumn key="area" className="">
+              เขต
+            </TableColumn>
+            <TableColumn key="status" className="">
+              สถานะ
+            </TableColumn>
+            <TableColumn key="actions" className="">
+              acation
+            </TableColumn>
+          </TableHeader>
+
+          <TableBody emptyContent="ไม่มีข้อมูล" items={schoolList} >
+            {(item =>
+              <TableRow >
+                {(columnKey) =>
+                  <TableCell>
+                    {SchoolRenderCell({
+                      data: item,
+                      columnKey: columnKey,
+                      index: schoolList.findIndex((x) => x.id == item.id) + 1,
+                      // selectKey: onRowPress,
+                    })}
+                  </TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
