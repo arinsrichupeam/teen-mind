@@ -9,7 +9,7 @@ import {
   Form,
 } from "@heroui/react";
 import React, { useEffect, useState } from "react";
-import { Districts } from "@prisma/client";
+import { Districts, School } from "@prisma/client";
 import { Autocomplete, AutocompleteItem } from "@heroui/react";
 
 const ModalFrom = ({
@@ -28,11 +28,7 @@ const ModalFrom = ({
 
   };
 
-  useEffect(() => {
-    fetch("/api/data/distrince/1")
-      .then((res) => res.json())
-      .then((val) => setDistricts(val));
-  }, []);
+
 
   return (
     <div>

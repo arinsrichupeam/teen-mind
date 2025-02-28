@@ -1,8 +1,9 @@
 export const columns = [
   { name: "ลำดับที่", uid: "id", sortable: true },
-  { name: "โรงเรียน", uid: "school" },
-  { name: "เขต", uid: "area" },
-  { name: "", uid: "actions" },
+  { name: "โรงเรียน", uid: "name" },
+  { name: "เขต", uid: "districtId" },
+  { name: "ใช้งาน", uid: "status" },
+  { name: "actions", uid: "actions" },
 ];
 
 
