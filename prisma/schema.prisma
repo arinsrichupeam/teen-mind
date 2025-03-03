@@ -85,6 +85,7 @@ model Profile {
   ethnicity   String
   nationality String
   tel         String
+  hn          String?
 
   address   Address[]
   emergency EmergencyContact[]
@@ -161,19 +162,23 @@ model Subdistricts {
 }
 
 model Questions_Master {
-  id        String                 @id @default(cuid())
-  userId    String
-  referent  String?
-  consult   String?
-  latitude  Decimal?               @db.Decimal(10, 7)
-  longitude Decimal?               @db.Decimal(10, 7)
-  result    String
-  status    Int                    @default(0)
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-  q2        Questions_2Q[]
-  phqa      Questions_PHQA[]
-  addon     Questions_PHQA_Addon[]
+  id         String                 @id @default(cuid())
+  userId     String
+  referent   String?
+  consult    String?
+  latitude   Decimal?               @db.Decimal(10, 7)
+  longitude  Decimal?               @db.Decimal(10, 7)
+  result     String
+  Subjective String?
+  Objective  String?
+  Assessment String?
+  Plan       String?
+  status     Int                    @default(0)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  q2         Questions_2Q[]
+  phqa       Questions_PHQA[]
+  addon      Questions_PHQA_Addon[]
 
   User User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

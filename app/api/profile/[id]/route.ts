@@ -63,6 +63,7 @@ export async function GET(
       },
       profile: {
         select: {
+          hn: true,
           prefix: true,
           firstname: true,
           lastname: true,

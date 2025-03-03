@@ -40,11 +40,12 @@ export default function QuestionPage() {
   const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
     column: "id",
     direction: "ascending",
   });
+  const [mode, setMode] = useState("Detail");
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -88,10 +89,10 @@ export default function QuestionPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(items.length / parseInt(e.target.value)));
+      setPages(Math.ceil(sortedItems.length / parseInt(e.target.value)));
       setPage(1);
     },
-    [pages]
+    [pages, items]
   );
 
   const onSearchChange = useCallback((value?: string) => {
@@ -165,7 +166,7 @@ export default function QuestionPage() {
   const bottomContent = useMemo(() => {
     return (
       <div>
-        <div className="flex justify-center w-96">
+        <div className="flex justify-center">
           <Pagination
             isCompact
             showControls
@@ -176,9 +177,9 @@ export default function QuestionPage() {
             onChange={setPage}
           />
         </div>
-        <div className="py-2 px-2 flex justify-between items-center">
+        <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({questionsList.length} รายการ)
+            หน้า {page}/{pages} ({sortedItems.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -200,11 +201,22 @@ export default function QuestionPage() {
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
-  const onRowPress = useCallback((e: any) => {
+  const onRowDetailPress = useCallback((e: any) => {
     fetch("/api/question/" + e)
       .then((res) => res.json())
       .then((val) => {
         setSelectedKeys(val[0]);
+        setMode("Detail");
+        onOpen();
+      });
+  }, []);
+
+  const onRowEditPress = useCallback((e: any) => {
+    fetch("/api/question/" + e)
+      .then((res) => res.json())
+      .then((val) => {
+        setSelectedKeys(val[0]);
+        setMode("Edit");
         onOpen();
       });
   }, []);
@@ -222,17 +234,23 @@ export default function QuestionPage() {
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
       <div className="max-w-[95rem] mx-auto w-full">
-        <QuestionDrawer data={selectedKeys} isOpen={isOpen} onClose={onClose} />
+        <QuestionDrawer
+          data={selectedKeys}
+          isOpen={isOpen}
+          mode={mode}
+          onClose={onClose}
+        />
         <div className="w-full flex flex-col gap-4 text-nowrap">
           <Table
             isHeaderSticky
-            // bottomContent={bottomContent}
+            aria-label="Question List Table"
+            bottomContent={bottomContent}
             bottomContentPlacement="outside"
             classNames={{
               wrapper: "max-h-[calc(65vh)]",
             }}
             sortDescriptor={sortDescriptor}
-            // topContent={topContent}
+            topContent={topContent}
             topContentPlacement="outside"
             onSortChange={setSortDescriptor}
           >
@@ -261,7 +279,8 @@ export default function QuestionPage() {
                         columnKey: columnKey,
                         index:
                           questionsList.findIndex((x) => x.id == item.id) + 1,
-                        selectKey: onRowPress,
+                        viewDetail: onRowDetailPress,
+                        editDetail: onRowEditPress,
                       })}
                     </TableCell>
                   )}

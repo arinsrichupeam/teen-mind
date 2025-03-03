@@ -20,35 +20,28 @@ import {
   Image,
   Input,
   Link,
-  Radio,
-  RadioGroup,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
 } from "@heroui/react";
+
+import { QuestionDetail } from "./detail";
+import { QuestionEdit } from "./edit";
 
 import { prefix, QuestionsData } from "@/types";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
-import { qPhqa_addon, qPhqa } from "@/app/data";
-import { subtitle } from "@/components/primitives";
 
-export const QuestionDrawer = ({
-  isOpen,
-  onClose,
-  data,
-}: {
+interface Props {
   isOpen: any;
   onClose: any;
   data: QuestionsData | undefined;
-}) => {
+  mode: string;
+}
+
+export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [distrince, setDistrince] = useState<Districts[]>();
   const [province, setProvince] = useState<Provinces[]>();
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
+  const [textboxHN, setTextboxHN] = useState("");
 
   useEffect(() => {
     fetch("/api/data/distrince")
@@ -95,22 +88,25 @@ export const QuestionDrawer = ({
                     )}
                   </span>
                 </div>
-                <div className="pr-5">
-                  ผลการประเมิน :
-                  <Chip
-                    className="ml-3"
-                    color={
-                      data?.result === "Green"
-                        ? "success"
-                        : data?.result === "Red"
-                          ? "danger"
-                          : "warning"
-                    }
-                    size="lg"
-                    variant="flat"
-                  >
-                    <span className="capitalize text-xs">{data?.result}</span>
-                  </Chip>
+                <div className="flex flex-row gap-5">
+                  <div className="pt-2">โหมด : {mode}</div>
+                  <div className="pr-5">
+                    ผลการประเมิน :
+                    <Chip
+                      className="ml-3"
+                      color={
+                        data?.result === "Green"
+                          ? "success"
+                          : data?.result === "Red"
+                            ? "danger"
+                            : "warning"
+                      }
+                      size="lg"
+                      variant="flat"
+                    >
+                      <span className="capitalize text-xs">{data?.result}</span>
+                    </Chip>
+                  </div>
                 </div>
               </div>
             </DrawerHeader>
@@ -210,11 +206,19 @@ export const QuestionDrawer = ({
                   <CardFooter>
                     <div className="flex flex-row gap-4">
                       <Input
-                        isDisabled
+                        isDisabled={mode == "Detail"}
                         startContent={<p> HN:</p>}
+                        value={textboxHN}
                         variant="bordered"
+                        onChange={(val) => setTextboxHN(val.target.value)}
                       />
-                      <Button isDisabled color="primary">
+                      <Button
+                        color="primary"
+                        isDisabled={mode == "Detail"}
+                        onPress={() => {
+                          console.log(textboxHN);
+                        }}
+                      >
                         บันทึก
                       </Button>
                     </div>
@@ -257,116 +261,11 @@ export const QuestionDrawer = ({
                   </CardFooter>
                 </Card>
               </div>
-              <div>
-                <h2 className={subtitle()}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น</h2>
-                <div className="flex flex-col gap-4">
-                  <Table>
-                    <TableHeader>
-                      <TableColumn>Question</TableColumn>
-                      <TableColumn align="center">Anwser</TableColumn>
-                    </TableHeader>
-                    <TableBody>
-                      {qPhqa.map((val, index) => {
-                        return (
-                          <TableRow key={index}>
-                            <TableCell className="min-w-[250px]">
-                              {index + 1} {val}
-                            </TableCell>
-                            <TableCell className="min-w-[250px]">
-                              {data?.phqa.map((val) => {
-                                return (
-                                  <RadioGroup
-                                    key={index}
-                                    className="items-center"
-                                    name={(index + 1).toString()}
-                                    orientation="horizontal"
-                                    value={Object.entries(val)
-                                      [index + 2].toString()
-                                      .substring(3)}
-                                  >
-                                    <Radio
-                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                      value="0"
-                                    >
-                                      0
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                      value="1"
-                                    >
-                                      1
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                      value="2"
-                                    >
-                                      2
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                      value="3"
-                                    >
-                                      3
-                                    </Radio>
-                                  </RadioGroup>
-                                );
-                              })}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-              <div>
-                <h2 className={subtitle()}>คำถามแนบท้าย</h2>
-                <Table>
-                  <TableHeader>
-                    <TableColumn>Question</TableColumn>
-                    <TableColumn align="center">Anwser</TableColumn>
-                  </TableHeader>
-                  <TableBody>
-                    {qPhqa_addon.map((val, index) => {
-                      return (
-                        <TableRow key={index}>
-                          <TableCell className="min-w-[250px]">
-                            {index + 1} {val}
-                          </TableCell>
-                          <TableCell className="min-w-[250px]">
-                            {data?.addon.map((val) => {
-                              return (
-                                <RadioGroup
-                                  key={index}
-                                  className="items-center"
-                                  name={(index + 1).toString()}
-                                  orientation="horizontal"
-                                  value={Object.entries(val)
-                                    [index + 2].toString()
-                                    .substring(3)}
-                                >
-                                  <Radio
-                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                                    value="1"
-                                  >
-                                    ใช่
-                                  </Radio>
-                                  <Radio
-                                    className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                                    value="0"
-                                  >
-                                    ไม่ใช่
-                                  </Radio>
-                                </RadioGroup>
-                              );
-                            })}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              {mode == "Detail" ? (
+                <QuestionDetail data={data} />
+              ) : (
+                <QuestionEdit data={data} />
+              )}
             </DrawerBody>
             <DrawerFooter>
               <Button color="danger" variant="light" onPress={onClose}>
