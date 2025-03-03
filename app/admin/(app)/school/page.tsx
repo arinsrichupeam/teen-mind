@@ -7,7 +7,7 @@ import {
   TableColumn,
   TableRow,
   TableCell,
-  getKeyValue,
+  
 } from "@heroui/react";
 import { Pagination, useDisclosure } from "@heroui/react";
 import { useEffect, useMemo, useState } from "react";
@@ -79,17 +79,27 @@ export default function schoolLists() {
     );
   }, []);
 
-
+  //ข้อมูลโรงเรียน
   useEffect(() => {
-    fetch("/api/data/school")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched Data:", data); // Debug
-        setSchoolList(data);
-        // setIsLoading(false);
-      })
+    async function fetcListSchool() {
+      const res = await fetch('/api/data/school')
+      const data = await res.json()
+      // console.log(data)
+      setSchoolList(data)
+    }
+    fetcListSchool()
+    setIsLoading(false)
+  }, [isLoading])
 
-  }, [isLoading]);
+  //ข้อมูลเขต
+  useEffect(()=>{
+    async function fetchListDistrince(){
+      const res = await fetch('/api/data/distrince/1')
+      const data = await res.json()
+      
+    }
+  },[])
+
 
   return (
     <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
@@ -127,7 +137,7 @@ export default function schoolLists() {
               สถานะ
             </TableColumn>
             <TableColumn key="actions" className="">
-              acation
+              <div></div>
             </TableColumn>
           </TableHeader>
 
@@ -138,8 +148,9 @@ export default function schoolLists() {
                   <TableCell>
                     {SchoolRenderCell({
                       data: item,
-                      columnKey: columnKey,
-                      index: schoolList.findIndex((x) => x.id == item.id) + 1,
+                      columnKey,
+                      index:
+                        schoolList.findIndex((x) => x.id == item.id) + 1,
                       // selectKey: onRowPress,
                     })}
                   </TableCell>}

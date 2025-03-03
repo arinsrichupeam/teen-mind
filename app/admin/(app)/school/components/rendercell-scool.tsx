@@ -7,7 +7,7 @@ import { School } from "@prisma/client";
 
 
 interface Props {
-  data: any;
+  data: School;
   columnKey: string | React.Key;
   index: number;
 }
@@ -55,13 +55,13 @@ export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
     case "area":
       return (
         <div>
-          {/* <span>{}</span> */}
+          <span>{data.districtId}</span>
         </div>
       );
     case "status":
       return (
         <div>
-          {/* <span>feys</span> */}
+          {/* <span>ใช้งาน</span> */}
         </div>
       );
     case "actions":
@@ -76,7 +76,7 @@ export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
           </div>
           <div>
             <Tooltip color="secondary" content="Edit user">
-              <button onClick={() => console.log("Edit user", data.id)}>
+              <button >
                 <PencilIcon className="size-6 text-warning-400" />
               </button>
             </Tooltip>
@@ -85,7 +85,7 @@ export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
             <Tooltip
               color="danger"
               content="Delete user"
-              onClick={() => console.log("Delete user", data.id)}
+            
             >
               <button>
                 <TrashIcon className="size-6 text-danger-500" />
