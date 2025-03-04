@@ -45,7 +45,7 @@ export default function QuestionPage() {
     column: "id",
     direction: "ascending",
   });
-  const [mode, setMode] = useState("Detail");
+  const [mode, setMode] = useState("View");
 
   const hasSearchFilter = Boolean(filterValue);
 

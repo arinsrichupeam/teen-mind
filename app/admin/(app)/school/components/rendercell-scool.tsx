@@ -1,41 +1,25 @@
-
 import React from "react";
-import { Tooltip } from "@heroui/tooltip";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { School } from "@prisma/client";
-
-
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Districts, School } from "@prisma/client";
+import { Chip } from "@heroui/react";
 
 interface Props {
   data: School;
   columnKey: string | React.Key;
   index: number;
+  district: Districts[];
+  viewSchool(id: number): void;
+  editSchool(id: number): void;
 }
 
-export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
-  // function timeAgo(date: string) {
-  //   moment.updateLocale("th", {
-  //     relativeTime: {
-  //       future: "in %s",
-  //       past: "%s",
-  //       s: (number) => number + "s ago",
-  //       ss: "%ds ago",
-  //       m: "1m ago",
-  //       mm: "%dm ago",
-  //       h: "1h ago",
-  //       hh: "%dh ago",
-  //       d: "1d ago",
-  //       dd: "%dd ago",
-  //       M: "a month ago",
-  //       MM: "%d months ago",
-  //       y: "a year ago",
-  //       yy: "%d ปี",
-  //     },
-  //   });
-
-  //   return moment(date).fromNow();
-  // }
-
+export const SchoolRenderCell = ({
+  data,
+  columnKey,
+  index,
+  district,
+  viewSchool,
+  editSchool,
+}: Props) => {
   // @ts-ignore
   const cellValue = data[columnKey];
 
@@ -55,42 +39,42 @@ export const SchoolRenderCell = ({ data, columnKey,index}:Props) => {
     case "area":
       return (
         <div>
-          <span>{data.districtId}</span>
+          <span>
+            {district.find((val) => val.id === data.districtId)?.nameInThai}
+          </span>
         </div>
       );
     case "status":
       return (
         <div>
-          {/* <span>ใช้งาน</span> */}
+          <Chip
+            color={data.status === true ? "success" : "danger"}
+            size="sm"
+            variant="flat"
+          >
+            <span className="capitalize text-xs">
+              {data.status === true ? "ใช้งาน" : "ไม่ใช้งาน"}
+            </span>
+          </Chip>
         </div>
       );
     case "actions":
       return (
-        <div className="flex gap-4">
+        <div className="flex gap-4 justify-center">
+          {/* <div>
+            <button onClick={() => viewSchool(data.id)}>
+              <EyeIcon className="size-6 text-primary-400" />
+            </button>
+          </div> */}
           <div>
-            <Tooltip content="Details">
-              <button>
-                <EyeIcon className="size-6 text-primary-400" />
-              </button>
-            </Tooltip>
+            <button onClick={() => editSchool(data.id)}>
+              <PencilIcon className="size-6 text-warning-400" />
+            </button>
           </div>
           <div>
-            <Tooltip color="secondary" content="Edit user">
-              <button >
-                <PencilIcon className="size-6 text-warning-400" />
-              </button>
-            </Tooltip>
-          </div>
-          <div>
-            <Tooltip
-              color="danger"
-              content="Delete user"
-            
-            >
-              <button>
-                <TrashIcon className="size-6 text-danger-500" />
-              </button>
-            </Tooltip>
+            <button>
+              <TrashIcon className="size-6 text-danger-500" />
+            </button>
           </div>
         </div>
       );

@@ -64,6 +64,7 @@ export interface Profile {
   citizenId: string;
   tel: string;
   school: string;
+  hn: string;
   address: Address[];
 }
 
