@@ -2,7 +2,7 @@ import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
 
 export async function GET(
-  request: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   // read query
@@ -63,7 +63,6 @@ export async function GET(
       },
       profile: {
         select: {
-          hn: true,
           prefix: true,
           firstname: true,
           lastname: true,
@@ -82,4 +81,8 @@ export async function GET(
   });
 
   return Response.json(profile);
+}
+
+export async function POST() {
+  return new Response("Success");
 }

@@ -206,7 +206,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <CardFooter>
                     <div className="flex flex-row gap-4">
                       <Input
-                        isDisabled={mode == "Detail"}
+                        isDisabled={mode == "View"}
                         startContent={<p> HN:</p>}
                         value={textboxHN}
                         variant="bordered"
@@ -214,7 +214,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       />
                       <Button
                         color="primary"
-                        isDisabled={mode == "Detail"}
+                        isDisabled={mode == "View"}
                         onPress={() => {
                           console.log(textboxHN);
                         }}
@@ -261,7 +261,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   </CardFooter>
                 </Card>
               </div>
-              {mode == "Detail" ? (
+              {mode == "View" ? (
                 <QuestionDetail data={data} />
               ) : (
                 <QuestionEdit data={data} />
