@@ -82,7 +82,3 @@ export async function GET(
 
   return Response.json(profile);
 }
-
-export async function POST() {
-  return new Response("Success");
-}

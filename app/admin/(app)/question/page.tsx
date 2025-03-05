@@ -206,7 +206,7 @@ export default function QuestionPage() {
       .then((res) => res.json())
       .then((val) => {
         setSelectedKeys(val[0]);
-        setMode("Detail");
+        setMode("View");
         onOpen();
       });
   }, []);
