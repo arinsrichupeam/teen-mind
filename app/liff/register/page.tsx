@@ -27,6 +27,7 @@ const profileInitValue: Profile = {
   nationality: "",
   tel: "",
   schoolId: 0,
+  hn: "",
   createdAt: new Date(),
   updatedAt: new Date(),
 };

@@ -2,7 +2,7 @@ import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
 
 export async function GET(
-  request: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   // read query

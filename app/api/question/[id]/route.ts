@@ -29,6 +29,7 @@ export async function GET(
               nationality: true,
               citizenId: true,
               tel: true,
+              hn: true,
               school: {
                 select: {
                   name: true,

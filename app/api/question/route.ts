@@ -81,6 +81,8 @@ export async function POST(req: Request) {
     }
   }
 
+  //check HN
+
   await prisma.questions_Master
     .create({
       data: {
@@ -128,6 +130,8 @@ export async function POST(req: Request) {
 
   return Response.json(status);
 }
+
+
 
 function SumValue(value: any) {
   const cal = [];

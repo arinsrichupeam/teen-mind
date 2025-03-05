@@ -1,4 +1,3 @@
-import { now } from "moment";
 import { School } from "@prisma/client";
 
 import { prisma } from "@/utils/prisma";
@@ -10,24 +9,28 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const data: School = await req.json();
+  const data = await req.json();
+  const school: School = data.school_data;
 
   await prisma.school.upsert({
     where: {
-      id: data.id,
-    },
-    create: {
-      name: data.name,
-      districtId: data.districtId,
-      status: 1,
-      createdAt: now().toString(),
+      id: school.id,
     },
     update: {
-      name: data.name,
-      districtId: data.districtId,
-      status: data.status,
+      name: school.name,
+      districtId: parseInt(school.districtId.toString()),
+      status: school.status,
+      updatedAt: new Date(),
+    },
+    create: {
+      name: school.name,
+      districtId: parseInt(school.districtId.toString()),
+      status: true,
+      createdAt: new Date(),
     },
   });
 
   return new Response("Success");
 }
+
+export async function DELETE() {}
