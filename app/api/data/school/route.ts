@@ -3,7 +3,11 @@ import { School } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
-  const data = await prisma.school.findMany();
+  const data = await prisma.school.findMany({
+    where: {
+      status: true,
+    },
+  });
 
   return Response.json(data);
 }
@@ -33,4 +37,4 @@ export async function POST(req: Request) {
   return new Response("Success");
 }
 
-export async function DELETE() {}
+export async function DELETE() { }

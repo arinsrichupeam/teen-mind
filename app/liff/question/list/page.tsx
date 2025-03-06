@@ -33,7 +33,7 @@ export default function QuestionListPage() {
       <Suspense fallback={<Loading />}>
         <h1 className={title({ size: "sm" })}>ผลประเมินภาวะซึมเศร้า</h1>
         <h2 className={subtitle()}>
-          สำรวจตัวเองว่าคุณกำลังเครียดมากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
+          สำรวจตัวเองว่าคุณกำลังเศร้ามากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
           4-5 นาที
         </h2>
         <Button
@@ -66,12 +66,13 @@ export default function QuestionListPage() {
                         day: "numeric",
                       })}
                     </p>
+
                     {val.result == "Green" ? (
-                      <p>ไม่พบความเสี่ยง</p>
+                      <p className="font-semibold">ผลการสำรวจ <span className="text-success-500">{val.result_text}</span></p>
                     ) : val.result == "Yellow" ? (
-                      <p>พบความเสี่ยงระดับปานกลาง</p>
+                      <p className="font-semibold">ผลการสำรวจ <span className="text-warning-500">{val.result_text}</span></p>
                     ) : (
-                      <p>พบอาการซึมเศร้าระดับรุนแรง</p>
+                      <p className="font-semibold">ผลการสำรวจ <span className="text-danger-500">{val.result_text}</span></p>
                     )}
                   </CardBody>
                 </Card>

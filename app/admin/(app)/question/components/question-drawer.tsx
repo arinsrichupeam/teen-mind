@@ -43,8 +43,8 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
   const [textboxHN, setTextboxHN] = useState("");
 
-  const latitude = data?.latitude as number;
-  const longitude = data?.longitude as number;
+  const latitude = data?.latitude != null ? data?.latitude : 0;
+  const longitude = data?.longitude != null ? data?.longitude : 0;
 
   const ChangeHN = () => {
     const json = JSON.stringify({
@@ -59,7 +59,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       },
       body: json,
     }).then(() => {
-      console.log("ss");
+      console.log("Update HN Success");
     });
   };
 

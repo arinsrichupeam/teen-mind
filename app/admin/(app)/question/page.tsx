@@ -28,7 +28,6 @@ import { QuestionDrawer } from "./components/question-drawer";
 import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
-import { capitalize } from "@/utils/helper";
 import { QuestionsData, QuestionsList } from "@/types";
 
 export default function QuestionPage() {
@@ -145,7 +144,7 @@ export default function QuestionPage() {
               >
                 {statusOptions.map((status) => (
                   <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
+                    {status.name}
                   </DropdownItem>
                 ))}
               </DropdownMenu>
