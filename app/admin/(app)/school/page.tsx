@@ -288,7 +288,11 @@ export default function SchoolListPage() {
           )}
         </ModalContent>
       </Modal>
-      <Alert color={"success"} isVisible={showAlert} title={"บันทึกเรียบร้อย"} />
+      <Alert
+        color={"success"}
+        isVisible={showAlert}
+        title={"บันทึกเรียบร้อย"}
+      />
 
       {/* บน */}
       <div className="flex justify-between items-end ">

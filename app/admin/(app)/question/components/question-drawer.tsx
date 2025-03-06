@@ -43,6 +43,30 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
   const [textboxHN, setTextboxHN] = useState("");
 
+  const latitude = data?.latitude as number;
+  const longitude = data?.longitude as number;
+
+  const ChangeHN = () => {
+    const json = JSON.stringify({
+      id: data?.User.profile[0].id,
+      hn: textboxHN,
+    });
+
+    fetch("/api/profile", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: json,
+    }).then(() => {
+      console.log("ss");
+    });
+  };
+
+  const txtHNChange = (val: any) => {
+    setTextboxHN(val.target.value);
+  };
+
   useEffect(() => {
     fetch("/api/data/distrince")
       .then((res) => res.json())
@@ -62,9 +86,6 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         setSubDistrince(val);
       });
   }, []);
-
-  const latitude = data?.latitude as number;
-  const longitude = data?.longitude as number;
 
   return (
     <Drawer isOpen={isOpen} size={"4xl"} onClose={onClose}>
@@ -206,18 +227,16 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <CardFooter>
                     <div className="flex flex-row gap-4">
                       <Input
+                        defaultValue={data?.User.profile[0].hn}
                         isDisabled={mode == "View"}
                         startContent={<p> HN:</p>}
-                        value={textboxHN}
                         variant="bordered"
-                        onChange={(val) => setTextboxHN(val.target.value)}
+                        onChange={txtHNChange}
                       />
                       <Button
                         color="primary"
                         isDisabled={mode == "View"}
-                        onPress={() => {
-                          console.log(textboxHN);
-                        }}
+                        onPress={() => ChangeHN()}
                       >
                         บันทึก
                       </Button>

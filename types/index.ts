@@ -55,6 +55,7 @@ export interface User {
 }
 
 export interface Profile {
+  id: string;
   firstname: string;
   lastname: string;
   prefix: string;
