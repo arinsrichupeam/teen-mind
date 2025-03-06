@@ -21,6 +21,7 @@ export async function GET(
           image: true,
           profile: {
             select: {
+              id: true,
               firstname: true,
               lastname: true,
               prefix: true,

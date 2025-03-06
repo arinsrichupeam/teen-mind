@@ -179,7 +179,7 @@ export default function QuestionPage() {
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({sortedItems.length} รายการ)
+            หน้า {page}/{pages} ({questionsList.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />

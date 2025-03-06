@@ -11,6 +11,7 @@ export async function GET() {
       id: true,
       createdAt: true,
       result: true,
+      result_text: true,
       status: true,
       consult: true,
       User: {
@@ -50,7 +51,9 @@ export async function POST(req: Request) {
   const phqa_data: Questions_PHQA = data.phqa;
   const phqa_addon: Questions_PHQA_Addon = data.phqa_addon;
   const location_data: LocationData = data.location;
-  let status = "";
+  let result = "";
+  let result_text = "";
+  let status = 0;
 
   const phqa_sum = SumValue(phqa_data);
 
@@ -70,18 +73,50 @@ export async function POST(req: Request) {
     .then((val) => val?.accounts[0].providerAccountId as string);
 
   if (phqa_sum > 14) {
-    status = "Red";
-  } else if (phqa_sum > 4) {
-    status = "Yellow";
+    result = "Red";
+    if (phqa_sum >= 15 && phqa_sum <= 19) {
+      result_text = "พบความเสี่ยงมาก";
+    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+      result_text = "พบความเสี่ยงรุนแรง";
+    }
+  } else if (phqa_sum > 9) {
+    result = "Yellow";
+    result_text = "พบความเสี่ยงปานกลาง";
   } else {
     if (phqa_data.q9 > 0 || phqa_addon.q1 == 1 || phqa_addon.q2 == 1) {
-      status = "Yellow";
+      result = "Red";
+      result_text = "ไม่ได้ประเมิน 8Q";
     } else {
-      status = "Green";
+      result = "Green";
+      if (phqa_sum >= 0 && phqa_sum <= 4) {
+        result_text = "ไม่พบความเสี่ยง";
+      } else if (phqa_sum >= 5 && phqa_sum <= 9) {
+        result_text = "พบความเสี่ยงเล็กน้อย";
+      }
     }
   }
 
   //check HN
+  const hn = await prisma.user
+    .findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        profile: {
+          select: {
+            hn: true,
+          },
+        },
+      },
+    })
+    .then((val) => val?.profile[0].hn as string);
+
+  if (hn == null) {
+    status = 0;
+  } else {
+    status = 1;
+  }
 
   await prisma.questions_Master
     .create({
@@ -90,8 +125,9 @@ export async function POST(req: Request) {
         userId: userId,
         longitude: location_data.longitude,
         referent: referenceId,
-        result: status,
-        status: 0,
+        result: result,
+        result_text: result_text,
+        status: status,
         phqa: {
           create: {
             q1: phqa_data.q1,
@@ -115,7 +151,7 @@ export async function POST(req: Request) {
       },
     })
     .then(async () => {
-      switch (status) {
+      switch (result) {
         case "Green":
           await lineSdk.pushMessage(UUID, GreenFlex);
           break;
@@ -128,10 +164,8 @@ export async function POST(req: Request) {
       }
     });
 
-  return Response.json(status);
+  return Response.json(result);
 }
-
-
 
 function SumValue(value: any) {
   const cal = [];

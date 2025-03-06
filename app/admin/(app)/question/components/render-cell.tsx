@@ -101,7 +101,7 @@ export const RenderCell = ({
             size="sm"
             variant="flat"
           >
-            <span className="capitalize text-xs">{data.result}</span>
+            <span className="capitalize text-xs">{data.result_text}</span>
           </Chip>
         </div>
       );
