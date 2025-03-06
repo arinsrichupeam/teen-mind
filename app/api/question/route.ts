@@ -121,9 +121,9 @@ export async function POST(req: Request) {
   await prisma.questions_Master
     .create({
       data: {
-        latitude: location_data.latitude,
+        latitude: location_data?.latitude,
         userId: userId,
-        longitude: location_data.longitude,
+        longitude: location_data?.longitude,
         referent: referenceId,
         result: result,
         result_text: result_text,

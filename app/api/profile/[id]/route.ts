@@ -75,6 +75,12 @@ export async function GET(
         select: {
           createdAt: true,
           result: true,
+          result_text: true,
+          phqa: {
+            select: {
+              sum: true,
+            },
+          },
         },
       },
     },
