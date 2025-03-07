@@ -1,5 +1,5 @@
 import React from "react";
-import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PencilIcon } from "@heroicons/react/24/outline";
 import { Districts, School } from "@prisma/client";
 import { Chip } from "@heroui/react";
 

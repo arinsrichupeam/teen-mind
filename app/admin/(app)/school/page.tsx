@@ -202,7 +202,7 @@ export default function SchoolListPage() {
       .then((val) => {
         setDistrictData(val);
       });
-  }
+  };
 
   useEffect(() => {
     // ข้อมูลโรงเรียน

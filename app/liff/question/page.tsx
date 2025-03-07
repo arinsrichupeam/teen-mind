@@ -22,8 +22,10 @@ export default function QuestionPage() {
           <h1 className={title({ size: "xs" })}>
             คุณกำลังรู้สึกเศร้าอยู่หรือเปล่า?
           </h1>
-          <h2 className={subtitle()}>สำรวจตัวเองว่าคุณกำลังเศร้ามากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
-          4-5 นาที</h2>
+          <h2 className={subtitle()}>
+            สำรวจตัวเองว่าคุณกำลังเศร้ามากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
+            4-5 นาที
+          </h2>
           <Image alt="image" className="h-[40vh]" src="/image/Yallow.png" />
           <h2 className={subtitle()}>
             แบบทดสอบนี้อ้างอิงจากแบบประเมินภาวะซึมเศร้าในวัยรุ่น โดยกรมสุขภาพจิต

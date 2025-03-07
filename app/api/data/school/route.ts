@@ -37,4 +37,4 @@ export async function POST(req: Request) {
   return new Response("Success");
 }
 
-export async function DELETE() { }
+export async function DELETE() {}

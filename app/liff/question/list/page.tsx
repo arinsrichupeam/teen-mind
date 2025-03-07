@@ -68,11 +68,26 @@ export default function QuestionListPage() {
                     </p>
 
                     {val.result == "Green" ? (
-                      <p className="font-semibold">ผลการสำรวจ <span className="text-success-500">{val.result_text}</span></p>
+                      <p className="font-semibold">
+                        ผลการสำรวจ{" "}
+                        <span className="text-success-500">
+                          {val.result_text}
+                        </span>
+                      </p>
                     ) : val.result == "Yellow" ? (
-                      <p className="font-semibold">ผลการสำรวจ <span className="text-warning-500">{val.result_text}</span></p>
+                      <p className="font-semibold">
+                        ผลการสำรวจ{" "}
+                        <span className="text-warning-500">
+                          {val.result_text}
+                        </span>
+                      </p>
                     ) : (
-                      <p className="font-semibold">ผลการสำรวจ <span className="text-danger-500">{val.result_text}</span></p>
+                      <p className="font-semibold">
+                        ผลการสำรวจ{" "}
+                        <span className="text-danger-500">
+                          {val.result_text}
+                        </span>
+                      </p>
                     )}
                   </CardBody>
                 </Card>
