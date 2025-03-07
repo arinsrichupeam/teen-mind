@@ -9,7 +9,7 @@ import { DateInput } from "@heroui/date-input";
 import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
-import { Autocomplete, AutocompleteItem } from "@heroui/react";
+import { Autocomplete, AutocompleteItem, NumberInput } from "@heroui/react";
 
 import { validateCitizen } from "@/utils/validateCitizen";
 import { prefix, sex } from "@/types";
@@ -52,7 +52,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       validationBehavior="native"
       onSubmit={onSubmit}
     >
-      <Input
+      {/* <Input
         isRequired={request}
         label="เลขบัตรประชาชน"
         labelPlacement="inside"
@@ -64,6 +64,21 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         validate={(val) => validateCitizen(val)}
         value={Result?.citizenId}
         variant="faded"
+        onChange={HandleChange}
+      /> */}
+      <NumberInput
+        formatOptions={{ useGrouping: false }}
+        hideStepper={true}
+        isRequired={request}
+        label="เลขบัตรประชาชน"
+        labelPlacement="inside"
+        name="citizenId"
+        placeholder="เลขบัตรประชาชน"
+        radius="md"
+        size="sm"
+        validate={(val) => validateCitizen(val.toString())}
+        value={parseInt(Result?.citizenId as string)}
+        variant="bordered"
         onChange={HandleChange}
       />
       <div className="flex flex-row gap-4 w-full">
@@ -201,9 +216,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         }
       >
         {(item) => (
-          <AutocompleteItem key={item.id} value={item.name}>
-            {item.name}
-          </AutocompleteItem>
+          <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
         )}
       </Autocomplete>
       <Button
