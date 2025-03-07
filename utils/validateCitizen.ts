@@ -1,5 +1,7 @@
 export function validateCitizen(idCardNo: string): string {
-  idCardNo = idCardNo.replace("-", "");
+  // console.log(idCardNo.length);
+
+  // idCardNo = idCardNo.replace("-", "");
 
   if (!idCardNo) {
     return "กรุณากรอกเลขบัตรประชาชน";

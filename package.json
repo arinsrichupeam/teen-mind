@@ -11,7 +11,7 @@
  "dependencies": {
   "@auth/prisma-adapter": "^2.7.4",
   "@heroicons/react": "^2.2.0",
-  "@heroui/react": "^2.6.14",
+  "@heroui/react": "^2.7.4",
   "@line/bot-sdk": "^9.5.3",
   "@prisma/client": "^6.4.1",
   "@react-aria/ssr": "3.9.7",

@@ -261,7 +261,7 @@ export default function SchoolListPage() {
                   }
                 >
                   {(item) => (
-                    <AutocompleteItem key={item.id} value={item.nameInThai}>
+                    <AutocompleteItem key={item.id}>
                       {item.nameInThai}
                     </AutocompleteItem>
                   )}
