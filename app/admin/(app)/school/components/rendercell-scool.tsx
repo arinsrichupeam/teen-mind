@@ -17,8 +17,9 @@ export const SchoolRenderCell = ({
   columnKey,
   index,
   district,
-  viewSchool,
+  // viewSchool,
   editSchool,
+  // deleteSchool,
 }: Props) => {
   // @ts-ignore
   const cellValue = data[columnKey];
@@ -71,11 +72,11 @@ export const SchoolRenderCell = ({
               <PencilIcon className="size-6 text-warning-400" />
             </button>
           </div>
-          <div>
+          {/* <div>
             <button>
               <TrashIcon className="size-6 text-danger-500" />
             </button>
-          </div>
+          </div> */}
         </div>
       );
     default:

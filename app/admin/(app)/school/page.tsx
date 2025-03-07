@@ -196,16 +196,20 @@ export default function SchoolListPage() {
       });
   };
 
+  const GetDistrict = async (id: number) => {
+    await fetch("/api/data/distrince/" + id)
+      .then((res) => res.json())
+      .then((val) => {
+        setDistrictData(val);
+      });
+  }
+
   useEffect(() => {
     // ข้อมูลโรงเรียน
     GetSchool();
 
     // ข้อมูลเขตใน กทม
-    fetch("/api/data/distrince/1")
-      .then((res) => res.json())
-      .then((val) => {
-        setDistrictData(val);
-      });
+    GetDistrict(1);
   }, [isLoading]);
 
   return (
