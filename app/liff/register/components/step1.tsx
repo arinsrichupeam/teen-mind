@@ -11,8 +11,8 @@ import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
 import { Autocomplete, AutocompleteItem, NumberInput } from "@heroui/react";
 
-import { validateCitizen } from "@/utils/validateCitizen";
 import { prefix, sex } from "@/types";
+import { validateCitizen } from "@/utils/helper";
 
 interface Props {
   NextStep: (val: any) => void;
@@ -52,20 +52,6 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       validationBehavior="native"
       onSubmit={onSubmit}
     >
-      {/* <Input
-        isRequired={request}
-        label="เลขบัตรประชาชน"
-        labelPlacement="inside"
-        name="citizenId"
-        placeholder="เลขบัตรประชาชน"
-        radius="md"
-        size="sm"
-        type="number"
-        validate={(val) => validateCitizen(val)}
-        value={Result?.citizenId}
-        variant="faded"
-        onChange={HandleChange}
-      /> */}
       <NumberInput
         formatOptions={{ useGrouping: false }}
         hideStepper={true}
@@ -78,7 +64,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         size="sm"
         validate={(val) => validateCitizen(val.toString())}
         value={parseInt(Result?.citizenId as string)}
-        variant="bordered"
+        variant="faded"
         onChange={HandleChange}
       />
       <div className="flex flex-row gap-4 w-full">

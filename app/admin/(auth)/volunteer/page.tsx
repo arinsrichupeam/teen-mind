@@ -12,9 +12,9 @@ import {
 } from "@heroui/react";
 import { useCallback } from "react";
 
-import { title } from "@/components/primitives";
-import { validateCitizen } from "@/utils/validateCitizen";
+import { subtitle, title } from "@/components/primitives";
 import { prefix } from "@/types";
+import { validateCitizen, validateEmail } from "@/utils/helper";
 
 export default function VolunteerPage() {
   const request = true;
@@ -31,7 +31,7 @@ export default function VolunteerPage() {
 
   return (
     <div className="flex flex-col w-full items-center gap-4">
-      <h1 className={title({ size: "sm" })}>ลงทะเบียน</h1>
+      <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
 
       <Form
         className="flex flex-col items-center md:px-20 gap-4 w-full text-start"
@@ -40,8 +40,8 @@ export default function VolunteerPage() {
       >
         <div className="flex flex-col items-center w-full gap-4 mb-4">
           <NumberInput
-            formatOptions={{ useGrouping: false }}
             className="max-w-xl"
+            formatOptions={{ useGrouping: false }}
             hideStepper={true}
             isRequired={request}
             label="เลขบัตรประชาชน"
@@ -102,6 +102,108 @@ export default function VolunteerPage() {
             variant="bordered"
           // onChange={HandleChange}
           />
+          <Input
+            className="max-w-xl"
+            errorMessage="กรุณากรอกเบอร์โทรศัพท์"
+            isRequired={request}
+            label="เบอร์โทรศัพท์"
+            labelPlacement="inside"
+            name="tel"
+            placeholder="เบอร์โทรศัพท์"
+            radius="md"
+            size="sm"
+            type="number"
+            // value={Result?.tel}
+            // validate={(val) => validateEmail(val.toString())}
+            variant="bordered"
+          // onChange={HandleChange}
+          />
+          <Input
+            className="max-w-xl"
+            // errorMessage="กรุณากรอกอีเมล"
+            isRequired={request}
+            label="อีเมล"
+            labelPlacement="inside"
+            name="email"
+            placeholder="อีเมล"
+            radius="md"
+            size="sm"
+            type="text"
+            // value={Result?.tel}
+            validate={(val) => validateEmail(val.toString())}
+            variant="bordered"
+          // onChange={HandleChange}
+          />
+          <Select
+            className="max-w-xl"
+            errorMessage="กรุณาเลือกประเภทอาสาสมัคร"
+            isRequired={request}
+            label="ประเภทอาสาสมัคร"
+            labelPlacement="inside"
+            name="volunteer_type_id"
+            placeholder="ประเภทอาสาสมัคร"
+            radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            size="sm"
+            variant="bordered"
+          // onChange={HandleChange}
+          >
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            ))}
+          </Select>
+          <Select
+            className="max-w-xl"
+            errorMessage="กรุณาเลือกสังกัด"
+            isRequired={request}
+            label="สังกัด"
+            labelPlacement="inside"
+            name="affiliation_id"
+            placeholder="สังกัด"
+            radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            size="sm"
+            variant="bordered"
+          // onChange={HandleChange}
+          >
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            ))}
+          </Select>
+          <Input
+            className="max-w-xl"
+            errorMessage="กรุณากรอกหน่วยงาน"
+            isRequired={request}
+            label="หน่วยงาน"
+            labelPlacement="inside"
+            name="agency"
+            placeholder="หน่วยงาน"
+            radius="md"
+            size="sm"
+            // value={Result?.lastname}
+            variant="bordered"
+          // onChange={HandleChange}
+          />
+          <Select
+            className="max-w-xl"
+            errorMessage="กรุณาเลือกประเภทการจ้างงาน"
+            isRequired={request}
+            label="ประเภทการจ้างงาน"
+            labelPlacement="inside"
+            name="employee_type_id"
+            placeholder="ประเภทการจ้างงาน"
+            radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            size="sm"
+            variant="bordered"
+          // onChange={HandleChange}
+          >
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            ))}
+          </Select>
+
+
         </div>
         <Button color="primary" type="submit" variant="flat">
           Register

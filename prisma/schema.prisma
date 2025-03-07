@@ -134,9 +134,10 @@ model Roles {
 }
 
 model Provinces {
-  id         Int    @id
-  code       Int    @unique(map: "UX_Provinces_Code")
-  nameInThai String @db.VarChar(150)
+  id         Int         @id
+  code       Int         @unique(map: "UX_Provinces_Code")
+  nameInThai String      @db.VarChar(150)
+  districts  Districts[]
 }
 
 model Districts {
@@ -146,6 +147,8 @@ model Districts {
   provinceId   Int
   zoneId       Int?
   subdistricts Subdistricts[]
+  provinces    Provinces?     @relation(fields: [provincesId], references: [id])
+  provincesId  Int?
 
   @@index([zoneId], map: "FK_Districts_Zone")
   @@index([provinceId], map: "IX_Districts_ProvinceId")
@@ -162,26 +165,28 @@ model Subdistricts {
 }
 
 model Questions_Master {
-  id          String                 @id @default(cuid())
-  userId      String
-  referent    String?
-  consult     String?
-  latitude    Decimal?               @db.Decimal(10, 7)
-  longitude   Decimal?               @db.Decimal(10, 7)
-  result      String
-  result_text String?
-  Subjective  String?
-  Objective   String?
-  Assessment  String?
-  Plan        String?
-  status      Int                    @default(0)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  q2          Questions_2Q[]
-  phqa        Questions_PHQA[]
-  addon       Questions_PHQA_Addon[]
+  id               String                 @id @default(cuid())
+  userId           String
+  referent         Int?
+  consult          String?
+  latitude         Decimal?               @db.Decimal(10, 7)
+  longitude        Decimal?               @db.Decimal(10, 7)
+  result           String
+  result_text      String?
+  schedule_telemed DateTime?
+  subjective       String?
+  objective        String?
+  assessment       String?
+  plan             String?
+  status           Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  q2               Questions_2Q[]
+  phqa             Questions_PHQA[]
+  addon            Questions_PHQA_Addon[]
+  volunteer        Volunteer?             @relation(fields: [referent], references: [id])
 
-  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -234,5 +239,54 @@ model School {
   status     Boolean
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  Profile    Profile[]
+  profile    Profile[]
+}
+
+model Volunteer {
+  id                Int                @id @default(autoincrement())
+  citizenId         String
+  prefix            Int
+  firstname         String
+  lastname          String
+  email             String
+  tel               String
+  volunteer_type_id Int
+  employee_type_id  Int
+  affiliation_id    Int
+  agency            String
+  status            Boolean
+  volunteer_type    Volunteer_Type     @relation(fields: [volunteer_type_id], references: [id])
+  employee_type     Employee_Type      @relation(fields: [employee_type_id], references: [id])
+  affiliation       Affiliation        @relation(fields: [affiliation_id], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  questions_master  Questions_Master[]
+}
+
+model Affiliation {
+  id        Int         @id @default(autoincrement())
+  name      String
+  status    Boolean
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  volunteer Volunteer[]
+}
+
+model Employee_Type {
+  id          Int         @id @default(autoincrement())
+  name        String
+  status      Boolean
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  volunteerId Int?
+  volunteer   Volunteer[]
+}
+
+model Volunteer_Type {
+  id        Int         @id @default(autoincrement())
+  name      String
+  status    Boolean
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  volunteer Volunteer[]
 }
