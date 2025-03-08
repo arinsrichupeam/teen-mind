@@ -197,7 +197,7 @@ export default function SchoolListPage() {
   };
 
   const GetDistrict = async (id: number) => {
-    await fetch("/api/data/distrince/" + id)
+    await fetch("/api/data/districts/" + id)
       .then((res) => res.json())
       .then((val) => {
         setDistrictData(val);

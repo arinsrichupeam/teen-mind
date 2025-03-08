@@ -1,9 +1,9 @@
 import { prisma } from "@/utils/prisma";
 
 // Update Profile
-export async function PUT(req: Request) {
-  // const data = await req.json();
-}
+// export async function PUT(req: Request) {
+// const data = await req.json();
+// }
 
 // Update Profile -> HN -> Update Question Status
 export async function PATCH(req: Request) {

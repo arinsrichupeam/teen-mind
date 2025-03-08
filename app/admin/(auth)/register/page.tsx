@@ -9,14 +9,19 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Affiliation, Employee_Type } from "@prisma/client";
+import { signIn, useSession } from "next-auth/react";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/types";
-import { validateCitizen, validateEmail } from "@/utils/helper";
+import { validateCitizen } from "@/utils/helper";
 
-export default function VolunteerPage() {
-  const request = true;
+export default function RegisterPage() {
+  const [request] = useState(true);
+  const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
+  const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const { data: session, status } = useSession();
 
   const onSubmit = useCallback(async (e: any) => {
     e.preventDefault();
@@ -28,19 +33,46 @@ export default function VolunteerPage() {
     });
   }, []);
 
+  const GetEmployeeType = useCallback(async () => {
+    await fetch("/api/data/employee")
+      .then((res) => res.json())
+      .then((data) => {
+        setEmployeeType(data);
+      });
+  }, [employeeType]);
+
+  const GetAffiliation = useCallback(async () => {
+    await fetch("/api/data/affiliation")
+      .then((res) => res.json())
+      .then((data) => {
+        setAffiliation(data);
+      });
+  }, [affiliation]);
+
+  useEffect(() => {
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        signIn();
+      } else {
+        GetEmployeeType();
+        GetAffiliation();
+      }
+    }
+  }, [session]);
+
   return (
     <div className="flex flex-col w-full items-center gap-4">
-      <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
+      <h1 className={title({ size: "sm" })}>ลงทะเบียน เข้าใช้งานระบบ</h1>
 
       <Form
         className="flex flex-col items-center md:px-20 gap-4 w-full text-start"
-        validationBehavior="native"
+        // validationBehavior="native"
         onSubmit={onSubmit}
       >
         <div className="flex flex-col items-center w-full gap-4 mb-4">
           <Input
             className="max-w-xl"
-            isRequired={request}
+            isRequired={true}
             label="เลขบัตรประชาชน"
             labelPlacement="inside"
             name="citizenId"
@@ -116,7 +148,7 @@ export default function VolunteerPage() {
             variant="bordered"
             // onChange={HandleChange}
           />
-          <Input
+          {/* <Input
             className="max-w-xl"
             // errorMessage="กรุณากรอกอีเมล"
             isRequired={request}
@@ -130,9 +162,9 @@ export default function VolunteerPage() {
             // value={Result?.tel}
             validate={(val) => validateEmail(val.toString())}
             variant="bordered"
-            // onChange={HandleChange}
-          />
-          <Select
+          // onChange={HandleChange}
+          /> */}
+          {/* <Select
             className="max-w-xl"
             errorMessage="กรุณาเลือกประเภทอาสาสมัคร"
             isRequired={request}
@@ -144,12 +176,12 @@ export default function VolunteerPage() {
             // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="bordered"
-            // onChange={HandleChange}
+          // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
               <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
             ))}
-          </Select>
+          </Select> */}
           <Select
             className="max-w-xl"
             errorMessage="กรุณาเลือกสังกัด"
@@ -164,8 +196,8 @@ export default function VolunteerPage() {
             variant="bordered"
             // onChange={HandleChange}
           >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            {affiliation.map((affiliation) => (
+              <SelectItem key={affiliation.id}>{affiliation.name}</SelectItem>
             ))}
           </Select>
           <Input
@@ -196,10 +228,38 @@ export default function VolunteerPage() {
             variant="bordered"
             // onChange={HandleChange}
           >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            {employeeType.map((employeeType) => (
+              <SelectItem key={employeeType.id}>{employeeType.name}</SelectItem>
             ))}
           </Select>
+          <Input
+            className="max-w-xl"
+            errorMessage="กรุณากรอกสาขาวิชาชีพ"
+            isRequired={request}
+            label="สาขาวิชาชีพ"
+            labelPlacement="inside"
+            name="firstname1"
+            placeholder="สาขาวิชาชีพ"
+            radius="md"
+            size="sm"
+            // value={Result?.firstname}
+            variant="bordered"
+            // onChange={HandleChange}
+          />
+          <Input
+            className="max-w-xl"
+            errorMessage="กรุณากรอกเลขที่ใบประกอบวิชาชีพ"
+            isRequired={false}
+            label="เลขที่ใบประกอบวิชาชีพ"
+            labelPlacement="inside"
+            name="firstname2"
+            placeholder="เลขที่ใบประกอบวิชาชีพ"
+            radius="md"
+            size="sm"
+            // value={Result?.firstname}
+            variant="bordered"
+            // onChange={HandleChange}
+          />
         </div>
         <Button color="primary" type="submit" variant="flat">
           Register

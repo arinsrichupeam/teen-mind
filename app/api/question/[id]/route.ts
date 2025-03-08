@@ -16,7 +16,7 @@ export async function GET(
       latitude: true,
       longitude: true,
       createdAt: true,
-      User: {
+      user: {
         select: {
           image: true,
           profile: {
