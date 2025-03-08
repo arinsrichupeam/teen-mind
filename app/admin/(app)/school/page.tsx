@@ -186,7 +186,7 @@ export default function SchoolListPage() {
     }, 3000);
   };
 
-  const GetSchool = async () => {
+  const GetSchool = useCallback(async () => {
     await fetch("/api/data/school")
       .then((res) => res.json())
       .then((val) => {
@@ -194,22 +194,25 @@ export default function SchoolListPage() {
         setPages(Math.ceil(val.length / rowsPerPage));
         setIsLoading(false);
       });
-  };
+  }, [schoolList]);
 
-  const GetDistrict = async (id: number) => {
-    await fetch("/api/data/districts/" + id)
-      .then((res) => res.json())
-      .then((val) => {
-        setDistrictData(val);
-      });
-  };
+  const GetDistricts = useCallback(
+    async (id: number) => {
+      await fetch("/api/data/districts/" + id)
+        .then((res) => res.json())
+        .then((val) => {
+          setDistrictData(val);
+        });
+    },
+    [districtData]
+  );
 
   useEffect(() => {
     // ข้อมูลโรงเรียน
     GetSchool();
 
     // ข้อมูลเขตใน กทม
-    GetDistrict(1);
+    GetDistricts(1);
   }, [isLoading]);
 
   return (

@@ -44,7 +44,7 @@ export type QuestionsData = {
   latitude: number;
   longitude: number;
   createdAt: string;
-  User: User;
+  user: User;
   phqa: Phqa[];
   addon: Phqa_Addon[];
 };

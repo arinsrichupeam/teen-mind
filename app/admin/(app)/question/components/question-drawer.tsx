@@ -48,7 +48,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
   const ChangeHN = () => {
     const json = JSON.stringify({
-      id: data?.User.profile[0].id,
+      id: data?.user.profile[0].id,
       hn: textboxHN,
     });
 
@@ -68,7 +68,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   };
 
   useEffect(() => {
-    fetch("/api/data/distrince")
+    fetch("/api/data/districts")
       .then((res) => res.json())
       .then((val) => {
         setDistrince(val);
@@ -80,7 +80,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         setProvince(val);
       });
 
-    fetch("/api/data/subdistrince")
+    fetch("/api/data/subdistricts")
       .then((res) => res.json())
       .then((val) => {
         setSubDistrince(val);
@@ -139,35 +139,35 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       alt="user profile"
                       height={100}
                       radius="sm"
-                      src={data?.User.image}
+                      src={data?.user.image}
                       width={100}
                     />
                     <div className="flex flex-col">
                       <p className="text-md">
                         {
                           prefix.find(
-                            (val) => val.key == data?.User.profile[0].prefix
+                            (val) => val.key == data?.user.profile[0].prefix
                           )?.label
                         }{" "}
-                        {data?.User.profile[0].firstname}{" "}
-                        {data?.User.profile[0].lastname}
+                        {data?.user.profile[0].firstname}{" "}
+                        {data?.user.profile[0].lastname}
                       </p>
                       <p className="text-small">
                         เลขที่บัตรประชาชน :{" "}
-                        <b>{data?.User.profile[0].citizenId}</b>
+                        <b>{data?.user.profile[0].citizenId}</b>
                       </p>
                       <p className="text-small">
                         วัน/เดือน/ปี เกิด :{" "}
                         <b>
-                          {moment(data?.User.profile[0].birthday)
+                          {moment(data?.user.profile[0].birthday)
                             .add(543, "year")
                             .locale("th-TH")
                             .format("DD/MM/YYYY")}
                         </b>
                       </p>
                       <p className="text-small">
-                        เชื้อชาติ : <b>{data?.User.profile[0].ethnicity}</b>{" "}
-                        สัญชาติ : <b>{data?.User.profile[0].nationality}</b>
+                        เชื้อชาติ : <b>{data?.user.profile[0].ethnicity}</b>{" "}
+                        สัญชาติ : <b>{data?.user.profile[0].nationality}</b>
                       </p>
                     </div>
                   </CardHeader>
@@ -176,24 +176,24 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     <div>
                       <p className="text-small">
                         ที่อยู่ :{" "}
-                        <b>{data?.User.profile[0].address[0].houseNo}</b>{" "}
+                        <b>{data?.user.profile[0].address[0].houseNo}</b>{" "}
                         หมู่ที่ :{" "}
                         <b>
-                          {data?.User.profile[0].address[0].villageNo == ""
+                          {data?.user.profile[0].address[0].villageNo == ""
                             ? "-"
-                            : data?.User.profile[0].address[0].villageNo}
+                            : data?.user.profile[0].address[0].villageNo}
                         </b>{" "}
-                        ซอย : <b>{data?.User.profile[0].address[0].soi}</b>
+                        ซอย : <b>{data?.user.profile[0].address[0].soi}</b>
                       </p>
                       <p className="text-small">
-                        ถนน : <b>{data?.User.profile[0].address[0].road}</b>{" "}
+                        ถนน : <b>{data?.user.profile[0].address[0].road}</b>{" "}
                         ตำบล :{" "}
                         <b>
                           {
                             subdistrince?.find(
                               (x) =>
                                 x.id ==
-                                data?.User.profile[0].address[0].subdistrict
+                                data?.user.profile[0].address[0].subdistrict
                             )?.nameInThai
                           }
                         </b>{" "}
@@ -203,7 +203,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             distrince?.find(
                               (x) =>
                                 x.id ==
-                                data?.User.profile[0].address[0].district
+                                data?.user.profile[0].address[0].district
                             )?.nameInThai
                           }
                         </b>
@@ -215,11 +215,11 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             province?.find(
                               (x) =>
                                 x.id ==
-                                data?.User.profile[0].address[0].province
+                                data?.user.profile[0].address[0].province
                             )?.nameInThai
                           }
                         </b>{" "}
-                        โทรศัพท์ : <b>{data?.User.profile[0].tel}</b>
+                        โทรศัพท์ : <b>{data?.user.profile[0].tel}</b>
                       </p>
                     </div>
                   </CardBody>
@@ -227,7 +227,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <CardFooter>
                     <div className="flex flex-row gap-4">
                       <Input
-                        defaultValue={data?.User.profile[0].hn}
+                        defaultValue={data?.user.profile[0].hn}
                         isDisabled={mode == "View"}
                         startContent={<p> HN:</p>}
                         variant="bordered"

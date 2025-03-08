@@ -62,15 +62,15 @@ export const RenderCell = ({
         <div>
           <User
             avatarProps={{
-              src: data.User.image as string,
+              src: data.user.image as string,
             }}
             name={
-              prefix.find((val) => val.key == data.User.profile[0].prefix)
+              prefix.find((val) => val.key == data.user.profile[0].prefix)
                 ?.label +
               " " +
-              data.User.profile[0].firstname +
+              data.user.profile[0].firstname +
               " " +
-              data.User.profile[0].lastname
+              data.user.profile[0].lastname
             }
           />
         </div>
@@ -78,13 +78,13 @@ export const RenderCell = ({
     case "age":
       return (
         <div>
-          <span>{timeAgo(data.User.profile[0].birthday)}</span>
+          <span>{timeAgo(data.user.profile[0].birthday)}</span>
         </div>
       );
     case "school":
       return (
         <div>
-          <span>{data.User.profile[0].school?.name.toString()}</span>
+          <span>{data.user.profile[0].school?.name.toString()}</span>
         </div>
       );
     case "result":
