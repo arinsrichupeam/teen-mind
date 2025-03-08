@@ -23,7 +23,7 @@ export const Step2 = ({
   const [subDistrict, setSubDistrict] = useState<Subdistricts[]>([]);
 
   useEffect(() => {
-    fetch("/api/data/province")
+    fetch("/api/data/provinces")
       .then((res) => res.json())
       .then((val) => {
         setProvince(val);
@@ -36,7 +36,7 @@ export const Step2 = ({
   const onProvinceChange = async (e: any) => {
     setDistrict([]);
     if (e !== null) {
-      await fetch(`/api/data/distrince/${e}`)
+      await fetch(`/api/data/districts/${e}`)
         .then((res) => res.json())
         .then((val) => {
           setDistrict(val);
@@ -48,7 +48,7 @@ export const Step2 = ({
   const onDistrictChange = async (e: any) => {
     setSubDistrict([]);
     if (e !== null) {
-      await fetch(`/api/data/subdistrince/${e}`)
+      await fetch(`/api/data/subdistricts/${e}`)
         .then((res) => res.json())
         .then((val) => {
           setSubDistrict(val);

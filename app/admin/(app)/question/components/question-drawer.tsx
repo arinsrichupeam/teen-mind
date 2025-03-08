@@ -74,7 +74,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         setDistrince(val);
       });
 
-    fetch("/api/data/province")
+    fetch("/api/data/provinces")
       .then((res) => res.json())
       .then((val) => {
         setProvince(val);

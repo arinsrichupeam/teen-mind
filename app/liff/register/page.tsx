@@ -55,7 +55,7 @@ const emergencyContactInitValue: EmergencyContact = {
 export default function RegisterPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [selected, setSelected] = useState("profile");
+  const [selected, setSelected] = useState("address");
   const [showAlert, setShowAlert] = useState(false);
 
   const [profile, setProfile] = useState<Profile>(profileInitValue);

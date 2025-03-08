@@ -17,14 +17,16 @@ export function validateCitizen(idCardNo: string): string {
   if (!idCardNo) {
     return "กรุณากรอกเลขบัตรประชาชน";
   }
+
   if (idCardNo.length !== 13) {
-    return "กรอกเลขบัตรประชาชนไม่ครบถ้วน";
+    return "กรอกเลขบัตรประชาชนไม่ครบถ้วน : " + idCardNo;
   }
   const isDigit: boolean = /^[0-9]*$/.test(idCardNo);
 
   if (!isDigit) {
     return "idCardNo is not only digit";
   }
+
   let sum: number = 0;
 
   for (let i = 0; i < 12; i++) {
