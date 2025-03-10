@@ -21,12 +21,6 @@ export async function GET(
           providerAccountId: true,
         },
       },
-      questions: {
-        select: {
-          createdAt: true,
-          result: true,
-        },
-      },
     },
   });
 
@@ -47,7 +41,7 @@ export async function GET(
     });
   }
 
-  // Get UserProfile
+  // Get AdminProfile
   const profile = await prisma.user.findUnique({
     where: {
       id: userId,
@@ -61,25 +55,12 @@ export async function GET(
           providerAccountId: true,
         },
       },
-      profile: {
+      profile_admin: {
         select: {
           prefixId: true,
           firstname: true,
           lastname: true,
-          birthday: true,
-          address: true,
-        },
-      },
-      questions: {
-        select: {
-          createdAt: true,
-          result: true,
-          result_text: true,
-          phqa: {
-            select: {
-              sum: true,
-            },
-          },
+          role: true,
         },
       },
     },

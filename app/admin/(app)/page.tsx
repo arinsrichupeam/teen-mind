@@ -1,4 +1,24 @@
-export default async function AdminHome() {
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export default function AdminHome() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status !== "loading") {
+      if (status !== "authenticated") {
+        router.push("/admin/login");
+      } else {
+        // console.log("Get Admin Profile");
+        router.push("/admin/register");
+      }
+    }
+  }, [session]);
+
   return (
     <div className="h-full lg:px-6">
       <div className="flex justify-center gap-4 xl:gap-6 pt-3 px-4 lg:px-0  flex-wrap xl:flex-nowrap sm:pt-10 max-w-[90rem] mx-auto w-full">

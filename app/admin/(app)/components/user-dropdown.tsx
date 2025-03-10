@@ -1,6 +1,5 @@
 import React, { useCallback } from "react";
 import { useRouter } from "next/navigation";
-// import { deleteAuthCookie } from "@/actions/auth.action";
 import {
   Dropdown,
   DropdownItem,
@@ -17,7 +16,7 @@ export const UserDropdown = () => {
   const handleLogout = useCallback(async () => {
     // await deleteAuthCookie();
     signOut();
-    router.replace("/login");
+    router.replace("/admin/login");
   }, [router]);
 
   return (

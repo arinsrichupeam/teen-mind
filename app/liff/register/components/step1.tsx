@@ -77,7 +77,9 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           name="prefix"
           placeholder="คำนำหน้า"
           radius="md"
-          selectedKeys={Result?.prefixId === 0 ? "" : Result?.prefixId.toString()}
+          selectedKeys={
+            Result?.prefixId === 0 ? "" : Result?.prefixId.toString()
+          }
           size="sm"
           variant="faded"
           onChange={HandleChange}

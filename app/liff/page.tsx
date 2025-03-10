@@ -11,7 +11,7 @@ export default function LiffHome() {
   const { data: session, status } = useSession();
 
   const checkProfile = async (id: string) => {
-    await fetch(`/api/profile/${id}`).then((res) =>
+    await fetch(`/api/profile/user/${id}`).then((res) =>
       res.json().then((val) => {
         if (val === null) {
           signOut();

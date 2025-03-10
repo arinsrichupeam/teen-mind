@@ -44,7 +44,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   profile       Profile[]
-  Profile_Admin Profile_Admin[]
+  profile_admin Profile_Admin[]
   questions     Questions_Master[]
 
   createdAt DateTime @default(now())
