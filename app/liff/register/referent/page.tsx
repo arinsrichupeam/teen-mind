@@ -5,14 +5,9 @@ import {
   Divider,
   Form,
   Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
+  Link,
   Select,
   SelectItem,
-  useDisclosure,
 } from "@heroui/react";
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
@@ -40,7 +35,7 @@ const referentInitValue: Referent = {
   employee_type_id: 0,
   affiliation_id: 0,
   agency: "",
-  status: true,
+  status: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -145,9 +140,10 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
-            validate={(val) => validateCitizen(val)}
+            // validate={(val) => validateCitizen(val)}
+            // value={parseInt(Result?.citizenId as string)}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -155,12 +151,13 @@ export default function ReferentPage() {
             isRequired={request}
             label="คำนำหน้า"
             labelPlacement="inside"
-            name="prefixId"
+            name="prefix"
             placeholder="คำนำหน้า"
             radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
               <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
@@ -177,8 +174,9 @@ export default function ReferentPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
+            // value={Result?.firstname}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -190,8 +188,9 @@ export default function ReferentPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
+            // value={Result?.lastname}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -204,8 +203,10 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
+            // value={Result?.tel}
+            // validate={(val) => validateEmail(val.toString())}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -218,9 +219,10 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="text"
-            validate={(val) => validateEmail(val.toString())}
+            // value={Result?.tel}
+            // validate={(val) => validateEmail(val.toString())}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -231,14 +233,13 @@ export default function ReferentPage() {
             name="volunteer_type_id"
             placeholder="ประเภทอาสาสมัคร"
             radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           >
-            {volunteerType.map((volunteerType) => (
-              <SelectItem key={volunteerType.id}>
-                {volunteerType.name}
-              </SelectItem>
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
             ))}
           </Select>
           <Select
@@ -250,12 +251,13 @@ export default function ReferentPage() {
             name="affiliation_id"
             placeholder="สังกัด"
             radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           >
-            {affiliation.map((affiliation) => (
-              <SelectItem key={affiliation.id}>{affiliation.name}</SelectItem>
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
             ))}
           </Select>
           <Input
@@ -268,8 +270,9 @@ export default function ReferentPage() {
             placeholder="หน่วยงาน"
             radius="md"
             size="sm"
+            // value={Result?.lastname}
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -280,12 +283,13 @@ export default function ReferentPage() {
             name="employee_type_id"
             placeholder="ประเภทการจ้างงาน"
             radius="md"
+            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            onChange={HandleChange}
+            // onChange={HandleChange}
           >
-            {employeeType.map((employeeType) => (
-              <SelectItem key={employeeType.id}>{employeeType.name}</SelectItem>
+            {prefix.map((prefix) => (
+              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
             ))}
           </Select>
         </div>
