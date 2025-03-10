@@ -11,6 +11,9 @@ import {
 import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { Roles } from "@prisma/client";
 
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
@@ -22,6 +25,18 @@ import { siteConfig } from "@/config/site";
 export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
+  const { data: session, status } = useSession();
+  const [role, setRole] = useState<Roles>();
+
+  useEffect(() => {
+    if (status !== "loading" && status === "authenticated") {
+      fetch("/api/profile/admin/" + session.user?.id)
+        .then((res) => res.json())
+        .then((val) => {
+          setRole(val.profile_admin[0].role[0]);
+        });
+    }
+  }, [session]);
 
   return (
     <aside className="h-screen z-[20] sticky top-0">
@@ -57,76 +72,35 @@ export const SidebarWrapper = () => {
                 isActive={pathname === "/admin/case"}
                 title="เคสที่ดูแล"
               />
-              {/* <SidebarItem
-                icon={<CreditCardIcon className="size-6" />}
-                isActive={pathname === "/payments"}
-                title="Payments"
-              />
-              <CollapseItems
-                icon={<ChevronDownIcon className="size-6" />}
-                items={["Banks Accounts", "Credit Cards", "Loans"]}
-                title="Balances"
-              />
-              <SidebarItem
-                icon={<UserGroupIcon className="size-6" />}
-                isActive={pathname === "/customers"}
-                title="Customers"
-              /> */}
             </SidebarMenu>
-            <SidebarMenu title="Admin Menu">
-              <SidebarItem
-                href="#"
-                icon={<UserGroupIcon className="size-6" />}
-                isActive={pathname === "/admin/accounts"}
-                title="จัดการสมาชิก"
-              />
-              <SidebarItem
-                href="/admin/school"
-                icon={<HomeModernIcon className="size-6" />}
-                isActive={pathname === "/admin/school"}
-                title="รายชื่อโรงเรียน"
-              />
-              <SidebarItem
-                icon={<CreditCardIcon className="size-6" />}
-                isActive={pathname === "/admin/emergency"}
-                title="รายชื่อผู้รับเคสฉุกเฉิน"
-              />
-              {/*<CollapseItems
-                icon={<ChevronDownIcon className="size-6" />}
-                items={["Banks Accounts", "Credit Cards", "Loans"]}
-                title="Balances"
-              />*/}
-              <SidebarItem
-                icon={<MapIcon className="size-6" />}
-                isActive={pathname === "/admin/area"}
-                title="พื้นที่อยู่อาศัย"
-              />
-            </SidebarMenu>
-            {/* <SidebarMenu title="General">
-              <SidebarItem
-                isActive={pathname === "/developers"}
-                title="Developers"
-              // icon={<DevIcon />}
-              />
-              <SidebarItem
-                isActive={pathname === "/view"}
-                title="View Test Data"
-              // icon={<ViewIcon />}
-              />
-              <SidebarItem
-                isActive={pathname === "/settings"}
-                title="Settings"
-              // icon={<SettingsIcon />}
-              />
-            </SidebarMenu>
-
-            <SidebarMenu title="Updates">
-              <SidebarItem
-                isActive={pathname === "/changelog"}
-                title="Changelog"
-              // icon={<ChangeLogIcon />}
-              />
-            </SidebarMenu> */}
+            {role?.name === "Admin" ? (
+              <SidebarMenu title="Admin Menu">
+                <SidebarItem
+                  href="/admin/members"
+                  icon={<UserGroupIcon className="size-6" />}
+                  isActive={pathname === "/admin/members"}
+                  title="จัดการสมาชิก"
+                />
+                <SidebarItem
+                  href="/admin/school"
+                  icon={<HomeModernIcon className="size-6" />}
+                  isActive={pathname === "/admin/school"}
+                  title="รายชื่อโรงเรียน"
+                />
+                <SidebarItem
+                  icon={<CreditCardIcon className="size-6" />}
+                  isActive={pathname === "/admin/emergency"}
+                  title="รายชื่อผู้รับเคสฉุกเฉิน"
+                />
+                <SidebarItem
+                  icon={<MapIcon className="size-6" />}
+                  isActive={pathname === "/admin/area"}
+                  title="พื้นที่อยู่อาศัย"
+                />
+              </SidebarMenu>
+            ) : (
+              <></>
+            )}
           </div>
           <div className={Sidebar.Footer()}>
             <Link

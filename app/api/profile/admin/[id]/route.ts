@@ -60,6 +60,7 @@ export async function GET(
           prefixId: true,
           firstname: true,
           lastname: true,
+          status: true,
           role: true,
         },
       },
