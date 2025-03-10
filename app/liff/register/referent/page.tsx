@@ -10,13 +10,30 @@ import {
   SelectItem,
 } from "@heroui/react";
 import { useCallback } from "react";
+import { Referent } from "@prisma/client";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/types";
-import { validateCitizen, validateEmail } from "@/utils/helper";
 
-export default function VolunteerPage() {
-  const request = true;
+const referentInitValue: Referent = {
+  id: 0,
+  citizenId: "",
+  prefixId: 0,
+  firstname: "",
+  lastname: "",
+  email: "",
+  tel: "",
+  volunteer_type_id: 0,
+  employee_type_id: 0,
+  affiliation_id: 0,
+  agency: "",
+  status: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+export default function ReferentPage() {
+  const request = false;
 
   const onSubmit = useCallback(async (e: any) => {
     e.preventDefault();
@@ -29,11 +46,11 @@ export default function VolunteerPage() {
   }, []);
 
   return (
-    <div className="flex flex-col w-full items-center gap-4">
+    <div className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
       <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
 
       <Form
-        className="flex flex-col items-center md:px-20 gap-4 w-full text-start"
+        className="flex flex-col gap-4 w-full text-start"
         validationBehavior="native"
         onSubmit={onSubmit}
       >
@@ -48,9 +65,9 @@ export default function VolunteerPage() {
             radius="md"
             size="sm"
             type="number"
-            validate={(val) => validateCitizen(val)}
+            // validate={(val) => validateCitizen(val)}
             // value={parseInt(Result?.citizenId as string)}
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           />
           <Select
@@ -64,7 +81,7 @@ export default function VolunteerPage() {
             radius="md"
             // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -83,7 +100,7 @@ export default function VolunteerPage() {
             radius="md"
             size="sm"
             // value={Result?.firstname}
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           />
           <Input
@@ -97,7 +114,7 @@ export default function VolunteerPage() {
             radius="md"
             size="sm"
             // value={Result?.lastname}
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           />
           <Input
@@ -113,7 +130,7 @@ export default function VolunteerPage() {
             type="number"
             // value={Result?.tel}
             // validate={(val) => validateEmail(val.toString())}
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           />
           <Input
@@ -128,8 +145,8 @@ export default function VolunteerPage() {
             size="sm"
             type="text"
             // value={Result?.tel}
-            validate={(val) => validateEmail(val.toString())}
-            variant="bordered"
+            // validate={(val) => validateEmail(val.toString())}
+            variant="faded"
             // onChange={HandleChange}
           />
           <Select
@@ -143,7 +160,7 @@ export default function VolunteerPage() {
             radius="md"
             // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -161,7 +178,7 @@ export default function VolunteerPage() {
             radius="md"
             // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -179,7 +196,7 @@ export default function VolunteerPage() {
             radius="md"
             size="sm"
             // value={Result?.lastname}
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           />
           <Select
@@ -193,7 +210,7 @@ export default function VolunteerPage() {
             radius="md"
             // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
-            variant="bordered"
+            variant="faded"
             // onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -201,9 +218,11 @@ export default function VolunteerPage() {
             ))}
           </Select>
         </div>
-        <Button color="primary" type="submit" variant="flat">
-          Register
-        </Button>
+        <div className="flex justify-center w-full">
+          <Button color="primary" type="submit" variant="solid">
+            ลงทะเบียน
+          </Button>
+        </div>
       </Form>
 
       <div className="font-light text-slate-400 mt-4 text-sm">
