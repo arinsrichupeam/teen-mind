@@ -108,13 +108,13 @@ model Profile_Admin {
   prefixId       Int
   firstname      String
   lastname       String
-  tel            String
+  tel            String?
   affiliationId  Int
   agency         String
   employeeTypeId Int
-  professional   String
-  license        String
-  status         Boolean @default(true)
+  professional   String?
+  license        String?
+  status         Int     @default(3)
   role           Roles[]
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

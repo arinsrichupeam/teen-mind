@@ -228,13 +228,13 @@ export default function QuestionPage() {
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
-      fetch("/api/question")
-        .then((res) => res.json())
-        .then((val) => {
-          setQuestionsList(val.questionsList);
-          setPages(Math.ceil(val.questionsList.length / rowsPerPage));
-          setIsLoading(false);
-        });
+      // fetch("/api/question")
+      //   .then((res) => res.json())
+      //   .then((val) => {
+      //     setQuestionsList(val.questionsList);
+      //     setPages(Math.ceil(val.questionsList.length / rowsPerPage));
+      //     setIsLoading(false);
+      //   });
     } else {
       router.push("/admin/login");
     }
