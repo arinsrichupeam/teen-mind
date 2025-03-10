@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="z-10">
-            <h1 className="font-bold text-[45px]">{siteConfig.name}</h1>
+            <Image alt="logo" height={70} src="../../../image/Logo_App.png" />
             <div className="font-light text-slate-400 mt-4">
               {siteConfig.description}{" "}
             </div>

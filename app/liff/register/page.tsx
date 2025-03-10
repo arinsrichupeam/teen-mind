@@ -163,7 +163,7 @@ export default function RegisterPage() {
       register_emergency: emergency,
     });
 
-    await fetch("/api/register", {
+    await fetch("/api/register/user", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
