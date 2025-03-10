@@ -24,7 +24,7 @@ export async function GET(
               id: true,
               firstname: true,
               lastname: true,
-              prefix: true,
+              prefixId: true,
               birthday: true,
               ethnicity: true,
               nationality: true,

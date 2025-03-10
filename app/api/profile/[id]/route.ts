@@ -63,12 +63,11 @@ export async function GET(
       },
       profile: {
         select: {
-          prefix: true,
+          prefixId: true,
           firstname: true,
           lastname: true,
           birthday: true,
           address: true,
-          role: true,
         },
       },
       questions: {

@@ -146,7 +146,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <p className="text-md">
                         {
                           prefix.find(
-                            (val) => val.key == data?.user.profile[0].prefix
+                            (val) => val.key == data?.user.profile[0].prefixId
                           )?.label
                         }{" "}
                         {data?.user.profile[0].firstname}{" "}
