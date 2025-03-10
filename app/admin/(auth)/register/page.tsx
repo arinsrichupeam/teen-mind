@@ -5,33 +5,73 @@ import {
   Button,
   Form,
   Input,
-  Link,
   Select,
   SelectItem,
 } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
-import { Affiliation, Employee_Type } from "@prisma/client";
+import { Affiliation, Employee_Type, Profile_Admin } from "@prisma/client";
 import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/types";
 import { validateCitizen } from "@/utils/helper";
 
+const profileInitValue: Profile_Admin = {
+  id: "",
+  userId: "",
+  citizenId: "",
+  prefixId: 0,
+  firstname: "",
+  lastname: "",
+  tel: "",
+  affiliationId: 0,
+  agency: "",
+  employeeTypeId: 0,
+  professional: "",
+  license: "",
+  status: 3,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 export default function RegisterPage() {
   const [request] = useState(true);
+  const router = useRouter();
+
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const [admin, setProfileAdmin] = useState<Profile_Admin>(profileInitValue);
+
   const { data: session, status } = useSession();
 
-  const onSubmit = useCallback(async (e: any) => {
-    e.preventDefault();
-    addToast({
-      title: "ลงทะเบียน อสท.",
-      color: "success",
-      description: "ลงทเีบียนสำเร็จ",
-      timeout: 2000,
-    });
-  }, []);
+  const onSubmit = useCallback(
+    async (e: any) => {
+      e.preventDefault();
+      const data = JSON.stringify({ profile_admin: admin });
+
+      await fetch("/api/register/admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: data,
+      }).then((res) => {
+        if (res.status === 200) {
+          addToast({
+            title: "ลงทะเบียน",
+            color: "success",
+            description: "ลงทะเบียนสำเร็จ",
+            timeout: 2000,
+          });
+          setTimeout(() => {
+            router.push("/admin/");
+          }, 3000);
+        }
+      });
+    },
+    [admin, router]
+  );
 
   const GetEmployeeType = useCallback(async () => {
     await fetch("/api/data/employee")
@@ -49,11 +89,26 @@ export default function RegisterPage() {
       });
   }, [affiliation]);
 
+  const HandleChange = useCallback(
+    (e: any) => {
+      setProfileAdmin((prev) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    },
+    [admin]
+  );
+
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         signIn();
       } else {
+        setProfileAdmin((prev) => ({
+          ...prev,
+          userId: session?.user?.id as string,
+        }));
+
         GetEmployeeType();
         GetAffiliation();
       }
@@ -62,17 +117,16 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col w-full items-center gap-4">
-      <h1 className={title({ size: "sm" })}>ลงทะเบียน เข้าใช้งานระบบ</h1>
-
+      <h1 className={title({ size: "sm" })}>ลงทะเบียน</h1>
       <Form
         className="flex flex-col items-center md:px-20 gap-4 w-full text-start"
-        // validationBehavior="native"
+        validationBehavior="native"
         onSubmit={onSubmit}
       >
         <div className="flex flex-col items-center w-full gap-4 mb-4">
           <Input
             className="max-w-xl"
-            isRequired={true}
+            isRequired={request}
             label="เลขบัตรประชาชน"
             labelPlacement="inside"
             name="citizenId"
@@ -81,9 +135,9 @@ export default function RegisterPage() {
             size="sm"
             type="number"
             validate={(val) => validateCitizen(val)}
-            // value={parseInt(Result?.citizenId as string)}
+            value={admin.citizenId}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -91,19 +145,18 @@ export default function RegisterPage() {
             isRequired={request}
             label="คำนำหน้า"
             labelPlacement="inside"
-            name="prefix"
+            name="prefixId"
             placeholder="คำนำหน้า"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            selectedKeys={admin.prefixId === 0 ? "" : admin.prefixId.toString()}
             size="sm"
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
             {prefix.map((prefix) => (
               <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
             ))}
           </Select>
-
           <Input
             className="max-w-xl"
             errorMessage="กรุณากรอกชื่อ"
@@ -114,9 +167,9 @@ export default function RegisterPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
-            // value={Result?.firstname}
+            value={admin?.firstname}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -128,14 +181,14 @@ export default function RegisterPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
-            // value={Result?.lastname}
+            value={admin?.lastname}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
             errorMessage="กรุณากรอกเบอร์โทรศัพท์"
-            isRequired={request}
+            isRequired={false}
             label="เบอร์โทรศัพท์"
             labelPlacement="inside"
             name="tel"
@@ -143,58 +196,26 @@ export default function RegisterPage() {
             radius="md"
             size="sm"
             type="number"
-            // value={Result?.tel}
-            // validate={(val) => validateEmail(val.toString())}
+            value={admin.tel?.toString()}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
-          {/* <Input
-            className="max-w-xl"
-            // errorMessage="กรุณากรอกอีเมล"
-            isRequired={request}
-            label="อีเมล"
-            labelPlacement="inside"
-            name="email"
-            placeholder="อีเมล"
-            radius="md"
-            size="sm"
-            type="text"
-            // value={Result?.tel}
-            validate={(val) => validateEmail(val.toString())}
-            variant="bordered"
-          // onChange={HandleChange}
-          /> */}
-          {/* <Select
-            className="max-w-xl"
-            errorMessage="กรุณาเลือกประเภทอาสาสมัคร"
-            isRequired={request}
-            label="ประเภทอาสาสมัคร"
-            labelPlacement="inside"
-            name="volunteer_type_id"
-            placeholder="ประเภทอาสาสมัคร"
-            radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
-            size="sm"
-            variant="bordered"
-          // onChange={HandleChange}
-          >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
-            ))}
-          </Select> */}
           <Select
             className="max-w-xl"
+            disabledKeys={["99"]}
             errorMessage="กรุณาเลือกสังกัด"
             isRequired={request}
             label="สังกัด"
             labelPlacement="inside"
-            name="affiliation_id"
+            name="affiliationId"
             placeholder="สังกัด"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            selectedKeys={
+              admin.affiliationId === 0 ? "" : admin.affiliationId.toString()
+            }
             size="sm"
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
             {affiliation.map((affiliation) => (
               <SelectItem key={affiliation.id}>{affiliation.name}</SelectItem>
@@ -210,9 +231,9 @@ export default function RegisterPage() {
             placeholder="หน่วยงาน"
             radius="md"
             size="sm"
-            // value={Result?.lastname}
+            value={admin.agency}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -220,13 +241,15 @@ export default function RegisterPage() {
             isRequired={request}
             label="ประเภทการจ้างงาน"
             labelPlacement="inside"
-            name="employee_type_id"
+            name="employeeTypeId"
             placeholder="ประเภทการจ้างงาน"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
+            selectedKeys={
+              admin.employeeTypeId === 0 ? "" : admin.employeeTypeId.toString()
+            }
             size="sm"
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
             {employeeType.map((employeeType) => (
               <SelectItem key={employeeType.id}>{employeeType.name}</SelectItem>
@@ -235,16 +258,16 @@ export default function RegisterPage() {
           <Input
             className="max-w-xl"
             errorMessage="กรุณากรอกสาขาวิชาชีพ"
-            isRequired={request}
+            isRequired={false}
             label="สาขาวิชาชีพ"
             labelPlacement="inside"
-            name="firstname1"
+            name="professional"
             placeholder="สาขาวิชาชีพ"
             radius="md"
             size="sm"
-            // value={Result?.firstname}
+            value={admin.professional?.toString()}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -252,26 +275,19 @@ export default function RegisterPage() {
             isRequired={false}
             label="เลขที่ใบประกอบวิชาชีพ"
             labelPlacement="inside"
-            name="firstname2"
+            name="license"
             placeholder="เลขที่ใบประกอบวิชาชีพ"
             radius="md"
             size="sm"
-            // value={Result?.firstname}
+            value={admin.license?.toString()}
             variant="bordered"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
         </div>
         <Button color="primary" type="submit" variant="flat">
-          Register
+          ลงทะเบียน
         </Button>
       </Form>
-
-      <div className="font-light text-slate-400 mt-4 text-sm">
-        Already have an account ?{" "}
-        <Link className="font-bold" href="/login">
-          Login here
-        </Link>
-      </div>
     </div>
   );
 }
