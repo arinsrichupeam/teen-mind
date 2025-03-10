@@ -65,7 +65,7 @@ export const RenderCell = ({
               src: data.user.image as string,
             }}
             name={
-              prefix.find((val) => val.key == data.user.profile[0].prefix)
+              prefix.find((val) => val.key == data.user.profile[0].prefixId)
                 ?.label +
               " " +
               data.user.profile[0].firstname +

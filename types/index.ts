@@ -27,7 +27,7 @@ export const prefix = [
 
 export type QuestionsList = {
   id: string;
-  prefix: string;
+  prefixId: string;
   firstname: string;
   lastname: string;
   birthday: string;
@@ -58,7 +58,7 @@ export interface Profile {
   id: string;
   firstname: string;
   lastname: string;
-  prefix: string;
+  prefixId: string;
   birthday: string;
   ethnicity: string;
   nationality: string;

@@ -18,7 +18,7 @@ const profileInitValue: Profile = {
   id: "",
   userId: "",
   citizenId: "",
-  prefix: 0,
+  prefixId: 0,
   sex: 0,
   firstname: "",
   lastname: "",
@@ -113,7 +113,7 @@ export default function RegisterPage() {
     } else if (e.target.name === "prefix") {
       setProfile((prev: any) => ({
         ...prev,
-        prefix: parseInt(e.target.value),
+        prefixId: parseInt(e.target.value),
       }));
     } else if (e.target.name === "sex") {
       setProfile((prev: any) => ({

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
           create: [
             {
               citizenId: profile.citizenId,
-              prefix: profile.prefix,
+              prefixId: profile.prefixId,
               sex: profile.sex,
               firstname: profile.firstname,
               lastname: profile.lastname,
@@ -44,9 +44,6 @@ export async function POST(req: Request) {
               nationality: profile.nationality,
               tel: profile.tel,
               schoolId: profile.schoolId,
-              role: {
-                connect: { id: 1 },
-              },
               address: {
                 create: [
                   {

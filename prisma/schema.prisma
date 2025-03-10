@@ -44,6 +44,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   profile       Profile[]
+  Profile_Admin Profile_Admin[]
   questions     Questions_Master[]
 
   createdAt DateTime @default(now())
@@ -77,7 +78,7 @@ model Profile {
   id          String   @id @default(cuid())
   userId      String
   citizenId   String
-  prefix      Int
+  prefixId    Int
   sex         Int
   firstname   String
   lastname    String
@@ -89,7 +90,6 @@ model Profile {
 
   address   Address[]
   emergency EmergencyContact[]
-  role      Roles[]
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
@@ -99,6 +99,32 @@ model Profile {
   schoolId Int?
 
   @@index([userId])
+}
+
+model Profile_Admin {
+  id             String  @id @default(cuid())
+  userId         String
+  citizenId      String
+  prefixId       Int
+  firstname      String
+  lastname       String
+  tel            String
+  affiliationId  Int
+  agency         String
+  employeeTypeId Int
+  professional   String
+  license        String
+  status         Boolean @default(true)
+  role           Roles[]
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  affiliation  Affiliation   @relation(fields: [affiliationId], references: [id])
+  employeeType Employee_Type @relation(fields: [employeeTypeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId], map: "admin_userId_fkey")
 }
 
 model Address {
@@ -117,9 +143,9 @@ model Address {
 }
 
 model Roles {
-  id      Int       @id @default(autoincrement())
-  name    String
-  profile Profile[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  profile_admin Profile_Admin[]
 }
 
 model EmergencyContact {
@@ -245,7 +271,7 @@ model School {
 model Referent {
   id                Int                @id @default(autoincrement())
   citizenId         String
-  prefix            Int
+  prefixId          Int
   firstname         String
   lastname          String
   email             String
@@ -264,21 +290,23 @@ model Referent {
 }
 
 model Affiliation {
-  id        Int        @id @default(autoincrement())
-  name      String
-  status    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  referent  Referent[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  status        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  referent      Referent[]
+  Profile_Admin Profile_Admin[]
 }
 
 model Employee_Type {
-  id        Int        @id @default(autoincrement())
-  name      String
-  status    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  referent  Referent[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  status        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  referent      Referent[]
+  Profile_Admin Profile_Admin[]
 }
 
 model Volunteer_Type {
