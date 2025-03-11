@@ -25,22 +25,21 @@ import {
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Affiliation, Profile_Admin } from "@prisma/client";
 
-import { ModalUserStatus } from "../components/modal/modal-User-status";
-
-import { QuestionDrawer } from "./components/question-drawer";
 import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
-
-import { QuestionsData, QuestionsList } from "@/types";
+import { ProfileAdminModal } from "./components/modal-admin";
 
 export default function QuestionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterValue, setFilterValue] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedProfile, setSelectedProfile] = useState<Profile_Admin>();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
+  const [profileAdminList, setProfileAdminList] = useState<Profile_Admin[]>([]);
+  const [affiliationList, setAffiliationList] = useState<Affiliation[]>([]);
+
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -55,10 +54,10 @@ export default function QuestionPage() {
   const hasSearchFilter = Boolean(filterValue);
 
   const filteredItems = useMemo(() => {
-    let filteredUsers = [...questionsList];
+    let filteredUsers = [...profileAdminList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val: QuestionsList) => {
+      filteredUsers = filteredUsers.filter((val: Profile_Admin) => {
         val.firstname.toLowerCase().includes(filterValue.toLowerCase());
       });
     }
@@ -72,7 +71,7 @@ export default function QuestionPage() {
     }
 
     return filteredUsers;
-  }, [questionsList, filterValue, statusFilter]);
+  }, [profileAdminList, filterValue, statusFilter]);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -82,9 +81,9 @@ export default function QuestionPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: QuestionsList, b: QuestionsList) => {
-      const first = a[sortDescriptor.column as keyof QuestionsList] as number;
-      const second = b[sortDescriptor.column as keyof QuestionsList] as number;
+    return [...items].sort((a: Profile_Admin, b: Profile_Admin) => {
+      const first = a[sortDescriptor.column as keyof Profile_Admin] as number;
+      const second = b[sortDescriptor.column as keyof Profile_Admin] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -100,14 +99,14 @@ export default function QuestionPage() {
     [pages, items]
   );
 
-  const onSearchChange = useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue("");
-    }
-  }, []);
+  // const onSearchChange = useCallback((value?: string) => {
+  //   if (value) {
+  //     setFilterValue(value);
+  //     setPage(1);
+  //   } else {
+  //     setFilterValue("");
+  //   }
+  // }, []);
 
   const topContent = useMemo(() => {
     return (
@@ -127,7 +126,7 @@ export default function QuestionPage() {
             value={filterValue}
             variant="bordered"
             onClear={() => setFilterValue("")}
-            onValueChange={onSearchChange}
+            // onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -162,9 +161,9 @@ export default function QuestionPage() {
   }, [
     filterValue,
     statusFilter,
-    onSearchChange,
+    // onSearchChange,
     onRowsPerPageChange,
-    questionsList.length,
+    profileAdminList.length,
     hasSearchFilter,
   ]);
 
@@ -184,7 +183,7 @@ export default function QuestionPage() {
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({questionsList.length} รายการ)
+            หน้า {page}/{pages} ({profileAdminList.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -204,51 +203,78 @@ export default function QuestionPage() {
         </div>
       </div>
     );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+  }, [selectedProfile, items.length, page, pages, hasSearchFilter]);
 
-  const onRowDetailPress = useCallback((e: any) => {
-    fetch("/api/question/" + e)
-      .then((res) => res.json())
-      .then((val) => {
-        setSelectedKeys(val[0]);
-        setMode("View");
-        onOpen();
-      });
-  }, []);
+  const onRowDetailPress = useCallback(
+    async (e: any) => {
+      console.log(e);
 
-  const onRowEditPress = useCallback((e: any) => {
-    fetch("/api/question/" + e)
-      .then((res) => res.json())
-      .then((val) => {
-        setSelectedKeys(val[0]);
-        setMode("Edit");
-        onOpen();
-      });
-  }, []);
+      await fetch("/api/profile/admin/" + e)
+        .then((res) => res.json())
+        .then((val) => {
+          console.log(val);
+          setSelectedProfile(val);
+          setMode("View");
+          onOpen();
+        });
+    },
+    [selectedProfile]
+  );
 
-  useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      // fetch("/api/question")
+  const onRowEditPress = useCallback(
+    (e: any) => {
+      // fetch("/api/question/" + e)
       //   .then((res) => res.json())
       //   .then((val) => {
-      //     setQuestionsList(val.questionsList);
-      //     setPages(Math.ceil(val.questionsList.length / rowsPerPage));
-      //     setIsLoading(false);
+      //     setSelectedProfile(val[0]);
+      setMode("Edit");
+      onOpen();
       //   });
-    } else {
+    },
+    [selectedProfile]
+  );
+
+  const GetProfileAdminList = useCallback(async () => {
+    await fetch("/api/profile/admin")
+      .then((res) => res.json())
+      .then((val) => {
+        setProfileAdminList(val);
+        setPages(Math.ceil(val.length / rowsPerPage));
+        setIsLoading(false);
+      });
+  }, [profileAdminList]);
+
+  const GetAffiliationList = useCallback(async () => {
+    await fetch("/api/data/affiliation")
+      .then((res) => res.json())
+      .then((val) => {
+        setAffiliationList(val);
+      });
+  }, [affiliationList]);
+
+  useEffect(() => {
+    if (status !== "loading" && status === "unauthenticated") {
       router.push("/admin/login");
+    } else {
+      GetProfileAdminList();
+      GetAffiliationList();
     }
   }, [isLoading]);
 
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-      <ModalUserStatus />
       <div className="max-w-[95rem] mx-auto w-full">
-        <QuestionDrawer
-          data={selectedKeys}
+        {/* <QuestionDrawer
+          data={selectedProfile}
           isOpen={isOpen}
           mode={mode}
           onClose={onClose}
+        /> */}
+        <ProfileAdminModal
+          data={selectedProfile}
+          isOpen={isOpen}
+          mode={mode}
+          onOpenChange={onOpenChange}
         />
         <div className="w-full flex flex-col gap-4 text-nowrap">
           <Table
@@ -259,10 +285,10 @@ export default function QuestionPage() {
             classNames={{
               wrapper: "max-h-[calc(65vh)]",
             }}
-            sortDescriptor={sortDescriptor}
+            // sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
-            onSortChange={setSortDescriptor}
+            // onSortChange={setSortDescriptor}
           >
             <TableHeader columns={columns}>
               {(column) => (
@@ -286,9 +312,11 @@ export default function QuestionPage() {
                     <TableCell className="text-nowrap">
                       {RenderCell({
                         data: item,
+                        affiliationList: affiliationList,
                         columnKey: columnKey,
                         index:
-                          questionsList.findIndex((x) => x.id == item.id) + 1,
+                          profileAdminList.findIndex((x) => x.id == item.id) +
+                          1,
                         viewDetail: onRowDetailPress,
                         editDetail: onRowEditPress,
                       })}

@@ -26,8 +26,6 @@ import {
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-import { ModalUserStatus } from "../components/modal/modal-User-status";
-
 import { QuestionDrawer } from "./components/question-drawer";
 import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
@@ -242,7 +240,6 @@ export default function QuestionPage() {
 
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-      <ModalUserStatus />
       <div className="max-w-[95rem] mx-auto w-full">
         <QuestionDrawer
           data={selectedKeys}
