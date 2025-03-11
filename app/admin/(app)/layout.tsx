@@ -20,6 +20,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
       }}
     >
       <section className="flex">
+        {/* <ModalUserStatus /> */}
         <SidebarWrapper />
         <NavbarWrapper>{children}</NavbarWrapper>
       </section>

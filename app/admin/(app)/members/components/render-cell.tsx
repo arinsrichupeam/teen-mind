@@ -1,9 +1,10 @@
+"use client";
+
 import React from "react";
-import { User } from "@heroui/user";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
-import { Chip } from "@heroui/chip";
-import { Button } from "@heroui/react";
+import { Button, Chip } from "@heroui/react";
+import { Affiliation } from "@prisma/client";
 
 import { statusOptions } from "../data";
 
@@ -11,6 +12,7 @@ import { prefix } from "@/types";
 
 interface Props {
   data: any;
+  affiliationList: Affiliation[];
   columnKey: string | React.Key;
   index: number;
   viewDetail(id: string): void;
@@ -19,11 +21,14 @@ interface Props {
 
 export const RenderCell = ({
   data,
+  affiliationList,
   columnKey,
   index,
   viewDetail,
   editDetail,
 }: Props) => {
+  const affiliationData = affiliationList;
+
   function timeAgo(date: string) {
     moment.updateLocale("th", {
       relativeTime: {
@@ -60,77 +65,65 @@ export const RenderCell = ({
     case "name":
       return (
         <div>
-          <User
-            avatarProps={{
-              src: data.user.image as string,
-            }}
-            name={
-              prefix.find((val) => val.key == data.user.profile[0].prefixId)
-                ?.label +
+          <span>
+            {prefix.find((val) => val.key == data.prefixId.toString())?.label +
               " " +
-              data.user.profile[0].firstname +
+              data.firstname +
               " " +
-              data.user.profile[0].lastname
-            }
-          />
+              data.lastname}
+          </span>
         </div>
       );
-    case "age":
+    case "professional":
       return (
         <div>
-          <span>{timeAgo(data.user.profile[0].birthday)}</span>
+          <span>{data.professional}</span>
         </div>
       );
-    case "school":
-      return (
-        <div>
-          <span>{data.user.profile[0].school?.name.toString()}</span>
-        </div>
-      );
-    case "result":
-      return (
-        <div>
-          <Chip
-            color={
-              data.result === "Green"
-                ? "success"
-                : data.result === "Red"
-                  ? "danger"
-                  : "warning"
-            }
-            size="sm"
-            variant="flat"
-          >
-            <span className="capitalize text-xs">{data.result_text}</span>
-          </Chip>
-        </div>
-      );
-    case "phqa":
-      return (
-        <div>
-          <span>{data.phqa[0].sum}</span>
-        </div>
-      );
-    case "date":
+    case "affiliation":
       return (
         <div>
           <span>
-            {new Date(data.createdAt).toLocaleDateString("th-TH", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {affiliationData.find((x) => x.id === data.affiliationId)?.name}
+          </span>
+        </div>
+      );
+    case "agency":
+      return (
+        <div>
+          <span>{data.agency}</span>
+        </div>
+      );
+    case "role":
+      return (
+        <div>
+          <span>
+            {/* {Roles.find((x) => x.id === parseInt(data.role))?.name} */}
+            {data.role[0].name}
           </span>
         </div>
       );
     case "status":
       return (
         <div>
-          <span className="text-xs font-semibold">
-            {statusOptions[data.status].name}
-          </span>
+          <Chip
+            color={
+              cellValue == "1"
+                ? "success"
+                : cellValue == "2"
+                  ? "danger"
+                  : "warning"
+            }
+            size="sm"
+            variant="flat"
+          >
+            <span className="text-xs font-semibold">
+              {
+                statusOptions.find((x) => x.uid === data.status.toString())
+                  ?.name
+              }
+            </span>
+          </Chip>
         </div>
       );
     case "actions":
@@ -142,7 +135,7 @@ export const RenderCell = ({
               name="Detail"
               size="sm"
               variant="light"
-              onPress={() => viewDetail(data.id)}
+              onPress={() => viewDetail(data.userId)}
             >
               <EyeIcon className="size-6 text-primary-400" />
             </Button>
@@ -153,7 +146,7 @@ export const RenderCell = ({
               name="Edit"
               size="sm"
               variant="light"
-              onPress={() => editDetail(data.id)}
+              onPress={() => editDetail(data.userId)}
             >
               <PencilIcon className="size-6 text-warning-400" />
             </Button>

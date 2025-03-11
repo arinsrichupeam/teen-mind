@@ -26,8 +26,6 @@ import {
 import { School, Districts } from "@prisma/client";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
-import { ModalUserStatus } from "../components/modal/modal-User-status";
-
 import { SchoolRenderCell } from "./components/rendercell-scool";
 import { SchoolListColumnsName as columns } from "./data";
 
@@ -219,7 +217,6 @@ export default function SchoolListPage() {
 
   return (
     <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
-      <ModalUserStatus />
       <Modal
         backdrop="opaque"
         classNames={{

@@ -1,31 +1,17 @@
 "use client";
 
-import moment from "moment";
-import { useEffect, useState } from "react";
-import { Districts, Provinces, Subdistricts } from "@prisma/client";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect } from "react";
+import { Profile_Admin } from "@prisma/client";
 import {
   Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
   Chip,
-  Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
-  Image,
-  Input,
-  Link,
 } from "@heroui/react";
 
-import { QuestionDetail } from "./detail";
-import { QuestionEdit } from "./edit";
-
-import { prefix, QuestionsData } from "@/types";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
@@ -33,58 +19,56 @@ import "leaflet-defaulticon-compatibility";
 interface Props {
   isOpen: any;
   onClose: any;
-  data: QuestionsData | undefined;
+  data: Profile_Admin | undefined;
   mode: string;
 }
 
 export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
-  const [distrince, setDistrince] = useState<Districts[]>();
-  const [province, setProvince] = useState<Provinces[]>();
-  const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
-  const [textboxHN, setTextboxHN] = useState("");
+  // const [distrince, setDistrince] = useState<Districts[]>();
+  // const [province, setProvince] = useState<Provinces[]>();
+  // const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
+  // const [textboxHN, setTextboxHN] = useState("");
 
-  const latitude = data?.latitude != null ? data?.latitude : 0;
-  const longitude = data?.longitude != null ? data?.longitude : 0;
+  // const latitude = data?.latitude != null ? data?.latitude : 0;
+  // const longitude = data?.longitude != null ? data?.longitude : 0;
 
-  const ChangeHN = () => {
-    const json = JSON.stringify({
-      id: data?.user.profile[0].id,
-      hn: textboxHN,
-    });
+  // const ChangeHN = () => {
+  //   const json = JSON.stringify({
+  //     id: data?.user.profile[0].id,
+  //     hn: textboxHN,
+  //   });
 
-    fetch("/api/profile", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: json,
-    }).then(() => {
-      console.log("Update HN Success");
-    });
-  };
+  //   fetch("/api/profile", {
+  //     method: "PATCH",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: json,
+  //   }).then(() => {
+  //     console.log("Update HN Success");
+  //   });
+  // };
 
-  const txtHNChange = (val: any) => {
-    setTextboxHN(val.target.value);
-  };
+  // const txtHNChange = (val: any) => {
+  //   setTextboxHN(val.target.value);
+  // };
 
   useEffect(() => {
-    fetch("/api/data/districts")
-      .then((res) => res.json())
-      .then((val) => {
-        setDistrince(val);
-      });
-
-    fetch("/api/data/provinces")
-      .then((res) => res.json())
-      .then((val) => {
-        setProvince(val);
-      });
-
-    fetch("/api/data/subdistricts")
-      .then((res) => res.json())
-      .then((val) => {
-        setSubDistrince(val);
-      });
+    // fetch("/api/data/districts")
+    //   .then((res) => res.json())
+    //   .then((val) => {
+    //     setDistrince(val);
+    //   });
+    // fetch("/api/data/provinces")
+    //   .then((res) => res.json())
+    //   .then((val) => {
+    //     setProvince(val);
+    //   });
+    // fetch("/api/data/subdistricts")
+    //   .then((res) => res.json())
+    //   .then((val) => {
+    //     setSubDistrince(val);
+    //   });
   }, []);
 
   return (
@@ -94,7 +78,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           <div>
             <DrawerHeader>
               <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm">
-                <div className="pt-2">
+                {/* <div className="pt-2">
                   วันที่ประเมิน :{" "}
                   <span>
                     {new Date(data?.createdAt as string).toLocaleDateString(
@@ -108,7 +92,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       }
                     )}
                   </span>
-                </div>
+                </div>*/}
                 <div className="flex flex-row gap-5">
                   <div className="pt-2">โหมด : {mode}</div>
                   <div className="pr-5">
@@ -116,23 +100,23 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     <Chip
                       className="ml-3"
                       color={
-                        data?.result === "Green"
+                        data?.status === 1
                           ? "success"
-                          : data?.result === "Red"
+                          : data?.status === 2
                             ? "danger"
                             : "warning"
                       }
                       size="lg"
                       variant="flat"
                     >
-                      <span className="capitalize text-xs">{data?.result}</span>
+                      <span className="capitalize text-xs">{data?.id}</span>
                     </Chip>
                   </div>
                 </div>
               </div>
             </DrawerHeader>
             <DrawerBody>
-              <div className="flex flex-col sm:flex-row gap-5 mx-auto">
+              {/* <div className="flex flex-col sm:flex-row gap-5 mx-auto">
                 <Card className="max-w-[400px]">
                   <CardHeader className="flex gap-3">
                     <Image
@@ -284,7 +268,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 <QuestionDetail data={data} />
               ) : (
                 <QuestionEdit data={data} />
-              )}
+              )} */}
             </DrawerBody>
             <DrawerFooter>
               <Button color="danger" variant="light" onPress={onClose}>
