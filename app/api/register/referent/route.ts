@@ -3,44 +3,41 @@ import { Referent } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
-    const data = await prisma.referent.findMany({
-        where: {
-            status: true,
-        },
-    });
+  const data = await prisma.referent.findMany({
+    where: {
+      status: true,
+    },
+  });
 
-    return Response.json(data);
+  return Response.json(data);
 }
 
 export async function POST(req: Request) {
-    const data = await req.json();
+  const data = await req.json();
 
-    console.log("Data", data);
+  let userId = "";
 
-    let userId = 0;
+  const referent: Referent = data.referent_data;
 
-    const referent: Referent = data.referent_data;
+  await prisma.referent
+    .create({
+      data: {
+        citizenId: referent.citizenId.toString(),
+        prefixId: parseInt(referent.prefixId.toString()),
+        firstname: referent.firstname,
+        lastname: referent.lastname,
+        email: referent.email,
+        tel: referent.tel,
+        volunteer_type_id: parseInt(referent.volunteer_type_id.toString()),
+        employee_type_id: parseInt(referent.employee_type_id.toString()),
+        affiliation_id: parseInt(referent.affiliation_id.toString()),
+        agency: referent.agency,
+        status: referent.status,
+      },
+    })
+    .then((val) => {
+      userId = val.id.toString().padStart(3, "0");
+    });
 
-    // await prisma.referent.create({
-    //     data: {
-    //         citizenId: referent.citizenId.toString(),
-    //         prefixId: parseInt(referent.prefixId.toString()),
-    //         firstname: referent.firstname,
-    //         lastname: referent.lastname,
-    //         email: referent.email,
-    //         tel: referent.tel,
-    //         volunteer_type_id: parseInt(referent.volunteer_type_id.toString()),
-    //         employee_type_id: parseInt(referent.employee_type_id.toString()),
-    //         affiliation_id: parseInt(referent.affiliation_id.toString()),
-    //         agency: referent.agency,
-    //         status: referent.status,
-    //     },
-    // }).then((val) => {
-
-    //     console.log("Value", val.id.toString().padStart(3, "0"));
-    //     userId = val.id;
-
-    // });
-
-    return Response.json(userId);
+  return Response.json(userId);
 }
