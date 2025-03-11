@@ -5,15 +5,27 @@ import {
   Button,
   Form,
   Input,
-  Link,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectItem,
+  useDisclosure,
 } from "@heroui/react";
-import { useCallback } from "react";
-import { Referent } from "@prisma/client";
+import { use, useCallback, useEffect, useState } from "react";
+import {
+  Affiliation,
+  Employee_Type,
+  Referent,
+  Volunteer_Type,
+} from "@prisma/client";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/types";
+import { validateCitizen, validateEmail } from "@/utils/helper";
+import React from "react";
 
 const referentInitValue: Referent = {
   id: 0,
@@ -27,7 +39,7 @@ const referentInitValue: Referent = {
   employee_type_id: 0,
   affiliation_id: 0,
   agency: "",
-  status: false,
+  status: true,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -35,14 +47,68 @@ const referentInitValue: Referent = {
 export default function ReferentPage() {
   const request = false;
 
-  const onSubmit = useCallback(async (e: any) => {
-    e.preventDefault();
-    addToast({
-      title: "ลงทะเบียน อสท.",
-      color: "success",
-      description: "ลงทเีบียนสำเร็จ",
-      timeout: 2000,
-    });
+  const [selectedReferent, setSelectedReferent] =
+    useState<Referent>(referentInitValue);
+  const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
+  const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
+  const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const GetvolunteerType = useCallback(async () => {
+    await fetch("/api/data/volunteer")
+      .then((res) => res.json())
+      .then((data) => {
+        setvolunteerType(data);
+      });
+  }, [volunteerType]);
+
+  const GetEmployeeType = useCallback(async () => {
+    await fetch("/api/data/employee")
+      .then((res) => res.json())
+      .then((data) => {
+        setEmployeeType(data);
+      });
+  }, [employeeType]);
+
+  const GetAffiliation = useCallback(async () => {
+    await fetch("/api/data/affiliation")
+      .then((res) => res.json())
+      .then((data) => {
+        setAffiliation(data);
+      });
+  }, [affiliation]);
+
+  const HandleChange = useCallback((e: any) => {
+    setSelectedReferent((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  }, [selectedReferent]);
+
+  const onSubmit = useCallback(
+    async (e: any) => {
+      e.preventDefault();
+      const data = JSON.stringify({ referent_data: selectedReferent });
+
+      await fetch("/api/register/referent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: data,
+      }).then((res) => res.json()).then((data) => {
+        HandleChange({ target: { name: "id", value: data } });
+        onOpen();
+      });
+    },
+    [selectedReferent]
+  );
+
+  useEffect(() => {
+    GetvolunteerType();
+    GetEmployeeType();
+    GetAffiliation();
   }, []);
 
   return (
@@ -65,10 +131,9 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
-            // validate={(val) => validateCitizen(val)}
-            // value={parseInt(Result?.citizenId as string)}
+            validate={(val) => validateCitizen(val)}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -76,13 +141,12 @@ export default function ReferentPage() {
             isRequired={request}
             label="คำนำหน้า"
             labelPlacement="inside"
-            name="prefix"
+            name="prefixId"
             placeholder="คำนำหน้า"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
             {prefix.map((prefix) => (
               <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
@@ -99,9 +163,8 @@ export default function ReferentPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
-            // value={Result?.firstname}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -113,9 +176,8 @@ export default function ReferentPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
-            // value={Result?.lastname}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -128,10 +190,8 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
-            // value={Result?.tel}
-            // validate={(val) => validateEmail(val.toString())}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Input
             className="max-w-xl"
@@ -144,10 +204,9 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="text"
-            // value={Result?.tel}
-            // validate={(val) => validateEmail(val.toString())}
+            validate={(val) => validateEmail(val.toString())}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -158,13 +217,14 @@ export default function ReferentPage() {
             name="volunteer_type_id"
             placeholder="ประเภทอาสาสมัคร"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            {volunteerType.map((volunteerType) => (
+              <SelectItem key={volunteerType.id}>
+                {volunteerType.name}
+              </SelectItem>
             ))}
           </Select>
           <Select
@@ -176,13 +236,12 @@ export default function ReferentPage() {
             name="affiliation_id"
             placeholder="สังกัด"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            {affiliation.map((affiliation) => (
+              <SelectItem key={affiliation.id}>{affiliation.name}</SelectItem>
             ))}
           </Select>
           <Input
@@ -195,9 +254,8 @@ export default function ReferentPage() {
             placeholder="หน่วยงาน"
             radius="md"
             size="sm"
-            // value={Result?.lastname}
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           />
           <Select
             className="max-w-xl"
@@ -208,13 +266,12 @@ export default function ReferentPage() {
             name="employee_type_id"
             placeholder="ประเภทการจ้างงาน"
             radius="md"
-            // selectedKeys={Result?.prefix === 0 ? "" : Result?.prefix.toString()}
             size="sm"
             variant="faded"
-            // onChange={HandleChange}
+            onChange={HandleChange}
           >
-            {prefix.map((prefix) => (
-              <SelectItem key={prefix.key}>{prefix.label}</SelectItem>
+            {employeeType.map((employeeType) => (
+              <SelectItem key={employeeType.id}>{employeeType.name}</SelectItem>
             ))}
           </Select>
         </div>
@@ -225,12 +282,33 @@ export default function ReferentPage() {
         </div>
       </Form>
 
-      <div className="font-light text-slate-400 mt-4 text-sm">
-        Already have an account ?{" "}
-        <Link className="font-bold" href="/login">
-          Login here
-        </Link>
-      </div>
+      <Modal backdrop="blur" isOpen={isOpen} onClose={onClose}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1 items-center">ข้อมูล อสท.</ModalHeader>
+              <ModalBody>
+                <p>รหัสอาสาสมัคร : {selectedReferent.id}</p>
+                <p>ชื่อ - นามสกุล : {prefix[selectedReferent.prefixId - 1]?.label} {selectedReferent?.firstname} {selectedReferent?.lastname}</p>
+                <p>ประเภทอาสาสมัคร : {volunteerType.find((x) => x.id == selectedReferent.volunteer_type_id)?.name}</p>
+                <p>สังกัด : {affiliation.find((x) => x.id == selectedReferent.affiliation_id)?.name}</p>
+                <p>หน่วยงาน : {selectedReferent?.agency}</p>
+                <hr />
+                <img src="/image/Teen-Mind.png" alt="QR-Code" className="items-center w-auto h-auto " />
+              </ModalBody>
+              <ModalFooter className="flex justify-center">
+                <Button color="danger" variant="light" onPress={onClose}>
+                  ปิด
+                </Button>
+                <Button color="primary" onPress={onClose}>
+                  บันทึกรูปภาพ
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
     </div>
   );
 }
