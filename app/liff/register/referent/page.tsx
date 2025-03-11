@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  addToast,
   Button,
+  Divider,
   Form,
   Input,
   Modal,
@@ -14,18 +14,19 @@ import {
   SelectItem,
   useDisclosure,
 } from "@heroui/react";
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Affiliation,
   Employee_Type,
   Referent,
   Volunteer_Type,
 } from "@prisma/client";
+import React from "react";
+import Image from "next/image";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/types";
 import { validateCitizen, validateEmail } from "@/utils/helper";
-import React from "react";
 
 const referentInitValue: Referent = {
   id: 0,
@@ -45,8 +46,9 @@ const referentInitValue: Referent = {
 };
 
 export default function ReferentPage() {
-  const request = false;
+  const request = true;
 
+  const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
     useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
@@ -79,12 +81,15 @@ export default function ReferentPage() {
       });
   }, [affiliation]);
 
-  const HandleChange = useCallback((e: any) => {
-    setSelectedReferent((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  }, [selectedReferent]);
+  const HandleChange = useCallback(
+    (e: any) => {
+      setSelectedReferent((prev) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    },
+    [selectedReferent]
+  );
 
   const onSubmit = useCallback(
     async (e: any) => {
@@ -97,10 +102,15 @@ export default function ReferentPage() {
           "Content-Type": "application/json",
         },
         body: data,
-      }).then((res) => res.json()).then((data) => {
-        HandleChange({ target: { name: "id", value: data } });
-        onOpen();
-      });
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          HandleChange({ target: { name: "id", value: data } });
+          onOpen();
+        })
+        .then(() => {
+          formRef.current?.reset();
+        });
     },
     [selectedReferent]
   );
@@ -116,6 +126,7 @@ export default function ReferentPage() {
       <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
 
       <Form
+        ref={formRef}
         className="flex flex-col gap-4 w-full text-start"
         validationBehavior="native"
         onSubmit={onSubmit}
@@ -282,33 +293,69 @@ export default function ReferentPage() {
         </div>
       </Form>
 
-      <Modal backdrop="blur" isOpen={isOpen} onClose={onClose}>
+      <Modal
+        backdrop="blur"
+        id="modal-content"
+        isOpen={isOpen}
+        placement="center"
+        size="xs"
+        onClose={onClose}
+      >
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 items-center">ข้อมูล อสท.</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1 items-center">
+                ข้อมูล อสท.
+              </ModalHeader>
               <ModalBody>
-                <p>รหัสอาสาสมัคร : {selectedReferent.id}</p>
-                <p>ชื่อ - นามสกุล : {prefix[selectedReferent.prefixId - 1]?.label} {selectedReferent?.firstname} {selectedReferent?.lastname}</p>
-                <p>ประเภทอาสาสมัคร : {volunteerType.find((x) => x.id == selectedReferent.volunteer_type_id)?.name}</p>
-                <p>สังกัด : {affiliation.find((x) => x.id == selectedReferent.affiliation_id)?.name}</p>
+                <p>รหัสอ้างอิง : {selectedReferent.id}</p>
+                <p>
+                  ชื่อ - นามสกุล :{" "}
+                  {prefix[selectedReferent.prefixId - 1]?.label}{" "}
+                  {selectedReferent?.firstname} {selectedReferent?.lastname}
+                </p>
+                <p>
+                  ประเภทอาสาสมัคร :{" "}
+                  {
+                    volunteerType.find(
+                      (x) => x.id == selectedReferent.volunteer_type_id
+                    )?.name
+                  }
+                </p>
+                <p>
+                  สังกัด :{" "}
+                  {
+                    affiliation.find(
+                      (x) => x.id == selectedReferent.affiliation_id
+                    )?.name
+                  }
+                </p>
                 <p>หน่วยงาน : {selectedReferent?.agency}</p>
-                <hr />
-                <img src="/image/Teen-Mind.png" alt="QR-Code" className="items-center w-auto h-auto " />
+                <Divider />
+                <h1 className="text-center text-2xl font-bold text-red-500 ">
+                  กรุณาบันทึกหน้าจอนี้
+                </h1>
+                <Divider />
+                <Image
+                  alt="QR-Code"
+                  className="w-[200px] h-[200px] mx-auto"
+                  height={200}
+                  src="/image/Teen-Mind.png"
+                  width={200}
+                />
               </ModalBody>
               <ModalFooter className="flex justify-center">
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button color="primary" variant="solid" onPress={onClose}>
                   ปิด
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                {/* <Button color="primary" onPress={onClose}>
                   บันทึกรูปภาพ
-                </Button>
+                </Button> */}
               </ModalFooter>
             </>
           )}
         </ModalContent>
       </Modal>
-
     </div>
   );
 }
