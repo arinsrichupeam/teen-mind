@@ -347,7 +347,6 @@ export default function ReferentPage() {
               <h1 className="text-center text-2xl font-bold text-red-500 ">
                 กรุณาบันทึกหน้าจอนี้
               </h1>
-
               <Image
                 alt="QR-Code"
                 className="w-[200px] h-[200px] mx-auto"
