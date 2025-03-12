@@ -95,3 +95,39 @@ export interface Phqa_Addon {
   q1: number;
   q2: number;
 }
+
+export interface Profile_Admin_List {
+  id: string;
+  image: string;
+  name: string;
+  accounts: Account[];
+  profile_admin: ProfileAdmin[];
+}
+
+export interface Account {
+  providerAccountId: string;
+}
+
+export interface ProfileAdmin {
+  id: string;
+  userId: string;
+  citizenId: string;
+  prefixId: number;
+  firstname: string;
+  lastname: string;
+  tel: string;
+  affiliationId: number;
+  agency: string;
+  employeeTypeId: number;
+  professional: string;
+  license: string;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+  role: Role[];
+}
+
+export interface Role {
+  id: number;
+  name: string;
+}
