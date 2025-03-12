@@ -56,12 +56,7 @@ export async function GET(
         },
       },
       profile_admin: {
-        select: {
-          citizenId: true,
-          prefixId: true,
-          firstname: true,
-          lastname: true,
-          status: true,
+        include: {
           role: true,
         },
       },

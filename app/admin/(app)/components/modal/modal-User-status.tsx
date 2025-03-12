@@ -41,7 +41,7 @@ export const ModalUserStatus = () => {
       onOpenChange={onOpenChange}
     >
       <ModalContent>
-        {(onClose) => (
+        {() => (
           <>
             <ModalHeader className="flex flex-col gap-1">
               เข้าใช้งานระบบ
