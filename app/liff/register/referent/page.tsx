@@ -309,8 +309,7 @@ export default function ReferentPage() {
                 <span className="">รหัสอ้างอิง {selectedReferent.id}</span>
               </div>
               <span>
-                ชื่อ - นามสกุล :{" "}
-                {prefix[selectedReferent.prefixId - 1]?.label}{" "}
+                ชื่อ - นามสกุล : {prefix[selectedReferent.prefixId - 1]?.label}{" "}
                 {selectedReferent?.firstname} {selectedReferent?.lastname}
               </span>
               <span>
@@ -334,7 +333,7 @@ export default function ReferentPage() {
               <h1 className="text-center text-2xl font-bold text-red-500 ">
                 กรุณาบันทึกหน้าจอนี้
               </h1>
-              
+
               <Image
                 alt="QR-Code"
                 className="w-[200px] h-[200px] mx-auto"
@@ -345,7 +344,14 @@ export default function ReferentPage() {
               <Divider />
             </ModalBody>
             <ModalFooter className="flex justify-center">
-              <Button color="primary" variant="solid" onPress={() => { onClose(); formRef.current?.reset(); }}>
+              <Button
+                color="primary"
+                variant="solid"
+                onPress={() => {
+                  onClose();
+                  formRef.current?.reset();
+                }}
+              >
                 ปิด
               </Button>
             </ModalFooter>
