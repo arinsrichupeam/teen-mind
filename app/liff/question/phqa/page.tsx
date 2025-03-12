@@ -16,7 +16,7 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/modal";
-import { Input } from "@heroui/input";
+import { Divider, input, InputOtp } from "@heroui/react";
 
 import { subtitle, title } from "@/components/primitives";
 import { LocationData } from "@/types";
@@ -137,7 +137,10 @@ export default function PHQAPage() {
   const [submit, setSubmit] = useState(true);
   const [userId, setUserId] = useState("");
   const [referenceId, setReferenceId] = useState("");
+  const [referentName, setReferentName] = useState("");
   const [question, setQuestion] = useState("0");
+  const [isModalOpened, setIsModalOpened] = useState(false);
+  const [isOtpEmpty, setIsOtpEmpty] = useState(true);
 
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
   const [phqa_addon_data, setPhqaAddon] =
@@ -157,11 +160,36 @@ export default function PHQAPage() {
         });
       }
 
-      if (referenceId === "") {
+      if (referenceId === "" && !isModalOpened) {
         onOpen();
+        setIsModalOpened(true);
       }
     }
-  }, [session]);
+  }, [session, isModalOpened]);
+
+  const fetchReferentName = useCallback(async (id: string) => {
+    const referentId = parseInt(id);
+
+    try {
+      const response = await fetch(`/api/data/referent/${referentId}`);
+      const data = await response.json();
+      const fullName = data[0].firstname + " " + data[0].lastname;
+      setReferentName(fullName);
+    } catch (error) {
+      setReferentName("ไม่พบข้อมูล");
+    }
+  }, []);
+
+  const ReferChange = useCallback(
+    (e: any) => {
+      setReferenceId(e.target.value);
+      setIsOtpEmpty(e.target.value.length < 3);
+      if (e.target.value.length == 3) {
+        fetchReferentName(e.target.value);
+      }
+    },
+    [fetchReferentName]
+  );
 
   const calProgress = useCallback((e: number) => {
     const total = qPhqa.length + qPhqa_addon.length;
@@ -211,17 +239,13 @@ export default function PHQAPage() {
     }));
   }, []);
 
-  const ReferChange = useCallback((e: any) => {
-    setReferenceId(e.target.value);
-  }, []);
-
   const SaveToDB = async () => {
     const data = JSON.stringify({
       userId: userId,
       phqa: phqa_data,
       phqa_addon: phqa_addon_data,
       location: location,
-      reference: referenceId,
+      reference: parseInt(referenceId),
     });
 
     await fetch("/api/question", {
@@ -249,13 +273,16 @@ export default function PHQAPage() {
     } else if (Question == 0) {
       router.back();
     }
-  }, [question]);
+  }, [question, calProgress]);
 
   return (
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
         <Modal
           backdrop="opaque"
+          hideCloseButton={true}
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
           isOpen={isOpen}
           placement="center"
           size="xs"
@@ -268,26 +295,50 @@ export default function PHQAPage() {
                   <h2 className={title({ size: "xs" })}>
                     กรอกรหัสผู้ให้คำแนะนำ
                   </h2>
-                  <Input
-                    name="ethnicity"
-                    placeholder="รหัสผู้ให้คำแนะนำ"
-                    radius="md"
-                    size="sm"
-                    type="number"
-                    value={referenceId}
-                    variant="faded"
-                    onChange={(val) => ReferChange(val)}
-                  />
+                  <Divider />
+                  <div className="flex justify-center mt-2 mb-2">
+                    <InputOtp
+                      className="items-center"
+                      errorMessage="กรุณากรอกรหัสผู้ให้คำแนะนำให้ถูกต้อง"
+                      length={3}
+                      radius="lg"
+                      size="lg"
+                      value={referenceId}
+                      variant="bordered"
+                      onChange={(val) => ReferChange(val)}
+                    />
+                  </div>
+                  <Divider />
+                  {referenceId.length >= 3 && referentName && (
+                    <>
+                      <p className="mt-2 text-primary-600 font-semibold">
+                        ชื่อผู้ให้คำแนะนำ
+                      </p>
+                      <p>
+                        {referentName}
+                      </p>
+                    </>
+                  )}
                 </ModalBody>
-                <ModalFooter className="justify-center">
+                <ModalFooter className="flex flex-col justify-center">
                   <Button
                     className="w-full"
                     color="primary"
+                    isDisabled={isOtpEmpty || referentName === "ไม่พบข้อมูล"}
                     radius="full"
                     variant="solid"
                     onPress={() => onOpenChange()}
                   >
                     ถัดไป
+                  </Button>
+                  <Button
+                    className="w-full"
+                    color="default"
+                    radius="full"
+                    variant="bordered"
+                    onPress={() => onOpenChange()}
+                  >
+                    ข้าม
                   </Button>
                 </ModalFooter>
               </>
@@ -316,96 +367,96 @@ export default function PHQAPage() {
           >
             {showPHQA
               ? qPhqa.map((val, index) => {
-                  return (
-                    <Tab key={index}>
-                      <div className="flex flex-col gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_Image(index)[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                              name={(index + 1).toString()}
-                              onChange={(val) => phqaChange(val)}
+                return (
+                  <Tab key={index}>
+                    <div className="flex flex-col gap-4 mt-[-50px]">
+                      <div className="flex flex-col items-center">
+                        {qPhqa_Image(index)[index]}
+                      </div>
+                      <div className="flex flex-col gap-4 items-start text-start">
+                        <p className="text-primary-500 font-semibold">
+                          {index + 1}. {val}
+                        </p>
+                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                          <RadioGroup
+                            key={index}
+                            className="pl-5"
+                            label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
+                            name={(index + 1).toString()}
+                            onChange={(val) => phqaChange(val)}
+                          >
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="0"
                             >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่มีเลย
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                มีบางวัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="2"
-                              >
-                                มีมากกว่า 7 วัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="3"
-                              >
-                                มีแทบทุกวัน
-                              </Radio>
-                            </RadioGroup>
-                          </div>
+                              ไม่มีเลย
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="1"
+                            >
+                              มีบางวัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="2"
+                            >
+                              มีมากกว่า 7 วัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="3"
+                            >
+                              มีแทบทุกวัน
+                            </Radio>
+                          </RadioGroup>
                         </div>
                       </div>
-                    </Tab>
-                  );
-                })
+                    </div>
+                  </Tab>
+                );
+              })
               : qPhqa_addon.map((val, index) => {
-                  return (
-                    <Tab key={index + 9}>
-                      <div className="flex flex-col  gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_addon_Image(index)[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                              name={"1" + index.toString()}
-                              value={Object.entries(val)
-                                [index + 2].toString()
-                                .substring(3)}
-                              onChange={(val) => phqaAddonChange(val)}
+                return (
+                  <Tab key={index + 9}>
+                    <div className="flex flex-col  gap-4 mt-[-50px]">
+                      <div className="flex flex-col items-center">
+                        {qPhqa_addon_Image(index)[index]}
+                      </div>
+                      <div className="flex flex-col gap-4 items-start text-start">
+                        <p className="text-primary-500 font-semibold">
+                          {index + 1}. {val}
+                        </p>
+                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                          <RadioGroup
+                            key={index}
+                            className="pl-5"
+                            label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                            name={"1" + index.toString()}
+                            value={Object.entries(val)
+                            [index + 2].toString()
+                              .substring(3)}
+                            onChange={(val) => phqaAddonChange(val)}
+                          >
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="0"
                             >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่ใช่
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                ใช่
-                              </Radio>
-                            </RadioGroup>
-                          </div>
+                              ไม่ใช่
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="1"
+                            >
+                              ใช่
+                            </Radio>
+                          </RadioGroup>
                         </div>
                       </div>
-                    </Tab>
-                  );
-                })}
+                    </div>
+                  </Tab>
+                );
+              })}
           </Tabs>
         </div>
 

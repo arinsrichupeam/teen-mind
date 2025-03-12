@@ -107,9 +107,6 @@ export default function ReferentPage() {
         .then((data) => {
           HandleChange({ target: { name: "id", value: data } });
           onOpen();
-        })
-        .then(() => {
-          formRef.current?.reset();
         });
     },
     [selectedReferent]
@@ -302,58 +299,57 @@ export default function ReferentPage() {
         onClose={onClose}
       >
         <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1 items-center">
-                ข้อมูล อสท.
-              </ModalHeader>
-              <ModalBody>
-                <p>รหัสอ้างอิง : {selectedReferent.id}</p>
-                <p>
-                  ชื่อ - นามสกุล :{" "}
-                  {prefix[selectedReferent.prefixId - 1]?.label}{" "}
-                  {selectedReferent?.firstname} {selectedReferent?.lastname}
-                </p>
-                <p>
-                  ประเภทอาสาสมัคร :{" "}
-                  {
-                    volunteerType.find(
-                      (x) => x.id == selectedReferent.volunteer_type_id
-                    )?.name
-                  }
-                </p>
-                <p>
-                  สังกัด :{" "}
-                  {
-                    affiliation.find(
-                      (x) => x.id == selectedReferent.affiliation_id
-                    )?.name
-                  }
-                </p>
-                <p>หน่วยงาน : {selectedReferent?.agency}</p>
-                <Divider />
-                <h1 className="text-center text-2xl font-bold text-red-500 ">
-                  กรุณาบันทึกหน้าจอนี้
-                </h1>
-                <Divider />
-                <Image
-                  alt="QR-Code"
-                  className="w-[200px] h-[200px] mx-auto"
-                  height={200}
-                  src="/image/Teen-Mind.png"
-                  width={200}
-                />
-              </ModalBody>
-              <ModalFooter className="flex justify-center">
-                <Button color="primary" variant="solid" onPress={onClose}>
-                  ปิด
-                </Button>
-                {/* <Button color="primary" onPress={onClose}>
-                  บันทึกรูปภาพ
-                </Button> */}
-              </ModalFooter>
-            </>
-          )}
+          <>
+            <ModalHeader className="flex flex-col items-center font-bold">
+              ข้อมูลการลงทะเบียน อสท.
+            </ModalHeader>
+            <ModalBody className="flex flex-col gap-2 wrapper">
+              <Divider />
+              <div className="items-center flex justify-center box-border rounded-full bg-primary-100 font-bold p-2">
+                <span className="">รหัสอ้างอิง {selectedReferent.id}</span>
+              </div>
+              <span>
+                ชื่อ - นามสกุล :{" "}
+                {prefix[selectedReferent.prefixId - 1]?.label}{" "}
+                {selectedReferent?.firstname} {selectedReferent?.lastname}
+              </span>
+              <span>
+                สังกัด :{" "}
+                {
+                  affiliation.find(
+                    (x) => x.id == selectedReferent.affiliation_id
+                  )?.name
+                }
+              </span>
+              <span>หน่วยงาน : {selectedReferent?.agency}</span>
+              <span>
+                ประเภทอาสาสมัคร :{" "}
+                {
+                  volunteerType.find(
+                    (x) => x.id == selectedReferent.volunteer_type_id
+                  )?.name
+                }
+              </span>
+              <Divider />
+              <h1 className="text-center text-2xl font-bold text-red-500 ">
+                กรุณาบันทึกหน้าจอนี้
+              </h1>
+              
+              <Image
+                alt="QR-Code"
+                className="w-[200px] h-[200px] mx-auto"
+                height={200}
+                src="/image/Teen-Mind.png"
+                width={200}
+              />
+              <Divider />
+            </ModalBody>
+            <ModalFooter className="flex justify-center">
+              <Button color="primary" variant="solid" onPress={() => { onClose(); formRef.current?.reset(); }}>
+                ปิด
+              </Button>
+            </ModalFooter>
+          </>
         </ModalContent>
       </Modal>
     </div>
