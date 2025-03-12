@@ -137,7 +137,9 @@ export default function PHQAPage() {
   const [submit, setSubmit] = useState(true);
   const [userId, setUserId] = useState("");
   const [referenceId, setReferenceId] = useState("");
-  const [referentData, setReferentData] = useState<{fullName:string,affiliation:string,agency:string} | string>("ไม่พบข้อมูล");
+  const [referentData, setReferentData] = useState<
+    { fullName: string; affiliation: string; agency: string } | string
+  >("ไม่พบข้อมูล");
   const [question, setQuestion] = useState("0");
   const [isModalOpened, setIsModalOpened] = useState(false);
   const [isOtpEmpty, setIsOtpEmpty] = useState(true);
@@ -178,15 +180,15 @@ export default function PHQAPage() {
       const agency = data[0].agency;
 
       setReferentData({
-        fullName:fullName,
-        affiliation:affiliation,
-        agency:agency
+        fullName: fullName,
+        affiliation: affiliation,
+        agency: agency,
       });
     } catch (error) {
       setReferentData({
-        fullName:"ไม่พบข้อมูล",
-        affiliation:"ไม่พบข้อมูล",
-        agency:"ไม่พบข้อมูล"
+        fullName: "ไม่พบข้อมูล",
+        affiliation: "ไม่พบข้อมูล",
+        agency: "ไม่พบข้อมูล",
       });
     }
   }, []);
@@ -320,23 +322,28 @@ export default function PHQAPage() {
                     />
                   </div>
                   <Divider />
-                  {referenceId.length >= 3 && typeof referentData !== "string" && (
-                    <>
-                      <span className="flex flex-col box-border rounded-lg bg-primary-100 text-primary-500 p-3 text-left w-full text-md font-semibold">
-                        ชื่อผู้ให้คำแนะนำ : {referentData.fullName}
-                        <br />
-                        สังกัด : {referentData.affiliation}
-                        <br />
-                        หน่วยงาน : {referentData.agency}
-                      </span>
-                    </>
-                  )}
+                  {referenceId.length >= 3 &&
+                    typeof referentData !== "string" && (
+                      <>
+                        <span className="flex flex-col box-border rounded-lg bg-primary-100 text-primary-500 p-3 text-left w-full text-md font-semibold">
+                          ชื่อผู้ให้คำแนะนำ : {referentData.fullName}
+                          <br />
+                          สังกัด : {referentData.affiliation}
+                          <br />
+                          หน่วยงาน : {referentData.agency}
+                        </span>
+                      </>
+                    )}
                 </ModalBody>
                 <ModalFooter className="flex flex-col justify-center">
                   <Button
                     className="w-full"
                     color="primary"
-                    isDisabled={isOtpEmpty || (typeof referentData !== "string" && referentData.fullName === "ไม่พบข้อมูล")}
+                    isDisabled={
+                      isOtpEmpty ||
+                      (typeof referentData !== "string" &&
+                        referentData.fullName === "ไม่พบข้อมูล")
+                    }
                     radius="full"
                     variant="solid"
                     onPress={() => onOpenChange()}
