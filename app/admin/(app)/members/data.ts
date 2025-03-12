@@ -14,3 +14,10 @@ export const statusOptions = [
   { name: "ไม่ใช้งาน", uid: "2" },
   { name: "รอยืนยันการใช้งาน", uid: "3" },
 ];
+
+export const roles = [
+  { id: 1, name: "User" },
+  { id: 2, name: "Referent" },
+  { id: 3, name: "Consult" },
+  { id: 4, name: "Admin" },
+];
