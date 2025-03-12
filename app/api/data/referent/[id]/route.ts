@@ -12,6 +12,8 @@ export async function GET(
     select: {
       firstname: true,
       lastname: true,
+      affiliation: true,
+      agency: true,
     },
   });
 

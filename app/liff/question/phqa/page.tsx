@@ -137,7 +137,7 @@ export default function PHQAPage() {
   const [submit, setSubmit] = useState(true);
   const [userId, setUserId] = useState("");
   const [referenceId, setReferenceId] = useState("");
-  const [referentName, setReferentName] = useState("");
+  const [referentData, setReferentData] = useState<{fullName:string,affiliation:string,agency:string} | string>("ไม่พบข้อมูล");
   const [question, setQuestion] = useState("0");
   const [isModalOpened, setIsModalOpened] = useState(false);
   const [isOtpEmpty, setIsOtpEmpty] = useState(true);
@@ -167,17 +167,27 @@ export default function PHQAPage() {
     }
   }, [session, isModalOpened]);
 
-  const fetchReferentName = useCallback(async (id: string) => {
+  const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
 
     try {
       const response = await fetch(`/api/data/referent/${referentId}`);
       const data = await response.json();
       const fullName = data[0].firstname + " " + data[0].lastname;
+      const affiliation = data[0].affiliation.name;
+      const agency = data[0].agency;
 
-      setReferentName(fullName);
+      setReferentData({
+        fullName:fullName,
+        affiliation:affiliation,
+        agency:agency
+      });
     } catch (error) {
-      setReferentName("ไม่พบข้อมูล");
+      setReferentData({
+        fullName:"ไม่พบข้อมูล",
+        affiliation:"ไม่พบข้อมูล",
+        agency:"ไม่พบข้อมูล"
+      });
     }
   }, []);
 
@@ -186,10 +196,10 @@ export default function PHQAPage() {
       setReferenceId(e.target.value);
       setIsOtpEmpty(e.target.value.length < 3);
       if (e.target.value.length == 3) {
-        fetchReferentName(e.target.value);
+        fetchReferentData(e.target.value);
       }
     },
-    [fetchReferentName]
+    [fetchReferentData]
   );
 
   const calProgress = useCallback((e: number) => {
@@ -310,10 +320,14 @@ export default function PHQAPage() {
                     />
                   </div>
                   <Divider />
-                  {referenceId.length >= 3 && referentName && (
+                  {referenceId.length >= 3 && typeof referentData !== "string" && (
                     <>
-                      <span className="items-center flex justify-center box-border rounded-full bg-primary-100 text-primary-500 p-3 text-md font-semibold">
-                        ชื่อผู้ให้คำแนะนำ : {referentName}
+                      <span className="flex flex-col box-border rounded-lg bg-primary-100 text-primary-500 p-3 text-left w-full text-md font-semibold">
+                        ชื่อผู้ให้คำแนะนำ : {referentData.fullName}
+                        <br />
+                        สังกัด : {referentData.affiliation}
+                        <br />
+                        หน่วยงาน : {referentData.agency}
                       </span>
                     </>
                   )}
@@ -322,7 +336,7 @@ export default function PHQAPage() {
                   <Button
                     className="w-full"
                     color="primary"
-                    isDisabled={isOtpEmpty || referentName === "ไม่พบข้อมูล"}
+                    isDisabled={isOtpEmpty || (typeof referentData !== "string" && referentData.fullName === "ไม่พบข้อมูล")}
                     radius="full"
                     variant="solid"
                     onPress={() => onOpenChange()}
