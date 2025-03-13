@@ -33,12 +33,13 @@ export async function POST(req: Request) {
         affiliation_id: parseInt(referent.affiliation_id.toString()),
         agency: referent.agency,
         status: referent.status,
-      },
+      }
     })
     .then((val) => {
       const idLength = val.id.toString().length;
-
       userId = val.id.toString().padStart(idLength < 3 ? 3 : idLength, "0");
+    }).catch(() => {
+      userId = "000";
     });
 
   return Response.json(userId);

@@ -287,6 +287,8 @@ model Referent {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   questions_master  Questions_Master[]
+
+  @@unique([citizenId])
 }
 
 model Affiliation {

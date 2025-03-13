@@ -124,7 +124,7 @@ export async function POST(req: Request) {
         latitude: location_data?.latitude,
         userId: userId,
         longitude: location_data?.longitude,
-        referent: referenceId,
+        referentId: referenceId,
         result: result,
         result_text: result_text,
         status: status,

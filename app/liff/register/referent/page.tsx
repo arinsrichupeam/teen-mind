@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  addToast,
   Button,
   Divider,
   Form,
@@ -110,9 +111,17 @@ export default function ReferentPage() {
           return res.json();
         })
         .then((data) => {
-          if (!data) return;
-          HandleChange({ target: { name: "id", value: data } });
-          onOpen();
+          if (data == "000") {
+            addToast({
+              title: "",
+              color: "danger",
+              description: "",
+            });
+            setIsLoading(false);
+          } else {
+            HandleChange({ target: { name: "id", value: data } });
+            onOpen();
+          }
         });
     },
     [selectedReferent, HandleChange, onOpen]
@@ -209,7 +218,6 @@ export default function ReferentPage() {
           />
           <Input
             className="max-w-xl"
-            // errorMessage="กรุณากรอกอีเมล"
             isRequired={request}
             label="อีเมล"
             labelPlacement="inside"
