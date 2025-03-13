@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
 import { Autocomplete, AutocompleteItem, NumberInput } from "@heroui/react";
 
-import { prefix, sex } from "@/types";
+import { prefix, sex } from "@/utils/data";
 import { validateCitizen } from "@/utils/helper";
 
 interface Props {
@@ -77,7 +77,9 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           name="prefix"
           placeholder="คำนำหน้า"
           radius="md"
-          selectedKeys={Result?.prefixId === 0 ? "" : Result?.prefixId.toString()}
+          selectedKeys={
+            Result?.prefixId === 0 ? "" : Result?.prefixId.toString()
+          }
           size="sm"
           variant="faded"
           onChange={HandleChange}

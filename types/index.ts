@@ -10,21 +10,6 @@ export type LocationData = {
   longitude: number;
 };
 
-export const sex = [
-  { key: "1", label: "ชาย" },
-  { key: "2", label: "หญิง" },
-  { key: "3", label: "ไม่ระบุ" },
-];
-
-export const prefix = [
-  { key: "1", label: "ด.ช." },
-  { key: "2", label: "ด.ญ." },
-  { key: "3", label: "นาย" },
-  { key: "4", label: "น.ส." },
-  { key: "5", label: "นาง" },
-  { key: "99", label: "อื่นๆ" },
-];
-
 export type QuestionsList = {
   id: string;
   prefixId: string;
@@ -95,3 +80,42 @@ export interface Phqa_Addon {
   q1: number;
   q2: number;
 }
+
+// export interface Profile_Admin_List {
+//   id: string;
+//   image: string;
+//   name: string;
+//   accounts: Account[];
+//   profile_admin: ProfileAdmin[];
+// }
+
+// export interface Account {
+//   providerAccountId: string;
+// }
+
+export interface ProfileAdminData {
+  id: string;
+  userId: string;
+  providerAccountId: string;
+  image: string;
+  name: string;
+  citizenId: string;
+  prefixId: number;
+  firstname: string;
+  lastname: string;
+  tel: string;
+  affiliationId: number;
+  agency: string;
+  employeeTypeId: number;
+  professional: string;
+  license: string;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+  role: number;
+}
+
+// export interface Role {
+//   id: number;
+//   name: string;
+// }

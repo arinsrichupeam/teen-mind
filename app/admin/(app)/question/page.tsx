@@ -23,6 +23,8 @@ import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import { QuestionDrawer } from "./components/question-drawer";
 import { QuestionColumnsName as columns, statusOptions } from "./data";
@@ -45,6 +47,8 @@ export default function QuestionPage() {
     direction: "ascending",
   });
   const [mode, setMode] = useState("View");
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -221,13 +225,17 @@ export default function QuestionPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/question")
-      .then((res) => res.json())
-      .then((val) => {
-        setQuestionsList(val.questionsList);
-        setPages(Math.ceil(val.questionsList.length / rowsPerPage));
-        setIsLoading(false);
-      });
+    if (status !== "loading" && status === "authenticated") {
+      fetch("/api/question")
+        .then((res) => res.json())
+        .then((val) => {
+          setQuestionsList(val.questionsList);
+          setPages(Math.ceil(val.questionsList.length / rowsPerPage));
+          setIsLoading(false);
+        });
+    } else {
+      router.push("/admin/login");
+    }
   }, [isLoading]);
 
   return (

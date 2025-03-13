@@ -3,7 +3,7 @@
 import React, { ReactNode, useState } from "react";
 
 import { SidebarContext } from "./layout-context";
-import { SidebarWrapper } from "./components/sidebar/sideba-wrapperr";
+import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 import { NavbarWrapper } from "./components/navbar_admin";
 
 export const Layout = ({ children }: { children: ReactNode }) => {
@@ -20,6 +20,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
       }}
     >
       <section className="flex">
+        {/* <ModalUserStatus /> */}
         <SidebarWrapper />
         <NavbarWrapper>{children}</NavbarWrapper>
       </section>

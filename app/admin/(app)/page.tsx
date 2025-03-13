@@ -1,4 +1,31 @@
-export default async function AdminHome() {
+"use client";
+
+import { useDisclosure } from "@heroui/react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export default function AdminHome() {
+  const { data: session, status } = useSession();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status !== "loading") {
+      if (status !== "authenticated") {
+        router.push("/admin/login");
+      } else {
+        fetch(`/api/profile/admin/${session.user?.id}`)
+          .then((res) => res.json())
+          .then((val) => {
+            if (val == null) {
+              router.push("/admin/register");
+            }
+          });
+      }
+    }
+  }, [session, router]);
+
   return (
     <div className="h-full lg:px-6">
       <div className="flex justify-center gap-4 xl:gap-6 pt-3 px-4 lg:px-0  flex-wrap xl:flex-nowrap sm:pt-10 max-w-[90rem] mx-auto w-full">

@@ -21,12 +21,6 @@ export async function GET(
           providerAccountId: true,
         },
       },
-      questions: {
-        select: {
-          createdAt: true,
-          result: true,
-        },
-      },
     },
   });
 

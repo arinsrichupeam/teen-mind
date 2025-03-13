@@ -30,14 +30,14 @@ const authOptions = NextAuth({
 
       return session;
     },
-    async redirect({ baseUrl }) {
-      // if (url.startsWith("/liff")) {
-      //   return `${baseUrl}${url}`;
-      // } else if (new URL(url).origin === baseUrl) {
-      //   return url;
-      // }
-
-      return baseUrl;
+    async redirect({ url, baseUrl }) {
+      if (new URL(url).pathname.startsWith("/liff")) {
+        return `${baseUrl}/liff`;
+      } else if (new URL(url).pathname.startsWith("/admin")) {
+        return `${baseUrl}/admin`;
+      } else {
+        return baseUrl;
+      }
     },
   },
   session: {
