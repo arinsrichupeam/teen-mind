@@ -54,6 +54,7 @@ export default function ReferentPage() {
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -103,13 +104,18 @@ export default function ReferentPage() {
         },
         body: data,
       })
-        .then((res) => res.json())
+        .then((res) => {
+          setIsLoading(true);
+
+          return res.json();
+        })
         .then((data) => {
+          if (!data) return;
           HandleChange({ target: { name: "id", value: data } });
           onOpen();
         });
     },
-    [selectedReferent]
+    [selectedReferent, HandleChange, onOpen]
   );
 
   useEffect(() => {
@@ -284,15 +290,23 @@ export default function ReferentPage() {
           </Select>
         </div>
         <div className="flex justify-center w-full">
-          <Button color="primary" type="submit" variant="solid">
-            ลงทะเบียน
+          <Button
+            color="primary"
+            isLoading={isLoading}
+            type="submit"
+            variant="solid"
+          >
+            {isLoading ? "กำลังลงทะเบียน..." : "ลงทะเบียน"}
           </Button>
         </div>
       </Form>
 
       <Modal
         backdrop="blur"
+        hideCloseButton={true}
         id="modal-content"
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         placement="center"
         size="xs"
@@ -350,6 +364,7 @@ export default function ReferentPage() {
                 onPress={() => {
                   onClose();
                   formRef.current?.reset();
+                  setIsLoading(false);
                 }}
               >
                 ปิด
