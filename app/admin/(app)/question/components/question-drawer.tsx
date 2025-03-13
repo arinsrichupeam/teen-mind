@@ -1,10 +1,11 @@
 "use client";
 
 import moment from "moment";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
+  addToast,
   Button,
   Card,
   CardBody,
@@ -42,6 +43,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [distrince, setDistrince] = useState<Districts[]>();
   const [province, setProvince] = useState<Provinces[]>();
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
+
   const [textboxHN, setTextboxHN] = useState("");
 
   const latitude = data?.latitude != null ? data?.latitude : 0;
@@ -60,32 +62,50 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       },
       body: json,
     }).then(() => {
-      console.log("Update HN Success");
+      addToast({
+        title: "Update HN Success",
+        color: "success",
+        description: "Update HN Success",
+        timeout: 3000,
+      });
     });
   };
 
-  const txtHNChange = (val: any) => {
-    setTextboxHN(val.target.value);
-  };
+  const txtHNChange = useCallback(
+    (val: any) => {
+      setTextboxHN(val.target.value);
+    },
+    [textboxHN]
+  );
 
-  useEffect(() => {
-    fetch("/api/data/districts")
+  const GetDistrictList = useCallback(async () => {
+    await fetch("/api/data/districts")
       .then((res) => res.json())
       .then((val) => {
         setDistrince(val);
       });
+  }, [distrince]);
 
-    fetch("/api/data/provinces")
+  const GetProvinceList = useCallback(async () => {
+    await fetch("/api/data/provinces")
       .then((res) => res.json())
       .then((val) => {
         setProvince(val);
       });
+  }, [province]);
 
-    fetch("/api/data/subdistricts")
+  const GetSubdistrictList = useCallback(async () => {
+    await fetch("/api/data/subdistricts")
       .then((res) => res.json())
       .then((val) => {
         setSubDistrince(val);
       });
+  }, [subdistrince]);
+
+  useEffect(() => {
+    GetProvinceList();
+    GetDistrictList();
+    GetSubdistrictList();
   }, []);
 
   return (
@@ -284,7 +304,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
               {mode == "View" ? (
                 <QuestionDetail data={data} />
               ) : (
-                <QuestionEdit data={data} />
+                <QuestionEdit masterId={data?.id} />
               )}
             </DrawerBody>
             <DrawerFooter>

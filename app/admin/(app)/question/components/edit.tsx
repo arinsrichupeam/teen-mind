@@ -6,15 +6,54 @@ import {
   DatePicker,
   Textarea,
 } from "@heroui/react";
+import { useCallback, useEffect, useState } from "react";
+import { Profile_Admin } from "@prisma/client";
 
 import { subtitle } from "@/components/primitives";
-import { QuestionsData } from "@/types";
+import { Consultant, QuestionsData } from "@/types";
 
 interface Props {
-  data: QuestionsData | undefined;
+  masterId: string | undefined;
 }
 
-export const QuestionEdit = ({ data }: Props) => {
+const ConsultantInitValue: Consultant[] = [
+  {
+    id: "",
+    name: "",
+  },
+];
+
+export const QuestionEdit = ({ masterId }: Props) => {
+  const [Consultant, setConsultant] =
+    useState<Consultant[]>(ConsultantInitValue);
+  const [Master, setMaster] = useState<QuestionsData>();
+
+  const GetConsultantList = useCallback(async () => {
+    await fetch("/api/profile/admin")
+      .then((res) => res.json())
+      .then((val: Profile_Admin[]) => {
+        setConsultant([
+          {
+            id: val[0].id,
+            name: val[0].firstname + " " + val[0].lastname,
+          },
+        ]);
+      });
+  }, [Consultant]);
+
+  const GetQuestionMaster = useCallback(async () => {
+    await fetch("/api/question/" + masterId)
+      .then((res) => res.json())
+      .then((val) => {
+        setMaster(val[0]);
+      });
+  }, [Master]);
+
+  useEffect(() => {
+    GetConsultantList();
+    GetQuestionMaster();
+  }, []);
+
   return (
     <div className="flex flex-col">
       <div>
@@ -30,13 +69,22 @@ export const QuestionEdit = ({ data }: Props) => {
             </div>
             <div className="w-full">
               <Autocomplete
+                isRequired
+                defaultItems={Consultant}
+                defaultSelectedKey={Master?.consult}
+                errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
                 label="Consultant"
                 labelPlacement="outside"
-                placeholder="Search a Consultant"
+                placeholder="Consultant"
+                radius="md"
                 variant="bordered"
+                // onSelectionChange={(val) =>
+                //   schoolChange({ target: { name: "districtId", value: val } })
+                // }
               >
-                <AutocompleteItem key={data?.id} />
-                {/* {(animal) => <AutocompleteItem key={animal.key}>{animal.label}</AutocompleteItem>} */}
+                {(item) => (
+                  <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
+                )}
               </Autocomplete>
             </div>
           </CardBody>
@@ -51,7 +99,9 @@ export const QuestionEdit = ({ data }: Props) => {
               label="1.	Subjective data"
               labelPlacement="outside"
               minRows={4}
+              name="subjective"
               placeholder="Description"
+              value={Master?.subjective as string}
               variant="bordered"
             />
             <Textarea
@@ -59,7 +109,9 @@ export const QuestionEdit = ({ data }: Props) => {
               label="2.	Objective data"
               labelPlacement="outside"
               minRows={4}
+              name="objective"
               placeholder="Description"
+              value={Master?.objective as string}
               variant="bordered"
             />
             <Textarea
@@ -67,7 +119,9 @@ export const QuestionEdit = ({ data }: Props) => {
               label="3.	Assessment"
               labelPlacement="outside"
               minRows={4}
+              name="assessment"
               placeholder="Description"
+              value={Master?.assessment as string}
               variant="bordered"
             />
             <Textarea
@@ -75,7 +129,9 @@ export const QuestionEdit = ({ data }: Props) => {
               label="4.	Plan"
               labelPlacement="outside"
               minRows={4}
+              name="plan"
               placeholder="Description"
+              value={Master?.plan as string}
               variant="bordered"
             />
           </CardBody>

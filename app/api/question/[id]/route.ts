@@ -16,6 +16,12 @@ export async function GET(
       latitude: true,
       longitude: true,
       createdAt: true,
+      subjective: true,
+      objective: true,
+      assessment: true,
+      plan: true,
+      schedule_telemed: true,
+      consult: true,
       user: {
         select: {
           image: true,

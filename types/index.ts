@@ -28,6 +28,12 @@ export type QuestionsData = {
   result: string;
   latitude: number;
   longitude: number;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+  schedule_telemed: Date;
+  consult: string;
   createdAt: string;
   user: User;
   phqa: Phqa[];
@@ -81,18 +87,6 @@ export interface Phqa_Addon {
   q2: number;
 }
 
-// export interface Profile_Admin_List {
-//   id: string;
-//   image: string;
-//   name: string;
-//   accounts: Account[];
-//   profile_admin: ProfileAdmin[];
-// }
-
-// export interface Account {
-//   providerAccountId: string;
-// }
-
 export interface ProfileAdminData {
   id: string;
   userId: string;
@@ -115,7 +109,7 @@ export interface ProfileAdminData {
   role: number;
 }
 
-// export interface Role {
-//   id: number;
-//   name: string;
-// }
+export interface Consultant {
+  id: string;
+  name: string;
+}
