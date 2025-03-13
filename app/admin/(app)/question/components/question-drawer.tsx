@@ -25,10 +25,11 @@ import {
 import { QuestionDetail } from "./detail";
 import { QuestionEdit } from "./edit";
 
-import { prefix, QuestionsData } from "@/types";
+import { prefix } from "@/utils/data";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
+import { QuestionsData } from "@/types";
 
 interface Props {
   isOpen: any;

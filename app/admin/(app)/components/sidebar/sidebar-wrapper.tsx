@@ -13,7 +13,6 @@ import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Suspense, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Roles } from "@prisma/client";
 
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
@@ -27,14 +26,14 @@ export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
   const { data: session, status } = useSession();
-  const [role, setRole] = useState<Roles>();
+  const [role, setRole] = useState();
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
       fetch("/api/profile/admin/" + session.user?.id)
         .then((res) => res.json())
         .then((val) => {
-          setRole(val.profile_admin[0].role[0]);
+          setRole(val.role);
         });
     }
   }, [session]);
@@ -75,7 +74,7 @@ export const SidebarWrapper = () => {
                   title="เคสที่ดูแล"
                 />
               </SidebarMenu>
-              {role?.name === "Admin" ? (
+              {role === 4 ? (
                 <SidebarMenu title="Admin Menu">
                   <SidebarItem
                     href="/admin/members"

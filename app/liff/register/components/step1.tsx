@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
 import { Autocomplete, AutocompleteItem, NumberInput } from "@heroui/react";
 
-import { prefix, sex } from "@/types";
+import { prefix, sex } from "@/utils/data";
 import { validateCitizen } from "@/utils/helper";
 
 interface Props {

@@ -18,7 +18,7 @@ export const ModalUserStatus = () => {
     await fetch(`/api/profile/admin/${session?.user?.id}`)
       .then((res) => res.json())
       .then((val) => {
-        if (val.profile_admin[0].status != 1) {
+        if (val.status != 1) {
           onOpen();
         }
       });

@@ -7,7 +7,7 @@ import { Button } from "@heroui/react";
 
 import { statusOptions } from "../data";
 
-import { prefix } from "@/types";
+import { prefix } from "@/utils/data";
 
 interface Props {
   data: any;
