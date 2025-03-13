@@ -8,7 +8,7 @@ import { Affiliation } from "@prisma/client";
 
 import { statusOptions } from "../data";
 
-import { prefix } from "@/types";
+import { prefix } from "@/utils/data";
 
 interface Props {
   data: any;

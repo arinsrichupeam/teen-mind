@@ -12,7 +12,7 @@ import {
 import { useCallback } from "react";
 
 import { title } from "@/components/primitives";
-import { prefix } from "@/types";
+import { prefix } from "@/utils/data";
 import { validateCitizen, validateEmail } from "@/utils/helper";
 
 export default function VolunteerPage() {

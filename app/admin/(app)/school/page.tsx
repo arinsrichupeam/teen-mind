@@ -21,7 +21,7 @@ import {
   ModalFooter,
   ModalHeader,
   Switch,
-  Alert,
+  addToast,
 } from "@heroui/react";
 import { School, Districts } from "@prisma/client";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -170,21 +170,19 @@ export default function SchoolListPage() {
         body: data,
       }).then((res) => {
         if (res.status === 200) {
-          handleAlert();
           GetSchool();
           onOpenChange();
+          addToast({
+            title: "บันทึกสำเร็จ",
+            color: "success",
+            description: "บันทึกสำเร็จ",
+            timeout: 2000,
+          });
         }
       });
     },
     [selectedSchool]
   );
-
-  const handleAlert = () => {
-    setShowAlert(true);
-    setTimeout(() => {
-      setShowAlert(false);
-    }, 3000);
-  };
 
   const GetSchool = useCallback(async () => {
     await fetch("/api/data/school")
@@ -295,11 +293,6 @@ export default function SchoolListPage() {
           )}
         </ModalContent>
       </Modal>
-      <Alert
-        color={"success"}
-        isVisible={showAlert}
-        title={"บันทึกเรียบร้อย"}
-      />
 
       {/* บน */}
       <div className="flex justify-between items-end ">
