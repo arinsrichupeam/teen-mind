@@ -286,7 +286,7 @@ export default function ReferentPage() {
           >
             {employeeType.map((employeeType) => (
               <SelectItem key={employeeType.id}>{employeeType.name}</SelectItem>
-            ))}
+            ))}            
           </Select>
         </div>
         <div className="flex justify-center w-full">
