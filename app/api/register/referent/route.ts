@@ -15,8 +15,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const data = await req.json();
 
-  console.log(data);
-
   let userId = "";
 
   const referent: Referent = data.referent_data;
@@ -38,7 +36,9 @@ export async function POST(req: Request) {
       },
     })
     .then((val) => {
-      userId = val.id.toString().padStart(3, "0");
+      const idLength = val.id.toString().length;
+
+      userId = val.id.toString().padStart(idLength < 3 ? 3 : idLength, "0");
     });
 
   return Response.json(userId);
