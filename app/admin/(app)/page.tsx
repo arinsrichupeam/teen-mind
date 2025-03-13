@@ -18,7 +18,7 @@ export default function AdminHome() {
         fetch(`/api/profile/admin/${session.user?.id}`)
           .then((res) => res.json())
           .then((val) => {
-            if (!val.profile_admin!!) {
+            if (val == null) {
               router.push("/admin/register");
             }
           });

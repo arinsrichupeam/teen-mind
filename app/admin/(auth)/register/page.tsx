@@ -14,8 +14,8 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { title } from "@/components/primitives";
-import { prefix } from "@/types";
 import { validateCitizen } from "@/utils/helper";
+import { prefix } from "@/utils/data";
 
 const profileInitValue: Profile_Admin = {
   id: "",
