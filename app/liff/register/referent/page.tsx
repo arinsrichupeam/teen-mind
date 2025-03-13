@@ -307,6 +307,17 @@ export default function ReferentPage() {
             {isLoading ? "กำลังลงทะเบียน..." : "ลงทะเบียน"}
           </Button>
         </div>
+
+        <div className="flex justify-center items-center gap-4 w-full font-semibold">
+          <p>ตรวจสอบการลงทะเบียน</p> 
+          <Button 
+          color="warning"
+          variant="solid"
+          className="font-semibold text-white"
+          >
+            ตรวจสอบ
+          </Button>
+        </div>
       </Form>
 
       <Modal
