@@ -165,7 +165,7 @@ export default function QuestionPage() {
             value={filterValue}
             variant="bordered"
             onClear={() => setFilterValue("")}
-          // onValueChange={onSearchChange}
+            // onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -312,6 +312,7 @@ export default function QuestionPage() {
     async (e: any) => {
       e.preventDefault();
       const data = JSON.stringify({ profile_data: selectedProfile });
+
       await fetch("/api/profile/admin", {
         method: "POST",
         headers: {
@@ -321,7 +322,7 @@ export default function QuestionPage() {
       }).then((val) => {
         GetProfileAdminList();
         onOpenChange();
-      })
+      });
 
       // console.log(selectedProfile);
     },
@@ -411,7 +412,6 @@ export default function QuestionPage() {
                         ))}
                       </Select>
                       <Input
-                        
                         isRequired={isRequest}
                         label="ชื่อ"
                         labelPlacement="outside"
@@ -424,7 +424,6 @@ export default function QuestionPage() {
                         onChange={HandleChange}
                       />
                       <Input
-                        
                         isRequired={isRequest}
                         label="นามสกุล"
                         labelPlacement="outside"
@@ -440,7 +439,6 @@ export default function QuestionPage() {
                     <div className="grid grid-cols-1 gap-2">
                       <Select
                         errorMessage="กรุณาเลือกสังกัด"
-                        
                         isRequired={isRequest}
                         label="สังกัด"
                         labelPlacement="outside"
@@ -463,7 +461,6 @@ export default function QuestionPage() {
                         })}
                       </Select>
                       <Input
-                        
                         isRequired={isRequest}
                         label="หน่วยงาน"
                         labelPlacement="outside"
@@ -477,7 +474,6 @@ export default function QuestionPage() {
                       />
                       <Select
                         errorMessage="กรุณาเลือกประเภทการจ้าง"
-                        
                         isRequired={isRequest}
                         label="ประเภทการจ้าง"
                         labelPlacement="outside"
@@ -500,7 +496,6 @@ export default function QuestionPage() {
                         })}
                       </Select>
                       <Input
-                        
                         isRequired={false}
                         label="สาขาวิชาชีพ"
                         labelPlacement="outside"
@@ -514,7 +509,6 @@ export default function QuestionPage() {
                       />
 
                       <Input
-                        
                         isRequired={false}
                         label="เลขที่ใบอนุญาติ"
                         labelPlacement="outside"
@@ -531,7 +525,6 @@ export default function QuestionPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Select
                         className="max-w-xl"
-                        
                         label="สิทธิ์การใช้งาน"
                         labelPlacement="outside"
                         name="role"
@@ -554,7 +547,6 @@ export default function QuestionPage() {
                       </Select>
                       <Select
                         className="max-w-xl"
-                        
                         label="สถานะ"
                         labelPlacement="outside"
                         name="status"
@@ -609,7 +601,7 @@ export default function QuestionPage() {
           // sortDescriptor={sortDescriptor}
           topContent={topContent}
           topContentPlacement="outside"
-        // onSortChange={setSortDescriptor}
+          // onSortChange={setSortDescriptor}
         >
           <TableHeader columns={columns}>
             {(column) => (

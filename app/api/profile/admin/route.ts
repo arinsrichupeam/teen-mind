@@ -40,8 +40,8 @@ export async function POST(req: Request) {
       status: parseInt(profile_data.status.toString()),
       role: {
         set: {
-          id: parseInt(profile_data.role.toString())
-        }
+          id: parseInt(profile_data.role.toString()),
+        },
       },
     },
   });
