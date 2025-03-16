@@ -15,6 +15,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const data = await req.json();
 
+  console.log(data);
+
   let userId = "";
 
   const referent: Referent = data.referent_data;

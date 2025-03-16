@@ -6,6 +6,7 @@ import {
   Divider,
   Form,
   Input,
+  Link,
   Modal,
   ModalBody,
   ModalContent,
@@ -52,12 +53,31 @@ export default function ReferentPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
     useState<Referent>(referentInitValue);
+  const [selectVerification, setSelectVerification] = useState<Referent>(
+    referentInitValue,)
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isOpenModal2,
+    onOpen: onOpenModal2,
+    onClose: onCloseModal2,
+  } = useDisclosure();
+  const {
+    isOpen: isOpenModal3,
+    onOpen: onOpenModal3,
+    onClose: onCloseModal3,
+    onOpenChange,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenModal4,
+    onOpen: onOpenModal4,
+    onClose: onCloseModal4,
+  } = useDisclosure();
 
   const GetvolunteerType = useCallback(async () => {
     await fetch("/api/data/volunteer")
@@ -82,6 +102,48 @@ export default function ReferentPage() {
         setAffiliation(data);
       });
   }, [affiliation]);
+
+  const handleVerification = useCallback(
+    async (e: any) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        citizenId: formData.get("citizenId"),
+        tel: formData.get("tel"),
+      };
+
+      await fetch(`/api/data/referent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.length > 0) {
+            const referent = data[0];
+
+            referent.affiliation_id = affiliation.find(
+              (x) => x.name === referent.affiliation.name
+            )?.id;
+            referent.volunteer_type_id = volunteerType.find(
+              (x) => x.name === referent.volunteer_type.name
+            )?.id;
+            setSelectVerification(referent);
+            onOpenModal4();
+          } else {
+            addToast({
+              title: "แจ้งเตือน",
+              color: "danger",
+              description: "ไม่พบข้อมูลการลงทะเบียน",
+            })
+            onCloseModal3();
+          }
+        });
+    },
+    [selectedReferent, onOpen, affiliation, volunteerType]
+  );
 
   const HandleChange = useCallback(
     (e: any) => {
@@ -128,6 +190,10 @@ export default function ReferentPage() {
   );
 
   useEffect(() => {
+    onOpenModal2();
+  }, []);
+
+  useEffect(() => {
     GetvolunteerType();
     GetEmployeeType();
     GetAffiliation();
@@ -137,9 +203,45 @@ export default function ReferentPage() {
     <div className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
       <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
 
+      <Modal
+        backdrop="blur"
+        id="modal-content-2"
+        isOpen={isOpenModal2}
+        placement="center"
+        size="sm"
+        onClose={onCloseModal2}
+      >
+        <ModalContent>
+          {(onCloseModal2) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1 text-center">
+                คำอธิบายการลงทะเบียน
+              </ModalHeader>
+              <ModalBody>
+                <Divider />
+                <p>
+                  Magna exercitation reprehenderit magna aute tempor cupidatat
+                  consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
+                  incididunt cillum quis. Velit duis sit officia eiusmod Lorem
+                  aliqua enim laboris do dolor eiusmod. Et mollit incididunt
+                  nisi consectetur esse laborum eiusmod pariatur proident Lorem
+                  eiusmod et. Culpa deserunt nostrud ad veniam.
+                </p>
+                <Divider />
+              </ModalBody>
+              <ModalFooter className="flex justify-center">
+                <Button color="primary" variant="solid" onPress={onCloseModal2}>
+                  ปิด
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
       <Form
         ref={formRef}
-        className="flex flex-col gap-4 w-full text-start"
+        className="flex flex-col gap-4 text-start"
         validationBehavior="native"
         onSubmit={onSubmit}
       >
@@ -309,11 +411,12 @@ export default function ReferentPage() {
         </div>
 
         <div className="flex justify-center items-center gap-4 w-full font-semibold">
-          <p>ตรวจสอบการลงทะเบียน</p> 
-          <Button 
-          color="warning"
-          variant="solid"
-          className="font-semibold text-white"
+          <p>ตรวจสอบข้อมูลการลงทะเบียน อสท.</p>
+          <Button
+            color="warning"
+            variant="solid"
+            type="button"
+            onPress={onOpenModal3}
           >
             ตรวจสอบ
           </Button>
@@ -324,7 +427,7 @@ export default function ReferentPage() {
         backdrop="blur"
         className="whitespace-nowrap sm:whitespace-normal"
         hideCloseButton={true}
-        id="modal-content"
+        id="modal-content-1"
         isDismissable={false}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
@@ -390,6 +493,137 @@ export default function ReferentPage() {
               </Button>
             </ModalFooter>
           </>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        backdrop="blur"
+        className="whitespace-nowrap sm:whitespace-normal"
+        hideCloseButton={true}
+        id="modal-content-4"
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+        isOpen={isOpenModal4}
+        placement="center"
+        size="sm"
+        onClose={onCloseModal4}
+      >
+        <ModalContent>
+          <>
+            <ModalHeader className="flex flex-col items-center font-bold">
+              ตรวจสอบข้อมูลการลงทะเบียน อสท.
+            </ModalHeader>
+            <ModalBody className="flex flex-col gap-2">
+              <Divider />
+              <div className="items-center flex justify-center box-border rounded-full bg-primary-100 font-semibold p-2 text-primary-600">
+                <span className="">รหัสอ้างอิง {selectVerification.id}</span>
+              </div>
+              <span>
+                ชื่อ - นามสกุล : {prefix[selectVerification.prefixId - 1]?.label}{" "}
+                {selectVerification?.firstname} {selectVerification?.lastname}
+              </span>
+              <span>
+                สังกัด :{" "}
+                {
+                  affiliation.find(
+                    (x) => x.id == selectVerification.affiliation_id
+                  )?.name
+                }
+              </span>
+              <span>หน่วยงาน : {selectVerification?.agency}</span>
+              <span>
+                ประเภทอาสาสมัคร :{" "}
+                {
+                  volunteerType.find(
+                    (x) => x.id == selectVerification.volunteer_type_id
+                  )?.name
+                }
+              </span>
+              <Divider />
+              <h1 className="text-center text-2xl font-bold text-red-500 ">
+                กรุณาบันทึกหน้าจอนี้
+              </h1>
+              <Image
+                alt="QR-Code"
+                className="w-[200px] h-[200px] mx-auto"
+                height={200}
+                src="/image/Teen-Mind.png"
+                width={200}
+              />
+              <Divider />
+            </ModalBody>
+            <ModalFooter className="flex justify-center">
+              <Button
+                color="primary"
+                variant="solid"
+                onPress={() => {
+                  onCloseModal4();
+                  formRef.current?.reset();
+                  setIsLoading(false);
+                }}
+              >
+                ปิด
+              </Button>
+            </ModalFooter>
+          </>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        backdrop="blur"
+        id="modal-content-3"
+        isOpen={isOpenModal3}
+        placement="center"
+        size="sm"
+        onClose={onCloseModal3}
+        onOpenChange={onOpenChange}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1 text-center">
+                ตรวจสอบการลงทะเบียน
+              </ModalHeader>
+              <ModalBody>
+                <Form
+                  className="flex flex-col gap-4 w-full p-5"
+                  onSubmit={handleVerification}
+                >
+                  <Input
+                    className="max-w-xl"
+                    isRequired={request}
+                    label="เลขบัตรประชาชน"
+                    labelPlacement="inside"
+                    name="citizenId"
+                    placeholder="เลขบัตรประชาชน"
+                    radius="md"
+                    size="sm"
+                    type="number"
+                    variant="faded"
+                  />
+                  <Input
+                    className="max-w-xl"
+                    errorMessage="กรุณากรอกเบอร์โทรศัพท์"
+                    isRequired={request}
+                    label="เบอร์โทรศัพท์"
+                    labelPlacement="inside"
+                    name="tel"
+                    placeholder="เบอร์โทรศัพท์"
+                    radius="md"
+                    size="sm"
+                    type="number"
+                    variant="faded"
+                  />
+                  <Button className="w-full" color="primary" type="submit">
+                    ตรวจสอบ
+                  </Button>
+                  <Button className="w-full" color="danger" variant="light" onPress={onCloseModal3}>
+                    ปิด
+                  </Button>
+                </Form>
+              </ModalBody>
+            </>
+          )}
         </ModalContent>
       </Modal>
     </div>

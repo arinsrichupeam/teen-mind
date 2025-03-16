@@ -245,7 +245,7 @@ export default function PHQAPage() {
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
         <Modal
-          backdrop="opaque"
+          backdrop="blur"
           hideCloseButton={true}
           isDismissable={false}
           isKeyboardDismissDisabled={true}
