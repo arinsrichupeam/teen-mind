@@ -31,10 +31,8 @@ export async function POST(request: Request) {
 
   const formattedData = data.map((referent) => ({
     ...referent,
-    id: referent.id.toString().padStart(3, '0'),
+    id: referent.id.toString().padStart(3, "0"),
   }));
-
-  console.log(formattedData);
 
   return Response.json(formattedData);
 }

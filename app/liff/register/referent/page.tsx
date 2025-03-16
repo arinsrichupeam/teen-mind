@@ -6,7 +6,6 @@ import {
   Divider,
   Form,
   Input,
-  Link,
   Modal,
   ModalBody,
   ModalContent,
@@ -53,8 +52,8 @@ export default function ReferentPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
     useState<Referent>(referentInitValue);
-  const [selectVerification, setSelectVerification] = useState<Referent>(
-    referentInitValue,)
+  const [selectVerification, setSelectVerification] =
+    useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
@@ -137,7 +136,7 @@ export default function ReferentPage() {
               title: "แจ้งเตือน",
               color: "danger",
               description: "ไม่พบข้อมูลการลงทะเบียน",
-            })
+            });
             onCloseModal3();
           }
         });
@@ -414,8 +413,8 @@ export default function ReferentPage() {
           <p>ตรวจสอบข้อมูลการลงทะเบียน อสท.</p>
           <Button
             color="warning"
-            variant="solid"
             type="button"
+            variant="solid"
             onPress={onOpenModal3}
           >
             ตรวจสอบ
@@ -519,7 +518,8 @@ export default function ReferentPage() {
                 <span className="">รหัสอ้างอิง {selectVerification.id}</span>
               </div>
               <span>
-                ชื่อ - นามสกุล : {prefix[selectVerification.prefixId - 1]?.label}{" "}
+                ชื่อ - นามสกุล :{" "}
+                {prefix[selectVerification.prefixId - 1]?.label}{" "}
                 {selectVerification?.firstname} {selectVerification?.lastname}
               </span>
               <span>
@@ -617,7 +617,12 @@ export default function ReferentPage() {
                   <Button className="w-full" color="primary" type="submit">
                     ตรวจสอบ
                   </Button>
-                  <Button className="w-full" color="danger" variant="light" onPress={onCloseModal3}>
+                  <Button
+                    className="w-full"
+                    color="danger"
+                    variant="light"
+                    onPress={onCloseModal3}
+                  >
                     ปิด
                   </Button>
                 </Form>
