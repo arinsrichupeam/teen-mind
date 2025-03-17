@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       lastname: profile_data.lastname,
       affiliationId: parseInt(profile_data.affiliationId.toString()),
       agency: profile_data.agency,
+      tel: profile_data.tel,
       employeeTypeId: parseInt(profile_data.employeeTypeId.toString()),
       professional: profile_data.professional,
       license: profile_data.license,

@@ -37,7 +37,10 @@ export default function QuestionPage() {
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [statusFilter, setStatusFilter] = useState<Selection>("all");
+  const [statusFilter, setStatusFilter] = useState<Selection>(
+    new Set(["0", "1"])
+    // "all"
+  );
   const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -92,7 +95,7 @@ export default function QuestionPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(sortedItems.length / parseInt(e.target.value)));
+      setPages(Math.ceil(filteredItems.length / parseInt(e.target.value)));
       setPage(1);
     },
     [pages, items]
@@ -182,7 +185,7 @@ export default function QuestionPage() {
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({questionsList.length} รายการ)
+            หน้า {page}/{pages} ({filteredItems.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -204,45 +207,57 @@ export default function QuestionPage() {
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
-  const onRowDetailPress = useCallback((e: any) => {
-    fetch("/api/question/" + e)
-      .then((res) => res.json())
-      .then((val) => {
-        setSelectedKeys(val[0]);
-        setMode("View");
-        onOpen();
-      });
-  }, []);
+  const onRowDetailPress = useCallback(
+    (e: any) => {
+      fetch("/api/question/" + e)
+        .then((res) => res.json())
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
+          setMode("View");
+          onOpen();
+        });
+    },
+    [selectedKeys, mode]
+  );
 
-  const onRowEditPress = useCallback((e: any) => {
-    fetch("/api/question/" + e)
+  const onRowEditPress = useCallback(
+    (e: any) => {
+      fetch("/api/question/" + e)
+        .then((res) => res.json())
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
+          setMode("Edit");
+          onOpen();
+        });
+    },
+    [selectedKeys, mode]
+  );
+
+  const GetQuestionList = useCallback(async () => {
+    await fetch("/api/question")
       .then((res) => res.json())
       .then((val) => {
-        setSelectedKeys(val[0]);
-        setMode("Edit");
-        onOpen();
+        setQuestionsList(val.questionsList);
+        setPages(Math.ceil(val.questionsList.length / rowsPerPage));
+        setIsLoading(false);
       });
-  }, []);
+  }, [questionsList]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      fetch("/api/question")
-        .then((res) => res.json())
-        .then((val) => {
-          setQuestionsList(val.questionsList);
-          setPages(Math.ceil(val.questionsList.length / rowsPerPage));
-          setIsLoading(false);
-        });
-    } else {
+    if (status !== "loading" && status === "unauthenticated") {
       router.push("/admin/login");
+    } else {
+      if (!isOpen) {
+        GetQuestionList();
+      }
     }
-  }, [isLoading]);
+  }, [session, isOpen]);
 
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
       <div className="max-w-[95rem] mx-auto w-full">
         <QuestionDrawer
-          data={selectedKeys}
+          data={selectedKeys!}
           isOpen={isOpen}
           mode={mode}
           onClose={onClose}
@@ -285,7 +300,7 @@ export default function QuestionPage() {
                         data: item,
                         columnKey: columnKey,
                         index:
-                          questionsList.findIndex((x) => x.id == item.id) + 1,
+                          filteredItems.findIndex((x) => x.id == item.id) + 1,
                         viewDetail: onRowDetailPress,
                         editDetail: onRowEditPress,
                       })}

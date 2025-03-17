@@ -2,7 +2,6 @@
 
 import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import moment from "moment";
 import { Button, Chip } from "@heroui/react";
 import { Affiliation } from "@prisma/client";
 
@@ -29,31 +28,7 @@ export const RenderCell = ({
 }: Props) => {
   const affiliationData = affiliationList;
 
-  function timeAgo(date: string) {
-    moment.updateLocale("th", {
-      relativeTime: {
-        future: "in %s",
-        past: "%s",
-        s: (number) => number + "s ago",
-        ss: "%ds ago",
-        m: "1m ago",
-        mm: "%dm ago",
-        h: "1h ago",
-        hh: "%dh ago",
-        d: "1d ago",
-        dd: "%dd ago",
-        M: "a month ago",
-        MM: "%d months ago",
-        y: "a year ago",
-        yy: "%d ปี",
-      },
-    });
-
-    return moment(date).fromNow();
-  }
-
-  // @ts-ignore
-  const cellValue = data[columnKey];
+  const cellValue = data[columnKey.toString()];
 
   switch (columnKey) {
     case "id":

@@ -1,5 +1,5 @@
 import React from "react";
-import { PencilIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { Districts, School } from "@prisma/client";
 import { Chip } from "@heroui/react";
 
@@ -17,7 +17,7 @@ export const SchoolRenderCell = ({
   columnKey,
   index,
   district,
-  // viewSchool,
+  viewSchool,
   editSchool,
   // deleteSchool,
 }: Props) => {
@@ -62,11 +62,11 @@ export const SchoolRenderCell = ({
     case "actions":
       return (
         <div className="flex gap-4 justify-center">
-          {/* <div>
+          <div>
             <button onClick={() => viewSchool(data.id)}>
               <EyeIcon className="size-6 text-primary-400" />
             </button>
-          </div> */}
+          </div>
           <div>
             <button onClick={() => editSchool(data.id)}>
               <PencilIcon className="size-6 text-warning-400" />

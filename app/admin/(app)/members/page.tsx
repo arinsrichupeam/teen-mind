@@ -29,6 +29,7 @@ import {
   User,
   Divider,
   ScrollShadow,
+  addToast,
 } from "@heroui/react";
 import {
   ChevronDownIcon,
@@ -132,7 +133,7 @@ export default function QuestionPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(sortedItems.length / parseInt(e.target.value)));
+      setPages(Math.ceil(filteredItems.length / parseInt(e.target.value)));
       setPage(1);
     },
     [pages, items]
@@ -165,7 +166,7 @@ export default function QuestionPage() {
             value={filterValue}
             variant="bordered"
             onClear={() => setFilterValue("")}
-            // onValueChange={onSearchChange}
+          // onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -222,7 +223,7 @@ export default function QuestionPage() {
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({profileAdminList.length} รายการ)
+            หน้า {page}/{pages} ({filteredItems.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -319,12 +320,16 @@ export default function QuestionPage() {
           "Content-Type": "application/json",
         },
         body: data,
-      }).then((val) => {
+      }).then(() => {
         GetProfileAdminList();
         onOpenChange();
+        addToast({
+          color: "success",
+          title: "แก้ไขผู้ใช้งาน",
+          description: "แก้ไขผู้ใช้งานสำเร็จ",
+          timeout: 3000,
+        });
       });
-
-      // console.log(selectedProfile);
     },
     [selectedProfile]
   );
@@ -337,7 +342,7 @@ export default function QuestionPage() {
       GetAffiliationList();
       GetEmployeeList();
     }
-  }, [isLoading]);
+  }, [session]);
 
   return (
     <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
@@ -368,22 +373,27 @@ export default function QuestionPage() {
                     }}
                     classNames={{ name: "font-semibold" }}
                     description={
-                      <p>ID : {selectedProfile.providerAccountId}</p>
+                      <p>Line ID : {selectedProfile.providerAccountId}</p>
                     }
-                    name={<p>{selectedProfile.name}</p>}
+                    name={
+                      <>
+                        <p>หมายเลข ปชช : {selectedProfile.citizenId}</p>
+                        <p>Line : {selectedProfile.name}</p>
+                      </>
+                    }
                   />
                 </div>
                 <ScrollShadow className="h-[600px]" size={20}>
                   <div className="flex flex-col gap-3 font-semibold">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Input
-                        label="รหัสประชาชน"
+                        label="หมายเลขโทรศัพท์"
                         labelPlacement="outside"
-                        name="citizenId"
-                        placeholder="รหัสประชาชน"
+                        name="tel"
+                        placeholder="หมายเลขโทรศัพท์"
                         radius="sm"
                         size="md"
-                        value={selectedProfile?.citizenId}
+                        value={selectedProfile.tel}
                         variant="bordered"
                         onChange={HandleChange}
                       />
@@ -601,7 +611,7 @@ export default function QuestionPage() {
           // sortDescriptor={sortDescriptor}
           topContent={topContent}
           topContentPlacement="outside"
-          // onSortChange={setSortDescriptor}
+        // onSortChange={setSortDescriptor}
         >
           <TableHeader columns={columns}>
             {(column) => (

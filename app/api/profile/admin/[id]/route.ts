@@ -73,7 +73,7 @@ export async function GET(
     prefixId: profile?.profile_admin[0].prefixId as number,
     firstname: profile?.profile_admin[0].firstname as string,
     lastname: profile?.profile_admin[0].lastname as string,
-    tel: "",
+    tel: profile?.profile_admin[0].tel as string,
     affiliationId: profile?.profile_admin[0].affiliationId as number,
     agency: profile?.profile_admin[0].agency as string,
     employeeTypeId: profile?.profile_admin[0].employeeTypeId as number,
