@@ -186,7 +186,7 @@ export default function PHQAPage() {
         affiliation: affiliation,
         agency: agency,
       });
-    } catch (error) {
+    } catch {
       setReferentData({
         fullName: "ไม่พบข้อมูล",
         affiliation: "ไม่พบข้อมูล",

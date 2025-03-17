@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   });
 
   if (user?.profile_admin.length) {
+    // Update Profile
     // console.log("Update Profile");
   } else {
     await prisma.user.update({

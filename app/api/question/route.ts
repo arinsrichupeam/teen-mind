@@ -3,7 +3,7 @@ import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 import lineSdk from "@/utils/linesdk";
 import { GreenFlex, RedFlex, YellowFlex } from "@/config/site";
-import { LocationData } from "@/types";
+import { LocationData, QuestionsData } from "@/types";
 
 export async function GET() {
   const questionsList = await prisma.questions_Master.findMany({
@@ -165,6 +165,65 @@ export async function POST(req: Request) {
     });
 
   return Response.json(result);
+}
+
+export async function PUT(req: Request) {
+  const data = await req.json();
+
+  const question: QuestionsData = data.questionData;
+
+  // console.log(question);
+  await prisma.questions_Master.update({
+    where: {
+      id: question.id,
+    },
+    data: {
+      consult: question.consult,
+      schedule_telemed: question.schedule_telemed,
+      subjective: question.subjective,
+      objective: question.objective,
+      assessment: question.assessment,
+      plan: question.plan,
+      status: CalStatus(question),
+    },
+  });
+
+  return Response.json("Success");
+}
+
+function CalStatus(value: QuestionsData) {
+  console.log(
+    value.subjective,
+    ":",
+    value.objective,
+    ":",
+    value.assessment,
+    ":",
+    value.plan
+  );
+
+  if (
+    value.status == 1 &&
+    value.schedule_telemed != null &&
+    value.consult != null
+  ) {
+    return 2;
+  } else if (
+    value.status == 2 &&
+    value.subjective &&
+    // != "" && value.subj
+    // ective != null
+    value.objective &&
+    // != "" && value.objective != null
+    value.assessment &&
+    // != "" && value.assessment != null
+    value.plan
+    // != "" && value.plan != null
+  ) {
+    return 3;
+  } else {
+    return value.status;
+  }
 }
 
 function SumValue(value: any) {

@@ -35,6 +35,7 @@ export type QuestionsData = {
   schedule_telemed: Date;
   consult: string;
   createdAt: string;
+  status: number;
   user: User;
   phqa: Phqa[];
   addon: Phqa_Addon[];

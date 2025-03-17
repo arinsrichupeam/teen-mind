@@ -28,6 +28,8 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { SchoolRenderCell } from "./components/rendercell-scool";
 import { SchoolListColumnsName as columns } from "./data";
+import router from "next/router";
+import { useSession } from "next-auth/react";
 
 const schoolInitValue: School = {
   name: "",
@@ -43,11 +45,11 @@ export default function SchoolListPage() {
   const [schoolList, setSchoolList] = useState<School[]>([]);
   const [districtData, setDistrictData] = useState<Districts[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<School>(schoolInitValue);
-  const [showAlert, setShowAlert] = useState(false);
   const [mode, setMode] = useState("View");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { data: session, status } = useSession();
 
   const [sortDescriptor, setSortDescriptor] = useState<any>({
     column: "id",
@@ -190,7 +192,6 @@ export default function SchoolListPage() {
       .then((val) => {
         setSchoolList(val);
         setPages(Math.ceil(val.length / rowsPerPage));
-        setIsLoading(false);
       });
   }, [schoolList]);
 
@@ -206,12 +207,24 @@ export default function SchoolListPage() {
   );
 
   useEffect(() => {
-    // ข้อมูลโรงเรียน
-    GetSchool();
+    if (status !== "loading" && status === "unauthenticated") {
+      router.push("/admin/login");
+    } else {
+      GetDistricts(1);
+      if (!isOpen) {
+        GetSchool();
+      }
 
-    // ข้อมูลเขตใน กทม
-    GetDistricts(1);
-  }, [isLoading]);
+      if (districtData && schoolList) {
+        setIsLoading(false);
+      }
+    }
+    // ข้อมูลโรงเรียน
+    // GetSchool();
+
+    // // ข้อมูลเขตใน กทม
+    // GetDistricts(1);
+  }, [session]);
 
   return (
     <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
