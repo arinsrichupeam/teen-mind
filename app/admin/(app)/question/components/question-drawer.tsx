@@ -424,10 +424,10 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                  moment(data?.schedule_telemed).format(
-                                    "YYYY-MM-DD"
+                                    moment(data?.schedule_telemed).format(
+                                      "YYYY-MM-DD"
+                                    )
                                   )
-                                )
                                 : null
                             }
                             label="Schedule Telemed"

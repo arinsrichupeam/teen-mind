@@ -25,11 +25,11 @@ import {
 } from "@heroui/react";
 import { School, Districts } from "@prisma/client";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import router from "next/router";
+import { useSession } from "next-auth/react";
 
 import { SchoolRenderCell } from "./components/rendercell-scool";
 import { SchoolListColumnsName as columns } from "./data";
-import router from "next/router";
-import { useSession } from "next-auth/react";
 
 const schoolInitValue: School = {
   name: "",
