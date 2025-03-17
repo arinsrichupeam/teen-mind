@@ -14,6 +14,7 @@ import {
   ModalBody,
   ModalContent,
   ModalFooter,
+  ModalHeader,
   useDisclosure,
 } from "@heroui/modal";
 import { Divider, InputOtp } from "@heroui/react";
@@ -24,88 +25,38 @@ import Loading from "@/app/loading";
 import { qPhqa_addon, qPhqa } from "@/app/data";
 
 export default function PHQAPage() {
-  const qPhqa_Image = (key: number) => [
+  const qPhqa_Image = [
+    { src: "/image/Q1-01.png", alt: "PHQA Image 1" },
+    { src: "/image/Q1-02.png", alt: "PHQA Image 2" },
+    { src: "/image/Q1-03.png", alt: "PHQA Image 3" },
+    { src: "/image/Q1-04.png", alt: "PHQA Image 4" },
+    { src: "/image/Q1-05.png", alt: "PHQA Image 5" },
+    { src: "/image/Q1-06.png", alt: "PHQA Image 6" },
+    { src: "/image/Q1-07.png", alt: "PHQA Image 7" },
+    { src: "/image/Q1-08.png", alt: "PHQA Image 8" },
+    { src: "/image/Q1-09.png", alt: "PHQA Image 9" },
+  ].map((image, index) => (
     <Image
-      key={key}
-      alt="PHQA Image"
+      key={index}
+      alt={image.alt}
       className="h-[20vh]"
       loading="lazy"
-      src="/image/Q1-01.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-02.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-03.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-04.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-05.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-06.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-07.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-08.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q1-09.png"
-    />,
-  ];
+      src={image.src}
+    />
+  ));
 
-  const qPhqa_addon_Image = (key: number) => [
+  const qPhqa_addon_Image = [
+    { src: "/image/Q2-01.png", alt: "PHQA Addon Image 1" },
+    { src: "/image/Q2-02.png", alt: "PHQA Addon Image 2" },
+  ].map((image, index) => (
     <Image
-      key={key}
-      alt="PHQA Image"
+      key={index}
+      alt={image.alt}
       className="h-[20vh]"
       loading="lazy"
-      src="/image/Q2-01.png"
-    />,
-    <Image
-      key={key}
-      alt="PHQA Image"
-      className="h-[20vh]"
-      loading="lazy"
-      src="/image/Q2-02.png"
-    />,
-  ];
+      src={image.src}
+    />
+  ));
 
   const phqaInitValue: Questions_PHQA = {
     id: "",
@@ -132,7 +83,7 @@ export default function PHQAPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [questionName, setQuestionName] = useState("PHQ-A");
-  const [progress, setProgress] = useState(9);
+  const [progress, setProgress] = useState(0);
   const [showPHQA, setPHQAShow] = useState(true);
   const [submit, setSubmit] = useState(true);
   const [userId, setUserId] = useState("");
@@ -294,7 +245,7 @@ export default function PHQAPage() {
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
         <Modal
-          backdrop="opaque"
+          backdrop="blur"
           hideCloseButton={true}
           isDismissable={false}
           isKeyboardDismissDisabled={true}
@@ -306,10 +257,10 @@ export default function PHQAPage() {
           <ModalContent>
             {() => (
               <>
-                <ModalBody className="items-center text-center pt-10">
-                  <h2 className={title({ size: "xs" })}>
-                    กรอกรหัสผู้ให้คำแนะนำ
-                  </h2>
+                <ModalHeader className="flex flex-col items-center font-semibold text-2xl">
+                  กรอกรหัสผู้ให้คำแนะนำ
+                </ModalHeader>
+                <ModalBody className="items-center text-center">
                   <Divider />
                   <div className="flex justify-center">
                     <InputOtp
@@ -368,9 +319,11 @@ export default function PHQAPage() {
             )}
           </ModalContent>
         </Modal>
+
         <h1 className={title({ size: "xs" })}>
           แบบประเมินภาวะซึมเศร้าในวัยรุ่น
         </h1>
+
         <Progress
           aria-label="Loading..."
           className="max-w-md"
@@ -394,7 +347,7 @@ export default function PHQAPage() {
                     <Tab key={index}>
                       <div className="flex flex-col gap-4 mt-[-50px]">
                         <div className="flex flex-col items-center">
-                          {qPhqa_Image(index)[index]}
+                          {qPhqa_Image[index]}
                         </div>
                         <div className="flex flex-col gap-4 items-start text-start">
                           <p className="text-primary-500 font-semibold">
@@ -406,7 +359,10 @@ export default function PHQAPage() {
                               className="pl-5"
                               label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
                               name={(index + 1).toString()}
-                              onChange={(val) => phqaChange(val)}
+                              onChange={(val) => {
+                                phqaChange(val);
+                                setProgress(calProgress(index + 1));
+                              }}
                             >
                               <Radio
                                 className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
@@ -444,7 +400,7 @@ export default function PHQAPage() {
                     <Tab key={index + 9}>
                       <div className="flex flex-col  gap-4 mt-[-50px]">
                         <div className="flex flex-col items-center">
-                          {qPhqa_addon_Image(index)[index]}
+                          {qPhqa_addon_Image[index]}
                         </div>
                         <div className="flex flex-col gap-4 items-start text-start">
                           <p className="text-primary-500 font-semibold">
@@ -459,7 +415,10 @@ export default function PHQAPage() {
                               value={Object.entries(val)
                                 [index + 2].toString()
                                 .substring(3)}
-                              onChange={(val) => phqaAddonChange(val)}
+                              onChange={(val) => {
+                                phqaAddonChange(val);
+                                setProgress(calProgress(index + 10));
+                              }}
                             >
                               <Radio
                                 className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
