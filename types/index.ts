@@ -33,6 +33,7 @@ export type QuestionsData = {
   assessment: string;
   plan: string;
   schedule_telemed: Date;
+  follow_up: Date;
   consult: string;
   createdAt: string;
   status: number;

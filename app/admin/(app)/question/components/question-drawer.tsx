@@ -40,6 +40,7 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 import "leaflet-defaulticon-compatibility";
 import { Consultant, QuestionsData } from "@/types";
 import { subtitle } from "@/components/primitives";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Props {
   isOpen: any;
@@ -52,6 +53,27 @@ const ConsultantInitValue: Consultant[] = [
   {
     id: "",
     name: "",
+  },
+];
+
+const tabs = [
+  {
+    id: "photos",
+    label: "Photos",
+    content:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+  },
+  {
+    id: "music",
+    label: "Music",
+    content:
+      "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+  },
+  {
+    id: "videos",
+    label: "Videos",
+    content:
+      "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
 ];
 
@@ -395,12 +417,51 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 <QuestionDetail data={data} />
               ) : (
                 <div className="flex flex-col">
+                  {/* <div className="flex flex-row pb-3">
+                    <h2 className={subtitle()}>Telemedicine</h2>
+                    <Select
+                      className="max-w-xs"
+                      defaultSelectedKeys={data?.status.toString()}
+                      label="สถานะ"
+                      labelPlacement="outside-left"
+                      name="status"
+                      placeholder="สถานะ"
+                      radius="md"
+                      variant="bordered"
+                      onChange={(val) => {
+                        HandleChange({
+                          target: {
+                            name: "status",
+                            value: parseInt(val.target.value),
+                          },
+                        });
+                      }}
+                    >
+                      {statusOptions.map((item) => (
+                        <SelectItem key={item.uid}>{item.name}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <Tabs
+                    aria-label="Dynamic tabs"
+                    color="primary"
+                    items={tabs}
+                    variant="underlined"
+                  >
+                    {(item) => (
+                      <Tab key={item.id} title={item.label}>
+                        <Card>
+                          <CardBody>{item.content}</CardBody>
+                        </Card>
+                      </Tab>
+                    )}
+                  </Tabs> */}
+
                   <div>
                     <div className="flex flex-row pb-3">
                       <h2 className={subtitle()}>Telemedicine</h2>
                       <Select
                         className="max-w-xs"
-                        classNames={{ mainWrapper: "bg-write" }}
                         defaultSelectedKeys={data?.status.toString()}
                         label="สถานะ"
                         labelPlacement="outside-left"
@@ -429,15 +490,16 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                    moment(data?.schedule_telemed).format(
-                                      "YYYY-MM-DD"
-                                    )
+                                  moment(data?.schedule_telemed).format(
+                                    "YYYY-MM-DD"
                                   )
+                                )
                                 : null
                             }
                             label="Schedule Telemed"
                             labelPlacement="outside"
                             name="schedule_telemed"
+                            selectorButtonPlacement="start"
                             variant="bordered"
                             onChange={(val) =>
                               HandleChange({
@@ -476,7 +538,48 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     </Card>
                   </div>
                   <div>
-                    <h2 className={subtitle()}>Discharge Summary</h2>
+                    <div className="flex flex-row py-3">
+                      <h2 className={subtitle()}>Discharge Summary</h2>
+                      <DatePicker
+                        className="max-w-xs"
+                        defaultValue={
+                          data?.follow_up
+                            ? parseDate(
+                              moment(data?.follow_up).format(
+                                "YYYY-MM-DD"
+                              )
+                            )
+                            : null
+                        }
+                        label="Follow Up"
+                        labelPlacement="outside-left"
+                        name="schedule_telemed"
+                        selectorButtonPlacement="start"
+                        variant="bordered"
+                        // endContent={
+                        //   <Button isIconOnly variant="light" radius="full" onPress={
+                        //     (val) => {
+                        //       // console.log(val);
+                        //       HandleChange({
+                        //         target: {
+                        //           name: "schedule_telemed",
+                        //           value: null,
+                        //         },
+                        //       })
+                        //     }
+                        //   }
+                        //   ><XMarkIcon className="size-4" /></Button>
+                        // }
+                        onChange={(val) =>
+                          HandleChange({
+                            target: {
+                              name: "schedule_telemed",
+                              value: val,
+                            },
+                          })
+                        }
+                      />
+                    </div>
                     <Card>
                       <CardBody className="gap-5">
                         <Textarea
@@ -484,7 +587,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={data?.subjective}
                           label="1.	Subjective data"
                           labelPlacement="outside"
-                          minRows={4}
+                          minRows={3}
                           name="subjective"
                           placeholder="Description"
                           variant="bordered"
@@ -500,7 +603,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={data?.objective}
                           label="2.	Objective data"
                           labelPlacement="outside"
-                          minRows={4}
+                          minRows={3}
                           name="objective"
                           placeholder="Description"
                           variant="bordered"
@@ -516,7 +619,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={data?.assessment}
                           label="3.	Assessment"
                           labelPlacement="outside"
-                          minRows={4}
+                          minRows={3}
                           name="assessment"
                           placeholder="Description"
                           variant="bordered"
@@ -532,7 +635,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={data?.plan}
                           label="4.	Plan"
                           labelPlacement="outside"
-                          minRows={4}
+                          minRows={3}
                           name="plan"
                           placeholder="Description"
                           variant="bordered"

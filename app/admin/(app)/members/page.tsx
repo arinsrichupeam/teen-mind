@@ -153,8 +153,8 @@ export default function QuestionPage() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end">
           <Input
-            isDisabled
             isClearable
+            isDisabled
             classNames={{
               base: "w-full sm:max-w-[44%]",
               inputWrapper: "border-1",
@@ -343,7 +343,7 @@ export default function QuestionPage() {
       GetAffiliationList();
       GetEmployeeList();
     }
-  }, [session]);
+  }, [session, isLoading]);
 
   return (
     <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">

@@ -33,7 +33,9 @@ export const SidebarWrapper = () => {
       fetch("/api/profile/admin/" + session.user?.id)
         .then((res) => res.json())
         .then((val) => {
-          setRole(val.role);
+          if (val) {
+            setRole(val.role);
+          }
         });
     }
   }, [session]);

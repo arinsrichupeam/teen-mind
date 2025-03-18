@@ -8,21 +8,9 @@ export default function AdminHome() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const GetProfileAdmin = useCallback(async () => {
-    await fetch(`/api/profile/admin/${session?.user?.id}`)
-      .then((res) => res.json())
-      .then((val) => {
-        if (val == null) {
-          router.push("/admin/register");
-        }
-      });
-  }, [router]);
-
   useEffect(() => {
     if (status !== "loading" && status === "unauthenticated") {
       router.push("/admin/login");
-    } else {
-      GetProfileAdmin();
     }
   }, [session, router]);
 

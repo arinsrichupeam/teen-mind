@@ -1,6 +1,7 @@
 import { ProfileAdminData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
+import { NextApiResponse } from "next";
 
 export async function GET(
   req: Request,
@@ -63,27 +64,31 @@ export async function GET(
     },
   });
 
-  const result: ProfileAdminData = {
-    id: profile?.profile_admin[0].id as string,
-    userId: profile?.profile_admin[0].userId as string,
-    providerAccountId: profile?.accounts[0].providerAccountId as string,
-    image: profile?.image as string,
-    name: profile?.name as string,
-    citizenId: profile?.profile_admin[0].citizenId as string,
-    prefixId: profile?.profile_admin[0].prefixId as number,
-    firstname: profile?.profile_admin[0].firstname as string,
-    lastname: profile?.profile_admin[0].lastname as string,
-    tel: profile?.profile_admin[0].tel as string,
-    affiliationId: profile?.profile_admin[0].affiliationId as number,
-    agency: profile?.profile_admin[0].agency as string,
-    employeeTypeId: profile?.profile_admin[0].employeeTypeId as number,
-    professional: profile?.profile_admin[0].professional as string,
-    license: profile?.profile_admin[0].license as string,
-    status: profile?.profile_admin[0].status as number,
-    createdAt: "",
-    updatedAt: "",
-    role: profile?.profile_admin[0].role[0].id as number,
-  };
+  if (profile?.profile_admin.length != 0) {
+    const result: ProfileAdminData = {
+      id: profile?.profile_admin[0].id as string,
+      userId: profile?.profile_admin[0].userId as string,
+      providerAccountId: profile?.accounts[0].providerAccountId as string,
+      image: profile?.image as string,
+      name: profile?.name as string,
+      citizenId: profile?.profile_admin[0].citizenId as string,
+      prefixId: profile?.profile_admin[0].prefixId as number,
+      firstname: profile?.profile_admin[0].firstname as string,
+      lastname: profile?.profile_admin[0].lastname as string,
+      tel: profile?.profile_admin[0].tel as string,
+      affiliationId: profile?.profile_admin[0].affiliationId as number,
+      agency: profile?.profile_admin[0].agency as string,
+      employeeTypeId: profile?.profile_admin[0].employeeTypeId as number,
+      professional: profile?.profile_admin[0].professional as string,
+      license: profile?.profile_admin[0].license as string,
+      status: profile?.profile_admin[0].status as number,
+      createdAt: "",
+      updatedAt: "",
+      role: profile?.profile_admin[0].role[0].id as number,
+    };
 
-  return Response.json(result);
+    return Response.json(result);
+  }
+
+  return Response.json(null);
 }

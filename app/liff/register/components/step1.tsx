@@ -5,11 +5,15 @@ import { Input } from "@heroui/input";
 import { Form } from "@heroui/form";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
-import { DateInput } from "@heroui/date-input";
 import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
-import { Autocomplete, AutocompleteItem, NumberInput } from "@heroui/react";
+import {
+  Autocomplete,
+  AutocompleteItem,
+  DatePicker,
+  NumberInput,
+} from "@heroui/react";
 
 import { prefix, sex } from "@/utils/data";
 import { validateCitizen } from "@/utils/helper";
@@ -133,13 +137,15 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         variant="faded"
         onChange={HandleChange}
       />
-      <DateInput
+      <DatePicker
         className="w-full"
         errorMessage="กรุณาเลือกวันเกิด"
         isRequired={request}
         label="วันเกิด"
         labelPlacement="inside"
         radius="md"
+        selectorButtonPlacement="start"
+        showMonthAndYearPickers={true}
         size="sm"
         value={birthday}
         variant="faded"

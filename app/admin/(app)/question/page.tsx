@@ -80,14 +80,17 @@ export default function QuestionPage() {
     let filteredUsers = [...questionsList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) =>
-        val.result.toLowerCase().includes(filterValue.toLowerCase()),
+      filteredUsers = filteredUsers.filter(
+        (val) => val.result.toLowerCase().includes(filterValue.toLowerCase())
         // val
       );
     }
-    if (statusFilter !== "all" && Array.from(statusFilter).length !== statusOptions.length) {
+    if (
+      statusFilter !== "all" &&
+      Array.from(statusFilter).length !== statusOptions.length
+    ) {
       filteredUsers = filteredUsers.filter((user) =>
-        Array.from(statusFilter).includes(user.status.toString()),
+        Array.from(statusFilter).includes(user.status.toString())
       );
     }
 
@@ -134,8 +137,8 @@ export default function QuestionPage() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end">
           <Input
-            isDisabled
             isClearable
+            isDisabled
             classNames={{
               base: "w-full sm:max-w-[44%]",
               inputWrapper: "border-1",
