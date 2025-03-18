@@ -5,6 +5,7 @@ import React, { ReactNode, useState } from "react";
 import { SidebarContext } from "./layout-context";
 import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 import { NavbarWrapper } from "./components/navbar_admin";
+import { ModalUserStatus } from "./components/modal/modal-User-status";
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,7 +21,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
       }}
     >
       <section className="flex">
-        {/* <ModalUserStatus /> */}
+        <ModalUserStatus />
         <SidebarWrapper />
         <NavbarWrapper>{children}</NavbarWrapper>
       </section>

@@ -1,28 +1,28 @@
 "use client";
 
-import { useDisclosure } from "@heroui/react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 export default function AdminHome() {
   const { data: session, status } = useSession();
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
 
+  const GetProfileAdmin = useCallback(async () => {
+    await fetch(`/api/profile/admin/${session?.user?.id}`)
+      .then((res) => res.json())
+      .then((val) => {
+        if (val == null) {
+          router.push("/admin/register");
+        }
+      });
+  }, [router]);
+
   useEffect(() => {
-    if (status !== "loading") {
-      if (status !== "authenticated") {
-        router.push("/admin/login");
-      } else {
-        fetch(`/api/profile/admin/${session.user?.id}`)
-          .then((res) => res.json())
-          .then((val) => {
-            if (val == null) {
-              router.push("/admin/register");
-            }
-          });
-      }
+    if (status !== "loading" && status === "unauthenticated") {
+      router.push("/admin/login");
+    } else {
+      GetProfileAdmin();
     }
   }, [session, router]);
 

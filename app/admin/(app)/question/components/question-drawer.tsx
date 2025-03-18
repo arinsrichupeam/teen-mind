@@ -192,7 +192,12 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   }, [isOpen]);
 
   return (
-    <Drawer isOpen={isOpen} size={"4xl"} onClose={onClose}>
+    <Drawer
+      isKeyboardDismissDisabled={true}
+      isOpen={isOpen}
+      size={"4xl"}
+      onClose={onClose}
+    >
       <DrawerContent>
         {(onClose) => (
           <Form onReset={onClose} onSubmit={onSubmit}>

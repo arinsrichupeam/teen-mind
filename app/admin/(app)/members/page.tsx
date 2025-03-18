@@ -153,6 +153,7 @@ export default function QuestionPage() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end">
           <Input
+            isDisabled
             isClearable
             classNames={{
               base: "w-full sm:max-w-[44%]",
@@ -166,7 +167,7 @@ export default function QuestionPage() {
             value={filterValue}
             variant="bordered"
             onClear={() => setFilterValue("")}
-            // onValueChange={onSearchChange}
+          // onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -611,7 +612,7 @@ export default function QuestionPage() {
           // sortDescriptor={sortDescriptor}
           topContent={topContent}
           topContentPlacement="outside"
-          // onSortChange={setSortDescriptor}
+        // onSortChange={setSortDescriptor}
         >
           <TableHeader columns={columns}>
             {(column) => (

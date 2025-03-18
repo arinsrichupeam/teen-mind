@@ -55,20 +55,39 @@ export default function QuestionPage() {
 
   const hasSearchFilter = Boolean(filterValue);
 
+  // const filteredItems = useMemo(() => {
+  //   let filteredUsers = [...questionsList];
+
+  //   if (hasSearchFilter) {
+  //     filteredUsers = filteredUsers.filter((val) => {
+  //       console.log(val.result.toLowerCase());
+  //       val.result.toLowerCase().includes(filterValue.toLowerCase());
+  //     });
+  //   }
+  //   if (
+  //     statusFilter !== "all" &&
+  //     Array.from(statusFilter).length !== statusOptions.length
+  //   ) {
+  //     filteredUsers = filteredUsers.filter((user) =>
+  //       Array.from(statusFilter).includes(user.status.toString())
+  //     );
+  //   }
+
+  //   return filteredUsers;
+  // }, [questionsList, filterValue, statusFilter]);
+
   const filteredItems = useMemo(() => {
     let filteredUsers = [...questionsList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val: QuestionsList) => {
-        val.firstname.toLowerCase().includes(filterValue.toLowerCase());
-      });
+      filteredUsers = filteredUsers.filter((val) =>
+        val.result.toLowerCase().includes(filterValue.toLowerCase()),
+        // val
+      );
     }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
+    if (statusFilter !== "all" && Array.from(statusFilter).length !== statusOptions.length) {
       filteredUsers = filteredUsers.filter((user) =>
-        Array.from(statusFilter).includes(user.status.toString())
+        Array.from(statusFilter).includes(user.status.toString()),
       );
     }
 
@@ -115,6 +134,7 @@ export default function QuestionPage() {
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-3 items-end">
           <Input
+            isDisabled
             isClearable
             classNames={{
               base: "w-full sm:max-w-[44%]",
