@@ -72,10 +72,7 @@ export const RenderCell = ({
     case "role":
       return (
         <div>
-          <span>
-            {/* {Roles.find((x) => x.id === parseInt(data.role))?.name} */}
-            {data.role[0].name}
-          </span>
+          <span>{data.role.name}</span>
         </div>
       );
     case "status":

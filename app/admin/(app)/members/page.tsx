@@ -64,7 +64,7 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   status: 0,
   createdAt: "",
   updatedAt: "",
-  role: 0,
+  roleId: 0,
 };
 
 export default function QuestionPage() {
@@ -542,9 +542,9 @@ export default function QuestionPage() {
                         placeholder="สิทธิ์การใช้งาน"
                         radius="sm"
                         selectedKeys={
-                          selectedProfile.role === 0
+                          selectedProfile.roleId === 0
                             ? ""
-                            : selectedProfile.role.toString()
+                            : selectedProfile.roleId.toString()
                         }
                         size="md"
                         variant="bordered"

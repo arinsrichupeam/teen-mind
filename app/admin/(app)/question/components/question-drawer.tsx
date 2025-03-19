@@ -40,7 +40,6 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 import "leaflet-defaulticon-compatibility";
 import { Consultant, QuestionsData } from "@/types";
 import { subtitle } from "@/components/primitives";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Props {
   isOpen: any;
@@ -53,27 +52,6 @@ const ConsultantInitValue: Consultant[] = [
   {
     id: "",
     name: "",
-  },
-];
-
-const tabs = [
-  {
-    id: "photos",
-    label: "Photos",
-    content:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-  },
-  {
-    id: "music",
-    label: "Music",
-    content:
-      "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-  },
-  {
-    id: "videos",
-    label: "Videos",
-    content:
-      "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
 ];
 
@@ -120,13 +98,13 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       .then((res) => res.json())
       .then((val: any) => {
         const consult = val.filter(
-          (x: any) => x.status === 1 && x.role[0].id == 4
+          (x: any) => x.status === 1 && x.role.id == 3
         );
 
         if (consult != 0) {
           setConsultant([
             {
-              id: consult[0].id,
+              id: consult[0].userId,
               name: consult[0].firstname + " " + consult[0].lastname,
             },
           ]);
@@ -171,6 +149,13 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         setQuestionData((prev) => ({
           ...prev,
           schedule_telemed: date,
+        }));
+      } else if (e.target.name === "follow_up") {
+        const date = new Date(value);
+
+        setQuestionData((prev) => ({
+          ...prev,
+          follow_up: date,
         }));
       } else {
         setQuestionData((prev) => ({
@@ -417,46 +402,6 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 <QuestionDetail data={data} />
               ) : (
                 <div className="flex flex-col">
-                  {/* <div className="flex flex-row pb-3">
-                    <h2 className={subtitle()}>Telemedicine</h2>
-                    <Select
-                      className="max-w-xs"
-                      defaultSelectedKeys={data?.status.toString()}
-                      label="สถานะ"
-                      labelPlacement="outside-left"
-                      name="status"
-                      placeholder="สถานะ"
-                      radius="md"
-                      variant="bordered"
-                      onChange={(val) => {
-                        HandleChange({
-                          target: {
-                            name: "status",
-                            value: parseInt(val.target.value),
-                          },
-                        });
-                      }}
-                    >
-                      {statusOptions.map((item) => (
-                        <SelectItem key={item.uid}>{item.name}</SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                  <Tabs
-                    aria-label="Dynamic tabs"
-                    color="primary"
-                    items={tabs}
-                    variant="underlined"
-                  >
-                    {(item) => (
-                      <Tab key={item.id} title={item.label}>
-                        <Card>
-                          <CardBody>{item.content}</CardBody>
-                        </Card>
-                      </Tab>
-                    )}
-                  </Tabs> */}
-
                   <div>
                     <div className="flex flex-row pb-3">
                       <h2 className={subtitle()}>Telemedicine</h2>
@@ -490,10 +435,10 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                  moment(data?.schedule_telemed).format(
-                                    "YYYY-MM-DD"
+                                    moment(data?.schedule_telemed).format(
+                                      "YYYY-MM-DD"
+                                    )
                                   )
-                                )
                                 : null
                             }
                             label="Schedule Telemed"
@@ -545,35 +490,19 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         defaultValue={
                           data?.follow_up
                             ? parseDate(
-                              moment(data?.follow_up).format(
-                                "YYYY-MM-DD"
+                                moment(data?.follow_up).format("YYYY-MM-DD")
                               )
-                            )
                             : null
                         }
                         label="Follow Up"
                         labelPlacement="outside-left"
-                        name="schedule_telemed"
+                        name="follow_up"
                         selectorButtonPlacement="start"
                         variant="bordered"
-                        // endContent={
-                        //   <Button isIconOnly variant="light" radius="full" onPress={
-                        //     (val) => {
-                        //       // console.log(val);
-                        //       HandleChange({
-                        //         target: {
-                        //           name: "schedule_telemed",
-                        //           value: null,
-                        //         },
-                        //       })
-                        //     }
-                        //   }
-                        //   ><XMarkIcon className="size-4" /></Button>
-                        // }
                         onChange={(val) =>
                           HandleChange({
                             target: {
-                              name: "schedule_telemed",
+                              name: "follow_up",
                               value: val,
                             },
                           })

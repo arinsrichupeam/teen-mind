@@ -108,7 +108,7 @@ export interface ProfileAdminData {
   status: number;
   createdAt: string;
   updatedAt: string;
-  role: number;
+  roleId: number;
 }
 
 export interface Consultant {

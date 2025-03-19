@@ -172,7 +172,8 @@ export default function SchoolListPage() {
         body: data,
       }).then((res) => {
         if (res.status === 200) {
-          GetSchool();
+          // GetSchool();
+          GetData();
           onOpenChange();
           addToast({
             title: "บันทึกสำเร็จ",
@@ -186,45 +187,58 @@ export default function SchoolListPage() {
     [selectedSchool]
   );
 
-  const GetSchool = useCallback(async () => {
+  // const GetSchool = useCallback(async () => {
+  //   await fetch("/api/data/school")
+  //     .then((res) => res.json())
+  //     .then((val) => {
+  //       setSchoolList(val);
+  //       setPages(Math.ceil(val.length / rowsPerPage));
+  //     });
+  // }, [schoolList]);
+
+  // const GetDistricts = useCallback(
+  //   async (id: number) => {
+  //     await fetch("/api/data/districts/" + id)
+  //       .then((res) => res.json())
+  //       .then((val) => {
+  //         setDistrictData(val);
+  //       });
+  //   },
+  //   [districtData]
+  // );
+
+  const GetData = useCallback(async () => {
+    await fetch("/api/data/districts/1")
+      .then((res) => res.json())
+      .then((val) => {
+        setDistrictData(val);
+      });
+
     await fetch("/api/data/school")
       .then((res) => res.json())
       .then((val) => {
         setSchoolList(val);
         setPages(Math.ceil(val.length / rowsPerPage));
       });
-  }, [schoolList]);
-
-  const GetDistricts = useCallback(
-    async (id: number) => {
-      await fetch("/api/data/districts/" + id)
-        .then((res) => res.json())
-        .then((val) => {
-          setDistrictData(val);
-        });
-    },
-    [districtData]
-  );
+  }, [districtData, schoolList]);
 
   useEffect(() => {
     if (status !== "loading" && status === "unauthenticated") {
       router.push("/admin/login");
     } else {
-      GetDistricts(1);
+      // GetDistricts(1);
       if (!isOpen) {
-        GetSchool();
+        // GetSchool();
+        GetData().then(() => {
+          setIsLoading(false);
+        });
       }
 
-      if (districtData && schoolList) {
-        setIsLoading(false);
-      }
+      // if (districtData.length != 0 && schoolList.length != 0) {
+      //   setIsLoading(false);
+      // }
     }
-    // ข้อมูลโรงเรียน
-    // GetSchool();
-
-    // // ข้อมูลเขตใน กทม
-    // GetDistricts(1);
-  }, [session]);
+  }, [session, isLoading]);
 
   return (
     <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">

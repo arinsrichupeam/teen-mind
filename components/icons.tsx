@@ -184,7 +184,7 @@ export const LineIcon = ({
 
 export const SearchIcon = (props: IconSvgProps) => (
   <svg
-    aria-hidden="true"
+    // aria-hidden="true"
     fill="none"
     focusable="false"
     height="1em"

@@ -42,11 +42,6 @@ export async function POST(req: Request) {
             professional: admin.professional,
             license: admin.license,
             status: admin.status,
-            role: {
-              connect: {
-                id: 3,
-              },
-            },
           },
         },
       },

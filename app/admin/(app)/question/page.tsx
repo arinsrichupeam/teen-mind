@@ -80,9 +80,8 @@ export default function QuestionPage() {
     let filteredUsers = [...questionsList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter(
-        (val) => val.result.toLowerCase().includes(filterValue.toLowerCase())
-        // val
+      filteredUsers = filteredUsers.filter((val) =>
+        val.result.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (

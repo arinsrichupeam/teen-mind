@@ -579,7 +579,7 @@ export default function ReferentPage() {
         onOpenChange={onOpenChange}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-center">
                 ตรวจสอบการลงทะเบียน

@@ -33,6 +33,7 @@ const profileInitValue: Profile_Admin = {
   status: 3,
   createdAt: new Date(),
   updatedAt: new Date(),
+  roleId: 3,
 };
 
 export default function RegisterPage() {

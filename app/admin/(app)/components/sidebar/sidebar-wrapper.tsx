@@ -21,20 +21,21 @@ import { Sidebar } from "@/components/primitives";
 import { useSidebarContext } from "@/app/admin/(app)/layout-context";
 import { siteConfig } from "@/config/site";
 import Loading from "@/app/loading";
+import { ProfileAdminData } from "@/types";
 
 export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
   const { data: session, status } = useSession();
-  const [role, setRole] = useState();
+  const [role, setRole] = useState(0);
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
       fetch("/api/profile/admin/" + session.user?.id)
         .then((res) => res.json())
-        .then((val) => {
+        .then((val: ProfileAdminData) => {
           if (val) {
-            setRole(val.role);
+            setRole(val.roleId);
           }
         });
     }

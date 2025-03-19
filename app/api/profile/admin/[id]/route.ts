@@ -1,7 +1,6 @@
 import { ProfileAdminData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
-import { NextApiResponse } from "next";
 
 export async function GET(
   req: Request,
@@ -82,9 +81,9 @@ export async function GET(
       professional: profile?.profile_admin[0].professional as string,
       license: profile?.profile_admin[0].license as string,
       status: profile?.profile_admin[0].status as number,
+      roleId: profile?.profile_admin[0].roleId as number,
       createdAt: "",
       updatedAt: "",
-      role: profile?.profile_admin[0].role[0].id as number,
     };
 
     return Response.json(result);

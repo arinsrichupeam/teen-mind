@@ -14,6 +14,7 @@ export async function GET() {
       result_text: true,
       status: true,
       consult: true,
+      // user: true,
       user: {
         select: {
           image: true,
@@ -172,7 +173,6 @@ export async function PUT(req: Request) {
 
   const question: QuestionsData = data.questionData;
 
-  // console.log(question);
   await prisma.questions_Master.update({
     where: {
       id: question.id,
@@ -184,6 +184,7 @@ export async function PUT(req: Request) {
       objective: question.objective,
       assessment: question.assessment,
       plan: question.plan,
+      follow_up: question.follow_up,
       status: CalStatus(question),
     },
   });
@@ -192,16 +193,6 @@ export async function PUT(req: Request) {
 }
 
 function CalStatus(value: QuestionsData) {
-  console.log(
-    value.subjective,
-    ":",
-    value.objective,
-    ":",
-    value.assessment,
-    ":",
-    value.plan
-  );
-
   if (
     value.status == 1 &&
     value.schedule_telemed != null &&

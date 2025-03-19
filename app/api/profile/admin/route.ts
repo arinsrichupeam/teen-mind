@@ -39,11 +39,7 @@ export async function POST(req: Request) {
       professional: profile_data.professional,
       license: profile_data.license,
       status: parseInt(profile_data.status.toString()),
-      role: {
-        set: {
-          id: parseInt(profile_data.role.toString()),
-        },
-      },
+      roleId: parseInt(profile_data.roleId.toString()),
     },
   });
 
