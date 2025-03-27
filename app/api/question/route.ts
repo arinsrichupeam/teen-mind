@@ -17,6 +17,7 @@ export async function GET() {
       // user: true,
       user: {
         select: {
+          id: true,
           image: true,
           profile: {
             select: {

@@ -30,14 +30,16 @@ export const SidebarWrapper = () => {
   const [role, setRole] = useState(0);
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      fetch("/api/profile/admin/" + session.user?.id)
-        .then((res) => res.json())
-        .then((val: ProfileAdminData) => {
-          if (val) {
-            setRole(val.roleId);
-          }
-        });
+    if (status !== "loading") {
+      if (status === "authenticated") {
+        fetch("/api/profile/admin/" + session.user?.id)
+          .then((res) => res.json())
+          .then((val: ProfileAdminData) => {
+            if (val) {
+              setRole(val.roleId);
+            }
+          });
+      }
     }
   }, [session]);
 

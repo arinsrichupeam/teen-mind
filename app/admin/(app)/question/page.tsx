@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Button,
   Pagination,
@@ -31,6 +38,7 @@ import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
 import { QuestionsData, QuestionsList } from "@/types";
+import Loading from "@/app/loading";
 
 export default function QuestionPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -260,80 +268,84 @@ export default function QuestionPage() {
       .then((res) => res.json())
       .then((val) => {
         setQuestionsList(val.questionsList);
-        setPages(Math.ceil(val.questionsList.length / rowsPerPage));
+        setPages(Math.ceil(filteredItems.length / rowsPerPage));
         setIsLoading(false);
       });
   }, [questionsList]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "unauthenticated") {
-      router.push("/admin/login");
-    } else {
-      if (!isOpen) {
-        GetQuestionList();
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        router.push("/admin/login");
+      } else {
+        if (!isOpen) {
+          GetQuestionList();
+        }
       }
     }
   }, [session, isOpen]);
 
   return (
-    <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-      <div className="max-w-[95rem] mx-auto w-full">
-        <QuestionDrawer
-          data={selectedKeys!}
-          isOpen={isOpen}
-          mode={mode}
-          onClose={onClose}
-        />
-        <div className="w-full flex flex-col gap-4 text-nowrap">
-          <Table
-            isHeaderSticky
-            aria-label="Question List Table"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: "max-h-[calc(65vh)]",
-            }}
-            sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            onSortChange={setSortDescriptor}
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.align as "center" | "start" | "end"}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={"No users found"}
-              isLoading={isLoading}
-              items={sortedItems}
-              loadingContent={<Spinner label="Loading..." />}
+    <Suspense fallback={<Loading />}>
+      <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
+        <div className="max-w-[95rem] mx-auto w-full">
+          <QuestionDrawer
+            data={selectedKeys!}
+            isOpen={isOpen}
+            mode={mode}
+            onClose={onClose}
+          />
+          <div className="w-full flex flex-col gap-4 text-nowrap">
+            <Table
+              isHeaderSticky
+              aria-label="Question List Table"
+              bottomContent={bottomContent}
+              bottomContentPlacement="outside"
+              classNames={{
+                wrapper: "max-h-[calc(65vh)]",
+              }}
+              sortDescriptor={sortDescriptor}
+              topContent={topContent}
+              topContentPlacement="outside"
+              onSortChange={setSortDescriptor}
             >
-              {(item) => (
-                <TableRow>
-                  {(columnKey) => (
-                    <TableCell className="text-nowrap">
-                      {RenderCell({
-                        data: item,
-                        columnKey: columnKey,
-                        index:
-                          filteredItems.findIndex((x) => x.id == item.id) + 1,
-                        viewDetail: onRowDetailPress,
-                        editDetail: onRowEditPress,
-                      })}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn
+                    key={column.uid}
+                    align={column.align as "center" | "start" | "end"}
+                  >
+                    {column.name}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent={"No users found"}
+                isLoading={isLoading}
+                items={sortedItems}
+                loadingContent={<Spinner label="Loading..." />}
+              >
+                {(item) => (
+                  <TableRow>
+                    {(columnKey) => (
+                      <TableCell className="text-nowrap">
+                        {RenderCell({
+                          data: item,
+                          columnKey: columnKey,
+                          index:
+                            filteredItems.findIndex((x) => x.id == item.id) + 1,
+                          viewDetail: onRowDetailPress,
+                          editDetail: onRowEditPress,
+                        })}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
-    </div>
+    </Suspense>
   );
 }

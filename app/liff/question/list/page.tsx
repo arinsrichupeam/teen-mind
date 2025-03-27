@@ -17,14 +17,16 @@ export default function QuestionListPage() {
   const [questionList, setQuestionList] = useState<Questions_Master[]>([]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      const userId = session?.user?.id;
+    if (status !== "loading") {
+      if (status === "authenticated") {
+        const userId = session?.user?.id;
 
-      fetch(`/api/profile/user/${userId}`).then((res) =>
-        res.json().then((val) => {
-          setQuestionList(val.questions);
-        })
-      );
+        fetch(`/api/profile/user/${userId}`).then((res) =>
+          res.json().then((val) => {
+            setQuestionList(val.questions);
+          })
+        );
+      }
     }
   }, [session]);
 

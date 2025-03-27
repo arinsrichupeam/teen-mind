@@ -20,7 +20,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         setCollapsed: handleToggleSidebar,
       }}
     >
-      <section className="flex">
+      <section className="flex bg-gray-100">
         <ModalUserStatus />
         <SidebarWrapper />
         <NavbarWrapper>{children}</NavbarWrapper>

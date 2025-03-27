@@ -2,66 +2,111 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { Profile_Admin } from "@prisma/client";
+
+import { CardGreen } from "./components/home/card-green";
+import { CardYellow } from "./components/home/card-yellow";
+import { CardRed } from "./components/home/card-red";
+import { CardAgents } from "./components/home/card-agents";
+import { CardCaseTotal } from "./components/home/card-case-total";
+import { CardTotal } from "./components/home/card-total";
+
+import { QuestionsList } from "@/types";
+import Loading from "@/app/loading";
 
 export default function AdminHome() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const [totalQuestions, setTotalQuestions] = useState<QuestionsList[]>([]);
+  const [greenQuestions, setGreenQuestions] = useState<QuestionsList[]>([]);
+  const [yellowQuestions, setYellowQuestions] = useState<QuestionsList[]>([]);
+  const [redQuestions, setRedQuestions] = useState<QuestionsList[]>([]);
+  const [newMemberList, setNewMemberList] = useState<Profile_Admin[]>([]);
+
+  const GetQuestionList = useCallback(async () => {
+    await fetch("/api/question")
+      .then((res) => res.json())
+      .then((val) => {
+        setTotalQuestions(val.questionsList);
+        setGreenQuestions(
+          val.questionsList.filter((f: QuestionsList) => f.result === "Green")
+        );
+        setYellowQuestions(
+          val.questionsList.filter((f: QuestionsList) => f.result === "Yellow")
+        );
+        setRedQuestions(
+          val.questionsList.filter((f: QuestionsList) => f.result === "Red")
+        );
+      });
+  }, [totalQuestions, greenQuestions, yellowQuestions, redQuestions]);
+
+  const GetNewMember = useCallback(async () => {
+    await fetch("/api/profile/admin")
+      .then((res) => res.json())
+      .then((val) => {
+        // console.log(val);
+        setNewMemberList(val.filter((val: Profile_Admin) => val.status === 3));
+      });
+  }, [newMemberList]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "unauthenticated") {
-      router.push("/admin/login");
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        router.push("/admin/login");
+      } else {
+        GetQuestionList();
+        GetNewMember();
+      }
     }
   }, [session, router]);
 
   return (
-    <div className="h-full lg:px-6">
-      <div className="flex justify-center gap-4 xl:gap-6 pt-3 px-4 lg:px-0  flex-wrap xl:flex-nowrap sm:pt-10 max-w-[90rem] mx-auto w-full">
-        <div className="mt-6 gap-6 flex flex-col w-full">
-          {/* Card Section Top */}
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl font-semibold">Available Balance</h3>
-            <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-3 gap-5  justify-center w-full">
-              {/* <CardBalance1 />
-                            <CardBalance2 />
-                            <CardBalance3 /> */}
+    <Suspense fallback={<Loading />}>
+      <div className="h-full lg:px-6">
+        <div className="flex justify-center gap-4 xl:gap-6 pt-3 px-4 lg:px-0  flex-wrap xl:flex-nowrap sm:pt-10 max-w-[90rem] mx-auto w-full">
+          <div className="mt-6 gap-6 flex flex-col w-full">
+            {/* Card Section Top */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
+              <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2  justify-center w-full">
+                <CardCaseTotal data={totalQuestions} />
+                <CardTotal data={totalQuestions} />
+                {/* <CardYellow data={yellowQuestions} /> */}
+                {/* <CardRed data={redQuestions} /> */}
+              </div>
             </div>
-          </div>
 
-          {/* Chart */}
-          <div className="h-full flex flex-col gap-2">
+            {/* Card Section Top */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
+              <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-3 gap-2  justify-center w-full">
+                {/* <CardTotal data={totalQuestions} /> */}
+                <CardGreen data={greenQuestions} />
+                <CardYellow data={yellowQuestions} />
+                <CardRed data={redQuestions} />
+              </div>
+            </div>
+
+            {/* Chart */}
+            {/* <div className="h-full flex flex-col gap-2">
             <h3 className="text-xl font-semibold">Statistics</h3>
-            <div className="w-full bg-default-50 shadow-lg rounded-2xl p-6 ">
-              {/* <Chart /> */}
+            <div className="w-full rounded-2xl p-6 flex flex-row gap-2 justify-center">
+              <CardTotal data={totalQuestions} />
+              <CardTotal data={totalQuestions} />
+            </div>
+          </div> */}
+          </div>
+
+          {/* Left Section */}
+          <div className="mt-4 gap-2 flex flex-col xl:max-w-md w-full">
+            <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
+            <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
+              <CardAgents data={newMemberList} />
             </div>
           </div>
         </div>
-
-        {/* Left Section */}
-        <div className="mt-4 gap-2 flex flex-col xl:max-w-md w-full">
-          <h3 className="text-xl font-semibold">Section</h3>
-          <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
-            {/* <CardAgents />
-                        <CardTransactions /> */}
-          </div>
-        </div>
       </div>
-
-      {/* Table Latest Users */}
-      <div className="flex flex-col justify-center w-full py-5 px-4 lg:px-0  max-w-[90rem] mx-auto gap-3">
-        <div className="flex  flex-wrap justify-between">
-          <h3 className="text-center text-xl font-semibold">Latest Users</h3>
-          {/* <Link
-                        href="/accounts"
-                        as={NextLink}
-                        color="primary"
-                        className="cursor-pointer"
-                    >
-                        View All
-                    </Link> */}
-        </div>
-        {/* <TableWrapper /> */}
-      </div>
-    </div>
+    </Suspense>
   );
 }

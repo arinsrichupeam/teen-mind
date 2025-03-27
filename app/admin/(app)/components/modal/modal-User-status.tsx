@@ -8,29 +8,33 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
 export const ModalUserStatus = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { data: session, status } = useSession();
-  const router = useRouter();
+  // const router = useRouter();
 
   const GetProfile = useCallback(async () => {
     await fetch(`/api/profile/admin/${session?.user?.id}`)
       .then((res) => res.json())
       .then((val) => {
         if (val == null) {
-          router.push("/admin/register");
-        } else if (val.status != 1) {
-          onOpen();
+          // router.push("/admin/register");
+        } else {
         }
+        // else if (val.status != 1) {
+        //   onOpen();
+        // }
       });
-  }, [session, router, isOpen]);
+  }, [session, isOpen]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      GetProfile();
+    if (status !== "loading") {
+      if (status === "authenticated") {
+        GetProfile();
+      }
     }
   }, [session]);
 

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Button, Chip } from "@heroui/react";
+import { Button, Chip, User } from "@heroui/react";
 import { Affiliation } from "@prisma/client";
 
 import { statusOptions } from "../data";
@@ -40,13 +40,18 @@ export const RenderCell = ({
     case "name":
       return (
         <div>
-          <span>
-            {prefix.find((val) => val.key == data.prefixId.toString())?.label +
+          <User
+            avatarProps={{
+              src: data.user.image as string,
+            }}
+            name={
+              prefix.find((val) => val.key == data.prefixId.toString())?.label +
               " " +
               data.firstname +
               " " +
-              data.lastname}
-          </span>
+              data.lastname
+            }
+          />
         </div>
       );
     case "professional":

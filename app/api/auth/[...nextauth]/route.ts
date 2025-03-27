@@ -43,14 +43,12 @@ const authOptions = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: 1 * 24 * 60 * 60, // 1 days
+    updateAge: 12 * 60 * 60, // 12 hours
   },
   jwt: {
     maxAge: 1 * 24 * 60 * 60, // 1 days
     secret: process.env.NEXTAUTH_SECRET,
   },
-  // theme: {
-  //   colorScheme: "light",
-  // },
   pages: {
     signIn: "/liff/auth/",
   },

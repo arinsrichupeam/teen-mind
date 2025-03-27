@@ -104,20 +104,22 @@ export default function PHQAPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      setUserId(session?.user?.id as string);
+    if (status !== "loading") {
+      if (status === "authenticated") {
+        setUserId(session?.user?.id as string);
 
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(({ coords }) => {
-          const { accuracy, latitude, longitude } = coords;
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(({ coords }) => {
+            const { accuracy, latitude, longitude } = coords;
 
-          setLocation({ accuracy, latitude, longitude });
-        });
-      }
+            setLocation({ accuracy, latitude, longitude });
+          });
+        }
 
-      if (referenceId === "" && !isModalOpened) {
-        onOpen();
-        setIsModalOpened(true);
+        if (referenceId === "" && !isModalOpened) {
+          onOpen();
+          setIsModalOpened(true);
+        }
       }
     }
   }, [session, isModalOpened]);

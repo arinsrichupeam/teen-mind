@@ -24,12 +24,21 @@ import {
   addToast,
 } from "@heroui/react";
 import { School, Districts } from "@prisma/client";
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import router from "next/router";
 import { useSession } from "next-auth/react";
 
 import { SchoolRenderCell } from "./components/rendercell-scool";
 import { SchoolListColumnsName as columns } from "./data";
+
+import Loading from "@/app/loading";
 
 const schoolInitValue: School = {
   name: "",
@@ -223,167 +232,167 @@ export default function SchoolListPage() {
   }, [districtData, schoolList]);
 
   useEffect(() => {
-    if (status !== "loading" && status === "unauthenticated") {
-      router.push("/admin/login");
-    } else {
-      // GetDistricts(1);
-      if (!isOpen) {
-        // GetSchool();
-        GetData().then(() => {
-          setIsLoading(false);
-        });
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        router.push("/admin/login");
+      } else {
+        if (!isOpen) {
+          GetData().then(() => {
+            setIsLoading(false);
+          });
+        }
       }
-
-      // if (districtData.length != 0 && schoolList.length != 0) {
-      //   setIsLoading(false);
-      // }
     }
   }, [session, isLoading]);
 
   return (
-    <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
-      <Modal
-        backdrop="opaque"
-        classNames={{
-          body: "py-6",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
-          closeButton: "hover:bg-white/5 active:bg-white/10",
-        }}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-        isOpen={isOpen}
-        placement="center"
-        radius="lg"
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <Form validationBehavior="native" onSubmit={onSubmit}>
-              <ModalHeader className="flex flex-col gap-1">
-                {mode === "Create" ? "เพิ่มโรงเรียน" : "แก้ไขโรงเรียน"}
-              </ModalHeader>
-              <ModalBody className="flex w-full">
-                <Input
-                  isRequired
-                  errorMessage="กรุณากรอกชื่อโรงเรียน"
-                  label="ชื่อโรงเรียน"
-                  labelPlacement="outside"
-                  name="name"
-                  placeholder="กรุณากรอกชื่อโรงเรียน"
-                  value={selectedSchool.name}
-                  variant="bordered"
-                  onChange={schoolChange}
-                />
-                <Autocomplete
-                  isRequired
-                  defaultItems={districtData}
-                  defaultSelectedKey={selectedSchool.districtId?.toString()}
-                  errorMessage="กรุณาเลือกเขต"
-                  label="เขต"
-                  labelPlacement="outside"
-                  placeholder="กรุณาเลือกเขต"
-                  radius="md"
-                  variant="bordered"
-                  onSelectionChange={(val) =>
-                    schoolChange({ target: { name: "districtId", value: val } })
-                  }
-                >
-                  {(item) => (
-                    <AutocompleteItem key={item.id}>
-                      {item.nameInThai}
-                    </AutocompleteItem>
-                  )}
-                </Autocomplete>
-                <Switch
-                  isSelected={selectedSchool.status}
-                  name="status"
-                  onValueChange={(val) =>
-                    schoolChange({ target: { name: "status", value: val } })
-                  }
-                >
-                  สถานะ
-                </Switch>
-              </ModalBody>
-              <ModalFooter className="flex w-full items-end">
-                <Button color="default" variant="bordered" onPress={onClose}>
-                  ปิด
-                </Button>
-                <Button
-                  className="bg-primary shadow-lg shadow-indigo-500/20 font-bold text-white "
-                  type="submit"
-                  variant="bordered"
-                >
-                  {mode === "Create" ? "เพิ่ม" : "แก้ไข"}
-                </Button>
-              </ModalFooter>
-            </Form>
-          )}
-        </ModalContent>
-      </Modal>
+    <Suspense fallback={<Loading />}>
+      <div className=" my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4 ">
+        <Modal
+          backdrop="opaque"
+          classNames={{
+            body: "py-6",
+            backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
+            closeButton: "hover:bg-white/5 active:bg-white/10",
+          }}
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
+          isOpen={isOpen}
+          placement="center"
+          radius="lg"
+          onOpenChange={onOpenChange}
+        >
+          <ModalContent>
+            {(onClose) => (
+              <Form validationBehavior="native" onSubmit={onSubmit}>
+                <ModalHeader className="flex flex-col gap-1">
+                  {mode === "Create" ? "เพิ่มโรงเรียน" : "แก้ไขโรงเรียน"}
+                </ModalHeader>
+                <ModalBody className="flex w-full">
+                  <Input
+                    isRequired
+                    errorMessage="กรุณากรอกชื่อโรงเรียน"
+                    label="ชื่อโรงเรียน"
+                    labelPlacement="outside"
+                    name="name"
+                    placeholder="กรุณากรอกชื่อโรงเรียน"
+                    value={selectedSchool.name}
+                    variant="bordered"
+                    onChange={schoolChange}
+                  />
+                  <Autocomplete
+                    isRequired
+                    defaultItems={districtData}
+                    defaultSelectedKey={selectedSchool.districtId?.toString()}
+                    errorMessage="กรุณาเลือกเขต"
+                    label="เขต"
+                    labelPlacement="outside"
+                    placeholder="กรุณาเลือกเขต"
+                    radius="md"
+                    variant="bordered"
+                    onSelectionChange={(val) =>
+                      schoolChange({
+                        target: { name: "districtId", value: val },
+                      })
+                    }
+                  >
+                    {(item) => (
+                      <AutocompleteItem key={item.id}>
+                        {item.nameInThai}
+                      </AutocompleteItem>
+                    )}
+                  </Autocomplete>
+                  <Switch
+                    isSelected={selectedSchool.status}
+                    name="status"
+                    onValueChange={(val) =>
+                      schoolChange({ target: { name: "status", value: val } })
+                    }
+                  >
+                    สถานะ
+                  </Switch>
+                </ModalBody>
+                <ModalFooter className="flex w-full items-end">
+                  <Button color="default" variant="bordered" onPress={onClose}>
+                    ปิด
+                  </Button>
+                  <Button
+                    className="bg-primary shadow-lg shadow-indigo-500/20 font-bold text-white "
+                    type="submit"
+                    variant="bordered"
+                  >
+                    {mode === "Create" ? "เพิ่ม" : "แก้ไข"}
+                  </Button>
+                </ModalFooter>
+              </Form>
+            )}
+          </ModalContent>
+        </Modal>
 
-      {/* บน */}
-      <div className="flex justify-between items-end ">
-        <h3 className="text-lg font-semibold">จัดการโรงเรียน</h3>
+        {/* บน */}
+        <div className="flex justify-between items-end ">
+          <h3 className="text-lg font-semibold">จัดการโรงเรียน</h3>
 
-        <div className="flex gap-4">
-          <Button
-            className="font-bold text-medium"
-            color="primary"
-            onPress={CreateSchool}
+          <div className="flex gap-4">
+            <Button
+              className="font-bold text-medium"
+              color="primary"
+              onPress={CreateSchool}
+            >
+              เพิ่ม
+            </Button>
+          </div>
+        </div>
+
+        {/* ล่าง */}
+        <div className="text-nowrap">
+          <Table
+            isHeaderSticky
+            aria-label="Question List Table"
+            bottomContent={bottomContent}
+            bottomContentPlacement="outside"
+            classNames={{
+              wrapper: "max-h-[calc(65vh)]",
+            }}
+            sortDescriptor={sortDescriptor}
+            onSortChange={setSortDescriptor}
           >
-            เพิ่ม
-          </Button>
+            <TableHeader columns={columns}>
+              {(column) => (
+                <TableColumn
+                  key={column.uid}
+                  align={column.align as "center" | "start" | "end"}
+                >
+                  {column.name}
+                </TableColumn>
+              )}
+            </TableHeader>
+            <TableBody
+              emptyContent="ไม่มีข้อมูล"
+              isLoading={isLoading}
+              items={sortedItems}
+              loadingContent={<Spinner label="Loading..." />}
+            >
+              {(item) => (
+                <TableRow>
+                  {(columnKey) => (
+                    <TableCell className="text-nowrap">
+                      {SchoolRenderCell({
+                        data: item,
+                        columnKey,
+                        index: schoolList.findIndex((x) => x.id == item.id) + 1,
+                        district: districtData,
+                        viewSchool: onRowViewPress,
+                        editSchool: onRowEditPress,
+                      })}
+                    </TableCell>
+                  )}
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
-
-      {/* ล่าง */}
-      <div className="text-nowrap">
-        <Table
-          isHeaderSticky
-          aria-label="Question List Table"
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{
-            wrapper: "max-h-[calc(65vh)]",
-          }}
-          sortDescriptor={sortDescriptor}
-          onSortChange={setSortDescriptor}
-        >
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn
-                key={column.uid}
-                align={column.align as "center" | "start" | "end"}
-              >
-                {column.name}
-              </TableColumn>
-            )}
-          </TableHeader>
-          <TableBody
-            emptyContent="ไม่มีข้อมูล"
-            isLoading={isLoading}
-            items={sortedItems}
-            loadingContent={<Spinner label="Loading..." />}
-          >
-            {(item) => (
-              <TableRow>
-                {(columnKey) => (
-                  <TableCell className="text-nowrap">
-                    {SchoolRenderCell({
-                      data: item,
-                      columnKey,
-                      index: schoolList.findIndex((x) => x.id == item.id) + 1,
-                      district: districtData,
-                      viewSchool: onRowViewPress,
-                      editSchool: onRowEditPress,
-                    })}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    </Suspense>
   );
 }

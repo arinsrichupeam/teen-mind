@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Button,
   Pagination,
@@ -44,6 +51,7 @@ import { RenderCell } from "./components/render-cell";
 
 import { ProfileAdminData } from "@/types";
 import { prefix } from "@/utils/data";
+import Loading from "@/app/loading";
 
 const ProfileAdminDataInitData: ProfileAdminData = {
   id: "",
@@ -167,7 +175,7 @@ export default function QuestionPage() {
             value={filterValue}
             variant="bordered"
             onClear={() => setFilterValue("")}
-          // onValueChange={onSearchChange}
+            // onValueChange={onSearchChange}
           />
           <div className="flex gap-3">
             <Dropdown>
@@ -336,320 +344,327 @@ export default function QuestionPage() {
   );
 
   useEffect(() => {
-    if (status !== "loading" && status === "unauthenticated") {
-      router.push("/admin/login");
-    } else {
-      GetProfileAdminList();
-      GetAffiliationList();
-      GetEmployeeList();
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        router.push("/admin/login");
+      } else {
+        GetProfileAdminList();
+        GetAffiliationList();
+        GetEmployeeList();
+      }
     }
   }, [session, isLoading]);
 
   return (
-    <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
-      <Modal
-        backdrop="opaque"
-        className="mx-6"
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-        isOpen={isOpen}
-        placement="center"
-        radius="lg"
-        size="2xl"
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <Form validationBehavior="native" onSubmit={ModalSubmit}>
-              <ModalHeader className="flex flex-col gap-1 w-full">
-                {mode === "View" ? "ดูข้อมูลผู้ใช้งาน" : "แก้ไขข้อมูลผู้ใช้งาน"}
-                <Divider className="mt-3" />
-              </ModalHeader>
-              <ModalBody className="flex w-full">
-                <div className="w-full">
-                  <User
-                    avatarProps={{
-                      src: selectedProfile.image,
-                      size: "lg",
-                    }}
-                    classNames={{ name: "font-semibold" }}
-                    description={
-                      <p>Line ID : {selectedProfile.providerAccountId}</p>
-                    }
-                    name={
-                      <>
-                        <p>หมายเลข ปชช : {selectedProfile.citizenId}</p>
-                        <p>Line : {selectedProfile.name}</p>
-                      </>
-                    }
-                  />
-                </div>
-                <ScrollShadow className="h-[600px]" size={20}>
-                  <div className="flex flex-col gap-3 font-semibold">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        label="หมายเลขโทรศัพท์"
-                        labelPlacement="outside"
-                        name="tel"
-                        placeholder="หมายเลขโทรศัพท์"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.tel}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-                      <Select
-                        className="max-w-xl"
-                        errorMessage="กรุณาเลือกคำนำหน้า"
-                        isRequired={isRequest}
-                        label="คำนำหน้า"
-                        labelPlacement="outside"
-                        name="prefixId"
-                        placeholder="คำนำหน้า"
-                        radius="sm"
-                        selectedKeys={
-                          selectedProfile.prefixId == 0
-                            ? ""
-                            : selectedProfile.prefixId.toString()
-                        }
-                        size="md"
-                        variant="bordered"
-                        onChange={HandleChange}
-                      >
-                        {prefix.map((prefix) => (
-                          <SelectItem key={prefix.key}>
-                            {prefix.label}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                      <Input
-                        isRequired={isRequest}
-                        label="ชื่อ"
-                        labelPlacement="outside"
-                        name="firstname"
-                        placeholder="ชื่อ"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.firstname}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-                      <Input
-                        isRequired={isRequest}
-                        label="นามสกุล"
-                        labelPlacement="outside"
-                        name="lastname"
-                        placeholder="นามสกุล"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.lastname}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      <Select
-                        errorMessage="กรุณาเลือกสังกัด"
-                        isRequired={isRequest}
-                        label="สังกัด"
-                        labelPlacement="outside"
-                        name="affiliationId"
-                        placeholder="สังกัด"
-                        radius="sm"
-                        selectedKeys={
-                          selectedProfile.affiliationId === 0
-                            ? ""
-                            : selectedProfile.affiliationId.toString()
-                        }
-                        size="md"
-                        variant="bordered"
-                        onChange={HandleChange}
-                      >
-                        {affiliationList.map((val) => {
-                          return (
-                            <SelectItem key={val.id}>{val.name}</SelectItem>
-                          );
-                        })}
-                      </Select>
-                      <Input
-                        isRequired={isRequest}
-                        label="หน่วยงาน"
-                        labelPlacement="outside"
-                        name="agency"
-                        placeholder="หน่วยงาน"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.agency}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-                      <Select
-                        errorMessage="กรุณาเลือกประเภทการจ้าง"
-                        isRequired={isRequest}
-                        label="ประเภทการจ้าง"
-                        labelPlacement="outside"
-                        name="employeeTypeId"
-                        placeholder="ประเภทการจ้าง"
-                        radius="sm"
-                        selectedKeys={
-                          selectedProfile.employeeTypeId === 0
-                            ? ""
-                            : selectedProfile.employeeTypeId.toString()
-                        }
-                        size="md"
-                        variant="bordered"
-                        onChange={HandleChange}
-                      >
-                        {employeeTypes.map((val) => {
-                          return (
-                            <SelectItem key={val.id}>{val.name}</SelectItem>
-                          );
-                        })}
-                      </Select>
-                      <Input
-                        isRequired={false}
-                        label="สาขาวิชาชีพ"
-                        labelPlacement="outside"
-                        name="professional"
-                        placeholder="สาขาวิชาชีพ"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.professional}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-
-                      <Input
-                        isRequired={false}
-                        label="เลขที่ใบอนุญาติ"
-                        labelPlacement="outside"
-                        name="license"
-                        placeholder="เลขที่ใบอนุญาติ"
-                        radius="sm"
-                        size="md"
-                        value={selectedProfile.license}
-                        variant="bordered"
-                        onChange={HandleChange}
-                      />
-                    </div>
-                    <Divider />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Select
-                        className="max-w-xl"
-                        label="สิทธิ์การใช้งาน"
-                        labelPlacement="outside"
-                        name="role"
-                        placeholder="สิทธิ์การใช้งาน"
-                        radius="sm"
-                        selectedKeys={
-                          selectedProfile.roleId === 0
-                            ? ""
-                            : selectedProfile.roleId.toString()
-                        }
-                        size="md"
-                        variant="bordered"
-                        onChange={HandleChange}
-                      >
-                        {roles.map((val) => {
-                          return (
-                            <SelectItem key={val.id}>{val.name}</SelectItem>
-                          );
-                        })}
-                      </Select>
-                      <Select
-                        className="max-w-xl"
-                        label="สถานะ"
-                        labelPlacement="outside"
-                        name="status"
-                        placeholder="สถานะ"
-                        radius="sm"
-                        selectedKeys={
-                          selectedProfile.status === 0
-                            ? ""
-                            : selectedProfile.status.toString()
-                        }
-                        size="md"
-                        variant="bordered"
-                        onChange={HandleChange}
-                      >
-                        {statusOptions.map((val) => {
-                          return (
-                            <SelectItem key={val.uid}>{val.name}</SelectItem>
-                          );
-                        })}
-                      </Select>
-                    </div>
-                  </div>
-                </ScrollShadow>
-              </ModalBody>
-              <ModalFooter className="flex w-full items-end">
-                <Button color="default" variant="bordered" onPress={onClose}>
-                  ปิด
-                </Button>
-                <Button
-                  className="bg-primary shadow-lg shadow-indigo-500/20 font-bold text-white "
-                  isDisabled={mode === "View"}
-                  type="submit"
-                  variant="bordered"
-                >
-                  {mode === "Create" ? "เพิ่ม" : "แก้ไข"}
-                </Button>
-              </ModalFooter>
-            </Form>
-          )}
-        </ModalContent>
-      </Modal>
-
-      <div className="w-full flex flex-col gap-4 text-nowrap">
-        <Table
-          isHeaderSticky
-          aria-label="Question List Table"
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{
-            wrapper: "max-h-[calc(65vh)]",
-          }}
-          // sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement="outside"
-        // onSortChange={setSortDescriptor}
+    <Suspense fallback={<Loading />}>
+      <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
+        <Modal
+          backdrop="opaque"
+          className="mx-6"
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
+          isOpen={isOpen}
+          placement="center"
+          radius="lg"
+          size="2xl"
+          onOpenChange={onOpenChange}
         >
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn
-                key={column.uid}
-                align={column.align as "center" | "start" | "end"}
-              >
-                {column.name}
-              </TableColumn>
+          <ModalContent>
+            {(onClose) => (
+              <Form validationBehavior="native" onSubmit={ModalSubmit}>
+                <ModalHeader className="flex flex-col gap-1 w-full">
+                  {mode === "View"
+                    ? "ดูข้อมูลผู้ใช้งาน"
+                    : "แก้ไขข้อมูลผู้ใช้งาน"}
+                  <Divider className="mt-3" />
+                </ModalHeader>
+                <ModalBody className="flex w-full">
+                  <div className="w-full">
+                    <User
+                      avatarProps={{
+                        src: selectedProfile.image,
+                        size: "lg",
+                      }}
+                      classNames={{ name: "font-semibold" }}
+                      description={
+                        <p>Line ID : {selectedProfile.providerAccountId}</p>
+                      }
+                      name={
+                        <>
+                          <p>หมายเลข ปชช : {selectedProfile.citizenId}</p>
+                          <p>Line : {selectedProfile.name}</p>
+                        </>
+                      }
+                    />
+                  </div>
+                  <ScrollShadow className="h-[600px]" size={20}>
+                    <div className="flex flex-col gap-3 font-semibold">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input
+                          label="หมายเลขโทรศัพท์"
+                          labelPlacement="outside"
+                          name="tel"
+                          placeholder="หมายเลขโทรศัพท์"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.tel}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+                        <Select
+                          className="max-w-xl"
+                          errorMessage="กรุณาเลือกคำนำหน้า"
+                          isRequired={isRequest}
+                          label="คำนำหน้า"
+                          labelPlacement="outside"
+                          name="prefixId"
+                          placeholder="คำนำหน้า"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.prefixId == 0
+                              ? ""
+                              : selectedProfile.prefixId.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {prefix.map((prefix) => (
+                            <SelectItem key={prefix.key}>
+                              {prefix.label}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                        <Input
+                          isRequired={isRequest}
+                          label="ชื่อ"
+                          labelPlacement="outside"
+                          name="firstname"
+                          placeholder="ชื่อ"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.firstname}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+                        <Input
+                          isRequired={isRequest}
+                          label="นามสกุล"
+                          labelPlacement="outside"
+                          name="lastname"
+                          placeholder="นามสกุล"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.lastname}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Select
+                          errorMessage="กรุณาเลือกสังกัด"
+                          isRequired={isRequest}
+                          label="สังกัด"
+                          labelPlacement="outside"
+                          name="affiliationId"
+                          placeholder="สังกัด"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.affiliationId === 0
+                              ? ""
+                              : selectedProfile.affiliationId.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {affiliationList.map((val) => {
+                            return (
+                              <SelectItem key={val.id}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                        <Input
+                          isRequired={isRequest}
+                          label="หน่วยงาน"
+                          labelPlacement="outside"
+                          name="agency"
+                          placeholder="หน่วยงาน"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.agency}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+                        <Select
+                          errorMessage="กรุณาเลือกประเภทการจ้าง"
+                          isRequired={isRequest}
+                          label="ประเภทการจ้าง"
+                          labelPlacement="outside"
+                          name="employeeTypeId"
+                          placeholder="ประเภทการจ้าง"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.employeeTypeId === 0
+                              ? ""
+                              : selectedProfile.employeeTypeId.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {employeeTypes.map((val) => {
+                            return (
+                              <SelectItem key={val.id}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                        <Input
+                          isRequired={false}
+                          label="สาขาวิชาชีพ"
+                          labelPlacement="outside"
+                          name="professional"
+                          placeholder="สาขาวิชาชีพ"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.professional}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+
+                        <Input
+                          isRequired={false}
+                          label="เลขที่ใบอนุญาติ"
+                          labelPlacement="outside"
+                          name="license"
+                          placeholder="เลขที่ใบอนุญาติ"
+                          radius="sm"
+                          size="md"
+                          value={selectedProfile.license}
+                          variant="bordered"
+                          onChange={HandleChange}
+                        />
+                      </div>
+                      <Divider />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Select
+                          className="max-w-xl"
+                          label="สิทธิ์การใช้งาน"
+                          labelPlacement="outside"
+                          name="roleId"
+                          placeholder="สิทธิ์การใช้งาน"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.roleId === 0
+                              ? ""
+                              : selectedProfile.roleId.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {roles.map((val) => {
+                            return (
+                              <SelectItem key={val.id}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                        <Select
+                          className="max-w-xl"
+                          label="สถานะ"
+                          labelPlacement="outside"
+                          name="status"
+                          placeholder="สถานะ"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.status === 0
+                              ? ""
+                              : selectedProfile.status.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {statusOptions.map((val) => {
+                            return (
+                              <SelectItem key={val.uid}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                      </div>
+                    </div>
+                  </ScrollShadow>
+                </ModalBody>
+                <ModalFooter className="flex w-full items-end">
+                  <Button color="default" variant="bordered" onPress={onClose}>
+                    ปิด
+                  </Button>
+                  <Button
+                    className="bg-primary shadow-lg shadow-indigo-500/20 font-bold text-white "
+                    isDisabled={mode === "View"}
+                    type="submit"
+                    variant="bordered"
+                  >
+                    {mode === "Create" ? "เพิ่ม" : "แก้ไข"}
+                  </Button>
+                </ModalFooter>
+              </Form>
             )}
-          </TableHeader>
-          <TableBody
-            emptyContent={"No users found"}
-            isLoading={isLoading}
-            items={sortedItems}
-            loadingContent={<Spinner label="Loading..." />}
+          </ModalContent>
+        </Modal>
+
+        <div className="w-full flex flex-col gap-4 text-nowrap">
+          <Table
+            isHeaderSticky
+            aria-label="Question List Table"
+            bottomContent={bottomContent}
+            bottomContentPlacement="outside"
+            classNames={{
+              wrapper: "max-h-[calc(65vh)]",
+            }}
+            // sortDescriptor={sortDescriptor}
+            topContent={topContent}
+            topContentPlacement="outside"
+            // onSortChange={setSortDescriptor}
           >
-            {(item) => (
-              <TableRow>
-                {(columnKey) => (
-                  <TableCell className="text-nowrap">
-                    {RenderCell({
-                      data: item,
-                      affiliationList: affiliationList,
-                      columnKey: columnKey,
-                      index:
-                        profileAdminList.findIndex((x) => x.id == item.id) + 1,
-                      viewDetail: onRowDetailPress,
-                      editDetail: onRowEditPress,
-                    })}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            <TableHeader columns={columns}>
+              {(column) => (
+                <TableColumn
+                  key={column.uid}
+                  align={column.align as "center" | "start" | "end"}
+                >
+                  {column.name}
+                </TableColumn>
+              )}
+            </TableHeader>
+            <TableBody
+              emptyContent={"No users found"}
+              isLoading={isLoading}
+              items={sortedItems}
+              loadingContent={<Spinner label="Loading..." />}
+            >
+              {(item) => (
+                <TableRow>
+                  {(columnKey) => (
+                    <TableCell className="text-nowrap">
+                      {RenderCell({
+                        data: item,
+                        affiliationList: affiliationList,
+                        columnKey: columnKey,
+                        index:
+                          profileAdminList.findIndex((x) => x.id == item.id) +
+                          1,
+                        viewDetail: onRowDetailPress,
+                        editDetail: onRowEditPress,
+                      })}
+                    </TableCell>
+                  )}
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+    </Suspense>
   );
 }

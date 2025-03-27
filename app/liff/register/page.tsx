@@ -65,11 +65,13 @@ export default function RegisterPage() {
   );
 
   useEffect(() => {
-    if (status !== "loading" && status === "authenticated") {
-      setProfile((prev) => ({
-        ...prev,
-        userId: session?.user?.id as string,
-      }));
+    if (status !== "loading") {
+      if (status === "authenticated") {
+        setProfile((prev) => ({
+          ...prev,
+          userId: session?.user?.id as string,
+        }));
+      }
     }
   }, [session]);
 

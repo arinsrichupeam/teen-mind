@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
+  addToast,
   Autocomplete,
   AutocompleteItem,
   Button,
@@ -181,9 +182,16 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       },
       body: data,
     }).then(() => {
+      addToast({
+        title: "ลงทะเบียน",
+        color: "success",
+        description: "ลงทะเบียนสำเร็จ",
+        timeout: 2000,
+      });
       setTimeout(() => {
         setformIsLoading(false);
-      }, 2000);
+        onClose();
+      }, 1000);
     });
   };
 
