@@ -8,7 +8,7 @@ type props = {
 
 export const CardTotal = ({ data }: props) => {
   return (
-    <Card className="xl:max-w-sm bg-gray-200 rounded-xl shadow-md px-3 w-full">
+    <Card className="xl:max-w-sm bg-gradient-to-br from-zinc-400 to-zinc-200 rounded-xl shadow-md px-3 w-full">
       <CardBody className="py-5 overflow-hidden">
         <div className="flex items-center gap-2.5 justify-start">
           <div className="flex flex-col basis-2/3">
