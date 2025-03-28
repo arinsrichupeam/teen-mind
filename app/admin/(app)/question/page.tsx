@@ -37,7 +37,7 @@ import { QuestionDrawer } from "./components/question-drawer";
 import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
-import { QuestionsData, QuestionsList } from "@/types";
+import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
 
 export default function QuestionPage() {
@@ -49,7 +49,7 @@ export default function QuestionPage() {
     new Set(["0", "1"])
     // "all"
   );
-  const [questionsList, setQuestionsList] = useState<QuestionsList[]>([]);
+  const [questionsList, setQuestionsList] = useState<QuestionsData[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -63,34 +63,15 @@ export default function QuestionPage() {
 
   const hasSearchFilter = Boolean(filterValue);
 
-  // const filteredItems = useMemo(() => {
-  //   let filteredUsers = [...questionsList];
-
-  //   if (hasSearchFilter) {
-  //     filteredUsers = filteredUsers.filter((val) => {
-  //       console.log(val.result.toLowerCase());
-  //       val.result.toLowerCase().includes(filterValue.toLowerCase());
-  //     });
-  //   }
-  //   if (
-  //     statusFilter !== "all" &&
-  //     Array.from(statusFilter).length !== statusOptions.length
-  //   ) {
-  //     filteredUsers = filteredUsers.filter((user) =>
-  //       Array.from(statusFilter).includes(user.status.toString())
-  //     );
-  //   }
-
-  //   return filteredUsers;
-  // }, [questionsList, filterValue, statusFilter]);
-
   const filteredItems = useMemo(() => {
     let filteredUsers = [...questionsList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) =>
-        val.result.toLowerCase().includes(filterValue.toLowerCase())
-      );
+      filteredUsers = filteredUsers.filter((val) => {
+        return val.user.profile[0].firstname
+          .toLowerCase()
+          .includes(filterValue.toLowerCase());
+      });
     }
     if (
       statusFilter !== "all" &&
@@ -112,9 +93,9 @@ export default function QuestionPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: QuestionsList, b: QuestionsList) => {
-      const first = a[sortDescriptor.column as keyof QuestionsList] as number;
-      const second = b[sortDescriptor.column as keyof QuestionsList] as number;
+    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
+      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
+      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -130,25 +111,27 @@ export default function QuestionPage() {
     [pages, items]
   );
 
-  const onSearchChange = useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue("");
-    }
-  }, []);
+  const onSearchChange = useCallback(
+    (value?: string) => {
+      if (value) {
+        setFilterValue(value);
+        setPage(1);
+      } else {
+        setFilterValue("");
+      }
+    },
+    [filterValue]
+  );
 
   const topContent = useMemo(() => {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+      <div className="flex flex-col">
+        <div className="flex justify-between items-center gap-3">
           <Input
             isClearable
-            isDisabled
             classNames={{
-              base: "w-full sm:max-w-[44%]",
-              inputWrapper: "border-1",
+              base: "w-full",
+              inputWrapper: "border-1 bg-white",
             }}
             placeholder="Search by name..."
             size="md"
@@ -160,33 +143,32 @@ export default function QuestionPage() {
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
+          <Dropdown>
+            <DropdownTrigger className="hidden sm:flex">
+              <Button
+                color="primary"
+                endContent={<ChevronDownIcon className="size-6" />}
+                size="sm"
+                variant="solid"
               >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
+                สถานะ
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="Table Columns"
+              closeOnSelect={false}
+              selectedKeys={statusFilter}
+              selectionMode="multiple"
+              onSelectionChange={setStatusFilter}
+            >
+              {statusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {status.name}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
         </div>
       </div>
     );
@@ -288,6 +270,9 @@ export default function QuestionPage() {
   return (
     <Suspense fallback={<Loading />}>
       <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
+        <div className="flex justify-between items-end ">
+          <h3 className="text-lg font-semibold">จัดการแบบสอบถาม</h3>
+        </div>
         <div className="max-w-[95rem] mx-auto w-full">
           <QuestionDrawer
             data={selectedKeys!}

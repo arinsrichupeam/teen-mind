@@ -10,19 +10,6 @@ export type LocationData = {
   longitude: number;
 };
 
-export type QuestionsList = {
-  id: string;
-  prefixId: string;
-  firstname: string;
-  lastname: string;
-  birthday: string;
-  school: string;
-  result: string;
-  phqa: number;
-  createdAt: string;
-  status: number;
-};
-
 export type QuestionsData = {
   id: string;
   result: string;

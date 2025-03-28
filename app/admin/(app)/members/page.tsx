@@ -64,7 +64,7 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   roleId: 0,
 };
 
-export default function QuestionPage() {
+export default function MemberPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterValue, setFilterValue] = useState("");
   const [selectedProfile, setSelectedProfile] = useState<ProfileAdminData>(
@@ -149,12 +149,12 @@ export default function QuestionPage() {
   const topContent = useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex justify-between items-center gap-3">
           <Input
             isClearable
             classNames={{
-              base: "w-full sm:max-w-[44%]",
-              inputWrapper: "border-1",
+              base: "w-full",
+              inputWrapper: "border-1 bg-white",
             }}
             placeholder="Search by name..."
             size="md"
@@ -166,33 +166,32 @@ export default function QuestionPage() {
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
+          <Dropdown>
+            <DropdownTrigger className="hidden sm:flex">
+              <Button
+                endContent={<ChevronDownIcon className="size-6" />}
+                size="sm"
+                variant="solid"
+                color="primary"
               >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
+                สถานะ
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="Table Columns"
+              closeOnSelect={false}
+              selectedKeys={statusFilter}
+              selectionMode="multiple"
+              onSelectionChange={setStatusFilter}
+            >
+              {statusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {status.name}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
         </div>
       </div>
     );
@@ -301,6 +300,9 @@ export default function QuestionPage() {
   return (
     <Suspense fallback={<Loading />}>
       <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
+        <div className="flex justify-between items-end ">
+          <h3 className="text-lg font-semibold">จัดการผู้ใช้งาน</h3>
+        </div>
         <ModalUserProfile
           Mode={mode}
           Profile={selectedProfile}

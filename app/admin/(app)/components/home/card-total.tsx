@@ -8,15 +8,14 @@ type props = {
 
 export const CardTotal = ({ data }: props) => {
   return (
-    <Card className="xl:max-w-sm bg-gradient-to-br from-zinc-400 to-zinc-200 rounded-xl shadow-md px-3 w-full">
+    <Card className="xl:max-w-sm bg-gradient-to-tl from-zinc-400 to-zinc-200 rounded-xl shadow-md px-3 w-full">
       <CardBody className="py-5 overflow-hidden">
         <div className="flex items-center gap-2.5 justify-start">
           <div className="flex flex-col basis-2/3">
             <span className="text-sm font-semibold">ผู้รับบริการ (คน)</span>
             <span className="text-xl font-semibold">
               {
-                Array.from(new Set(data.map((item: any) => item.user.id)))
-                  .length
+                Array.from(new Set(data.map((item: any) => item.user.id))).length
               }
             </span>
           </div>

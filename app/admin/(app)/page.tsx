@@ -12,16 +12,17 @@ import { CardAgents } from "./components/home/card-agents";
 import { CardCaseTotal } from "./components/home/card-case-total";
 import { CardTotal } from "./components/home/card-total";
 
-import { QuestionsList } from "@/types";
+// import { QuestionsList } from "@/types";
 import Loading from "@/app/loading";
+import { QuestionsData } from "@/types";
 
 export default function AdminHome() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [totalQuestions, setTotalQuestions] = useState<QuestionsList[]>([]);
-  const [greenQuestions, setGreenQuestions] = useState<QuestionsList[]>([]);
-  const [yellowQuestions, setYellowQuestions] = useState<QuestionsList[]>([]);
-  const [redQuestions, setRedQuestions] = useState<QuestionsList[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<QuestionsData[]>([]);
+  const [greenQuestions, setGreenQuestions] = useState<QuestionsData[]>([]);
+  const [yellowQuestions, setYellowQuestions] = useState<QuestionsData[]>([]);
+  const [redQuestions, setRedQuestions] = useState<QuestionsData[]>([]);
   const [newMemberList, setNewMemberList] = useState<Profile_Admin[]>([]);
 
   const GetQuestionList = useCallback(async () => {
@@ -30,13 +31,13 @@ export default function AdminHome() {
       .then((val) => {
         setTotalQuestions(val.questionsList);
         setGreenQuestions(
-          val.questionsList.filter((f: QuestionsList) => f.result === "Green")
+          val.questionsList.filter((f: QuestionsData) => f.result === "Green")
         );
         setYellowQuestions(
-          val.questionsList.filter((f: QuestionsList) => f.result === "Yellow")
+          val.questionsList.filter((f: QuestionsData) => f.result === "Yellow")
         );
         setRedQuestions(
-          val.questionsList.filter((f: QuestionsList) => f.result === "Red")
+          val.questionsList.filter((f: QuestionsData) => f.result === "Red")
         );
       });
   }, [totalQuestions, greenQuestions, yellowQuestions, redQuestions]);
