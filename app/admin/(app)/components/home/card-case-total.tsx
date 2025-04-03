@@ -2,10 +2,10 @@ import React from "react";
 import { Card, CardBody } from "@heroui/react";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 
-import { QuestionsList } from "@/types";
+import { QuestionsData } from "@/types";
 
 type props = {
-  data: QuestionsList[];
+  data: QuestionsData[];
 };
 
 export const CardCaseTotal = ({ data }: props) => {
@@ -21,25 +21,6 @@ export const CardCaseTotal = ({ data }: props) => {
             <UserGroupIcon className="size-8 text-primary-500" />
           </div>
         </div>
-        {/* <div className="flex flex-row items-center gap-2">
-          <div className="basis-1/2">
-            <span className="text-xs">Referent</span>
-            <div>
-              <span className="font-semibold">
-                {data.filter((val) => val.status !== 3).length}
-              </span>
-            </div>
-          </div>
-
-          <div className="basis-1/2">
-            <span className="text-xs">Consult</span>
-            <div>
-              <span className="font-semibold">
-                {data.filter((val) => val.status === 3).length}
-              </span>
-            </div>
-          </div>
-        </div> */}
       </CardBody>
     </Card>
   );
