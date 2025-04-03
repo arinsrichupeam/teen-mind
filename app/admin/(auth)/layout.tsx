@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Divider orientation="vertical" />
         </div>
 
-        <div className="hidden md:flex flex-1 relative flex items-center justify-center p-6">
+        <div className="hidden md:flex flex-1 relative items-center justify-center p-6">
           <div className="absolute left-0 right-0 bottom-0 top-0 z-0">
             <Image
               alt="gradient"
@@ -31,10 +31,37 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             />
           </div>
 
-          <div className="z-10">
+          <div className="flex flex-col gap-5 z-10">
             <Image alt="logo" height={70} src="../../../image/Logo_App.png" />
-            <div className="font-light text-slate-400 mt-4">
-              {siteConfig.description}{" "}
+            <div className="max-w-lg flex flex-col gap-3">
+              <div>
+                <span className="font-semibold">ขอบเขตงาน ผู้ให้คำปรึกษา</span>
+                <p className="indent-5">
+                  <span className="font-semibold">
+                    1. ให้คำปรึกษา (เจ้าหน้าที่){" "}
+                  </span>{" "}
+                  ให้คำปรึกษาแก่เจ้าหน้าที่ในแนวทางการดูแลผู้เข้ารับการประเมิน
+                </p>
+                <p className="indent-5">
+                  <span className="font-semibold">2. ประเมินแบบคัดกรอง </span>{" "}
+                  ประเมินแบบคัดกรอง 2Q PHQA 9Q 8Q
+                </p>
+                <p className="indent-5">
+                  <span className="font-semibold">3. ให้คำปรึกษา </span>{" "}
+                  ในกรณีที่มีคะแนนจากการประเมินเกิน Cut point
+                </p>
+                <p className="indent-5">
+                  <span className="font-semibold">4. ติดตาม </span>{" "}
+                  ติดตามสภาวะอารมณ์จิตใจภายหลังการให้คำปรึกษา ผ่านทาง Telemedicide
+                </p>
+              </div>
+              <div>
+                <p className="">
+                  <span className="font-semibold">พื้นที่ดำเนินโครงการ</span>{" "}
+                  เขตบางแค หนองแขม ทวีวัฒนา ตลิ่งชัน ภาษีเจริญ บางบอน
+                  บางขุนเทียน เท่านั้น{" "}
+                </p>
+              </div>
             </div>
           </div>
         </div>

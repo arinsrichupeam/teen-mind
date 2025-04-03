@@ -15,7 +15,8 @@ export const CardTotal = ({ data }: props) => {
             <span className="text-sm font-semibold">ผู้รับบริการ (คน)</span>
             <span className="text-xl font-semibold">
               {
-                Array.from(new Set(data.map((item: any) => item.user.id))).length
+                Array.from(new Set(data.map((item: any) => item.user.id)))
+                  .length
               }
             </span>
           </div>

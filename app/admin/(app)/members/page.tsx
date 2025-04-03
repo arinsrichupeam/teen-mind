@@ -32,7 +32,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Affiliation, Employee_Type, Profile_Admin } from "@prisma/client";
+import { Affiliation, Profile_Admin } from "@prisma/client";
 
 import { ModalUserProfile } from "../components/modal/modal-user-profile";
 
@@ -169,10 +169,10 @@ export default function MemberPage() {
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
               <Button
+                color="primary"
                 endContent={<ChevronDownIcon className="size-6" />}
                 size="sm"
                 variant="solid"
-                color="primary"
               >
                 สถานะ
               </Button>
@@ -323,7 +323,7 @@ export default function MemberPage() {
             // sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
-          // onSortChange={setSortDescriptor}
+            // onSortChange={setSortDescriptor}
           >
             <TableHeader columns={columns}>
               {(column) => (

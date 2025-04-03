@@ -213,19 +213,45 @@ export default function ReferentPage() {
         <ModalContent>
           {(onCloseModal2) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-center">
+              <ModalHeader className="flex flex-col text-center">
                 คำอธิบายการลงทะเบียน
               </ModalHeader>
-              <ModalBody>
+              <ModalBody className="flex flex-col gap-2 text-sm">
                 <Divider />
-                <p>
-                  Magna exercitation reprehenderit magna aute tempor cupidatat
-                  consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
-                  incididunt cillum quis. Velit duis sit officia eiusmod Lorem
-                  aliqua enim laboris do dolor eiusmod. Et mollit incididunt
-                  nisi consectetur esse laborum eiusmod pariatur proident Lorem
-                  eiusmod et. Culpa deserunt nostrud ad veniam.
-                </p>
+                <div>
+                  <p>
+                    <span className="font-semibold">คุณสมบัติ</span>{" "}
+                    ผู้ที่มีอายุระหว่าง 18 - 60 ปี{" "}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold">ขอบเขตงาน </span>
+                  <p className="indent-5">
+                    <span className="font-semibold">
+                      1. สำรวจภาวะสุขภาพจิตเด็กและวัยรุ่น{" "}
+                    </span>{" "}
+                    ด้วยการประเมินคัดกรองประเมินภาวะซึมเศร้าในวัยรุ่น (PHQ-A)
+                  </p>
+                  <p className="indent-5">
+                    <span className="font-semibold">
+                      2. ให้คำปรึกษาทางจิตวิทยา{" "}
+                    </span>{" "}
+                    กรณีคัดกรองพบความผิดปกติ (สำหรับนักจิตวิทยาเท่านั้น)
+                  </p>
+                </div>
+                <div>
+                  <p className="">
+                    <span className="font-semibold">พื้นที่ดำเนินโครงการ</span>{" "}
+                    เขตบางแค หนองแขม ทวีวัฒนา ตลิ่งชัน ภาษีเจริญ บางบอน
+                    บางขุนเทียน เท่านั้น{" "}
+                  </p>
+                </div>
+                <div>
+                  <p className="">
+                    <span className="font-semibold">ค่าตอบแทน</span>{" "}
+                    50บาท/1แบบสอบถาม (จ่ายเป็นเงินก้อนเมื่อครบสัญญา)
+                  </p>
+                </div>
                 <Divider />
               </ModalBody>
               <ModalFooter className="flex justify-center">
