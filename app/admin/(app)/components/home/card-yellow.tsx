@@ -2,10 +2,10 @@ import { UsersIcon } from "@heroicons/react/24/outline";
 import { Card, CardBody } from "@heroui/react";
 import React from "react";
 
-import { QuestionsList } from "@/types";
+import { QuestionsData } from "@/types";
 
 type props = {
-  data: QuestionsList[];
+  data: QuestionsData[];
 };
 
 export const CardYellow = ({ data }: props) => {

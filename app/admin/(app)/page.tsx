@@ -12,7 +12,6 @@ import { CardAgents } from "./components/home/card-agents";
 import { CardCaseTotal } from "./components/home/card-case-total";
 import { CardTotal } from "./components/home/card-total";
 
-// import { QuestionsList } from "@/types";
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 
