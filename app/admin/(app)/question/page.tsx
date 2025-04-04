@@ -25,6 +25,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  addToast,
 } from "@heroui/react";
 import {
   ChevronDownIcon,
@@ -32,26 +33,27 @@ import {
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 
-import { QuestionDrawer } from "./components/question-drawer";
-import { QuestionColumnsName as columns, statusOptions } from "./data";
-import { RenderCell } from "./components/render-cell";
+import {
+  QuestionColumnsName as columns,
+  statusOptions,
+} from "../data/questiondata";
+import { QuestionDrawer } from "../components/question/question-drawer";
+import { RenderCell } from "../components/question/render-cell";
 
 import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
 
 export default function QuestionPage() {
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>(
     new Set(["0", "1"])
-    // "all"
   );
-  const [questionsList, setQuestionsList] = useState<QuestionsData[]>([]);
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
     column: "id",
@@ -59,12 +61,34 @@ export default function QuestionPage() {
   });
   const [mode, setMode] = useState("View");
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const hasSearchFilter = Boolean(filterValue);
 
+  const { data, isLoading, error } = useSWR(
+    "/api/question",
+    async (url) => {
+      try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await res.json();
+
+        return data.questionsList;
+      } catch (error) {
+        throw error;
+      }
+    },
+    {
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
+
   const filteredItems = useMemo(() => {
-    let filteredUsers = [...questionsList];
+    let filteredUsers = [...(data || [])];
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((val) => {
@@ -73,17 +97,20 @@ export default function QuestionPage() {
           .includes(filterValue.toLowerCase());
       });
     }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
+    if (statusFilter !== "all") {
       filteredUsers = filteredUsers.filter((user) =>
         Array.from(statusFilter).includes(user.status.toString())
       );
     }
 
     return filteredUsers;
-  }, [questionsList, filterValue, statusFilter]);
+  }, [data, filterValue, statusFilter]);
+
+  const pages = useMemo(() => {
+    return filteredItems.length
+      ? Math.ceil(filteredItems.length / rowsPerPage)
+      : 0;
+  }, [filteredItems.length, rowsPerPage]);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -105,7 +132,6 @@ export default function QuestionPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(filteredItems.length / parseInt(e.target.value)));
       setPage(1);
     },
     [pages, items]
@@ -177,7 +203,7 @@ export default function QuestionPage() {
     statusFilter,
     onSearchChange,
     onRowsPerPageChange,
-    questionsList.length,
+    data?.length,
     hasSearchFilter,
   ]);
 
@@ -192,7 +218,7 @@ export default function QuestionPage() {
             color="primary"
             page={page}
             total={pages}
-            onChange={setPage}
+            onChange={(page) => setPage(page)}
           />
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
@@ -245,27 +271,24 @@ export default function QuestionPage() {
     [selectedKeys, mode]
   );
 
-  const GetQuestionList = useCallback(async () => {
-    await fetch("/api/question")
-      .then((res) => res.json())
-      .then((val) => {
-        setQuestionsList(val.questionsList);
-        setPages(Math.ceil(filteredItems.length / rowsPerPage));
-        setIsLoading(false);
-      });
-  }, [questionsList]);
-
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
-      } else {
-        if (!isOpen) {
-          GetQuestionList();
-        }
       }
     }
-  }, [session, isOpen]);
+  }, [session]);
+
+  useEffect(() => {
+    if (error) {
+      // Handle error appropriately
+      addToast({
+        title: "Error loading questions:",
+        description: error,
+        color: "danger",
+      });
+    }
+  }, [error]);
 
   return (
     <Suspense fallback={<Loading />}>

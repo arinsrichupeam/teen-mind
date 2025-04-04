@@ -44,7 +44,7 @@ export const UserDropdown = () => {
     ProfileAdminDataInitData
   );
   const [mode, setMode] = useState("View");
-  const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = useCallback(async () => {
     signOut();
@@ -95,7 +95,7 @@ export const UserDropdown = () => {
   }, [session]);
 
   return (
-    <>
+    <div>
       <ModalUserProfile
         Mode={"Edit"}
         Profile={profile}
@@ -136,6 +136,6 @@ export const UserDropdown = () => {
           </DropdownItem>
         </DropdownMenu>
       </Dropdown>
-    </>
+    </div>
   );
 };

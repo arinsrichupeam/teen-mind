@@ -73,9 +73,9 @@ export const SidebarWrapper = () => {
                   title="แบบสอบถาม"
                 />
                 <SidebarItem
-                  href="#"
+                  href="/admin/mycase"
                   icon={<UserIcon className="size-6" />}
-                  isActive={pathname === "/admin/case"}
+                  isActive={pathname === "/admin/mycase"}
                   title="เคสที่ดูแล"
                 />
               </SidebarMenu>

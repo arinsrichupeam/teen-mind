@@ -31,7 +31,7 @@ import {
 } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
-import { statusOptions } from "../data";
+import { statusOptions } from "../../data/questiondata";
 
 import { QuestionDetail } from "./detail";
 
@@ -57,61 +57,88 @@ const ConsultantInitValue: Consultant[] = [
 ];
 
 export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
-  const [distrince, setDistrince] = useState<Districts[]>();
-  const [province, setProvince] = useState<Provinces[]>();
-  const [subdistrince, setSubDistrince] = useState<Subdistricts[]>();
+  const [distrince, setDistrince] = useState<Districts[]>([]);
+  const [province, setProvince] = useState<Provinces[]>([]);
+  const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
   const [Consultant, setConsultant] =
     useState<Consultant[]>(ConsultantInitValue);
   const [questionData, setQuestionData] = useState<QuestionsData>(data);
-  const [textboxHN, setTextboxHN] = useState("");
+  const [textboxHN] = useState("");
   const [hnIsloading, setHnIsloading] = useState(false);
   const [formIsloading, setformIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const latitude = data?.latitude != null ? data?.latitude : 0;
   const longitude = data?.longitude != null ? data?.longitude : 0;
 
-  const GetDistrictList = useCallback(async () => {
-    await fetch("/api/data/districts")
-      .then((res) => res.json())
-      .then((val) => {
-        setDistrince(val);
+  const fetchData = async (url: string, setter: (data: any) => void) => {
+    try {
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch data from ${url}`);
+      }
+      const data = await res.json();
+
+      setter(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+        color: "danger",
       });
-  }, [distrince]);
+    }
+  };
+
+  const GetDistrictList = useCallback(async () => {
+    await fetchData("/api/data/districts", setDistrince);
+  }, []);
 
   const GetProvinceList = useCallback(async () => {
-    await fetch("/api/data/provinces")
-      .then((res) => res.json())
-      .then((val) => {
-        setProvince(val);
-      });
-  }, [province]);
+    await fetchData("/api/data/provinces", setProvince);
+  }, []);
 
   const GetSubdistrictList = useCallback(async () => {
-    await fetch("/api/data/subdistricts")
-      .then((res) => res.json())
-      .then((val) => {
-        setSubDistrince(val);
-      });
-  }, [subdistrince]);
+    await fetchData("/api/data/subdistricts", setSubDistrince);
+  }, []);
 
   const GetConsultantList = useCallback(async () => {
-    await fetch("/api/profile/admin")
-      .then((res) => res.json())
-      .then((val: any) => {
-        const consult = val.filter(
-          (x: any) => x.status === 1 && x.role.id == 3
-        );
+    try {
+      const res = await fetch("/api/profile/admin");
 
-        if (consult != 0) {
-          setConsultant([
-            {
-              id: consult[0].userId,
-              name: consult[0].firstname + " " + consult[0].lastname,
-            },
-          ]);
-        }
+      if (!res.ok) throw new Error("Failed to fetch consultant list");
+
+      const val = await res.json();
+      const consult = val.filter((x: any) => x.status === 1 && x.role.id == 3);
+
+      if (consult.length > 0) {
+        setConsultant([
+          {
+            id: consult[0].userId,
+            name: consult[0].firstname + " " + consult[0].lastname,
+          },
+        ]);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "เกิดข้อผิดพลาดในการโหลดข้อมูลที่ปรึกษา"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "เกิดข้อผิดพลาดในการโหลดข้อมูลที่ปรึกษา",
+        color: "danger",
       });
-  }, [Consultant]);
+    }
+  }, []);
 
   const ChangeHN = async () => {
     const json = JSON.stringify({
@@ -133,66 +160,72 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     });
   };
 
-  const HandleChange = useCallback(
-    (e: any) => {
-      const value = e.target.value;
+  const HandleChange = (e: any) => {
+    const { name, value } = e.target;
 
-      if (e.target.name === "txtHN") {
-        setTextboxHN(value);
-      } else if (e.target.name === "ConsultId") {
-        setQuestionData((prev) => ({
-          ...prev,
-          consult: value,
-        }));
-      } else if (e.target.name === "schedule_telemed") {
-        const date = new Date(value);
+    setQuestionData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-        setQuestionData((prev) => ({
-          ...prev,
-          schedule_telemed: date,
-        }));
-      } else if (e.target.name === "follow_up") {
-        const date = new Date(value);
-
-        setQuestionData((prev) => ({
-          ...prev,
-          follow_up: date,
-        }));
-      } else {
-        setQuestionData((prev) => ({
-          ...prev,
-          [e.target.name]: value,
-        }));
-      }
-    },
-    [textboxHN, questionData]
-  );
-
-  const onSubmit = async (e: any) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setformIsLoading(true);
-    const data = JSON.stringify({
-      questionData: questionData,
-    });
+    setError(null);
 
-    await fetch("/api/question", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: data,
-    }).then(() => {
-      addToast({
-        title: "ลงทะเบียน",
-        color: "success",
-        description: "ลงทะเบียนสำเร็จ",
-        timeout: 2000,
+    try {
+      return await fetch("/api/question/" + data.id, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(questionData),
+      }).then(() => {
+        addToast({
+          title: "Success",
+          description: "บันทึกข้อมูลสำเร็จ",
+          color: "success",
+        });
       });
-      setTimeout(() => {
-        setformIsLoading(false);
-        onClose();
-      }, 1000);
-    });
+
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+        color: "danger",
+      });
+    } finally {
+      setformIsLoading(false);
+    }
+  };
+
+  // const validateForm = () => {
+  //   if (!questionData.status) {
+  //     setError("กรุณาเลือกสถานะ");
+
+  //     return false;
+  //   }
+  //   if (!questionData.schedule_telemed) {
+  //     setError("กรุณาเลือกวันนัด Telemedicine");
+
+  //     return false;
+  //   }
+
+  //   return true;
+  // };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // if (!validateForm()) return;
+    await onSubmit(e);
   };
 
   useEffect(() => {
@@ -210,16 +243,17 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     <Drawer
       isKeyboardDismissDisabled={true}
       isOpen={isOpen}
+      placement="right"
       size={"4xl"}
       onClose={onClose}
     >
       <DrawerContent>
         {(onClose) => (
-          <Form onReset={onClose} onSubmit={onSubmit}>
+          <Form onReset={onClose} onSubmit={handleSubmit}>
             <DrawerHeader className="w-full">
               <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm">
                 <div className="pt-2">
-                  วันที่ประเมิน :{" "}
+                  <span className="font-semibold">วันที่ประเมิน:</span>{" "}
                   <span>
                     {new Date(data?.createdAt as string).toLocaleDateString(
                       "th-TH",
@@ -234,9 +268,11 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   </span>
                 </div>
                 <div className="flex flex-row gap-5">
-                  <div className="pt-2">โหมด : {mode}</div>
+                  <div className="pt-2">
+                    <span className="font-semibold">โหมด:</span> {mode}
+                  </div>
                   <div className="pr-5">
-                    ผลการประเมิน :
+                    <span className="font-semibold">ผลการประเมิน:</span>
                     <Chip
                       className="ml-3"
                       color={
@@ -255,6 +291,11 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 </div>
               </div>
             </DrawerHeader>
+            {error && (
+              <div className="px-4 py-2 bg-red-100 text-red-700 rounded-md mx-4">
+                {error}
+              </div>
+            )}
             <DrawerBody className="w-full">
               <div className="flex flex-col sm:flex-row gap-5 mx-auto">
                 <Card className="max-w-[400px]">
@@ -595,7 +636,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
               </Button>
               <Button
                 color="primary"
-                isDisabled={mode === "View"}
+                isDisabled={mode === "View" || formIsloading}
                 isLoading={formIsloading}
                 type="submit"
               >

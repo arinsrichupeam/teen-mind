@@ -52,7 +52,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </p>
                 <p className="indent-5">
                   <span className="font-semibold">4. ติดตาม </span>{" "}
-                  ติดตามสภาวะอารมณ์จิตใจภายหลังการให้คำปรึกษา ผ่านทาง Telemedicide
+                  ติดตามสภาวะอารมณ์จิตใจภายหลังการให้คำปรึกษา ผ่านทาง
+                  Telemedicide
                 </p>
               </div>
               <div>

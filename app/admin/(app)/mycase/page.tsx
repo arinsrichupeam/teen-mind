@@ -25,6 +25,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  addToast,
 } from "@heroui/react";
 import {
   ChevronDownIcon,
@@ -32,81 +33,84 @@ import {
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Affiliation, Profile_Admin } from "@prisma/client";
+import useSWR from "swr";
 
-import { ModalUserProfile } from "../components/modal/modal-user-profile";
+import {
+  QuestionColumnsName as columns,
+  statusOptions,
+} from "../data/questiondata";
+import { QuestionDrawer } from "../components/question/question-drawer";
+import { RenderCell } from "../components/question/render-cell";
 
-import { QuestionColumnsName as columns, statusOptions } from "./data";
-import { RenderCell } from "./components/render-cell";
-
-import { ProfileAdminData } from "@/types";
+import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
 
-const ProfileAdminDataInitData: ProfileAdminData = {
-  id: "",
-  userId: "",
-  providerAccountId: "",
-  image: "",
-  name: "",
-  citizenId: "",
-  prefixId: 0,
-  firstname: "",
-  lastname: "",
-  tel: "",
-  affiliationId: 0,
-  agency: "",
-  employeeTypeId: 0,
-  professional: "",
-  license: "",
-  status: 0,
-  createdAt: "",
-  updatedAt: "",
-  roleId: 0,
-};
-
-export default function MemberPage() {
-  const [isLoading, setIsLoading] = useState(true);
+export default function MyCasePage() {
+  const router = useRouter();
   const [filterValue, setFilterValue] = useState("");
-  const [selectedProfile, setSelectedProfile] = useState<ProfileAdminData>(
-    ProfileAdminDataInitData
-  );
+  const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [profileAdminList, setProfileAdminList] = useState<Profile_Admin[]>([]);
-  const [affiliationList, setAffiliationList] = useState<Affiliation[]>([]);
-
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortDescriptor] = useState<any>({
+  const [sortDescriptor, setSortDescriptor] = useState<any>({
     column: "id",
     direction: "ascending",
   });
   const [mode, setMode] = useState("View");
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const hasSearchFilter = Boolean(filterValue);
 
+  const { data, isLoading, error } = useSWR(
+    "/api/question",
+    async (url) => {
+      try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await res.json();
+
+        return data.questionsList;
+      } catch (error) {
+        throw error;
+      }
+    },
+    {
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
+
   const filteredItems = useMemo(() => {
-    let filteredUsers = [...profileAdminList];
+    let filteredUsers = [
+      ...(data?.filter((val: any) => val.consult === session?.user?.id) || []),
+    ];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) =>
-        val.firstname.toLowerCase().includes(filterValue.toLowerCase())
-      );
+      filteredUsers = filteredUsers.filter((val) => {
+        return val.user.profile[0].firstname
+          .toLowerCase()
+          .includes(filterValue.toLowerCase());
+      });
     }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
+    if (statusFilter !== "all") {
       filteredUsers = filteredUsers.filter((user) =>
         Array.from(statusFilter).includes(user.status.toString())
       );
     }
 
     return filteredUsers;
-  }, [profileAdminList, filterValue, statusFilter]);
+  }, [data, filterValue, statusFilter]);
+
+  const pages = useMemo(() => {
+    return filteredItems.length
+      ? Math.ceil(filteredItems.length / rowsPerPage)
+      : 0;
+  }, [filteredItems.length, rowsPerPage]);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -116,9 +120,9 @@ export default function MemberPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: Profile_Admin, b: Profile_Admin) => {
-      const first = a[sortDescriptor.column as keyof Profile_Admin] as number;
-      const second = b[sortDescriptor.column as keyof Profile_Admin] as number;
+    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
+      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
+      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -128,7 +132,6 @@ export default function MemberPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(filteredItems.length / parseInt(e.target.value)));
       setPage(1);
     },
     [pages, items]
@@ -148,7 +151,7 @@ export default function MemberPage() {
 
   const topContent = useMemo(() => {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col">
         <div className="flex justify-between items-center gap-3">
           <Input
             isClearable
@@ -200,7 +203,7 @@ export default function MemberPage() {
     statusFilter,
     onSearchChange,
     onRowsPerPageChange,
-    profileAdminList.length,
+    data?.length,
     hasSearchFilter,
   ]);
 
@@ -215,7 +218,7 @@ export default function MemberPage() {
             color="primary"
             page={page}
             total={pages}
-            onChange={setPage}
+            onChange={(page) => setPage(page)}
           />
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
@@ -240,127 +243,115 @@ export default function MemberPage() {
         </div>
       </div>
     );
-  }, [selectedProfile, items.length, page, pages, hasSearchFilter]);
+  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   const onRowDetailPress = useCallback(
-    async (e: any) => {
-      await fetch("/api/profile/admin/" + e)
+    (e: any) => {
+      fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val) => {
-          setSelectedProfile(val);
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
           setMode("View");
           onOpen();
         });
     },
-    [selectedProfile]
+    [selectedKeys, mode]
   );
 
   const onRowEditPress = useCallback(
     (e: any) => {
-      fetch("/api/profile/admin/" + e)
+      fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val) => {
-          setSelectedProfile(val);
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
           setMode("Edit");
           onOpen();
         });
     },
-    [selectedProfile]
+    [selectedKeys, mode]
   );
-
-  const GetProfileAdminList = useCallback(async () => {
-    await fetch("/api/profile/admin")
-      .then((res) => res.json())
-      .then((val) => {
-        setProfileAdminList(val);
-        setPages(Math.ceil(val.length / rowsPerPage));
-        setIsLoading(false);
-      });
-  }, [profileAdminList]);
-
-  const GetAffiliationList = useCallback(async () => {
-    await fetch("/api/data/affiliation")
-      .then((res) => res.json())
-      .then((val) => {
-        setAffiliationList(val);
-      });
-  }, [affiliationList]);
 
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
-      } else {
-        GetProfileAdminList();
-        GetAffiliationList();
       }
     }
-  }, [session, isLoading]);
+  }, [session]);
+
+  useEffect(() => {
+    if (error) {
+      // Handle error appropriately
+      addToast({
+        title: "Error loading questions:",
+        description: error,
+        color: "danger",
+      });
+    }
+  }, [error]);
 
   return (
     <Suspense fallback={<Loading />}>
-      <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
+      <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
         <div className="flex justify-between items-end ">
-          <h3 className="text-lg font-semibold">จัดการผู้ใช้งาน</h3>
+          <h3 className="text-lg font-semibold">รายการที่ดูแล</h3>
         </div>
-        <ModalUserProfile
-          Mode={mode}
-          Profile={selectedProfile}
-          isOpen={isOpen}
-          onClose={onClose}
-          onReLoad={GetProfileAdminList}
-        />
-
-        <div className="w-full flex flex-col gap-4 text-nowrap">
-          <Table
-            isHeaderSticky
-            aria-label="Question List Table"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: "max-h-[calc(65vh)]",
-            }}
-            // sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            // onSortChange={setSortDescriptor}
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.align as "center" | "start" | "end"}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={"No users found"}
-              isLoading={isLoading}
-              items={sortedItems}
-              loadingContent={<Spinner label="Loading..." />}
+        <div className="max-w-[95rem] mx-auto w-full">
+          <QuestionDrawer
+            data={selectedKeys!}
+            isOpen={isOpen}
+            mode={mode}
+            onClose={onClose}
+          />
+          <div className="w-full flex flex-col gap-4 text-nowrap">
+            <Table
+              isHeaderSticky
+              aria-label="Question List Table"
+              bottomContent={bottomContent}
+              bottomContentPlacement="outside"
+              classNames={{
+                wrapper: "max-h-[calc(65vh)]",
+              }}
+              sortDescriptor={sortDescriptor}
+              topContent={topContent}
+              topContentPlacement="outside"
+              onSortChange={setSortDescriptor}
             >
-              {(item) => (
-                <TableRow>
-                  {(columnKey) => (
-                    <TableCell className="text-nowrap">
-                      {RenderCell({
-                        data: item,
-                        affiliationList: affiliationList,
-                        columnKey: columnKey,
-                        index:
-                          profileAdminList.findIndex((x) => x.id == item.id) +
-                          1,
-                        viewDetail: onRowDetailPress,
-                        editDetail: onRowEditPress,
-                      })}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn
+                    key={column.uid}
+                    align={column.align as "center" | "start" | "end"}
+                  >
+                    {column.name}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent={"No users found"}
+                isLoading={isLoading}
+                items={sortedItems}
+                loadingContent={<Spinner label="Loading..." />}
+              >
+                {(item) => (
+                  <TableRow>
+                    {(columnKey) => (
+                      <TableCell className="text-nowrap">
+                        {RenderCell({
+                          data: item,
+                          columnKey: columnKey,
+                          index:
+                            filteredItems.findIndex((x) => x.id == item.id) + 1,
+                          viewDetail: onRowDetailPress,
+                          editDetail: onRowEditPress,
+                        })}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </Suspense>

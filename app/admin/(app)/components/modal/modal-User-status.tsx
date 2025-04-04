@@ -12,7 +12,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect } from "react";
 
 export const ModalUserStatus = () => {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpenChange } = useDisclosure();
   const { data: session, status } = useSession();
   // const router = useRouter();
 

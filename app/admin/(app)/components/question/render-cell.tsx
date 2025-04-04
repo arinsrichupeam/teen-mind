@@ -5,7 +5,7 @@ import moment from "moment";
 import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/react";
 
-import { statusOptions } from "../data";
+import { statusOptions } from "../../data/questiondata";
 
 import { prefix } from "@/utils/data";
 
