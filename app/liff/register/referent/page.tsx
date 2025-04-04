@@ -28,6 +28,7 @@ import Image from "next/image";
 import { title } from "@/components/primitives";
 import { prefix } from "@/utils/data";
 import { validateCitizen, validateEmail } from "@/utils/helper";
+import { generateQRCode } from "@/utils/qrcode";
 
 const referentInitValue: Referent = {
   id: 0,
@@ -58,6 +59,7 @@ export default function ReferentPage() {
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [qrCode, setQrCode] = useState<string>("");
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
@@ -188,14 +190,28 @@ export default function ReferentPage() {
     [selectedReferent, HandleChange, onOpen]
   );
 
-  useEffect(() => {
-    onOpenModal2();
-  }, []);
+  const generateQR = async () => {
+    try {
+      const qrCodeUrl = await generateQRCode(
+        "https://liff.line.me/1656886344-OopvvNmA"
+      );
+
+      setQrCode(qrCodeUrl);
+    } catch (error) {
+      addToast({
+        title: "เกิดข้อผิดพลาดในการสร้าง QR Code",
+        color: "danger",
+        description: error as string,
+      });
+    }
+  };
 
   useEffect(() => {
+    onOpenModal2();
     GetvolunteerType();
     GetEmployeeType();
     GetAffiliation();
+    generateQR();
   }, []);
 
   return (
@@ -499,7 +515,7 @@ export default function ReferentPage() {
                 alt="QR-Code"
                 className="w-[200px] h-[200px] mx-auto"
                 height={200}
-                src="/image/Teen-Mind.png"
+                src={qrCode}
                 width={200}
               />
               <Divider />
@@ -573,7 +589,7 @@ export default function ReferentPage() {
                 alt="QR-Code"
                 className="w-[200px] h-[200px] mx-auto"
                 height={200}
-                src="/image/Teen-Mind.png"
+                src={qrCode}
                 width={200}
               />
               <Divider />
