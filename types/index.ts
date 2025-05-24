@@ -93,6 +93,7 @@ export interface ProfileAdminData {
   professional: string;
   license: string;
   status: number;
+  alert: boolean;
   createdAt: string;
   updatedAt: string;
   roleId: number;

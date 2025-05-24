@@ -35,10 +35,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
-import {
-  QuestionColumnsName as columns,
-  statusOptions,
-} from "../data/questiondata";
+import { questionStatusOptions as statusOptions } from "../data/optionData";
+import { QuestionColumnsName as columns } from "../data/tableColumn";
 import { QuestionDrawer } from "../components/question/question-drawer";
 import { RenderCell } from "../components/question/render-cell";
 

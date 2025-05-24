@@ -81,6 +81,7 @@ export async function GET(
       professional: profile?.profile_admin[0].professional as string,
       license: profile?.profile_admin[0].license as string,
       status: profile?.profile_admin[0].status as number,
+      alert: profile?.profile_admin[0].alert as boolean,
       roleId: profile?.profile_admin[0].roleId as number,
       createdAt: "",
       updatedAt: "",

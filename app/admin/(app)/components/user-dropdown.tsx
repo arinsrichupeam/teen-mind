@@ -32,6 +32,7 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   professional: "",
   license: "",
   status: 0,
+  alert: false,
   createdAt: "",
   updatedAt: "",
   roleId: 0,

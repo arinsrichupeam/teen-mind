@@ -17,10 +17,13 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { Affiliation, Employee_Type } from "@prisma/client";
 
-import { roles, statusOptions } from "../../members/data";
-
 import { ProfileAdminData } from "@/types";
 import { prefix } from "@/utils/data";
+import {
+  userStatusOptions as Options,
+  emergencyOptions as Emergency,
+  userRoles,
+} from "@/app/admin/(app)/data/optionData";
 
 interface Props {
   Profile: ProfileAdminData;
@@ -64,10 +67,17 @@ export const ModalUserProfile = ({
   const HandleChange = useCallback(
     (e: any) => {
       if (mode === "Edit") {
-        setSelectedProfile((prev) => ({
-          ...prev,
-          [e.target.name]: e.target.value,
-        }));
+        if (e.target.name === "alert") {
+          setSelectedProfile((prev) => ({
+            ...prev,
+            [e.target.name]: e.target.value === "1" ? true : false,
+          }));
+        } else {
+          setSelectedProfile((prev) => ({
+            ...prev,
+            [e.target.name]: e.target.value,
+          }));
+        }
       }
     },
     [selectedProfile]
@@ -290,7 +300,7 @@ export const ModalUserProfile = ({
                     />
                   </div>
                   <Divider />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Select
                       className="max-w-xl"
                       label="สิทธิ์การใช้งาน"
@@ -307,7 +317,7 @@ export const ModalUserProfile = ({
                       variant="bordered"
                       onChange={HandleChange}
                     >
-                      {roles.map((val) => {
+                      {userRoles.map((val) => {
                         return <SelectItem key={val.id}>{val.name}</SelectItem>;
                       })}
                     </Select>
@@ -327,7 +337,25 @@ export const ModalUserProfile = ({
                       variant="bordered"
                       onChange={HandleChange}
                     >
-                      {statusOptions.map((val) => {
+                      {Options.map((val) => {
+                        return (
+                          <SelectItem key={val.uid}>{val.name}</SelectItem>
+                        );
+                      })}
+                    </Select>
+                    <Select
+                      className="max-w-xl"
+                      label="Emergency Alert"
+                      labelPlacement="outside"
+                      name="alert"
+                      placeholder="Emergency Alert"
+                      radius="sm"
+                      selectedKeys={selectedProfile.alert === false ? "0" : "1"}
+                      size="md"
+                      variant="bordered"
+                      onChange={HandleChange}
+                    >
+                      {Emergency.map((val) => {
                         return (
                           <SelectItem key={val.uid}>{val.name}</SelectItem>
                         );

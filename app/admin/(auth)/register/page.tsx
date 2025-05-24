@@ -34,6 +34,7 @@ const profileInitValue: Profile_Admin = {
   createdAt: new Date(),
   updatedAt: new Date(),
   roleId: 3,
+  alert: false,
 };
 
 export default function RegisterPage() {

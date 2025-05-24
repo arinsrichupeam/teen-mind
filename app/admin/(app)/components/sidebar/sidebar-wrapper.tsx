@@ -94,9 +94,10 @@ export const SidebarWrapper = () => {
                     title="รายชื่อโรงเรียน"
                   />
                   <SidebarItem
+                    href="/admin/volunteer"
                     icon={<CreditCardIcon className="size-6" />}
-                    isActive={pathname === "/admin/emergency"}
-                    title="รายชื่อผู้รับเคสฉุกเฉิน"
+                    isActive={pathname === "/admin/volunteer"}
+                    title="รายชื่อ อสท."
                   />
                   <SidebarItem
                     icon={<MapIcon className="size-6" />}

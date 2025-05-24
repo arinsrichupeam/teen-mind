@@ -35,10 +35,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
-import {
-  QuestionColumnsName as columns,
-  statusOptions,
-} from "../data/questiondata";
+import { questionStatusOptions as options } from "../data/optionData";
+import { QuestionColumnsName as columns } from "../data/tableColumn";
 import { QuestionDrawer } from "../components/question/question-drawer";
 import { RenderCell } from "../components/question/render-cell";
 
@@ -188,7 +186,7 @@ export default function QuestionPage() {
               selectionMode="multiple"
               onSelectionChange={setStatusFilter}
             >
-              {statusOptions.map((status) => (
+              {options.map((status) => (
                 <DropdownItem key={status.uid} className="capitalize">
                   {status.name}
                 </DropdownItem>
@@ -228,7 +226,7 @@ export default function QuestionPage() {
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
             <label className="flex items-center text-default-400 text-small">
-              Rows per page:
+              แสดงต่อหน้า:
               <select
                 className="bg-transparent outline-none text-default-400 text-small"
                 defaultValue={rowsPerPage}

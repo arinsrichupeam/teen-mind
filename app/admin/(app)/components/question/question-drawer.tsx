@@ -31,7 +31,7 @@ import {
 } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
-import { statusOptions } from "../../data/questiondata";
+import { questionStatusOptions as options } from "../../data/optionData";
 
 import { QuestionDetail } from "./detail";
 
@@ -472,7 +472,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           });
                         }}
                       >
-                        {statusOptions.map((item) => (
+                        {options.map((item) => (
                           <SelectItem key={item.uid}>{item.name}</SelectItem>
                         ))}
                       </Select>

@@ -115,6 +115,7 @@ model Profile_Admin {
   professional   String?
   license        String?
   status         Int           @default(3)
+  alert          Boolean       @default(false)
   roleId         Int           @default(3)
   role           Roles         @relation(fields: [roleId], references: [id], onDelete: Cascade)
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)

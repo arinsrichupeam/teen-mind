@@ -1,11 +1,17 @@
 "use client";
 
 import React from "react";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  BellAlertIcon,
+  BellIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { Button, Chip, User } from "@heroui/react";
 import { Affiliation } from "@prisma/client";
 
-import { statusOptions } from "../data";
+import { userStatusOptions as statusOptions } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
 
@@ -101,6 +107,18 @@ export const RenderCell = ({
               }
             </span>
           </Chip>
+        </div>
+      );
+    case "alert":
+      return (
+        <div className="flex justify-center">
+          <span>
+            {data.alert ? (
+              <BellAlertIcon className="size-6 text-red-500" />
+            ) : (
+              <BellIcon className="size-6 text-gray-400" />
+            )}
+          </span>
         </div>
       );
     case "actions":

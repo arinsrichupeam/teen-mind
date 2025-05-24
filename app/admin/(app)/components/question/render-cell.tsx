@@ -5,7 +5,7 @@ import moment from "moment";
 import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/react";
 
-import { statusOptions } from "../../data/questiondata";
+import { questionStatusOptions as options } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
 
@@ -129,7 +129,7 @@ export const RenderCell = ({
       return (
         <div>
           <span className="text-xs font-semibold">
-            {statusOptions[data.status].name}
+            {options[data.status].name}
           </span>
         </div>
       );

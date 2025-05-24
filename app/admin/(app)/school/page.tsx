@@ -35,8 +35,9 @@ import {
 import router from "next/router";
 import { useSession } from "next-auth/react";
 
+import { SchoolListColumnsName as columns } from "../data/tableColumn";
+
 import { SchoolRenderCell } from "./components/rendercell-scool";
-import { SchoolListColumnsName as columns } from "./data";
 
 import Loading from "@/app/loading";
 

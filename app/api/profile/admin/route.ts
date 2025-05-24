@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       employeeTypeId: parseInt(profile_data.employeeTypeId.toString()),
       professional: profile_data.professional,
       license: profile_data.license,
+      alert: profile_data.alert,
       status: parseInt(profile_data.status.toString()),
       roleId: parseInt(profile_data.roleId.toString()),
     },

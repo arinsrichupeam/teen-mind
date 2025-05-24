@@ -35,8 +35,9 @@ import { useRouter } from "next/navigation";
 import { Affiliation, Profile_Admin } from "@prisma/client";
 
 import { ModalUserProfile } from "../components/modal/modal-user-profile";
+import { questionStatusOptions as options } from "../data/optionData";
+import { MemberColumnsName as columns } from "../data/tableColumn";
 
-import { QuestionColumnsName as columns, statusOptions } from "./data";
 import { RenderCell } from "./components/render-cell";
 
 import { ProfileAdminData } from "@/types";
@@ -59,6 +60,7 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   professional: "",
   license: "",
   status: 0,
+  alert: false,
   createdAt: "",
   updatedAt: "",
   roleId: 0,
@@ -98,7 +100,7 @@ export default function MemberPage() {
     }
     if (
       statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
+      Array.from(statusFilter).length !== options.length
     ) {
       filteredUsers = filteredUsers.filter((user) =>
         Array.from(statusFilter).includes(user.status.toString())
@@ -185,7 +187,7 @@ export default function MemberPage() {
               selectionMode="multiple"
               onSelectionChange={setStatusFilter}
             >
-              {statusOptions.map((status) => (
+              {options.map((status) => (
                 <DropdownItem key={status.uid} className="capitalize">
                   {status.name}
                 </DropdownItem>
