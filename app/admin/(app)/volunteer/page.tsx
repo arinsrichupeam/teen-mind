@@ -39,10 +39,7 @@ export default function VolunteerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedReferent, setSelectedReferent] =
-    useState<ReferentWithRelations | null>(null);
-  const [mode, setMode] = useState<"View" | "Edit">("View");
+  const { onOpen } = useDisclosure();
 
   useEffect(() => {
     fetchReferents();
@@ -54,8 +51,6 @@ export default function VolunteerPage() {
       const data = await response.json();
 
       setReferents(data);
-    } catch (error) {
-      console.error("Error fetching referents:", error);
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +61,6 @@ export default function VolunteerPage() {
       const referent = referents.find((r) => r.id.toString() === id);
 
       if (referent) {
-        setSelectedReferent(referent);
-        setMode("View");
         onOpen();
       }
     },
@@ -79,8 +72,6 @@ export default function VolunteerPage() {
       const referent = referents.find((r) => r.id.toString() === id);
 
       if (referent) {
-        setSelectedReferent(referent);
-        setMode("Edit");
         onOpen();
       }
     },

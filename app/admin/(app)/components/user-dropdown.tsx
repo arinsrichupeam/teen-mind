@@ -44,7 +44,6 @@ export const UserDropdown = () => {
   const [profile, setProfile] = useState<ProfileAdminData>(
     ProfileAdminDataInitData
   );
-  const [mode, setMode] = useState("View");
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = useCallback(async () => {
@@ -58,7 +57,6 @@ export const UserDropdown = () => {
         .then((res) => res.json())
         .then((val) => {
           setProfile(val);
-          setMode("View");
           onOpen();
         });
     },

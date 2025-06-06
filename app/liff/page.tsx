@@ -16,16 +16,19 @@ export default function LiffHome() {
         if (val === null) {
           signOut();
         } else if (val.profile?.length === 0) {
+          // send to register
           router.push("/liff/privacy");
         } else {
-          if (val.questions?.length === 0) {
-            router.push("/liff/question");
+          if (val.isReferent) {
+            router.push("/liff/referent");
           } else {
-            router.push("/liff/question/list");
+            if (val.questions?.length === 0) {
+              router.push("/liff/question");
+            } else {
+              router.push("/liff/question/list");
+            }
           }
         }
-
-        return val;
       })
     );
   };

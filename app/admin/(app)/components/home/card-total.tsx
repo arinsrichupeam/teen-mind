@@ -15,7 +15,7 @@ export const CardTotal = ({ data }: props) => {
             <span className="text-sm font-semibold">ผู้รับบริการ (คน)</span>
             <span className="text-xl font-semibold">
               {
-                Array.from(new Set(data.map((item: any) => item.user.id)))
+                Array.from(new Set(data.map((item: any) => item.profile.id)))
                   .length
               }
             </span>
@@ -24,25 +24,6 @@ export const CardTotal = ({ data }: props) => {
             <UserGroupIcon className="size-8 text-primary-500" />
           </div>
         </div>
-        {/* <div className="flex flex-row items-center gap-2">
-          <div className="basis-1/2">
-            <span className="text-xs">Referent</span>
-            <div>
-              <span className="font-semibold">
-                {data.filter((val) => val.status !== 3).length}
-              </span>
-            </div>
-          </div>
-
-          <div className="basis-1/2">
-            <span className="text-xs">Consult</span>
-            <div>
-              <span className="font-semibold">
-                {data.filter((val) => val.status === 3).length}
-              </span>
-            </div>
-          </div>
-        </div> */}
       </CardBody>
     </Card>
   );

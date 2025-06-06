@@ -13,7 +13,6 @@ interface Props {
 export const VolunteerRenderCell = ({
   data,
   columnKey,
-  index,
   viewDetail,
   editDetail,
 }: Props) => {

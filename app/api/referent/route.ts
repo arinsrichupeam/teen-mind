@@ -11,7 +11,7 @@ export async function GET() {
         affiliation: true,
         questions_master: {
           include: {
-            user: true,
+            profile: true,
           },
         },
       },
@@ -22,9 +22,9 @@ export async function GET() {
       // นับจำนวนแบบสอบถามโดยจัดกลุ่มตาม userid
       const questionCountByUser = referent.questions_master.reduce(
         (acc, question) => {
-          const userId = question.user?.id || "unknown";
+          const profileId = question.profile?.id || "unknown";
 
-          acc[userId] = (acc[userId] || 0) + 1;
+          acc[profileId] = (acc[profileId] || 0) + 1;
 
           return acc;
         },

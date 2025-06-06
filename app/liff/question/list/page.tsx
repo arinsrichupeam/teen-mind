@@ -23,7 +23,9 @@ export default function QuestionListPage() {
 
         fetch(`/api/profile/user/${userId}`).then((res) =>
           res.json().then((val) => {
-            setQuestionList(val.questions);
+            if (val.profile.length > 0 && val.profile[0].questions.length > 0) {
+              setQuestionList(val.profile[0].questions);
+            }
           })
         );
       }
@@ -55,8 +57,12 @@ export default function QuestionListPage() {
           orientation="horizontal"
         >
           <div className="flex flex-col gap-5">
-            {questionList.map((val, index) => {
-              return (
+            {questionList.length === 0 ? (
+              <p className="text-center text-gray-500">
+                ยังไม่มีประวัติการทำแบบทดสอบ
+              </p>
+            ) : (
+              questionList.map((val, index) => (
                 <Card key={index}>
                   <CardBody className="text-sm">
                     <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
@@ -68,15 +74,14 @@ export default function QuestionListPage() {
                         day: "numeric",
                       })}
                     </p>
-
-                    {val.result == "Green" ? (
+                    {val.result === "Green" ? (
                       <p className="font-semibold">
                         ผลการสำรวจ{" "}
                         <span className="text-success-500">
                           {val.result_text}
                         </span>
                       </p>
-                    ) : val.result == "Yellow" ? (
+                    ) : val.result === "Yellow" ? (
                       <p className="font-semibold">
                         ผลการสำรวจ{" "}
                         <span className="text-warning-500">
@@ -93,8 +98,8 @@ export default function QuestionListPage() {
                     )}
                   </CardBody>
                 </Card>
-              );
-            })}
+              ))
+            )}
           </div>
         </ScrollShadow>
         <Button

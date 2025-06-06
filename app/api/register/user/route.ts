@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   // Get UserProfile From DB
   const user = await prisma.user.findUnique({
     where: {
-      id: profile.userId,
+      id: profile.userId as string,
     },
     select: {
       profile: true,
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   } else {
     await prisma.user.update({
       where: {
-        id: profile.userId,
+        id: profile.userId as string,
       },
       data: {
         profile: {

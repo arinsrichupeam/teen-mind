@@ -9,7 +9,6 @@ export default function AboutLayout({
 }) {
   return (
     <div className="relative flex flex-col h-screen ">
-      {/* <Navbar /> */}
       <main className="container mx-auto flex-grow">
         <section className="flex flex-col items-center justify-center gap-4">
           <div className="inline-block text-center justify-center">

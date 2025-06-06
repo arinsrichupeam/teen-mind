@@ -23,37 +23,37 @@ export async function GET(
       schedule_telemed: true,
       consult: true,
       status: true,
-      user: {
+      profile: {
         select: {
-          image: true,
-          profile: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          prefixId: true,
+          birthday: true,
+          ethnicity: true,
+          nationality: true,
+          citizenId: true,
+          tel: true,
+          hn: true,
+          school: {
             select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-              prefixId: true,
-              birthday: true,
-              ethnicity: true,
-              nationality: true,
-              citizenId: true,
-              tel: true,
-              hn: true,
-              school: {
-                select: {
-                  name: true,
-                },
-              },
-              address: {
-                select: {
-                  houseNo: true,
-                  villageNo: true,
-                  soi: true,
-                  road: true,
-                  subdistrict: true,
-                  district: true,
-                  province: true,
-                },
-              },
+              name: true,
+            },
+          },
+          address: {
+            select: {
+              houseNo: true,
+              villageNo: true,
+              soi: true,
+              road: true,
+              subdistrict: true,
+              district: true,
+              province: true,
+            },
+          },
+          user: {
+            select: {
+              image: true,
             },
           },
         },

@@ -1,9 +1,9 @@
 import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 
 import { prisma } from "@/utils/prisma";
+import { LocationData, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { GreenFlex, RedFlex, YellowFlex } from "@/config/site";
-import { LocationData, QuestionsData } from "@/types";
 
 export async function GET() {
   const questionsList = await prisma.questions_Master.findMany({
@@ -14,21 +14,15 @@ export async function GET() {
       result_text: true,
       status: true,
       consult: true,
-      user: {
+      profile: {
         select: {
-          id: true,
-          image: true,
-          profile: {
+          prefixId: true,
+          firstname: true,
+          lastname: true,
+          birthday: true,
+          school: {
             select: {
-              prefixId: true,
-              firstname: true,
-              lastname: true,
-              birthday: true,
-              school: {
-                select: {
-                  name: true,
-                },
-              },
+              name: true,
             },
           },
         },
@@ -47,7 +41,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const data = await req.json();
 
-  const userId = data.userId;
+  const profileId = data.profileId;
   const referenceId = data.reference;
   const phqa_data: Questions_PHQA = data.phqa;
   const phqa_addon: Questions_PHQA_Addon = data.phqa_addon;
@@ -57,21 +51,6 @@ export async function POST(req: Request) {
   let status = 0;
 
   const phqa_sum = SumValue(phqa_data);
-
-  const UUID = await prisma.user
-    .findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        accounts: {
-          select: {
-            providerAccountId: true,
-          },
-        },
-      },
-    })
-    .then((val) => val?.accounts[0].providerAccountId as string);
 
   if (phqa_sum > 14) {
     result = "Red";
@@ -97,23 +76,36 @@ export async function POST(req: Request) {
     }
   }
 
-  //check HN
-  const hn = await prisma.user
+  const user = await prisma.profile
     .findUnique({
       where: {
-        id: userId,
+        id: profileId,
       },
       select: {
-        profile: {
+        userId: true,
+        hn: true,
+      },
+    })
+    .then((val) => {
+      return val;
+    });
+
+  const UUID = await prisma.user
+    .findUnique({
+      where: {
+        id: user?.userId as string,
+      },
+      select: {
+        accounts: {
           select: {
-            hn: true,
+            providerAccountId: true,
           },
         },
       },
     })
-    .then((val) => val?.profile[0].hn as string);
+    .then((val) => val?.accounts[0].providerAccountId as string);
 
-  if (hn == null) {
+  if (user?.hn == null) {
     status = 0;
   } else {
     status = 1;
@@ -123,12 +115,12 @@ export async function POST(req: Request) {
     .create({
       data: {
         latitude: location_data?.latitude,
-        userId: userId,
         longitude: location_data?.longitude,
         referentId: referenceId,
         result: result,
         result_text: result_text,
         status: status,
+        profileId: profileId,
         phqa: {
           create: {
             q1: phqa_data.q1,

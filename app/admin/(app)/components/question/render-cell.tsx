@@ -1,5 +1,4 @@
 import React from "react";
-import { User } from "@heroui/user";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
@@ -60,31 +59,38 @@ export const RenderCell = ({
     case "name":
       return (
         <div>
-          <User
+          {/* <User
             avatarProps={{
-              src: data.user.image as string,
+              src: data.profile.user ? data.profile.user.image as string : "",
             }}
             name={
-              prefix.find((val) => val.key == data.user.profile[0].prefixId)
+              prefix.find((val) => val.key == data.profile.prefixId)
                 ?.label +
               " " +
-              data.user.profile[0].firstname +
+              data.profile.firstname +
               " " +
-              data.user.profile[0].lastname
+              data.profile.lastname
             }
-          />
+          /> */}
+          <p>
+            {prefix.find((val) => val.key == data.profile.prefixId)?.label +
+              " " +
+              data.profile.firstname +
+              " " +
+              data.profile.lastname}
+          </p>
         </div>
       );
     case "age":
       return (
         <div>
-          <span>{timeAgo(data.user.profile[0].birthday)}</span>
+          <span>{timeAgo(data.profile.birthday)}</span>
         </div>
       );
     case "school":
       return (
         <div>
-          <span>{data.user.profile[0].school?.name.toString()}</span>
+          <span>{data.profile.school?.name.toString()}</span>
         </div>
       );
     case "result":

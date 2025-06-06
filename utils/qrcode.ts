@@ -17,7 +17,7 @@ export async function generateQRCode(
   try {
     return await QRCode.toDataURL(text, options);
   } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการสร้าง QR Code:", error);
+    // console.error("เกิดข้อผิดพลาดในการสร้าง QR Code:", error);
     throw error;
   }
 }
@@ -47,7 +47,7 @@ export async function downloadQRCode(
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการดาวน์โหลด QR Code:", error);
+    // console.error("เกิดข้อผิดพลาดในการดาวน์โหลด QR Code:", error);
     throw error;
   }
 }

@@ -24,7 +24,8 @@ export type QuestionsData = {
   consult: string;
   createdAt: string;
   status: number;
-  user: User;
+  hn: string;
+  profile: Profile;
   phqa: Phqa[];
   addon: Phqa_Addon[];
 };
@@ -47,6 +48,7 @@ export interface Profile {
   school: string;
   hn: string;
   address: Address[];
+  user: User;
 }
 
 export interface Address {

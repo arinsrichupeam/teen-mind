@@ -86,7 +86,8 @@ export default function PHQAPage() {
   const [progress, setProgress] = useState(0);
   const [showPHQA, setPHQAShow] = useState(true);
   const [submit, setSubmit] = useState(true);
-  const [userId, setUserId] = useState("");
+  // const [userId, setUserId] = useState("");
+  const [profileId, setProfileId] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [referentData, setReferentData] = useState<{
     fullName: string;
@@ -103,11 +104,29 @@ export default function PHQAPage() {
   const [location, setLocation] = useState<LocationData>();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  const checkProfile = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(`/api/profile/user/${id}`);
+        const data = await response.json();
+
+        if (data?.profile.length === 0) {
+          router.push("/liff/privacy");
+        } else {
+          setProfileId(data?.profile[0].id);
+        }
+      } catch (error) {
+        router.push("/liff");
+      }
+    },
+    [profileId, router]
+  );
+
   useEffect(() => {
     if (status !== "loading") {
       if (status === "authenticated") {
-        setUserId(session?.user?.id as string);
-
+        // setUserId(session?.user?.id as string);
+        checkProfile(session?.user?.id as string);
         if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(({ coords }) => {
             const { accuracy, latitude, longitude } = coords;
@@ -122,7 +141,7 @@ export default function PHQAPage() {
         }
       }
     }
-  }, [session, isModalOpened]);
+  }, [session, isModalOpened, checkProfile]);
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
@@ -209,7 +228,7 @@ export default function PHQAPage() {
 
   const SaveToDB = async () => {
     const data = JSON.stringify({
-      userId: userId,
+      profileId: profileId,
       phqa: phqa_data,
       phqa_addon: phqa_addon_data,
       location: location,
