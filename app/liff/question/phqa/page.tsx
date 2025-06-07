@@ -173,7 +173,10 @@ export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
       }
     }
   }, [session, isModalOpened, checkProfile, referenceId, question]);
+<<<<<<< HEAD
 >>>>>>> ca1cc6b (ปรับปรุงฟังก์ชัน POST ใน API สำหรับการจัดการคำถาม โดยเพิ่มการตรวจสอบความถูกต้องของข้อมูลและแยกฟังก์ชันคำนวณผลลัพธ์ รวมถึงปรับปรุงการจัดการข้อมูลผู้ใช้และการส่งข้อความผ่าน Line นอกจากนี้ยังมีการปรับปรุง UI ในหน้า PHQAPage เพื่อให้การทำงานมีความชัดเจนและมีประสิทธิภาพมากขึ้น)
+=======
+>>>>>>> ca1cc6bdbc074119eb62f1d3398b0a9332463798
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
