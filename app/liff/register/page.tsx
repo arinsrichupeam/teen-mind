@@ -17,16 +17,16 @@ import Loading from "@/app/loading";
 const profileInitValue: Profile = {
   id: "",
   userId: "",
-  citizenId: "",
-  prefixId: 0,
-  sex: 0,
-  firstname: "",
-  lastname: "",
-  birthday: new Date(),
-  ethnicity: "",
-  nationality: "",
-  tel: "",
-  schoolId: 0,
+  citizenId: "1102000936048",
+  prefixId: 1,
+  sex: 1,
+  firstname: "สมชาย",
+  lastname: "สมหญิง",
+  birthday: new Date("1987-03-24"),
+  ethnicity: "ไทย",
+  nationality: "ไทย",
+  tel: "0812345678",
+  schoolId: 28,
   hn: "",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -35,21 +35,21 @@ const profileInitValue: Profile = {
 const addressInitValue: Address = {
   id: "",
   profileId: "",
-  houseNo: "",
+  houseNo: "23",
   villageNo: "",
   soi: "",
-  road: "",
-  province: 0,
-  district: 0,
-  subdistrict: 0,
+  road: "ถนนสุขาภิบาล",
+  province: 1,
+  district: 23,
+  subdistrict: 107,
 };
 
 const emergencyContactInitValue: EmergencyContact = {
   id: "",
   profileId: "",
-  name: "",
-  tel: "",
-  relation: "",
+  name: "สมหญิง สมชาย",
+  tel: "0812345678",
+  relation: "ญาติ",
 };
 
 export default function RegisterPage() {
@@ -65,13 +65,11 @@ export default function RegisterPage() {
   );
 
   useEffect(() => {
-    if (status !== "loading") {
-      if (status === "authenticated") {
-        setProfile((prev) => ({
-          ...prev,
-          userId: session?.user?.id as string,
-        }));
-      }
+    if (status !== "loading" && status === "authenticated") {
+      setProfile((prev) => ({
+        ...prev,
+        userId: session?.user?.id as string,
+      }));
     }
   }, [session]);
 
@@ -106,57 +104,66 @@ export default function RegisterPage() {
     [selected]
   );
 
-  const ProfileHandleChange = useCallback((e: any) => {
-    if (e.target.name === "birthday") {
-      setProfile((prev: any) => ({
-        ...prev,
-        birthday: e.target.value,
-      }));
-    } else if (e.target.name === "prefix") {
-      setProfile((prev: any) => ({
-        ...prev,
-        prefixId: parseInt(e.target.value),
-      }));
-    } else if (e.target.name === "sex") {
-      setProfile((prev: any) => ({
-        ...prev,
-        sex: parseInt(e.target.value),
-      }));
-    } else if (e.target.name === "citizenId") {
-      const val = e.target.value;
+  const ProfileHandleChange = useCallback(
+    (e: any) => {
+      if (e.target.name === "birthday") {
+        setProfile((prev: any) => ({
+          ...prev,
+          birthday: e.target.value,
+        }));
+      } else if (e.target.name === "prefix") {
+        setProfile((prev: any) => ({
+          ...prev,
+          prefixId: parseInt(e.target.value),
+        }));
+      } else if (e.target.name === "sex") {
+        setProfile((prev: any) => ({
+          ...prev,
+          sex: parseInt(e.target.value),
+        }));
+      } else if (e.target.name === "citizenId") {
+        const val = e.target.value;
 
-      if (val.length <= 13) {
+        if (val.length <= 13) {
+          setProfile((prev: any) => ({
+            ...prev,
+            [e.target.name]: e.target.value,
+          }));
+        }
+      } else if (e.target.name === "school") {
+        setProfile((prev: any) => ({
+          ...prev,
+          schoolId: parseInt(e.target.value),
+        }));
+      } else {
         setProfile((prev: any) => ({
           ...prev,
           [e.target.name]: e.target.value,
         }));
       }
-    } else if (e.target.name === "school") {
-      setProfile((prev: any) => ({
-        ...prev,
-        schoolId: parseInt(e.target.value),
-      }));
-    } else {
-      setProfile((prev: any) => ({
+    },
+    [profile]
+  );
+
+  const AddressHandleChange = useCallback(
+    (e: any) => {
+      setAddress((prev) => ({
         ...prev,
         [e.target.name]: e.target.value,
       }));
-    }
-  }, []);
+    },
+    [address]
+  );
 
-  const AddressHandleChange = useCallback((e: any) => {
-    setAddress((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  }, []);
-
-  const EmergencyHandleChange = useCallback((e: any) => {
-    setEmergency((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  }, []);
+  const EmergencyHandleChange = useCallback(
+    (e: any) => {
+      setEmergency((prev) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    },
+    [emergency]
+  );
 
   const SaveToDB = async () => {
     const data = JSON.stringify({
@@ -171,14 +178,23 @@ export default function RegisterPage() {
         "Content-Type": "application/json",
       },
       body: data,
-    }).then((res) => {
-      if (res.status === 200) {
-        setShowAlert(true);
-        setTimeout(() => {
-          router.push("/liff/question");
-        }, 3000);
-      }
-    });
+    })
+      .then((res) => res.json())
+      .then((val) => {
+        if (val.userId === undefined || val.userId === null) {
+          setShowAlert(true);
+          setTimeout(() => {
+            router.push(
+              `/liff/question/phqa?ref=${val.ref.id}?id=${val.profile.id}`
+            );
+          }, 3000);
+        } else {
+          setShowAlert(true);
+          setTimeout(() => {
+            router.push("/liff/question");
+          }, 3000);
+        }
+      });
   };
 
   return (

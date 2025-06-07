@@ -24,7 +24,7 @@ import { LocationData } from "@/types";
 import Loading from "@/app/loading";
 import { qPhqa_addon, qPhqa } from "@/app/data";
 
-export default function PHQAPage() {
+export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
   const qPhqa_Image = [
     { src: "/image/Q1-01.png", alt: "PHQA Image 1" },
     { src: "/image/Q1-02.png", alt: "PHQA Image 2" },
@@ -123,25 +123,31 @@ export default function PHQAPage() {
   );
 
   useEffect(() => {
-    if (status !== "loading") {
-      if (status === "authenticated") {
-        // setUserId(session?.user?.id as string);
-        checkProfile(session?.user?.id as string);
-        if ("geolocation" in navigator) {
-          navigator.geolocation.getCurrentPosition(({ coords }) => {
-            const { accuracy, latitude, longitude } = coords;
-
-            setLocation({ accuracy, latitude, longitude });
-          });
-        }
-
-        if (referenceId === "" && !isModalOpened) {
-          onOpen();
-          setIsModalOpened(true);
-        }
-      }
+    if (status !== "loading" && status === "authenticated") {
+      // checkProfile(session?.user?.id as string);
+      console.log("Authenticated");
+    } else {
+      // setProfileId(id);
+      console.log("Un Authenticated");
     }
-  }, [session, isModalOpened, checkProfile]);
+
+    //setReferenceId(ref);
+
+    //console.log(profileId, " : ", referenceId);
+
+    // if ("geolocation" in navigator) {
+    //   navigator.geolocation.getCurrentPosition(({ coords }) => {
+    //     const { accuracy, latitude, longitude } = coords;
+
+    //     setLocation({ accuracy, latitude, longitude });
+    //   });
+    // }
+
+    // if (referenceId === "" && !isModalOpened) {
+    //   onOpen();
+    //   setIsModalOpened(true);
+    // }
+  }, [session, isModalOpened, checkProfile, referenceId, profileId]);
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);

@@ -64,8 +64,11 @@ export default function WizardPage() {
     setProgress(100);
     try {
       // TODO: ส่งข้อมูลไปยัง API
-    } catch (error) {
-      console.error("Error submitting survey:", error);
+    } finally {
+      // catch (error) {
+      //   console.error("Error submitting survey:", error);
+      // }
+      // router.push("/liff/referent/wizard/success");
     }
   };
 

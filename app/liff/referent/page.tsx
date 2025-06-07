@@ -14,10 +14,14 @@ export default function QuestionPage() {
     router.push("/liff/question/list");
   };
 
+  const GotoPrivacy = () => {
+    router.push("/liff/privacy");
+  };
+
   return (
     <section className="flex flex-col w-screen min-h-[calc(100vh-48px)] px-8 items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
       <Suspense fallback={<Loading />}>
-        <div className="flex flex-col items-center gap-5 pt-10 pb-10">
+        <div className="flex flex-col items-center gap-5 pt-10 pb-0">
           <Image
             alt="app logo"
             className="h-[calc(7vh)]"
@@ -36,10 +40,10 @@ export default function QuestionPage() {
             แบบทดสอบนี้อ้างอิงจากแบบประเมินภาวะซึมเศร้าในวัยรุ่น โดยกรมสุขภาพจิต
             กระทรวงสาธารณสุข
           </h2>*/}
-          <Button className="w-full" color="primary" onPress={() => {}}>
+          <Button className="w-full" color="primary" onPress={GotoPrivacy}>
             เพิ่มแบบทดสอบ
           </Button>
-          <Button className="w-full" color="primary" onPress={() => GotoList()}>
+          <Button className="w-full" color="primary" onPress={GotoList}>
             แบบทดสอบของฉัน
           </Button>
         </div>
