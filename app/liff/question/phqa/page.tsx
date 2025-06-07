@@ -126,13 +126,12 @@ export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
   );
 
   useEffect(() => {
-<<<<<<< HEAD
     if (status !== "loading" && status === "authenticated") {
-      // checkProfile(session?.user?.id as string);
-      console.log("Authenticated");
+      checkProfile(session?.user?.id as string);
+      // console.log("Authenticated");
     } else {
       // setProfileId(id);
-      console.log("Un Authenticated");
+      // console.log("Un Authenticated");
     }
 
     //setReferenceId(ref);
@@ -152,31 +151,7 @@ export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
     //   setIsModalOpened(true);
     // }
   }, [session, isModalOpened, checkProfile, referenceId, profileId]);
-=======
-    if (status !== "loading") {
-      if (status === "authenticated") {
-        // setUserId(session?.user?.id as string);
-        checkProfile(session?.user?.id as string);
-        if ("geolocation" in navigator) {
-          navigator.geolocation.getCurrentPosition(({ coords }) => {
-            const { accuracy, latitude, longitude } = coords;
 
-            setLocation({ accuracy, latitude, longitude });
-          });
-        }
-
-        // Only show modal if referenceId is empty and modal hasn't been shown yet
-        if (referenceId === "" && !isModalOpened && question === "1") {
-          onOpen();
-          setIsModalOpened(true);
-        }
-      }
-    }
-  }, [session, isModalOpened, checkProfile, referenceId, question]);
-<<<<<<< HEAD
->>>>>>> ca1cc6b (ปรับปรุงฟังก์ชัน POST ใน API สำหรับการจัดการคำถาม โดยเพิ่มการตรวจสอบความถูกต้องของข้อมูลและแยกฟังก์ชันคำนวณผลลัพธ์ รวมถึงปรับปรุงการจัดการข้อมูลผู้ใช้และการส่งข้อความผ่าน Line นอกจากนี้ยังมีการปรับปรุง UI ในหน้า PHQAPage เพื่อให้การทำงานมีความชัดเจนและมีประสิทธิภาพมากขึ้น)
-=======
->>>>>>> ca1cc6bdbc074119eb62f1d3398b0a9332463798
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
