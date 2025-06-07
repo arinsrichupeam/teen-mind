@@ -41,7 +41,11 @@ export default function LiffHome() {
         checkProfile(session?.user?.id as string);
       }
     }
+<<<<<<< HEAD
   }, [status]);
+=======
+  }, [session, router]);
+>>>>>>> 8363a4a (ปรับปรุงการจัดการการตรวจสอบโปรไฟล์ในฟังก์ชัน LiffHome โดยเพิ่มการตรวจสอบ session ใน useEffect เพื่อให้การทำงานมีความถูกต้องและมีประสิทธิภาพมากขึ้น)
 
   return (
     <div className="flex flex-col h-[calc(100vh-48px)] w-screen">
