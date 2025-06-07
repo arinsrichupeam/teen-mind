@@ -22,7 +22,7 @@ import { Divider, InputOtp } from "@heroui/react";
 import { subtitle, title } from "@/components/primitives";
 import { LocationData } from "@/types";
 import Loading from "@/app/loading";
-import { qPhqa_addon, qPhqa } from "@/app/data";
+import { q2, qPhqa } from "@/app/data";
 
 export default function PHQAPage() {
   const qPhqa_Image = [
@@ -45,7 +45,7 @@ export default function PHQAPage() {
     />
   ));
 
-  const qPhqa_addon_Image = [
+  const q2_Image = [
     { src: "/image/Q2-01.png", alt: "PHQA Addon Image 1" },
     { src: "/image/Q2-02.png", alt: "PHQA Addon Image 2" },
   ].map((image, index) => (
@@ -73,7 +73,7 @@ export default function PHQAPage() {
     sum: 0,
   };
 
-  const phqaAddonInitValue: Questions_PHQA_Addon = {
+  const Q2InitValue: Questions_PHQA_Addon = {
     id: "",
     questions_MasterId: "",
     q1: 1,
@@ -82,10 +82,12 @@ export default function PHQAPage() {
 
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [questionName, setQuestionName] = useState("PHQ-A");
+  const [questionName, setQuestionName] = useState("2Q");
   const [progress, setProgress] = useState(0);
-  const [showPHQA, setPHQAShow] = useState(true);
+  const [showPHQA, setPHQAShow] = useState(false);
   const [submit, setSubmit] = useState(true);
+  const [canProceed, setCanProceed] = useState(false);
+  const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false);
   // const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState("");
   const [referenceId, setReferenceId] = useState("");
@@ -94,13 +96,14 @@ export default function PHQAPage() {
     affiliation: string;
     agency: string;
   }>();
-  const [question, setQuestion] = useState("0");
+  const [question, setQuestion] = useState("1");
+  const [currentAnswer, setCurrentAnswer] = useState<string>("");
   const [isModalOpened, setIsModalOpened] = useState(false);
   const [isOtpEmpty, setIsOtpEmpty] = useState(true);
+  const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<{ [key: string]: string }>({});
 
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
-  const [phqa_addon_data, setPhqaAddon] =
-    useState<Questions_PHQA_Addon>(phqaAddonInitValue);
+  const [Q2_data, setQ2] = useState<Questions_PHQA_Addon>(Q2InitValue);
   const [location, setLocation] = useState<LocationData>();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -135,13 +138,14 @@ export default function PHQAPage() {
           });
         }
 
-        if (referenceId === "" && !isModalOpened) {
+        // Only show modal if referenceId is empty and modal hasn't been shown yet
+        if (referenceId === "" && !isModalOpened && question === "1") {
           onOpen();
           setIsModalOpened(true);
         }
       }
     }
-  }, [session, isModalOpened, checkProfile]);
+  }, [session, isModalOpened, checkProfile, referenceId, question]);
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
@@ -179,58 +183,131 @@ export default function PHQAPage() {
   );
 
   const calProgress = useCallback((e: number) => {
-    const total = qPhqa.length + qPhqa_addon.length;
+    const total = qPhqa.length + q2.length;
     const question = e;
 
+    // คำนวณเปอร์เซ็นต์รวมทั้งหมด
     return (question * 100) / total;
   }, []);
 
   const phqaChange = useCallback((e: any) => {
     const Question = parseInt(e.target.name);
     const name = "q" + e.target.name;
-    const value = parseInt(e.target.value);
+    const value = e.target.value;
 
-    setQuestion(Question.toString());
+    setCurrentAnswer(value);
+    setCanProceed(true);
+    setCurrentQuestionAnswers(prev => ({
+      ...prev,
+      [Question]: value
+    }));
 
-    if (Question == 9) {
-      setPHQA((prev: any) => ({
+    setPHQA((prev: any) => {
+      const newData = {
         ...prev,
-        [name]: value,
-      }));
-      setQuestionName("คำถามแนบท้าย");
-      setPHQAShow(false);
-    } else {
-      setProgress(calProgress(Question + 1));
-      setPHQA((prev: any) => ({
-        ...prev,
-        [name]: value,
-      }));
+        [name]: parseInt(value),
+      };
+      
+      // คำนวณผลรวมของคำตอบ PHQ-A
+      const sum = Object.keys(newData)
+        .filter(key => key.startsWith('q') && key !== 'questions_MasterId')
+        .reduce((acc, key) => acc + (newData[key] || 0), 0);
+      
+      return {
+        ...newData,
+        sum: sum
+      };
+    });
+
+    if (Question === 9) {
+      setLastQuestionAnswered(true);
+      console.log("ข้อมูลที่จะบันทึก:", {
+        profileId: profileId,
+        phqa: phqa_data,
+        Q2: Q2_data,
+        location: location,
+        reference: parseInt(referenceId),
+      });
     }
-  }, []);
+  }, [profileId, phqa_data, Q2_data, location, referenceId]);
 
-  const phqaAddonChange = useCallback((e: any) => {
+  const Q2Change = useCallback((e: any) => {
     const Question = parseInt(e.target.name);
-    const name = "q" + (parseInt(e.target.name) - 9);
-    const value = parseInt(e.target.value);
+    const name = "q" + Question;
+    const value = e.target.value;
 
-    setProgress(calProgress(Question + 1));
-    if (Question < 11) {
-      setQuestion(Question.toString());
-    } else {
+    setCurrentAnswer(value);
+    setCanProceed(true);
+    setCurrentQuestionAnswers(prev => ({
+      ...prev,
+      [Question]: value
+    }));
+
+    setQ2((prev: any) => ({
+      ...prev,
+      [name]: parseInt(value),
+    }));
+
+    if (Question === 2) {
       setSubmit(false);
     }
-
-    setPhqaAddon((prev: any) => ({
-      ...prev,
-      [name]: value,
-    }));
   }, []);
 
+  const handleNext = useCallback(() => {
+    const currentQuestion = parseInt(question);
+
+    if (currentQuestion === 2) {
+      setPHQAShow(true);
+      setQuestionName("PHQ-A");
+      setQuestion("3"); // เริ่ม PHQ-A ที่ 3
+      setProgress(calProgress(3));
+      setCurrentAnswer("");
+      setCanProceed(false);
+      setCurrentQuestionAnswers({}); // รีเซ็ตคำตอบทั้งหมด
+    } else if (currentQuestion >= 3 && currentQuestion < 11) {
+      const nextQuestion = currentQuestion + 1;
+      setProgress(calProgress(nextQuestion));
+      setQuestion(nextQuestion.toString());
+      setCurrentAnswer("");
+      setCanProceed(false);
+    } else if (currentQuestion === 11) {
+      // จบ PHQ-A
+      setPHQAShow(false);
+      setQuestionName("สรุปผล");
+      setQuestion("10"); // ไปหน้าสรุป/บันทึกผล
+      setProgress(100);
+      setCurrentAnswer("");
+      setCanProceed(false);
+    } else {
+      const nextQuestion = currentQuestion + 1;
+      setProgress(calProgress(nextQuestion));
+      setQuestion(nextQuestion.toString());
+      setCurrentAnswer("");
+      setCanProceed(false);
+    }
+  }, [question, calProgress]);
+
   const SaveToDB = async () => {
+    // ตรวจสอบว่ามีข้อมูลครบถ้วนหรือไม่
+    if (!profileId || !location || !referenceId) {
+      console.error("ข้อมูลไม่ครบถ้วน");
+      return;
+    }
+
+    // ตรวจสอบว่าตอบคำถามครบทุกข้อหรือไม่
+    const hasAllAnswers = Object.values(phqa_data)
+      .filter(value => typeof value === 'number' && value !== 99)
+      .length === 9;
+
+    if (!hasAllAnswers) {
+      console.error("ยังไม่ได้ตอบคำถามครบทุกข้อ");
+      return;
+    }
+
     const data = JSON.stringify({
       profileId: profileId,
       phqa: phqa_data,
-      phqa_addon: phqa_addon_data,
+      Q2: Q2_data,
       location: location,
       reference: parseInt(referenceId),
     });
@@ -253,14 +330,35 @@ export default function PHQAPage() {
   const BackStep = useCallback(async () => {
     const Question = parseInt(question);
 
+    if (Question === 1) {
+      router.back();
+      return;
+    }
+
+    if (Question === 0) {
+      router.back();
+      return;
+    }
+
+    if (Question === 3) {
+      setPHQAShow(false);
+      setQuestionName("คำถามแนบท้าย");
+      setQuestion("2");
+      setProgress(calProgress(2));
+      setCanProceed(true);
+      setCurrentAnswer(currentQuestionAnswers[2] || "");
+      return;
+    }
+
     setProgress(calProgress(Question - 1));
     setQuestion((Question - 1).toString());
+    setCanProceed(true);
+    setCurrentAnswer(currentQuestionAnswers[Question - 1] || "");
+
     if (Question == 9) {
       setPHQAShow(true);
-    } else if (Question == 0) {
-      router.back();
     }
-  }, [question, calProgress]);
+  }, [question, calProgress, router, currentQuestionAnswers]);
 
   return (
     <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
@@ -362,104 +460,102 @@ export default function PHQAPage() {
             selectedKey={question}
             variant="underlined"
           >
-            {showPHQA
-              ? qPhqa.map((val, index) => {
-                  return (
-                    <Tab key={index}>
-                      <div className="flex flex-col gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_Image[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                              name={(index + 1).toString()}
-                              onChange={(val) => {
-                                phqaChange(val);
-                                setProgress(calProgress(index + 1));
-                              }}
+            {!showPHQA ? (
+              q2.map((val, index) => (
+                <Tab key={(index + 1).toString()}>
+                  <div className="flex flex-col gap-4 mt-[-50px]">
+                    <div className="flex flex-col items-center">
+                      {q2_Image[index]}
+                    </div>
+                    <div className="flex flex-col gap-4 items-start text-start">
+                      <p className="text-primary-500 font-semibold">
+                        {index + 1}. {val}
+                      </p>
+                      <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                        <RadioGroup
+                          key={index}
+                          className="pl-5"
+                          label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                          name={(index + 1).toString()}
+                          value={currentAnswer}
+                          onChange={(val) => {
+                            Q2Change(val);
+                          }}
+                        >
+                          <Radio
+                            className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="0"
+                          >
+                            ไม่ใช่
+                          </Radio>
+                          <Radio
+                            className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                            value="1"
+                          >
+                            ใช่
+                          </Radio>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                  </div>
+                </Tab>
+              ))
+            ) : (
+              qPhqa.map((val, index) => {
+                const questionNumber = index + 1;
+                return (
+                  <Tab key={(index + 3).toString()}>
+                    <div className="flex flex-col gap-4 mt-[-50px]">
+                      <div className="flex flex-col items-center">
+                        {qPhqa_Image[index]}
+                      </div>
+                      <div className="flex flex-col gap-4 items-start text-start">
+                        <p className="text-primary-500 font-semibold">
+                          {questionNumber}. {val}
+                        </p>
+                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
+                          <RadioGroup
+                            key={`phqa-${questionNumber}`}
+                            className="pl-5"
+                            label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
+                            name={questionNumber.toString()}
+                            value={currentQuestionAnswers[questionNumber] || ""}
+                            onChange={(val) => {
+                              phqaChange(val);
+                            }}
+                          >
+                            <Radio
+                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="0"
                             >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่มีเลย
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                มีบางวัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="2"
-                              >
-                                มีมากกว่า 7 วัน
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="3"
-                              >
-                                มีแทบทุกวัน
-                              </Radio>
-                            </RadioGroup>
-                          </div>
+                              ไม่มีเลย
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="1"
+                            >
+                              มีบางวัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="2"
+                            >
+                              มีมากกว่า 7 วัน
+                            </Radio>
+                            <Radio
+                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
+                              value="3"
+                            >
+                              มีแทบทุกวัน
+                            </Radio>
+                          </RadioGroup>
                         </div>
                       </div>
-                    </Tab>
-                  );
-                })
-              : qPhqa_addon.map((val, index) => {
-                  return (
-                    <Tab key={index + 9}>
-                      <div className="flex flex-col  gap-4 mt-[-50px]">
-                        <div className="flex flex-col items-center">
-                          {qPhqa_addon_Image[index]}
-                        </div>
-                        <div className="flex flex-col gap-4 items-start text-start">
-                          <p className="text-primary-500 font-semibold">
-                            {index + 1}. {val}
-                          </p>
-                          <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                            <RadioGroup
-                              key={index}
-                              className="pl-5"
-                              label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                              name={"1" + index.toString()}
-                              value={Object.entries(val)
-                                [index + 2].toString()
-                                .substring(3)}
-                              onChange={(val) => {
-                                phqaAddonChange(val);
-                                setProgress(calProgress(index + 10));
-                              }}
-                            >
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="0"
-                              >
-                                ไม่ใช่
-                              </Radio>
-                              <Radio
-                                className="inline-flex m-0  items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                value="1"
-                              >
-                                ใช่
-                              </Radio>
-                            </RadioGroup>
-                          </div>
-                        </div>
-                      </div>
-                    </Tab>
-                  );
-                })}
+                    </div>
+                  </Tab>
+                );
+              })
+            )}
           </Tabs>
         </div>
 
@@ -473,11 +569,12 @@ export default function PHQAPage() {
         >
           ย้อนกลับ
         </Button>
-        {question == "10" ? (
+
+        {question == "11" ? (
           <Button
             className="w-full"
             color="primary"
-            isDisabled={submit}
+            isDisabled={submit || !lastQuestionAnswered}
             radius="full"
             size="lg"
             variant="solid"
@@ -486,8 +583,19 @@ export default function PHQAPage() {
             บันทึกผล
           </Button>
         ) : (
-          <></>
+          <Button
+            className="w-full"
+            color="primary"
+            isDisabled={!canProceed}
+            radius="full"
+            size="lg"
+            variant="solid"
+            onPress={() => handleNext()}
+          >
+            ถัดไป
+          </Button>
         )}
+
       </Suspense>
     </section>
   );
