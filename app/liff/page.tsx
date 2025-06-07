@@ -41,7 +41,6 @@ export default function LiffHome() {
         checkProfile(session?.user?.id as string);
       }
     }
-
   }, [status]);
 
   return (

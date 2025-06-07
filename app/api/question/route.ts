@@ -41,7 +41,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    
+
     // ตรวจสอบความถูกต้องของข้อมูล
     validateQuestionData(data);
 
@@ -52,7 +52,11 @@ export async function POST(req: Request) {
     const location_data: LocationData = data.location;
 
     const phqa_sum = SumValue(phqa_data);
-    const { result, result_text } = calculateResult(phqa_sum, phqa_data, Q2_data);
+    const { result, result_text } = calculateResult(
+      phqa_sum,
+      phqa_data,
+      Q2_data
+    );
 
     // ดึงข้อมูลผู้ใช้
     const user = await prisma.profile.findUnique({
@@ -64,11 +68,11 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      throw new Error('ไม่พบข้อมูลผู้ใช้');
+      throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
     if (!user.userId) {
-      throw new Error('ไม่พบ userId ของ profile');
+      throw new Error("ไม่พบ userId ของ profile");
     }
     const UUID = await prisma.user.findUnique({
       where: { id: user.userId as string },
@@ -79,15 +83,16 @@ export async function POST(req: Request) {
             providerAccountId: true,
           },
           where: {
-            provider: 'line',
+            provider: "line",
           },
         },
       },
     });
 
     const lineUserId = UUID?.accounts?.[0]?.providerAccountId;
+
     if (!lineUserId) {
-      throw new Error('ไม่พบ Line ID ของผู้ใช้');
+      throw new Error("ไม่พบ Line ID ของผู้ใช้");
     }
 
     const status = user.hn ? 1 : 0;
@@ -140,9 +145,14 @@ export async function POST(req: Request) {
 
     return Response.json({ success: true, data: savedQuestion });
   } catch (error) {
-    console.error('Error saving question data:', error);
     return Response.json(
-      { success: false, error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' },
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+      },
       { status: 400 }
     );
   }
@@ -218,28 +228,33 @@ function SumValue(value: any) {
 // เพิ่มฟังก์ชันสำหรับตรวจสอบความถูกต้องของข้อมูล
 function validateQuestionData(data: any) {
   if (!data.profileId || !data.phqa || !data.Q2) {
-    throw new Error('ข้อมูลไม่ครบถ้วน');
+    throw new Error("ข้อมูลไม่ครบถ้วน");
   }
-  
+
   // ตรวจสอบค่า PHQA ต้องอยู่ระหว่าง 0-3
   for (let i = 1; i <= 9; i++) {
     const value = data.phqa[`q${i}`];
+
     if (value < 0 || value > 3) {
       throw new Error(`ค่า PHQA q${i} ไม่ถูกต้อง`);
     }
   }
-  
+
   // ตรวจสอบค่า Addon ต้องเป็น 0 หรือ 1
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
-    throw new Error('ค่า Addon q1 ไม่ถูกต้อง');
+    throw new Error("ค่า Addon q1 ไม่ถูกต้อง");
   }
   if (data.Q2.q2 !== 0 && data.Q2.q2 !== 1) {
-    throw new Error('ค่า Addon q2 ไม่ถูกต้อง');
+    throw new Error("ค่า Addon q2 ไม่ถูกต้อง");
   }
 }
 
 // แยกฟังก์ชันคำนวณผลลัพธ์
-function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA, Q2_data: Questions_PHQA_Addon) {
+function calculateResult(
+  phqa_sum: number,
+  phqa_data: Questions_PHQA,
+  Q2_data: Questions_PHQA_Addon
+) {
   let result = "";
   let result_text = "";
 
