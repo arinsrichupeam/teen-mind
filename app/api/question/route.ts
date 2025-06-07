@@ -39,80 +39,66 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const data = await req.json();
+  try {
+    const data = await req.json();
 
-  const profileId = data.profileId;
-  const referenceId = data.reference;
-  const phqa_data: Questions_PHQA = data.phqa;
-  const phqa_addon: Questions_PHQA_Addon = data.phqa_addon;
-  const location_data: LocationData = data.location;
-  let result = "";
-  let result_text = "";
-  let status = 0;
+    // ตรวจสอบความถูกต้องของข้อมูล
+    validateQuestionData(data);
 
-  const phqa_sum = SumValue(phqa_data);
+    const profileId = data.profileId;
+    const referenceId = data.reference;
+    const phqa_data: Questions_PHQA = data.phqa;
+    const Q2_data: Questions_PHQA_Addon = data.Q2;
+    const location_data: LocationData = data.location;
 
-  if (phqa_sum > 14) {
-    result = "Red";
-    if (phqa_sum >= 15 && phqa_sum <= 19) {
-      result_text = "พบความเสี่ยงมาก";
-    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
-      result_text = "พบความเสี่ยงรุนแรง";
-    }
-  } else if (phqa_sum > 9) {
-    result = "Yellow";
-    result_text = "พบความเสี่ยงปานกลาง";
-  } else {
-    if (phqa_data.q9 > 0 || phqa_addon.q1 == 1 || phqa_addon.q2 == 1) {
-      result = "Red";
-      result_text = "ไม่ได้ประเมิน 8Q";
-    } else {
-      result = "Green";
-      if (phqa_sum >= 0 && phqa_sum <= 4) {
-        result_text = "ไม่พบความเสี่ยง";
-      } else if (phqa_sum >= 5 && phqa_sum <= 9) {
-        result_text = "พบความเสี่ยงเล็กน้อย";
-      }
-    }
-  }
+    const phqa_sum = SumValue(phqa_data);
+    const { result, result_text } = calculateResult(
+      phqa_sum,
+      phqa_data,
+      Q2_data
+    );
 
-  const user = await prisma.profile
-    .findUnique({
-      where: {
-        id: profileId,
-      },
+    // ดึงข้อมูลผู้ใช้
+    const user = await prisma.profile.findUnique({
+      where: { id: profileId },
       select: {
         userId: true,
         hn: true,
       },
-    })
-    .then((val) => {
-      return val;
     });
 
-  const UUID = await prisma.user
-    .findUnique({
-      where: {
-        id: user?.userId as string,
-      },
+    if (!user) {
+      throw new Error("ไม่พบข้อมูลผู้ใช้");
+    }
+
+    if (!user.userId) {
+      throw new Error("ไม่พบ userId ของ profile");
+    }
+    const UUID = await prisma.user.findUnique({
+      where: { id: user.userId as string },
       select: {
         accounts: {
           select: {
+            provider: true,
             providerAccountId: true,
+          },
+          where: {
+            provider: "line",
           },
         },
       },
-    })
-    .then((val) => val?.accounts[0].providerAccountId as string);
+    });
 
-  if (user?.hn == null) {
-    status = 0;
-  } else {
-    status = 1;
-  }
+    const lineUserId = UUID?.accounts?.[0]?.providerAccountId;
 
-  await prisma.questions_Master
-    .create({
+    if (!lineUserId) {
+      throw new Error("ไม่พบ Line ID ของผู้ใช้");
+    }
+
+    const status = user.hn ? 1 : 0;
+
+    // บันทึกข้อมูลลงฐานข้อมูล
+    const savedQuestion = await prisma.questions_Master.create({
       data: {
         latitude: location_data?.latitude,
         longitude: location_data?.longitude,
@@ -137,27 +123,39 @@ export async function POST(req: Request) {
         },
         addon: {
           create: {
-            q1: phqa_addon.q1,
-            q2: phqa_addon.q2,
+            q1: Q2_data.q1,
+            q2: Q2_data.q2,
           },
         },
       },
-    })
-    .then(async () => {
-      switch (result) {
-        case "Green":
-          await lineSdk.pushMessage(UUID, GreenFlex);
-          break;
-        case "Yellow":
-          await lineSdk.pushMessage(UUID, YellowFlex);
-          break;
-        case "Red":
-          await lineSdk.pushMessage(UUID, RedFlex);
-          break;
-      }
     });
 
-  return Response.json(result);
+    // ส่งข้อความผ่าน Line
+    switch (result) {
+      case "Green":
+        await lineSdk.pushMessage(lineUserId, GreenFlex);
+        break;
+      case "Yellow":
+        await lineSdk.pushMessage(lineUserId, YellowFlex);
+        break;
+      case "Red":
+        await lineSdk.pushMessage(lineUserId, RedFlex);
+        break;
+    }
+
+    return Response.json({ success: true, data: savedQuestion });
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+      },
+      { status: 400 }
+    );
+  }
 }
 
 export async function PUT(req: Request) {
@@ -225,4 +223,64 @@ function SumValue(value: any) {
   }, 0);
 
   return PHQA_SUM;
+}
+
+// เพิ่มฟังก์ชันสำหรับตรวจสอบความถูกต้องของข้อมูล
+function validateQuestionData(data: any) {
+  if (!data.profileId || !data.phqa || !data.Q2) {
+    throw new Error("ข้อมูลไม่ครบถ้วน");
+  }
+
+  // ตรวจสอบค่า PHQA ต้องอยู่ระหว่าง 0-3
+  for (let i = 1; i <= 9; i++) {
+    const value = data.phqa[`q${i}`];
+
+    if (value < 0 || value > 3) {
+      throw new Error(`ค่า PHQA q${i} ไม่ถูกต้อง`);
+    }
+  }
+
+  // ตรวจสอบค่า Addon ต้องเป็น 0 หรือ 1
+  if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
+    throw new Error("ค่า Addon q1 ไม่ถูกต้อง");
+  }
+  if (data.Q2.q2 !== 0 && data.Q2.q2 !== 1) {
+    throw new Error("ค่า Addon q2 ไม่ถูกต้อง");
+  }
+}
+
+// แยกฟังก์ชันคำนวณผลลัพธ์
+function calculateResult(
+  phqa_sum: number,
+  phqa_data: Questions_PHQA,
+  Q2_data: Questions_PHQA_Addon
+) {
+  let result = "";
+  let result_text = "";
+
+  if (phqa_sum > 14) {
+    result = "Red";
+    if (phqa_sum >= 15 && phqa_sum <= 19) {
+      result_text = "พบความเสี่ยงมาก";
+    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+      result_text = "พบความเสี่ยงรุนแรง";
+    }
+  } else if (phqa_sum > 9) {
+    result = "Yellow";
+    result_text = "พบความเสี่ยงปานกลาง";
+  } else {
+    if (phqa_data.q9 > 0 || Q2_data.q1 == 1 || Q2_data.q2 == 1) {
+      result = "Red";
+      result_text = "ไม่ได้ประเมิน 8Q";
+    } else {
+      result = "Green";
+      if (phqa_sum >= 0 && phqa_sum <= 4) {
+        result_text = "ไม่พบความเสี่ยง";
+      } else if (phqa_sum >= 5 && phqa_sum <= 9) {
+        result_text = "พบความเสี่ยงเล็กน้อย";
+      }
+    }
+  }
+
+  return { result, result_text };
 }
