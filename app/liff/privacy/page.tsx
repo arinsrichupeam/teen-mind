@@ -3,7 +3,7 @@
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
 import { ScrollShadow } from "@heroui/scroll-shadow";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { Image } from "@heroui/image";
 import {
   Modal,
@@ -24,6 +24,14 @@ export default function PrivacyPage() {
   const [agree, setAgree] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  const handleCheckboxChange = useCallback(
+    (e: any) => {
+      e.preventDefault();
+      setAgree(!agree);
+    },
+    [agree]
+  );
+
   return (
     <section className="flex flex-col w-screen items-center justify-center gap-4 pt-10 px-6 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
@@ -41,7 +49,7 @@ export default function PrivacyPage() {
             className="text-start"
             color="primary"
             size="sm"
-            onChange={() => setAgree(!agree)}
+            onChange={(args) => handleCheckboxChange(args)}
           >
             <p>
               ฉันยอมรับข้อกำหนดและเงื่อนไขในการใช้บริการ

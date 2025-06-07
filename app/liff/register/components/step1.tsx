@@ -202,6 +202,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         name="school"
         placeholder="โรงเรียน"
         radius="md"
+        selectedKey={Result?.schoolId?.toString()}
         size="sm"
         value={Result?.schoolId as number}
         variant="faded"

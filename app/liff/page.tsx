@@ -41,7 +41,7 @@ export default function LiffHome() {
         checkProfile(session?.user?.id as string);
       }
     }
-  }, [router]);
+  }, [status]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-48px)] w-screen">
