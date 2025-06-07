@@ -10,7 +10,7 @@ import Loading from "@/app/loading";
 export default function QuestionPage() {
   const router = useRouter();
 
-  const Submit = () => {
+  const GotoList = () => {
     router.push("/liff/question/list");
   };
 
@@ -36,10 +36,10 @@ export default function QuestionPage() {
             แบบทดสอบนี้อ้างอิงจากแบบประเมินภาวะซึมเศร้าในวัยรุ่น โดยกรมสุขภาพจิต
             กระทรวงสาธารณสุข
           </h2>*/}
-          <Button className="w-full" color="primary" onPress={() => Submit()}>
+          <Button className="w-full" color="primary" onPress={() => {}}>
             เพิ่มแบบทดสอบ
           </Button>
-          <Button className="w-full" color="primary" onPress={() => Submit()}>
+          <Button className="w-full" color="primary" onPress={() => GotoList()}>
             แบบทดสอบของฉัน
           </Button>
         </div>
