@@ -21,7 +21,55 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
   return (
     <div>
       <div>
-        <h2 className={subtitle()}>แบบประเมินภาวะซึมเศร้าในวัยรุ่น</h2>
+        <h2 className={subtitle()}>แบบประเมิน 2Q</h2>
+        <Table aria-label="Question Anwser PHQ-A-Addon">
+          <TableHeader>
+            <TableColumn>คำถาม</TableColumn>
+            <TableColumn align="center">คำตอบ</TableColumn>
+          </TableHeader>
+          <TableBody>
+            {q2.map((val, index) => {
+              return (
+                <TableRow key={index}>
+                  <TableCell className="min-w-[250px]">
+                    {index + 1} {val}
+                  </TableCell>
+                  <TableCell className="min-w-[250px]">
+                    {data?.q2.map((val) => {
+                      return (
+                        <RadioGroup
+                          key={index}
+                          className="items-center"
+                          name={(index + 1).toString()}
+                          orientation="horizontal"
+                          value={Object.entries(val)
+                            [index + 2].toString()
+                            .substring(3)}
+                        >
+                          <Radio
+                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                            value="1"
+                          >
+                            ใช่
+                          </Radio>
+                          <Radio
+                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                            value="0"
+                          >
+                            ไม่ใช่
+                          </Radio>
+                        </RadioGroup>
+                      );
+                    })}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+      <div>
+        <h2 className={subtitle()}>แบบประเมิน PHQ-A</h2>
         <div className="flex flex-col gap-4">
           <Table aria-label="Question Anwser PHQ-A">
             <TableHeader>
@@ -81,54 +129,6 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
             </TableBody>
           </Table>
         </div>
-      </div>
-      <div>
-        <h2 className={subtitle()}>คำถามแนบท้าย</h2>
-        <Table aria-label="Question Anwser PHQ-A-Addon">
-          <TableHeader>
-            <TableColumn>คำถาม</TableColumn>
-            <TableColumn align="center">คำตอบ</TableColumn>
-          </TableHeader>
-          <TableBody>
-            {q2.map((val, index) => {
-              return (
-                <TableRow key={index}>
-                  <TableCell className="min-w-[250px]">
-                    {index + 1} {val}
-                  </TableCell>
-                  <TableCell className="min-w-[250px]">
-                    {data?.q2.map((val) => {
-                      return (
-                        <RadioGroup
-                          key={index}
-                          className="items-center"
-                          name={(index + 1).toString()}
-                          orientation="horizontal"
-                          value={Object.entries(val)
-                            [index + 2].toString()
-                            .substring(3)}
-                        >
-                          <Radio
-                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                            value="1"
-                          >
-                            ใช่
-                          </Radio>
-                          <Radio
-                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                            value="0"
-                          >
-                            ไม่ใช่
-                          </Radio>
-                        </RadioGroup>
-                      );
-                    })}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
       </div>
     </div>
   );

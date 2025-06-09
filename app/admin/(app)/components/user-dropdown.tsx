@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -51,7 +53,7 @@ export const UserDropdown = () => {
     router.replace("/admin/login");
   }, [router]);
 
-  const getProfile = useCallback(
+  const EditProfile = useCallback(
     async (e: any) => {
       await fetch("/api/profile/admin/" + e)
         .then((res) => res.json())
@@ -63,20 +65,6 @@ export const UserDropdown = () => {
     [profile]
   );
 
-  const handleUserAction = useCallback(
-    async (e: any) => {
-      switch (e) {
-        case "logout":
-          handleLogout();
-          break;
-        case "profile":
-          getProfile(profile?.userId);
-          break;
-      }
-    },
-    [profile, router]
-  );
-
   const GetProfile = useCallback(async () => {
     await fetch(`/api/profile/admin/${session?.user?.id}`)
       .then((res) => res.json())
@@ -85,13 +73,29 @@ export const UserDropdown = () => {
       });
   }, [session, router]);
 
+  const handleUserAction = useCallback(
+    async (e: any) => {
+      switch (e) {
+        case "logout":
+          handleLogout();
+          break;
+        case "profile":
+          EditProfile(profile?.userId);
+          break;
+      }
+    },
+    [profile, router]
+  );
+
   useEffect(() => {
     if (status !== "loading") {
       if (status === "authenticated") {
         GetProfile();
+      } else if (status === "unauthenticated") {
+        router.replace("/admin/login");
       }
     }
-  }, [session]);
+  }, [session, status, router]);
 
   return (
     <div>

@@ -66,6 +66,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [hnIsloading, setHnIsloading] = useState(false);
   const [formIsloading, setformIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
   const latitude = data?.latitude != null ? data?.latitude : 0;
   const longitude = data?.longitude != null ? data?.longitude : 0;
@@ -162,19 +163,26 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const HandleChange = (e: any) => {
     const { name, value } = e.target;
 
+    // console.log(name, value);
+
+    if (
+      (name === "consult" && value !== "") ||
+      (name === "status" && value !== 2)
+    ) {
+      setIsError(false);
+    }
+
     if (name === "schedule_telemed") {
       setQuestionData((prev) => ({
         ...prev,
         schedule_telemed: new Date(value),
       }));
-    }
-    else if (name === "follow_up") {
+    } else if (name === "follow_up") {
       setQuestionData((prev) => ({
         ...prev,
         follow_up: new Date(value),
       }));
-    }
-    else {
+    } else {
       setQuestionData((prev) => ({
         ...prev,
         [name]: value,
@@ -184,6 +192,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setformIsLoading(true);
     setError(null);
 
@@ -219,24 +228,24 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
-  // const validateForm = () => {
-  //   if (!questionData.status) {
-  //     setError("กรุณาเลือกสถานะ");
+  const validateForm = useCallback(() => {
+    if (questionData.status === 2 && questionData.consult === null) {
+      setIsError(true);
 
-  //     return false;
-  //   }
-  //   if (!questionData.schedule_telemed) {
-  //     setError("กรุณาเลือกวันนัด Telemedicine");
+      return false;
+    }
 
-  //     return false;
-  //   }
+    if (!questionData.schedule_telemed) {
+      setError("กรุณาเลือกวันนัด Telemedicine");
 
-  //   return true;
-  // };
+      return false;
+    }
+
+    return true;
+  }, [questionData, setError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // if (!validateForm()) return;
     await onSubmit(e);
   };
 
@@ -494,10 +503,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                  moment(data?.schedule_telemed).format(
-                                    "YYYY-MM-DD"
+                                    moment(data?.schedule_telemed).format(
+                                      "YYYY-MM-DD"
+                                    )
                                   )
-                                )
                                 : null
                             }
                             label="Schedule Telemed"
@@ -520,6 +529,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultItems={Consultant}
                             defaultSelectedKey={data?.consult}
                             errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
+                            isInvalid={isError}
                             label="Consultant"
                             labelPlacement="outside"
                             placeholder="Consultant"
@@ -549,8 +559,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         defaultValue={
                           data?.follow_up
                             ? parseDate(
-                              moment(data?.follow_up).format("YYYY-MM-DD")
-                            )
+                                moment(data?.follow_up).format("YYYY-MM-DD")
+                              )
                             : null
                         }
                         label="Follow Up"

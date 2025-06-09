@@ -57,27 +57,24 @@ export default function MyCasePage() {
   });
   const [mode, setMode] = useState("View");
   const { data: session, status } = useSession();
+  const [error] = useState("");
 
   const hasSearchFilter = Boolean(filterValue);
 
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     "/api/question",
     async (url) => {
-      try {
-        const res = await fetch(url);
+      const res = await fetch(url);
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch questions");
-        }
-        const data = await res.json();
-
-        return data.questionsList;
-      } catch (error) {
-        throw error;
+      if (!res.ok) {
+        throw new Error("Failed to fetch questions");
       }
+      const data = await res.json();
+
+      return data.questionsList;
     },
     {
-      keepPreviousData: true,
+      keepPreviousData: false,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
     }
@@ -269,13 +266,18 @@ export default function MyCasePage() {
     [selectedKeys, mode]
   );
 
+  const onDrawerClose = useCallback(() => {
+    onClose();
+    mutate();
+  }, [onClose, mutate]);
+
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
       }
     }
-  }, [session]);
+  }, [session, status]);
 
   useEffect(() => {
     if (error) {
@@ -299,7 +301,7 @@ export default function MyCasePage() {
             data={selectedKeys!}
             isOpen={isOpen}
             mode={mode}
-            onClose={onClose}
+            onClose={onDrawerClose}
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table

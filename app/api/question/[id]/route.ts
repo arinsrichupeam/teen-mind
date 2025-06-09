@@ -21,6 +21,7 @@ export async function GET(
       assessment: true,
       plan: true,
       schedule_telemed: true,
+      follow_up: true,
       consult: true,
       status: true,
       profile: {

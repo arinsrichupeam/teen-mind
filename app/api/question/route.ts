@@ -163,28 +163,26 @@ export async function PUT(req: Request) {
   const question: QuestionsData = data;
 
   try {
-    // await prisma.questions_Master.update({
-    //   where: {
-    //     id: question.id,
-    //   },
-    //   data: {
-    //     consult: question.consult,
-    //     schedule_telemed: question.schedule_telemed,
-    //     subjective: question.subjective,
-    //     objective: question.objective,
-    //     assessment: question.assessment,
-    //     plan: question.plan,
-    //     follow_up: question.follow_up,
-    //     status: CalStatus(question),
-    //   },
-    // });
+    await prisma.questions_Master.update({
+      where: {
+        id: question.id,
+      },
+      data: {
+        consult: question.consult,
+        schedule_telemed: question.schedule_telemed,
+        subjective: question.subjective,
+        objective: question.objective,
+        assessment: question.assessment,
+        plan: question.plan,
+        follow_up: question.follow_up,
+        status: CalStatus(question),
+      },
+    });
 
-    // return Response.json("Success");
-
-    console.log(CalStatus(question));
-  }
-  catch (err) {
-    console.log(err);
+    return Response.json("Success");
+  } catch (err) {
+    throw err;
+    // console.log(err);
   }
 }
 
@@ -196,16 +194,12 @@ function CalStatus(value: QuestionsData) {
   ) {
     return 2;
   } else if (
-    value.status == 2 &&
+    (value.status == 1 || value.status == 2) &&
+    value.consult != null &&
     value.subjective &&
-    // != "" && value.subj
-    // ective != null
     value.objective &&
-    // != "" && value.objective != null
     value.assessment &&
-    // != "" && value.assessment != null
     value.plan
-    // != "" && value.plan != null
   ) {
     return 3;
   } else {

@@ -59,10 +59,11 @@ export default function QuestionPage() {
   });
   const [mode, setMode] = useState("View");
   const { data: session, status } = useSession();
+  const [error] = useState("");
 
   const hasSearchFilter = Boolean(filterValue);
 
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     "/api/question",
     async (url) => {
       try {
@@ -269,6 +270,11 @@ export default function QuestionPage() {
     [selectedKeys, mode]
   );
 
+  const onDrawerClose = useCallback(() => {
+    onClose();
+    mutate();
+  }, [onClose, mutate]);
+
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
@@ -299,7 +305,7 @@ export default function QuestionPage() {
             data={selectedKeys!}
             isOpen={isOpen}
             mode={mode}
-            onClose={onClose}
+            onClose={onDrawerClose}
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
