@@ -71,28 +71,25 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
-    if (!user.userId) {
-      throw new Error("ไม่พบ userId ของ profile");
-    }
-    const UUID = await prisma.user.findUnique({
-      where: { id: user.userId as string },
-      select: {
-        accounts: {
-          select: {
-            provider: true,
-            providerAccountId: true,
-          },
-          where: {
-            provider: "line",
+    let lineUserId: string | undefined;
+
+    if (user.userId) {
+      const UUID = await prisma.user.findUnique({
+        where: { id: user.userId as string },
+        select: {
+          accounts: {
+            select: {
+              provider: true,
+              providerAccountId: true,
+            },
+            where: {
+              provider: "line",
+            },
           },
         },
-      },
-    });
+      });
 
-    const lineUserId = UUID?.accounts?.[0]?.providerAccountId;
-
-    if (!lineUserId) {
-      throw new Error("ไม่พบ Line ID ของผู้ใช้");
+      lineUserId = UUID?.accounts?.[0]?.providerAccountId;
     }
 
     const status = user.hn ? 1 : 0;
@@ -121,7 +118,7 @@ export async function POST(req: Request) {
             sum: phqa_sum,
           },
         },
-        addon: {
+        q2: {
           create: {
             q1: Q2_data.q1,
             q2: Q2_data.q2,
@@ -130,17 +127,19 @@ export async function POST(req: Request) {
       },
     });
 
-    // ส่งข้อความผ่าน Line
-    switch (result) {
-      case "Green":
-        await lineSdk.pushMessage(lineUserId, GreenFlex);
-        break;
-      case "Yellow":
-        await lineSdk.pushMessage(lineUserId, YellowFlex);
-        break;
-      case "Red":
-        await lineSdk.pushMessage(lineUserId, RedFlex);
-        break;
+    // ส่งข้อความผ่าน Line เฉพาะเมื่อมี userId
+    if (lineUserId) {
+      switch (result) {
+        case "Green":
+          await lineSdk.pushMessage(lineUserId, GreenFlex);
+          break;
+        case "Yellow":
+          await lineSdk.pushMessage(lineUserId, YellowFlex);
+          break;
+        case "Red":
+          await lineSdk.pushMessage(lineUserId, RedFlex);
+          break;
+      }
     }
 
     return Response.json({ success: true, data: savedQuestion });
@@ -151,7 +150,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล" + error,
       },
       { status: 400 }
     );
@@ -240,7 +239,7 @@ function validateQuestionData(data: any) {
     }
   }
 
-  // ตรวจสอบค่า Addon ต้องเป็น 0 หรือ 1
+  // ตรวจสอบค่า 2q ต้องเป็น 0 หรือ 1
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
     throw new Error("ค่า Addon q1 ไม่ถูกต้อง");
   }
@@ -271,7 +270,7 @@ function calculateResult(
   } else {
     if (phqa_data.q9 > 0 || Q2_data.q1 == 1 || Q2_data.q2 == 1) {
       result = "Red";
-      result_text = "ไม่ได้ประเมิน 8Q";
+      result_text = "พบความเสี่ยง โปรดประเมิน 8Q";
     } else {
       result = "Green";
       if (phqa_sum >= 0 && phqa_sum <= 4) {
