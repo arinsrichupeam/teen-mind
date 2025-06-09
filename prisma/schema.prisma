@@ -45,7 +45,6 @@ model User {
   sessions      Session[]
   profile       Profile[]
   profile_admin Profile_Admin[]
-  // questions     Questions_Master[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,7 +75,7 @@ model Account {
 
 model Profile {
   id          String   @id @default(cuid())
-  userId      String?
+  userId      String?  @unique
   citizenId   String   @unique
   prefixId    Int
   sex         Int
