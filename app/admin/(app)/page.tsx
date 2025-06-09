@@ -1,9 +1,10 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Profile_Admin } from "@prisma/client";
+import { addToast } from "@heroui/react";
 
 import { CardGreen } from "./components/home/card-green";
 import { CardYellow } from "./components/home/card-yellow";
@@ -45,18 +46,37 @@ export default function AdminHome() {
     await fetch("/api/profile/admin")
       .then((res) => res.json())
       .then((val) => {
-        // console.log(val);
         setNewMemberList(val.filter((val: Profile_Admin) => val.status === 3));
       });
   }, [newMemberList]);
+
+  const GetAdminProfile = useCallback(async () => {
+    await fetch("/api/profile/admin/" + session?.user?.id)
+      .then((res) => res.json())
+      .then((val) => {
+        if (val == null) {
+          router.push("/admin/register");
+        } else if (val.status === 3) {
+          addToast({
+            title: "Error",
+            description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
+            color: "danger",
+          });
+
+          signOut();
+        } else {
+          GetNewMember();
+          GetQuestionList();
+        }
+      });
+  }, [session, router]);
 
   useEffect(() => {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
       } else {
-        GetQuestionList();
-        GetNewMember();
+        GetAdminProfile();
       }
     }
   }, [session, router]);

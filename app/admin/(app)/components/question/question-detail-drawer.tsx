@@ -10,14 +10,14 @@ import {
 } from "@heroui/react";
 
 import { subtitle } from "@/components/primitives";
-import { qPhqa_addon, qPhqa } from "@/app/data";
+import { q2, qPhqa } from "@/app/data";
 import { QuestionsData } from "@/types";
 
 interface Props {
   data: QuestionsData | undefined;
 }
 
-export const QuestionDetail = ({ data }: Props) => {
+export const QuestionDetailDrawer = ({ data }: Props) => {
   return (
     <div>
       <div>
@@ -90,14 +90,14 @@ export const QuestionDetail = ({ data }: Props) => {
             <TableColumn align="center">คำตอบ</TableColumn>
           </TableHeader>
           <TableBody>
-            {qPhqa_addon.map((val, index) => {
+            {q2.map((val, index) => {
               return (
                 <TableRow key={index}>
                   <TableCell className="min-w-[250px]">
                     {index + 1} {val}
                   </TableCell>
                   <TableCell className="min-w-[250px]">
-                    {data?.addon.map((val) => {
+                    {data?.q2.map((val) => {
                       return (
                         <RadioGroup
                           key={index}

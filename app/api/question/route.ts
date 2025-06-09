@@ -160,25 +160,32 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const data = await req.json();
 
-  const question: QuestionsData = data.questionData;
+  const question: QuestionsData = data;
 
-  await prisma.questions_Master.update({
-    where: {
-      id: question.id,
-    },
-    data: {
-      consult: question.consult,
-      schedule_telemed: question.schedule_telemed,
-      subjective: question.subjective,
-      objective: question.objective,
-      assessment: question.assessment,
-      plan: question.plan,
-      follow_up: question.follow_up,
-      status: CalStatus(question),
-    },
-  });
+  try {
+    // await prisma.questions_Master.update({
+    //   where: {
+    //     id: question.id,
+    //   },
+    //   data: {
+    //     consult: question.consult,
+    //     schedule_telemed: question.schedule_telemed,
+    //     subjective: question.subjective,
+    //     objective: question.objective,
+    //     assessment: question.assessment,
+    //     plan: question.plan,
+    //     follow_up: question.follow_up,
+    //     status: CalStatus(question),
+    //   },
+    // });
 
-  return Response.json("Success");
+    // return Response.json("Success");
+
+    console.log(CalStatus(question));
+  }
+  catch (err) {
+    console.log(err);
+  }
 }
 
 function CalStatus(value: QuestionsData) {

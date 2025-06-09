@@ -1,7 +1,7 @@
 "use client";
 
 import moment from "moment";
-import { useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
@@ -33,7 +33,7 @@ import { parseDate } from "@internationalized/date";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 
-import { QuestionDetail } from "./detail";
+import { QuestionDetailDrawer } from "./question-detail-drawer";
 
 import { prefix } from "@/utils/data";
 import "leaflet/dist/leaflet.css";
@@ -56,7 +56,7 @@ const ConsultantInitValue: Consultant[] = [
   },
 ];
 
-export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
+export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [distrince, setDistrince] = useState<Districts[]>([]);
   const [province, setProvince] = useState<Provinces[]>([]);
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
@@ -115,12 +115,12 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       const consult = val.filter((x: any) => x.status === 1 && x.role.id == 3);
 
       if (consult.length > 0) {
-        setConsultant([
-          {
-            id: consult[0].userId,
-            name: consult[0].firstname + " " + consult[0].lastname,
-          },
-        ]);
+        setConsultant(
+          consult.map((item: any) => ({
+            id: item.userId,
+            name: item.firstname + " " + item.lastname,
+          }))
+        );
       }
     } catch (err) {
       setError(
@@ -162,19 +162,33 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const HandleChange = (e: any) => {
     const { name, value } = e.target;
 
-    setQuestionData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === "schedule_telemed") {
+      setQuestionData((prev) => ({
+        ...prev,
+        schedule_telemed: new Date(value),
+      }));
+    }
+    else if (name === "follow_up") {
+      setQuestionData((prev) => ({
+        ...prev,
+        follow_up: new Date(value),
+      }));
+    }
+    else {
+      setQuestionData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setformIsLoading(true);
     setError(null);
 
     try {
-      return await fetch("/api/question/" + data.id, {
+      await fetch("/api/question/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -186,9 +200,8 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           description: "บันทึกข้อมูลสำเร็จ",
           color: "success",
         });
+        onClose();
       });
-
-      onClose();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล"
@@ -445,7 +458,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 </Card>
               </div>
               {mode == "View" ? (
-                <QuestionDetail data={data} />
+                <QuestionDetailDrawer data={data} />
               ) : (
                 <div className="flex flex-col">
                   <div>
@@ -481,10 +494,10 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                    moment(data?.schedule_telemed).format(
-                                      "YYYY-MM-DD"
-                                    )
+                                  moment(data?.schedule_telemed).format(
+                                    "YYYY-MM-DD"
                                   )
+                                )
                                 : null
                             }
                             label="Schedule Telemed"
@@ -514,7 +527,7 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             variant="bordered"
                             onSelectionChange={(val) =>
                               HandleChange({
-                                target: { name: "ConsultId", value: val },
+                                target: { name: "consult", value: val },
                               })
                             }
                           >
@@ -536,8 +549,8 @@ export const QuestionDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         defaultValue={
                           data?.follow_up
                             ? parseDate(
-                                moment(data?.follow_up).format("YYYY-MM-DD")
-                              )
+                              moment(data?.follow_up).format("YYYY-MM-DD")
+                            )
                             : null
                         }
                         label="Follow Up"

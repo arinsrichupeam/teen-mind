@@ -59,7 +59,7 @@ export async function GET(
         },
       },
       phqa: true,
-      addon: true,
+      q2: true,
     },
   });
 

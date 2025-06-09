@@ -37,7 +37,7 @@ import useSWR from "swr";
 
 import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionColumnsName as columns } from "../data/tableColumn";
-import { QuestionDrawer } from "../components/question/question-drawer";
+import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
 import { RenderCell } from "../components/question/render-cell";
 
 import { QuestionsData } from "@/types";
@@ -295,7 +295,7 @@ export default function QuestionPage() {
           <h3 className="text-lg font-semibold">จัดการแบบสอบถาม</h3>
         </div>
         <div className="max-w-[95rem] mx-auto w-full">
-          <QuestionDrawer
+          <QuestionEditDrawer
             data={selectedKeys!}
             isOpen={isOpen}
             mode={mode}
