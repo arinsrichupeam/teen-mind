@@ -17,16 +17,16 @@ import Loading from "@/app/loading";
 const profileInitValue: Profile = {
   id: "",
   userId: "",
-  citizenId: "1102000936048",
-  prefixId: 1,
-  sex: 1,
-  firstname: "สมชาย",
-  lastname: "สมหญิง",
-  birthday: new Date("1987-03-24"),
-  ethnicity: "ไทย",
-  nationality: "ไทย",
-  tel: "0812345678",
-  schoolId: 28,
+  citizenId: "",
+  prefixId: 0,
+  sex: 0,
+  firstname: "",
+  lastname: "",
+  birthday: new Date(),
+  ethnicity: "",
+  nationality: "",
+  tel: "",
+  schoolId: 0,
   hn: "",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -35,21 +35,21 @@ const profileInitValue: Profile = {
 const addressInitValue: Address = {
   id: "",
   profileId: "",
-  houseNo: "23",
+  houseNo: "",
   villageNo: "",
   soi: "",
-  road: "ถนนสุขาภิบาล",
-  province: 1,
-  district: 23,
-  subdistrict: 107,
+  road: "",
+  province: 0,
+  district: 0,
+  subdistrict: 0,
 };
 
 const emergencyContactInitValue: EmergencyContact = {
   id: "",
   profileId: "",
-  name: "สมหญิง สมชาย",
-  tel: "0812345678",
-  relation: "ญาติ",
+  name: "",
+  tel: "",
+  relation: "",
 };
 
 export default function RegisterPage() {
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           break;
       }
     },
-    [selected]
+    [selected, profile, address, emergency]
   );
 
   const BackStep = useCallback(
@@ -101,7 +101,7 @@ export default function RegisterPage() {
           break;
       }
     },
-    [selected]
+    [selected, profile, address, emergency]
   );
 
   const ProfileHandleChange = useCallback(
@@ -181,17 +181,17 @@ export default function RegisterPage() {
     })
       .then((res) => res.json())
       .then((val) => {
-        if (val.userId === undefined || val.userId === null) {
+        if (val.ref === "") {
+          setShowAlert(true);
+          setTimeout(() => {
+            router.push("/liff/question");
+          }, 3000);
+        } else {
           setShowAlert(true);
           setTimeout(() => {
             router.push(
               `/liff/question/phqa?ref=${val.ref.id}?id=${val.profile.id}`
             );
-          }, 3000);
-        } else {
-          setShowAlert(true);
-          setTimeout(() => {
-            router.push("/liff/question");
           }, 3000);
         }
       });
