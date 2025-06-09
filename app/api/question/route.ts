@@ -121,7 +121,7 @@ export async function POST(req: Request) {
             sum: phqa_sum,
           },
         },
-        addon: {
+        q2: {
           create: {
             q1: Q2_data.q1,
             q2: Q2_data.q2,
@@ -240,7 +240,7 @@ function validateQuestionData(data: any) {
     }
   }
 
-  // ตรวจสอบค่า Addon ต้องเป็น 0 หรือ 1
+  // ตรวจสอบค่า 2q ต้องเป็น 0 หรือ 1
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
     throw new Error("ค่า Addon q1 ไม่ถูกต้อง");
   }
@@ -271,7 +271,7 @@ function calculateResult(
   } else {
     if (phqa_data.q9 > 0 || Q2_data.q1 == 1 || Q2_data.q2 == 1) {
       result = "Red";
-      result_text = "ไม่ได้ประเมิน 8Q";
+      result_text = "พบความเสี่ยง โปรดประเมิน 8Q";
     } else {
       result = "Green";
       if (phqa_sum >= 0 && phqa_sum <= 4) {

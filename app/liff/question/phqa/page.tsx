@@ -6,7 +6,7 @@ import { Progress } from "@heroui/progress";
 import { Image } from "@heroui/image";
 import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Radio, RadioGroup } from "@heroui/radio";
 import {
@@ -24,7 +24,11 @@ import { LocationData } from "@/types";
 import Loading from "@/app/loading";
 import { q2, qPhqa } from "@/app/data";
 
-export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
+export default function PHQAPage() {
+  const searchParams = useSearchParams();
+  const ref = searchParams.get("ref") || "";
+  const id = searchParams.get("profileId") || "";
+
   const qPhqa_Image = [
     { src: "/image/Q1-01.png", alt: "PHQA Image 1" },
     { src: "/image/Q1-02.png", alt: "PHQA Image 2" },
@@ -141,8 +145,9 @@ export default function PHQAPage({ ref, id }: { ref: string; id: string }) {
 
     if (ref) {
       setReferenceId(ref);
+    } else {
+      onOpen();
     }
-    onOpen();
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(({ coords }) => {
