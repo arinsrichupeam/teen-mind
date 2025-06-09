@@ -26,8 +26,12 @@ import { q2, qPhqa } from "@/app/data";
 
 export default function PHQAPage() {
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref") || "";
+  const refParam = searchParams.get("ref") || "";
   const id = searchParams.get("profileId") || "";
+
+  // แยกค่า ref และ id จาก refParam
+  const ref = refParam.split("?")[0] || "";
+  const refId = refParam.split("id=")[1] || "";
 
   const qPhqa_Image = [
     { src: "/image/Q1-01.png", alt: "PHQA Image 1" },
@@ -138,9 +142,13 @@ export default function PHQAPage() {
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
-      checkProfile(session?.user?.id as string);
+      if (id || refId) {
+        setProfileId(id || refId);
+      } else {
+        checkProfile(session?.user?.id as string);
+      }
     } else {
-      setProfileId(id);
+      setProfileId(id || refId);
     }
 
     if (ref) {
@@ -344,15 +352,19 @@ export default function PHQAPage() {
         body: JSON.stringify(dataToSave),
       });
 
-      if (response.status === 200) {
-        router.push("/liff/question/list");
+      const responseData = await response.json();
+
+      if (response.ok) {
+        router.push("/liff");
       } else {
-        setErrorMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+        setErrorMessage(
+          `เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${responseData.message || "กรุณาลองใหม่อีกครั้ง"}`
+        );
         setIsModalOpened(true);
       }
     } catch (error) {
       setErrorMessage(
-        "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง" + error
+        `เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error instanceof Error ? error.message : "กรุณาลองใหม่อีกครั้ง"}`
       );
       setIsModalOpened(true);
     }

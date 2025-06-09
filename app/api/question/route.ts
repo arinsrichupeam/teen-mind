@@ -71,28 +71,25 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
-    if (!user.userId) {
-      throw new Error("ไม่พบ userId ของ profile");
-    }
-    const UUID = await prisma.user.findUnique({
-      where: { id: user.userId as string },
-      select: {
-        accounts: {
-          select: {
-            provider: true,
-            providerAccountId: true,
-          },
-          where: {
-            provider: "line",
+    let lineUserId: string | undefined;
+
+    if (user.userId) {
+      const UUID = await prisma.user.findUnique({
+        where: { id: user.userId as string },
+        select: {
+          accounts: {
+            select: {
+              provider: true,
+              providerAccountId: true,
+            },
+            where: {
+              provider: "line",
+            },
           },
         },
-      },
-    });
+      });
 
-    const lineUserId = UUID?.accounts?.[0]?.providerAccountId;
-
-    if (!lineUserId) {
-      throw new Error("ไม่พบ Line ID ของผู้ใช้");
+      lineUserId = UUID?.accounts?.[0]?.providerAccountId;
     }
 
     const status = user.hn ? 1 : 0;
@@ -130,17 +127,19 @@ export async function POST(req: Request) {
       },
     });
 
-    // ส่งข้อความผ่าน Line
-    switch (result) {
-      case "Green":
-        await lineSdk.pushMessage(lineUserId, GreenFlex);
-        break;
-      case "Yellow":
-        await lineSdk.pushMessage(lineUserId, YellowFlex);
-        break;
-      case "Red":
-        await lineSdk.pushMessage(lineUserId, RedFlex);
-        break;
+    // ส่งข้อความผ่าน Line เฉพาะเมื่อมี userId
+    if (lineUserId) {
+      switch (result) {
+        case "Green":
+          await lineSdk.pushMessage(lineUserId, GreenFlex);
+          break;
+        case "Yellow":
+          await lineSdk.pushMessage(lineUserId, YellowFlex);
+          break;
+        case "Red":
+          await lineSdk.pushMessage(lineUserId, RedFlex);
+          break;
+      }
     }
 
     return Response.json({ success: true, data: savedQuestion });
@@ -151,7 +150,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล" + error,
       },
       { status: 400 }
     );
