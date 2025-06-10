@@ -263,7 +263,7 @@ export default function MemberPage() {
         .then((res) => res.json())
         .then((val) => {
           setSelectedProfile(val);
-          setMode("Edit");
+          setMode("edit");
           onOpen();
         });
     },

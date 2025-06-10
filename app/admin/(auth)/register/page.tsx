@@ -125,7 +125,7 @@ export default function RegisterPage() {
         validationBehavior="native"
         onSubmit={onSubmit}
       >
-        <div className="flex flex-col items-center w-full gap-4 mb-4">
+        <div className="flex flex-col items-center h-[450px] overflow-y-auto w-full gap-4 mb-4">
           <Input
             className="max-w-xl"
             isRequired={request}

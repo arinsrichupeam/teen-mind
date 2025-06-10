@@ -157,7 +157,7 @@ export const ModalUserProfile = ({
                   }
                 />
               </div>
-              <ScrollShadow className="h-[600px]" size={20}>
+              <ScrollShadow className="h-[350px]" size={20}>
                 <div className="flex flex-col gap-3 font-semibold">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
