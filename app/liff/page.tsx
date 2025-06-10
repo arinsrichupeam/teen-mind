@@ -15,7 +15,7 @@ export default function LiffHome() {
       res.json().then((val) => {
         if (val === null) {
           signOut();
-        } else if (val.profile?.length === 0) {
+        } else if (val.profile.length === 0) {
           // send to register
           router.push("/liff/privacy");
         } else {

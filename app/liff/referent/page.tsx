@@ -18,7 +18,7 @@ export default function QuestionPage() {
   const [referent, setReferent] = useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const {
     isOpen: isOpenModal4,
     onOpen: onOpenModal4,
