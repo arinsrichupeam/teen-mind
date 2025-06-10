@@ -4,6 +4,8 @@ import { Form } from "@heroui/form";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 
+import { validateTel } from "@/utils/helper";
+
 export const Step3 = ({
   NextStep,
   BackStep,
@@ -42,20 +44,23 @@ export const Step3 = ({
       />
       <div className="flex flex-row gap-4 w-full">
         <Input
-          errorMessage="กรุณากรอกบ้านเลขที่"
+          errorMessage="กรุณากรอกเบอร์โทรศัพท์"
           isRequired={request}
           label="เบอร์โทรศัพท์"
           labelPlacement="inside"
+          maxLength={10}
           name="tel"
           placeholder="เบอร์โทรศัพท์"
           radius="md"
           size="sm"
-          type="number"
+          type="text"
+          validate={(val) => validateTel(val.toString())}
           value={Result?.tel}
           variant="faded"
           onChange={HandleChange}
         />
         <Input
+          errorMessage="กรุณากรอกความสัมพันธ์"
           isRequired={request}
           label="ความสัมพันธ์"
           labelPlacement="inside"

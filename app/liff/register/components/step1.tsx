@@ -16,7 +16,7 @@ import {
 } from "@heroui/react";
 
 import { prefix, sex } from "@/utils/data";
-import { validateCitizen } from "@/utils/helper";
+import { validateCitizen, validateTel } from "@/utils/helper";
 
 interface Props {
   NextStep: (val: any) => void;
@@ -184,15 +184,17 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         />
       </div>
       <Input
-        errorMessage="กรุณากรอกเบอร์โทรศัพท์"
+        errorMessage="กรอกเบอร์โทรศัพท์ไม่ถูกต้อง"
         isRequired={request}
         label="เบอร์โทรศัพท์"
         labelPlacement="inside"
+        maxLength={10}
         name="tel"
         placeholder="เบอร์โทรศัพท์"
         radius="md"
         size="sm"
-        type="number"
+        type="text"
+        validate={(val) => validateTel(val.toString())}
         value={Result?.tel}
         variant="faded"
         onChange={HandleChange}
@@ -203,9 +205,13 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         isRequired={request}
         label="สถานศึกษา"
         labelPlacement="inside"
+        menuTrigger="input"
         name="school"
         placeholder="โรงเรียน"
         radius="md"
+        scrollShadowProps={{
+          isEnabled: false,
+        }}
         selectedKey={Result?.schoolId?.toString()}
         size="sm"
         value={Result?.schoolId as number}

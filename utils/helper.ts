@@ -53,3 +53,17 @@ export function validateEmail(email: string): string {
 
   return "กรอกอีเมลไม่ถูกต้อง";
 }
+
+export function validateTel(tel: string): string {
+  if (tel === "") {
+    return "กรุณากรอกเบอร์โทรศัพท์";
+  }
+
+  const isValidTel = /^0[689]\d{8}$/;
+
+  if (tel.match(isValidTel)) {
+    return "";
+  }
+
+  return "กรอกเบอร์โทรศัพท์ไม่ถูกต้อง";
+}

@@ -66,7 +66,7 @@ export const ModalUserProfile = ({
 
   const HandleChange = useCallback(
     (e: any) => {
-      if (mode === "Edit" || mode === "self") {
+      if (mode === "edit") {
         if (e.target.name === "alert") {
           setSelectedProfile((prev) => ({
             ...prev,
