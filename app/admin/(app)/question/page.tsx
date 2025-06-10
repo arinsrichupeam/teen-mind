@@ -67,7 +67,9 @@ export default function QuestionPage() {
     "/api/question",
     async (url) => {
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          next: { revalidate: 60 },
+        });
 
         if (!res.ok) {
           throw new Error("Failed to fetch questions");
@@ -83,27 +85,24 @@ export default function QuestionPage() {
       keepPreviousData: true,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
   );
 
   const filteredItems = useMemo(() => {
-    let filteredUsers = [...(data || [])];
+    if (!data) return [];
 
-    if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) => {
-        return val.user.profile[0].firstname
-          .toLowerCase()
-          .includes(filterValue.toLowerCase());
-      });
-    }
-    if (statusFilter !== "all") {
-      filteredUsers = filteredUsers.filter((user) =>
-        Array.from(statusFilter).includes(user.status.toString())
-      );
-    }
+    return data.filter((val: QuestionsData) => {
+      const matchesSearch =
+        !hasSearchFilter ||
+        val.profile.firstname.toLowerCase().includes(filterValue.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" ||
+        Array.from(statusFilter).includes(val.status.toString());
 
-    return filteredUsers;
-  }, [data, filterValue, statusFilter]);
+      return matchesSearch && matchesStatus;
+    });
+  }, [data, filterValue, statusFilter, hasSearchFilter]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -119,12 +118,28 @@ export default function QuestionPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
-      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
-      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
-      const cmp = first < second ? -1 : first > second ? 1 : 0;
+    if (!items.length) return [];
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
+    const { column, direction } = sortDescriptor;
+
+    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
+      const first = a[column as keyof QuestionsData];
+      const second = b[column as keyof QuestionsData];
+
+      if (typeof first === "string" && typeof second === "string") {
+        return direction === "descending"
+          ? second.localeCompare(first)
+          : first.localeCompare(second);
+      }
+
+      const cmp =
+        (first as number) < (second as number)
+          ? -1
+          : (first as number) > (second as number)
+            ? 1
+            : 0;
+
+      return direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
 
@@ -148,8 +163,8 @@ export default function QuestionPage() {
     [filterValue]
   );
 
-  const topContent = useMemo(() => {
-    return (
+  const topContent = useMemo(
+    () => (
       <div className="flex flex-col">
         <div className="flex justify-between items-center gap-3">
           <Input
@@ -196,15 +211,9 @@ export default function QuestionPage() {
           </Dropdown>
         </div>
       </div>
-    );
-  }, [
-    filterValue,
-    statusFilter,
-    onSearchChange,
-    onRowsPerPageChange,
-    data?.length,
-    hasSearchFilter,
-  ]);
+    ),
+    [filterValue, statusFilter, onSearchChange]
+  );
 
   const bottomContent = useMemo(() => {
     return (
@@ -345,7 +354,9 @@ export default function QuestionPage() {
                           data: item,
                           columnKey: columnKey,
                           index:
-                            filteredItems.findIndex((x) => x.id == item.id) + 1,
+                            filteredItems.findIndex(
+                              (x: QuestionsData) => x.id == item.id
+                            ) + 1,
                           viewDetail: onRowDetailPress,
                           editDetail: onRowEditPress,
                         })}

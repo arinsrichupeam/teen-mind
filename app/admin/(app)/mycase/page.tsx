@@ -64,14 +64,20 @@ export default function MyCasePage() {
   const { data, isLoading, mutate } = useSWR(
     "/api/question",
     async (url) => {
-      const res = await fetch(url);
+      try {
+        const res = await fetch(url, {
+          next: { revalidate: 60 },
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch questions");
+        if (!res.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await res.json();
+
+        return data.questionsList;
+      } catch (error) {
+        throw error;
       }
-      const data = await res.json();
-
-      return data.questionsList;
     },
     {
       keepPreviousData: false,

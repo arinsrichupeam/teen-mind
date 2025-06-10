@@ -3,9 +3,9 @@
 import React, { ReactNode, useState } from "react";
 
 import { SidebarContext } from "./layout-context";
-import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 import { NavbarWrapper } from "./components/navbar_admin";
 import { ModalUserStatus } from "./components/modal/modal-User-status";
+import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -9,40 +9,18 @@ import {
   DropdownTrigger,
 } from "@heroui/dropdown";
 import { NavbarItem } from "@heroui/navbar";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { CameraIcon } from "@heroicons/react/24/solid";
 import { useDisclosure, User } from "@heroui/react";
+
+import { ProfileAdminDataInitData } from "../data/initData";
 
 import { ModalUserProfile } from "./modal/modal-user-profile";
 
 import { ProfileAdminData } from "@/types";
 
-const ProfileAdminDataInitData: ProfileAdminData = {
-  id: "",
-  userId: "",
-  providerAccountId: "",
-  image: "",
-  name: "",
-  citizenId: "",
-  prefixId: 0,
-  firstname: "",
-  lastname: "",
-  tel: "",
-  affiliationId: 0,
-  agency: "",
-  employeeTypeId: 0,
-  professional: "",
-  license: "",
-  status: 0,
-  alert: false,
-  createdAt: "",
-  updatedAt: "",
-  roleId: 0,
-};
-
 export const UserDropdown = () => {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [profile, setProfile] = useState<ProfileAdminData>(
     ProfileAdminDataInitData
   );
@@ -65,13 +43,13 @@ export const UserDropdown = () => {
     [profile]
   );
 
-  const GetProfile = useCallback(async () => {
-    await fetch(`/api/profile/admin/${session?.user?.id}`)
-      .then((res) => res.json())
-      .then((val) => {
-        setProfile(val);
-      });
-  }, [session, router]);
+  const GetProfile = async () => {
+    const data = sessionStorage.getItem("adminProfile");
+
+    if (data) {
+      setProfile(JSON.parse(data));
+    }
+  };
 
   const handleUserAction = useCallback(
     async (e: any) => {
@@ -88,19 +66,13 @@ export const UserDropdown = () => {
   );
 
   useEffect(() => {
-    if (status !== "loading") {
-      if (status === "authenticated") {
-        GetProfile();
-      } else if (status === "unauthenticated") {
-        router.replace("/admin/login");
-      }
-    }
-  }, [session, status, router]);
+    GetProfile();
+  }, [sessionStorage]);
 
   return (
     <div>
       <ModalUserProfile
-        Mode={"Edit"}
+        Mode={"self"}
         Profile={profile}
         isOpen={isOpen}
         onClose={onClose}

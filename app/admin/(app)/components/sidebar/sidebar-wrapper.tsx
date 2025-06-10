@@ -12,7 +12,8 @@ import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Suspense, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+
+import { ProfileAdminDataInitData } from "../../data/initData";
 
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
@@ -26,22 +27,21 @@ import { ProfileAdminData } from "@/types";
 export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
-  const { data: session, status } = useSession();
-  const [role, setRole] = useState(0);
+  const [profile, setProfile] = useState<ProfileAdminData>(
+    ProfileAdminDataInitData
+  );
 
   useEffect(() => {
-    if (status !== "loading") {
-      if (status === "authenticated") {
-        fetch("/api/profile/admin/" + session.user?.id)
-          .then((res) => res.json())
-          .then((val: ProfileAdminData) => {
-            if (val) {
-              setRole(val.roleId);
-            }
-          });
-      }
+    GetProfile();
+  }, [sessionStorage]);
+
+  const GetProfile = async () => {
+    const data = sessionStorage.getItem("adminProfile");
+
+    if (data) {
+      setProfile(JSON.parse(data));
     }
-  }, [session]);
+  };
 
   return (
     <Suspense fallback={<Loading />}>
@@ -79,7 +79,7 @@ export const SidebarWrapper = () => {
                   title="เคสที่ดูแล"
                 />
               </SidebarMenu>
-              {role === 4 ? (
+              {profile.roleId === 4 ? (
                 <SidebarMenu title="Admin Menu">
                   <SidebarItem
                     href="/admin/members"

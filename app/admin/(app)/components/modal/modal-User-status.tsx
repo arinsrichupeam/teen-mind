@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Button,
   Modal,
@@ -9,32 +11,36 @@ import {
 } from "@heroui/react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 
 export const ModalUserStatus = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const GetProfile = useCallback(async () => {
-    await fetch(`/api/profile/admin/${session?.user?.id}`)
-      .then((res) => res.json())
-      .then((val) => {
-        if (val == null) {
-          router.push("/admin/register");
-        } else if (val.status != 1) {
-          onOpen();
-        }
-      });
-  }, [session, isOpen]);
+  const GetProfile = async () => {
+    const res = await fetch(`/api/profile/admin/${session?.user?.id}`);
+    const data = await res.json();
+
+    if (data == null) {
+      router.push("/admin/register");
+    } else if (data.status != 1) {
+      onOpen();
+    } else {
+      // บันทึกข้อมูล profile ลงใน sessionStorage
+      sessionStorage.setItem("adminProfile", JSON.stringify(data));
+    }
+  };
 
   useEffect(() => {
     if (status !== "loading") {
       if (status === "authenticated") {
         GetProfile();
+      } else {
+        router.push("/admin/login");
       }
     }
-  }, [session, status]);
+  }, [session, router]);
 
   return (
     <Modal

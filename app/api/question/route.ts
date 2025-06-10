@@ -16,6 +16,7 @@ export async function GET() {
       consult: true,
       profile: {
         select: {
+          id: true,
           prefixId: true,
           firstname: true,
           lastname: true,

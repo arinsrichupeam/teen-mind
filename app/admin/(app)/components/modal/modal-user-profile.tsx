@@ -66,7 +66,7 @@ export const ModalUserProfile = ({
 
   const HandleChange = useCallback(
     (e: any) => {
-      if (mode === "Edit") {
+      if (mode === "Edit" || mode === "self") {
         if (e.target.name === "alert") {
           setSelectedProfile((prev) => ({
             ...prev,
@@ -299,69 +299,77 @@ export const ModalUserProfile = ({
                       onChange={HandleChange}
                     />
                   </div>
-                  <Divider />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <Select
-                      className="max-w-xl"
-                      label="สิทธิ์การใช้งาน"
-                      labelPlacement="outside"
-                      name="roleId"
-                      placeholder="สิทธิ์การใช้งาน"
-                      radius="sm"
-                      selectedKeys={
-                        selectedProfile.roleId === 0
-                          ? ""
-                          : selectedProfile.roleId.toString()
-                      }
-                      size="md"
-                      variant="bordered"
-                      onChange={HandleChange}
-                    >
-                      {userRoles.map((val) => {
-                        return <SelectItem key={val.id}>{val.name}</SelectItem>;
-                      })}
-                    </Select>
-                    <Select
-                      className="max-w-xl"
-                      label="สถานะ"
-                      labelPlacement="outside"
-                      name="status"
-                      placeholder="สถานะ"
-                      radius="sm"
-                      selectedKeys={
-                        selectedProfile.status === 0
-                          ? ""
-                          : selectedProfile.status.toString()
-                      }
-                      size="md"
-                      variant="bordered"
-                      onChange={HandleChange}
-                    >
-                      {Options.map((val) => {
-                        return (
-                          <SelectItem key={val.uid}>{val.name}</SelectItem>
-                        );
-                      })}
-                    </Select>
-                    <Select
-                      className="max-w-xl"
-                      label="Emergency Alert"
-                      labelPlacement="outside"
-                      name="alert"
-                      placeholder="Emergency Alert"
-                      radius="sm"
-                      selectedKeys={selectedProfile.alert === false ? "0" : "1"}
-                      size="md"
-                      variant="bordered"
-                      onChange={HandleChange}
-                    >
-                      {Emergency.map((val) => {
-                        return (
-                          <SelectItem key={val.uid}>{val.name}</SelectItem>
-                        );
-                      })}
-                    </Select>
-                  </div>
+                  {mode === "edit" && (
+                    <>
+                      <Divider />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Select
+                          className="max-w-xl"
+                          label="สิทธิ์การใช้งาน"
+                          labelPlacement="outside"
+                          name="roleId"
+                          placeholder="สิทธิ์การใช้งาน"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.roleId === 0
+                              ? ""
+                              : selectedProfile.roleId.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {userRoles.map((val) => {
+                            return (
+                              <SelectItem key={val.id}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                        <Select
+                          className="max-w-xl"
+                          label="สถานะ"
+                          labelPlacement="outside"
+                          name="status"
+                          placeholder="สถานะ"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.status === 0
+                              ? ""
+                              : selectedProfile.status.toString()
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {Options.map((val) => {
+                            return (
+                              <SelectItem key={val.uid}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                        <Select
+                          className="max-w-xl"
+                          label="Emergency Alert"
+                          labelPlacement="outside"
+                          name="alert"
+                          placeholder="Emergency Alert"
+                          radius="sm"
+                          selectedKeys={
+                            selectedProfile.alert === false ? "0" : "1"
+                          }
+                          size="md"
+                          variant="bordered"
+                          onChange={HandleChange}
+                        >
+                          {Emergency.map((val) => {
+                            return (
+                              <SelectItem key={val.uid}>{val.name}</SelectItem>
+                            );
+                          })}
+                        </Select>
+                      </div>
+                    </>
+                  )}
                 </div>
               </ScrollShadow>
             </ModalBody>

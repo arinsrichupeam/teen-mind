@@ -1,11 +1,11 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { Navbar, NavbarContent } from "@heroui/navbar";
 
 import { BurguerButton } from "./burguer-button";
 import { UserDropdown } from "./user-dropdown";
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const NavbarWrapper = ({ children }: Props) => {

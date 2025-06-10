@@ -1,10 +1,8 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { Profile_Admin } from "@prisma/client";
-import { addToast } from "@heroui/react";
+import { useQuery } from "@tanstack/react-query";
 
 import { CardGreen } from "./components/home/card-green";
 import { CardYellow } from "./components/home/card-yellow";
@@ -16,70 +14,44 @@ import { CardTotal } from "./components/home/card-total";
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 
+const fetchQuestions = async () => {
+  const res = await fetch("/api/question");
+  const data = await res.json();
+
+  return data.questionsList;
+};
+
+const fetchNewMembers = async () => {
+  const res = await fetch("/api/profile/admin");
+  const data = await res.json();
+
+  return data.filter((val: Profile_Admin) => val.status === 3);
+};
+
 export default function AdminHome() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [totalQuestions, setTotalQuestions] = useState<QuestionsData[]>([]);
-  const [greenQuestions, setGreenQuestions] = useState<QuestionsData[]>([]);
-  const [yellowQuestions, setYellowQuestions] = useState<QuestionsData[]>([]);
-  const [redQuestions, setRedQuestions] = useState<QuestionsData[]>([]);
-  const [newMemberList, setNewMemberList] = useState<Profile_Admin[]>([]);
+  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery({
+    queryKey: ["questions"],
+    queryFn: fetchQuestions,
+  });
 
-  const GetQuestionList = useCallback(async () => {
-    await fetch("/api/question")
-      .then((res) => res.json())
-      .then((val) => {
-        setTotalQuestions(val.questionsList);
-        setGreenQuestions(
-          val.questionsList.filter((f: QuestionsData) => f.result === "Green")
-        );
-        setYellowQuestions(
-          val.questionsList.filter((f: QuestionsData) => f.result === "Yellow")
-        );
-        setRedQuestions(
-          val.questionsList.filter((f: QuestionsData) => f.result === "Red")
-        );
-      });
-  }, [totalQuestions, greenQuestions, yellowQuestions, redQuestions]);
+  const { data: newMembers = [], isLoading: isLoadingMembers } = useQuery({
+    queryKey: ["newMembers"],
+    queryFn: fetchNewMembers,
+  });
 
-  const GetNewMember = useCallback(async () => {
-    await fetch("/api/profile/admin")
-      .then((res) => res.json())
-      .then((val) => {
-        setNewMemberList(val.filter((val: Profile_Admin) => val.status === 3));
-      });
-  }, [newMemberList]);
+  const greenQuestions = questions.filter(
+    (q: QuestionsData) => q.result === "Green"
+  );
+  const yellowQuestions = questions.filter(
+    (q: QuestionsData) => q.result === "Yellow"
+  );
+  const redQuestions = questions.filter(
+    (q: QuestionsData) => q.result === "Red"
+  );
 
-  const GetAdminProfile = useCallback(async () => {
-    await fetch("/api/profile/admin/" + session?.user?.id)
-      .then((res) => res.json())
-      .then((val) => {
-        if (val == null) {
-          router.push("/admin/register");
-        } else if (val.status === 3) {
-          addToast({
-            title: "Error",
-            description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
-            color: "danger",
-          });
-
-          signOut();
-        } else {
-          GetNewMember();
-          GetQuestionList();
-        }
-      });
-  }, [session, router]);
-
-  useEffect(() => {
-    if (status !== "loading") {
-      if (status === "unauthenticated") {
-        router.push("/admin/login");
-      } else {
-        GetAdminProfile();
-      }
-    }
-  }, [session, router]);
+  if (isLoadingQuestions || isLoadingMembers) {
+    return <></>;
+  }
 
   return (
     <Suspense fallback={<Loading />}>
@@ -90,10 +62,8 @@ export default function AdminHome() {
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
               <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2  justify-center w-full">
-                <CardCaseTotal data={totalQuestions} />
-                <CardTotal data={totalQuestions} />
-                {/* <CardYellow data={yellowQuestions} /> */}
-                {/* <CardRed data={redQuestions} /> */}
+                <CardCaseTotal data={questions} />
+                <CardTotal data={questions} />
               </div>
             </div>
 
@@ -101,28 +71,18 @@ export default function AdminHome() {
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
               <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-3 gap-2  justify-center w-full">
-                {/* <CardTotal data={totalQuestions} /> */}
                 <CardGreen data={greenQuestions} />
                 <CardYellow data={yellowQuestions} />
                 <CardRed data={redQuestions} />
               </div>
             </div>
-
-            {/* Chart */}
-            {/* <div className="h-full flex flex-col gap-2">
-            <h3 className="text-xl font-semibold">Statistics</h3>
-            <div className="w-full rounded-2xl p-6 flex flex-row gap-2 justify-center">
-              <CardTotal data={totalQuestions} />
-              <CardTotal data={totalQuestions} />
-            </div>
-          </div> */}
           </div>
 
           {/* Left Section */}
           <div className="mt-4 gap-2 flex flex-col xl:max-w-md w-full">
             <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
             <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
-              <CardAgents data={newMemberList} />
+              <CardAgents data={newMembers} />
             </div>
           </div>
         </div>
