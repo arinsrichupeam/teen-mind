@@ -25,12 +25,13 @@ import {
 import React from "react";
 import Image from "next/image";
 
+import ReferentQRCodeModal from "../../componant/modalReferent";
+
 import { title } from "@/components/primitives";
 import { prefix } from "@/utils/data";
 import { validateCitizen, validateEmail } from "@/utils/helper";
 import { generateQRCode } from "@/utils/qrcode";
 import { referentInitValue } from "@/types/initData";
-import ReferentQRCodeModal from "../../componant/modalReferent";
 
 export default function ReferentPage() {
   const request = true;
@@ -38,8 +39,9 @@ export default function ReferentPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
     useState<Referent>(referentInitValue);
-  const [selectVerification, setSelectVerification] =
-    useState<Referent>(referentInitValue);
+  // const [selectVerification, setSelectVerification] =
+  //   useState<Referent>(referentInitValue);
+  const [referent, setReferent] = useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
@@ -116,7 +118,7 @@ export default function ReferentPage() {
             referent.volunteer_type_id = volunteerType.find(
               (x) => x.name === referent.volunteer_type.name
             )?.id;
-            setSelectVerification(referent);
+            setReferent(referent);
             onOpenModal4();
           } else {
             addToast({
@@ -522,87 +524,13 @@ export default function ReferentPage() {
         </ModalContent>
       </Modal>
 
-      {/* <Modal
-        backdrop="blur"
-        className="whitespace-nowrap sm:whitespace-normal"
-        hideCloseButton={true}
-        id="modal-content-4"
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-        isOpen={isOpenModal4}
-        placement="center"
-        size="sm"
-        onClose={onCloseModal4}
-      >
-        <ModalContent>
-          <>
-            <ModalHeader className="flex flex-col items-center font-bold">
-              ตรวจสอบข้อมูลการลงทะเบียน อสท.
-            </ModalHeader>
-            <ModalBody className="flex flex-col gap-2">
-              <Divider />
-              <div className="items-center flex justify-center box-border rounded-full bg-primary-100 font-semibold p-2 text-primary-600">
-                <span className="">รหัสอ้างอิง {selectVerification.id}</span>
-              </div>
-              <span>
-                ชื่อ - นามสกุล :{" "}
-                {prefix[selectVerification.prefixId - 1]?.label}{" "}
-                {selectVerification?.firstname} {selectVerification?.lastname}
-              </span>
-              <span>
-                สังกัด :{" "}
-                {
-                  affiliation.find(
-                    (x) => x.id == selectVerification.affiliation_id
-                  )?.name
-                }
-              </span>
-              <span>หน่วยงาน : {selectVerification?.agency}</span>
-              <span>
-                ประเภทอาสาสมัคร :{" "}
-                {
-                  volunteerType.find(
-                    (x) => x.id == selectVerification.volunteer_type_id
-                  )?.name
-                }
-              </span>
-              <Divider />
-              <h1 className="text-center text-2xl font-bold text-red-500 ">
-                กรุณาบันทึกหน้าจอนี้
-              </h1>
-              <Image
-                alt="QR-Code"
-                className="w-[200px] h-[200px] mx-auto"
-                height={200}
-                src={qrCode}
-                width={200}
-              />
-              <Divider />
-            </ModalBody>
-            <ModalFooter className="flex justify-center">
-              <Button
-                color="primary"
-                variant="solid"
-                onPress={() => {
-                  onCloseModal4();
-                  formRef.current?.reset();
-                  setIsLoading(false);
-                }}
-              >
-                ปิด
-              </Button>
-            </ModalFooter>
-          </>
-        </ModalContent>
-      </Modal> */}
-
-      {/* <ReferentQRCodeModal
+      <ReferentQRCodeModal
         affiliation={affiliation}
         data={referent}
         isOpen={isOpenModal4}
         volunteerType={volunteerType}
         onClose={onCloseModal4}
-      /> */}
+      />
 
       <Modal
         backdrop="blur"

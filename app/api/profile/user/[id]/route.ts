@@ -82,23 +82,24 @@ export async function GET(
   });
 
   // Check if user is a referent
-  let isReferent = false;
+  // let isReferent = false;
 
   if (profile?.profile[0]?.citizenId) {
     const referent = await prisma.referent.findFirst({
       where: {
         citizenId: profile.profile[0].citizenId,
       },
-      select: {
-        id: true,
-      },
     });
 
-    isReferent = !!referent;
+    // isReferent = !!referent;
+
+    return Response.json({
+      ...profile,
+      referent,
+    });
   }
 
-  return Response.json({
-    ...profile,
-    isReferent,
-  });
+  // return Response.json({
+  //   ...profile,
+  // });
 }

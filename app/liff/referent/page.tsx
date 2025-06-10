@@ -5,12 +5,8 @@ import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
 import { Suspense, useCallback, useState } from "react";
 import { useDisclosure } from "@heroui/react";
-import {
-  Affiliation,
-  Profile_Admin,
-  Referent,
-  Volunteer_Type,
-} from "@prisma/client";
+import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
+import { useSession } from "next-auth/react";
 
 import ReferentQRCodeModal from "../componant/modalReferent";
 
@@ -22,6 +18,7 @@ export default function QuestionPage() {
   const [referent, setReferent] = useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const { data: session, status } = useSession();
   const {
     isOpen: isOpenModal4,
     onOpen: onOpenModal4,
@@ -53,27 +50,14 @@ export default function QuestionPage() {
   }, [affiliation]);
 
   const GetReferentQRCode = async () => {
-    const data: Profile_Admin = JSON.parse(
-      sessionStorage.getItem("adminProfile") || "{}"
+    const data = await fetch("/api/profile/user/" + session?.user?.id).then(
+      (res) => res.json()
     );
 
-    console.log(data);
-
-    // await fetch("/api/data/referent/", {
-    //   method: "Post",
-    //   body: JSON.stringify({
-    //     citizenId: data.citizenId,
-    //   }),
-    // })
-    //   .then((res) => res.json())
-    //   .then((val) => {
-    //     console.log(val[0]);
-    //     setReferent(val[0]);
-    //     GetAffiliation();
-    //     GetvolunteerType();
-    //   });
-
-    // onOpenModal4();
+    setReferent(data.referent);
+    GetAffiliation();
+    GetvolunteerType();
+    onOpenModal4();
   };
 
   return (

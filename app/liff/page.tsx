@@ -19,7 +19,7 @@ export default function LiffHome() {
           // send to register
           router.push("/liff/privacy");
         } else {
-          if (val.isReferent) {
+          if (!!val.referent) {
             router.push("/liff/referent");
           } else {
             if (val.questions?.length === 0) {
