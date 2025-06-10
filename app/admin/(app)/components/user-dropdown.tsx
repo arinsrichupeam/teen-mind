@@ -13,7 +13,7 @@ import { signOut } from "next-auth/react";
 import { CameraIcon } from "@heroicons/react/24/solid";
 import { useDisclosure, User } from "@heroui/react";
 
-import { ProfileAdminDataInitData } from "../data/initData";
+import { ProfileAdminDataInitData } from "../../../../types/initData";
 
 import { ModalUserProfile } from "./modal/modal-user-profile";
 

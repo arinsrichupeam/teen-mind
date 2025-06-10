@@ -139,10 +139,14 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       />
       <DatePicker
         className="w-full"
-        errorMessage="กรุณาเลือกวันเกิด"
+        errorMessage="กรุณาระบุวันเกิดให้ถูกต้อง"
         isRequired={request}
         label="วันเกิด"
         labelPlacement="inside"
+        maxValue={parseDate(moment().format("YYYY-MM-DD"))}
+        minValue={parseDate(
+          moment().subtract(100, "years").format("YYYY-MM-DD")
+        )}
         radius="md"
         selectorButtonPlacement="start"
         showMonthAndYearPickers={true}

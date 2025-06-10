@@ -23,9 +23,11 @@ export async function POST(request: Request) {
       id: true,
       firstname: true,
       lastname: true,
+      affiliation_id: true,
       affiliation: true,
-      agency: true,
+      volunteer_type_id: true,
       volunteer_type: true,
+      agency: true,
     },
   });
 

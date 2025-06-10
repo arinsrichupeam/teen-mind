@@ -13,7 +13,7 @@ import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Suspense, useEffect, useState } from "react";
 
-import { ProfileAdminDataInitData } from "../../data/initData";
+import { ProfileAdminDataInitData } from "../../../../../types/initData";
 
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";

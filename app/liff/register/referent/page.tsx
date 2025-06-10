@@ -29,23 +29,8 @@ import { title } from "@/components/primitives";
 import { prefix } from "@/utils/data";
 import { validateCitizen, validateEmail } from "@/utils/helper";
 import { generateQRCode } from "@/utils/qrcode";
-
-const referentInitValue: Referent = {
-  id: 0,
-  citizenId: "",
-  prefixId: 0,
-  firstname: "",
-  lastname: "",
-  email: "",
-  tel: "",
-  volunteer_type_id: 0,
-  employee_type_id: 0,
-  affiliation_id: 0,
-  agency: "",
-  status: true,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+import { referentInitValue } from "@/types/initData";
+import ReferentQRCodeModal from "../../componant/modalReferent";
 
 export default function ReferentPage() {
   const request = true;
@@ -537,7 +522,7 @@ export default function ReferentPage() {
         </ModalContent>
       </Modal>
 
-      <Modal
+      {/* <Modal
         backdrop="blur"
         className="whitespace-nowrap sm:whitespace-normal"
         hideCloseButton={true}
@@ -609,7 +594,15 @@ export default function ReferentPage() {
             </ModalFooter>
           </>
         </ModalContent>
-      </Modal>
+      </Modal> */}
+
+      {/* <ReferentQRCodeModal
+        affiliation={affiliation}
+        data={referent}
+        isOpen={isOpenModal4}
+        volunteerType={volunteerType}
+        onClose={onCloseModal4}
+      /> */}
 
       <Modal
         backdrop="blur"
