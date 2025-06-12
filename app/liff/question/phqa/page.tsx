@@ -114,6 +114,7 @@ export default function PHQAPage() {
 
   const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
   const [Q2_data, setQ2] = useState<Questions_PHQA_Addon>(Q2InitValue);
+  const [isLoading, setIsLoading] = useState(false);
   const [location, setLocation] = useState<LocationData>();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -168,6 +169,7 @@ export default function PHQAPage() {
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
+    setIsLoading(true);
 
     try {
       const response = await fetch(`/api/data/referent/${referentId}`);
@@ -187,6 +189,8 @@ export default function PHQAPage() {
         affiliation: "ไม่พบข้อมูล",
         agency: "ไม่พบข้อมูล",
       });
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -440,8 +444,12 @@ export default function PHQAPage() {
                     />
                   </div>
                   <Divider />
-                  {referenceId.length == 3 &&
-                    (referentData?.fullName !== "ไม่พบข้อมูล" ? (
+                  {referenceId.length == 3 && (
+                    isLoading ? (
+                      <div className="flex justify-center items-center p-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                      </div>
+                    ) : referentData?.fullName !== "ไม่พบข้อมูล" ? (
                       <span className="flex flex-col box-border rounded-lg bg-primary-100 text-primary-500 p-3 text-left w-full text-md font-semibold">
                         ชื่อผู้ให้คำแนะนำ : {referentData?.fullName}
                         <br />
@@ -453,7 +461,8 @@ export default function PHQAPage() {
                       <span className="flex flex-col box-border rounded-lg bg-danger-100 text-danger-500 p-3 text-center w-full text-md font-semibold">
                         รหัสผู้ให้คำแนะนำไม่ถูกต้อง
                       </span>
-                    ))}
+                    )
+                  )}
                 </ModalBody>
                 <ModalFooter className="flex flex-col justify-center">
                   <Button
