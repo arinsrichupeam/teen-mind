@@ -50,14 +50,11 @@ export async function POST(req: Request) {
     const referenceId = data.reference;
     const phqa_data: Questions_PHQA = data.phqa;
     const Q2_data: Questions_PHQA_Addon = data.Q2;
+    const phqaAddon_data: Questions_PHQA_Addon = data.phqaAddon;
     const location_data: LocationData = data.location;
 
     const phqa_sum = SumValue(phqa_data);
-    const { result, result_text } = calculateResult(
-      phqa_sum,
-      phqa_data,
-      Q2_data
-    );
+    const { result, result_text } = calculateResult(phqa_sum, phqa_data);
 
     // ดึงข้อมูลผู้ใช้
     const user = await prisma.profile.findUnique({
@@ -125,6 +122,12 @@ export async function POST(req: Request) {
             q2: Q2_data.q2,
           },
         },
+        addon: {
+          create: {
+            q1: phqaAddon_data.q1,
+            q2: phqaAddon_data.q2,
+          },
+        },
       },
     });
 
@@ -183,7 +186,6 @@ export async function PUT(req: Request) {
     return Response.json("Success");
   } catch (err) {
     throw err;
-    // console.log(err);
   }
 }
 
@@ -228,7 +230,7 @@ function SumValue(value: any) {
 
 // เพิ่มฟังก์ชันสำหรับตรวจสอบความถูกต้องของข้อมูล
 function validateQuestionData(data: any) {
-  if (!data.profileId || !data.phqa || !data.Q2) {
+  if (!data.profileId || !data.phqa || !data.Q2 || !data.phqaAddon) {
     throw new Error("ข้อมูลไม่ครบถ้วน");
   }
 
@@ -243,19 +245,23 @@ function validateQuestionData(data: any) {
 
   // ตรวจสอบค่า 2q ต้องเป็น 0 หรือ 1
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
-    throw new Error("ค่า Addon q1 ไม่ถูกต้อง");
+    throw new Error("ค่า 2Q q1 ไม่ถูกต้อง");
   }
   if (data.Q2.q2 !== 0 && data.Q2.q2 !== 1) {
-    throw new Error("ค่า Addon q2 ไม่ถูกต้อง");
+    throw new Error("ค่า 2Q q2 ไม่ถูกต้อง");
+  }
+
+  // ตรวจสอบค่า PHQA Addon ต้องเป็น 0 หรือ 1
+  if (data.phqaAddon.q1 !== 0 && data.phqaAddon.q1 !== 1) {
+    throw new Error("ค่า PHQA Addon q1 ไม่ถูกต้อง");
+  }
+  if (data.phqaAddon.q2 !== 0 && data.phqaAddon.q2 !== 1) {
+    throw new Error("ค่า PHQA Addon q2 ไม่ถูกต้อง");
   }
 }
 
 // แยกฟังก์ชันคำนวณผลลัพธ์
-function calculateResult(
-  phqa_sum: number,
-  phqa_data: Questions_PHQA,
-  Q2_data: Questions_PHQA_Addon
-) {
+function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
   let result = "";
   let result_text = "";
 
@@ -270,7 +276,7 @@ function calculateResult(
     result = "Yellow";
     result_text = "พบความเสี่ยงปานกลาง";
   } else {
-    if (phqa_data.q9 > 0 || Q2_data.q1 == 1 || Q2_data.q2 == 1) {
+    if (phqa_data.q9 > 0) {
       result = "Red";
       result_text = "พบความเสี่ยง โปรดประเมิน 8Q";
     } else {
