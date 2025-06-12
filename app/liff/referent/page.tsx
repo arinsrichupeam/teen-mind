@@ -18,6 +18,11 @@ export default function QuestionPage() {
   const [referent, setReferent] = useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const [isLoading, setIsLoading] = useState({
+    privacy: false,
+    qrcode: false,
+    list: false,
+  });
   const { data: session } = useSession();
   const {
     isOpen: isOpenModal4,
@@ -25,12 +30,22 @@ export default function QuestionPage() {
     onClose: onCloseModal4,
   } = useDisclosure();
 
-  const GotoList = () => {
-    router.push("/liff/question/list");
+  const GotoList = async () => {
+    setIsLoading((prev) => ({ ...prev, list: true }));
+    try {
+      await router.push("/liff/question/list");
+    } finally {
+      setIsLoading((prev) => ({ ...prev, list: false }));
+    }
   };
 
-  const GotoPrivacy = () => {
-    router.push("/liff/privacy");
+  const GotoPrivacy = async () => {
+    setIsLoading((prev) => ({ ...prev, privacy: true }));
+    try {
+      await router.push("/liff/privacy");
+    } finally {
+      setIsLoading((prev) => ({ ...prev, privacy: false }));
+    }
   };
 
   const GetvolunteerType = useCallback(async () => {
@@ -50,14 +65,19 @@ export default function QuestionPage() {
   }, [affiliation]);
 
   const GetReferentQRCode = async () => {
-    const data = await fetch("/api/profile/user/" + session?.user?.id).then(
-      (res) => res.json()
-    );
+    setIsLoading((prev) => ({ ...prev, qrcode: true }));
+    try {
+      const data = await fetch("/api/profile/user/" + session?.user?.id).then(
+        (res) => res.json()
+      );
 
-    setReferent(data.referent);
-    GetAffiliation();
-    GetvolunteerType();
-    onOpenModal4();
+      setReferent(data.referent);
+      await GetAffiliation();
+      await GetvolunteerType();
+      onOpenModal4();
+    } finally {
+      setIsLoading((prev) => ({ ...prev, qrcode: false }));
+    }
   };
 
   return (
@@ -70,13 +90,28 @@ export default function QuestionPage() {
             loading="lazy"
             src="../image/Logo_App.png"
           />
-          <Button className="w-40" color="primary" onPress={GotoPrivacy}>
+          <Button
+            className="w-40"
+            color="primary"
+            isLoading={isLoading.privacy}
+            onPress={GotoPrivacy}
+          >
             เพิ่มแบบทดสอบ
           </Button>
-          <Button className="w-40" color="primary" onPress={GetReferentQRCode}>
+          <Button
+            className="w-40"
+            color="primary"
+            isLoading={isLoading.qrcode}
+            onPress={GetReferentQRCode}
+          >
             แสดง QR Code
           </Button>
-          <Button className="w-40" color="primary" onPress={GotoList}>
+          <Button
+            className="w-40"
+            color="primary"
+            isLoading={isLoading.list}
+            onPress={GotoList}
+          >
             แบบทดสอบของฉัน
           </Button>
         </div>
