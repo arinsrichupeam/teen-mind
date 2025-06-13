@@ -88,6 +88,13 @@ export default function QuestionListPage() {
                           {val.result_text}
                         </span>
                       </p>
+                    ) : val.result === "Orange" ? (
+                      <p className="font-semibold">
+                        ผลการสำรวจ{" "}
+                        <span className="text-orange-500">
+                          {val.result_text}
+                        </span>
+                      </p>
                     ) : (
                       <p className="font-semibold">
                         ผลการสำรวจ{" "}
