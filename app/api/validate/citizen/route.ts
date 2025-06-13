@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 import { prisma } from "@/utils/prisma";
 
 export async function POST(req: Request) {
@@ -8,7 +6,7 @@ export async function POST(req: Request) {
 
     // ตรวจสอบรูปแบบเลขบัตรประชาชน
     if (!citizenId || citizenId.length !== 13) {
-      return NextResponse.json(
+      return Response.json(
         { error: "กรอกเลขบัตรประชาชนไม่ครบถ้วน" },
         { status: 400 }
       );
@@ -17,7 +15,7 @@ export async function POST(req: Request) {
     const isDigit = /^[0-9]*$/.test(citizenId);
 
     if (!isDigit) {
-      return NextResponse.json(
+      return Response.json(
         { error: "เลขบัตรประชาชนต้องเป็นตัวเลขเท่านั้น" },
         { status: 400 }
       );
@@ -32,7 +30,7 @@ export async function POST(req: Request) {
     const checksum = (11 - (sum % 11)) % 10;
 
     if (checksum !== parseInt(citizenId.charAt(12))) {
-      return NextResponse.json(
+      return Response.json(
         { error: "กรอกเลขบัตรประชาชนไม่ถูกต้อง" },
         { status: 400 }
       );
@@ -45,7 +43,7 @@ export async function POST(req: Request) {
       });
 
       if (existingUser) {
-        return NextResponse.json(
+        return Response.json(
           { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
           { status: 400 }
         );
@@ -56,7 +54,7 @@ export async function POST(req: Request) {
       });
 
       if (existingAdmin) {
-        return NextResponse.json(
+        return Response.json(
           { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
           { status: 400 }
         );
@@ -67,17 +65,18 @@ export async function POST(req: Request) {
       });
 
       if (existingReferent) {
-        return NextResponse.json(
+        return Response.json(
           { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
           { status: 400 }
         );
       }
     }
 
-    return NextResponse.json({ valid: true });
+    return Response.json({ valid: true });
   } catch (error) {
-    return {
-      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error,
-    };
+    return Response.json(
+      { error: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error },
+      { status: 500 }
+    );
   }
 }

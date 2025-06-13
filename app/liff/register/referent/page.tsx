@@ -167,9 +167,10 @@ export default function ReferentPage() {
 
     // ตรวจสอบการซ้ำซ้อนในระบบ
     const result = await validateCitizen(value, "referent");
+    const data = await result.json();
 
-    if (result !== true) {
-      setError(result.errorMessage);
+    if (!data.valid) {
+      setError(data.error);
 
       return false;
     }

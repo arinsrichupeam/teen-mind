@@ -125,9 +125,10 @@ export default function RegisterPage() {
 
     // ตรวจสอบการซ้ำซ้อนในระบบ
     const result = await validateCitizen(value, "admin");
+    const data = await result.json();
 
-    if (result !== true) {
-      setError(result.errorMessage);
+    if (!data.valid) {
+      setError(data.error);
 
       return false;
     }

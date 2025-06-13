@@ -36,9 +36,10 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
 
   const validateCitizenId = async (value: string) => {
     const result = await validateCitizen(value, "user");
+    const data = await result.json();
 
-    if (result !== true) {
-      setError(result.errorMessage);
+    if (!data.valid) {
+      setError(data.error);
 
       return false;
     }

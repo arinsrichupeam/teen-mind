@@ -16,7 +16,7 @@ export function CheckPHQAStatus(val: number) {
 export async function validateCitizen(
   idCardNo: string,
   source: "user" | "admin" | "referent" = "user"
-): Promise<true | { errorMessage: string }> {
+): Promise<Response> {
   try {
     const response = await fetch("/api/validate/citizen", {
       method: "POST",
@@ -29,16 +29,15 @@ export async function validateCitizen(
     const data = await response.json();
 
     if (!response.ok) {
-      return {
-        errorMessage: data.error,
-      };
+      return Response.json({ error: data.error }, { status: response.status });
     }
 
-    return true;
+    return Response.json({ valid: true });
   } catch (error) {
-    return {
-      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error,
-    };
+    return Response.json(
+      { error: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error },
+      { status: 500 }
+    );
   }
 }
 
