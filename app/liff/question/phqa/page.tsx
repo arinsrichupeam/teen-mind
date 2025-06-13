@@ -716,35 +716,53 @@ export default function PHQAPage() {
                         {calculationResult.phqa_sum} คะแนน
                       </p>
                       <div className="w-full space-y-2">
-                        <p className="font-semibold text-center">ผลการประเมิน</p>
+                        <p className="font-semibold text-center">
+                          ผลการประเมิน
+                        </p>
                         <div className="flex flex-col gap-2 justify-center items-center">
                           <div className="flex flex-col gap-1">
                             <div className="flex flex-col items-center gap-2">
-                              <span className={`
-                                ${calculationResult.result === "lightGreen" ? "text-green-700" :
-                                calculationResult.result === "Green" ? "text-green-700" :
-                                calculationResult.result === "Yellow" ? "text-yellow-700" :
-                                calculationResult.result === "Orange" ? "text-orange-700" :
-                                "text-red-700"}
-                              `}>
+                              <span
+                                className={`
+                                ${
+                                  calculationResult.result === "lightGreen"
+                                    ? "text-green-700"
+                                    : calculationResult.result === "Green"
+                                      ? "text-green-700"
+                                      : calculationResult.result === "Yellow"
+                                        ? "text-yellow-700"
+                                        : calculationResult.result === "Orange"
+                                          ? "text-orange-700"
+                                          : "text-red-700"
+                                }
+                              `}
+                              >
                                 {calculationResult.result_text}
                               </span>
                             </div>
                             <div className="flex w-full h-2 rounded-full overflow-hidden">
-                              <div className={`h-full ${
-                                calculationResult.result === "lightGreen" ? "bg-green-200 w-full" :
-                                calculationResult.result === "Green" ? "bg-green-500 w-full" :
-                                calculationResult.result === "Yellow" ? "bg-yellow-500 w-full" :
-                                calculationResult.result === "Orange" ? "bg-orange-500 w-full" :
-                                "bg-red-500 w-full"
-                              }`}></div>
+                              <div
+                                className={`h-full ${
+                                  calculationResult.result === "lightGreen"
+                                    ? "bg-green-200 w-full"
+                                    : calculationResult.result === "Green"
+                                      ? "bg-green-500 w-full"
+                                      : calculationResult.result === "Yellow"
+                                        ? "bg-yellow-500 w-full"
+                                        : calculationResult.result === "Orange"
+                                          ? "bg-orange-500 w-full"
+                                          : "bg-red-500 w-full"
+                                }`}
+                              />
                             </div>
                           </div>
                         </div>
                       </div>
                       {calculationResult.q9_value > 0 && (
                         <p className="text-center">
-                          <span className="font-semibold">ความเสี่ยงในการทำร้ายตนเอง:</span>{" "}
+                          <span className="font-semibold">
+                            ความเสี่ยงในการทำร้ายตนเอง:
+                          </span>{" "}
                           พบความเสี่ยงในการทำร้ายตนเอง
                         </p>
                       )}
