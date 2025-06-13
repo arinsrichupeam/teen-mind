@@ -266,10 +266,11 @@ function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
   let result_text = "";
 
   if (phqa_sum > 14) {
-    result = "Red";
     if (phqa_sum >= 15 && phqa_sum <= 19) {
+      result = "Orange";
       result_text = "พบความเสี่ยงมาก";
     } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+      result = "Red";
       result_text = "พบความเสี่ยงรุนแรง";
     }
   } else if (phqa_sum > 9) {
@@ -277,13 +278,14 @@ function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
     result_text = "พบความเสี่ยงปานกลาง";
   } else {
     if (phqa_data.q9 > 0) {
-      result = "Red";
-      result_text = "พบความเสี่ยง โปรดประเมิน 8Q";
+      result = "Yellow";
+      result_text = "พบความเสี่ยง";
     } else {
-      result = "Green";
       if (phqa_sum >= 0 && phqa_sum <= 4) {
+        result = "lightGreen";
         result_text = "ไม่พบความเสี่ยง";
       } else if (phqa_sum >= 5 && phqa_sum <= 9) {
+        result = "Green";
         result_text = "พบความเสี่ยงเล็กน้อย";
       }
     }

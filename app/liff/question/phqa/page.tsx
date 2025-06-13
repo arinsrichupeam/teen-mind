@@ -697,7 +697,7 @@ export default function PHQAPage() {
             isDismissable={true}
             isOpen={true}
             placement="center"
-            size="md"
+            size="xs"
             onClose={() => {
               setCalculationResult(null);
               router.push("/liff");
@@ -711,22 +711,43 @@ export default function PHQAPage() {
                   </ModalHeader>
                   <ModalBody className="items-center text-center">
                     <div className="w-full space-y-4">
-                      <p className="text-primary-600">
+                      <p>
                         <span className="font-semibold">คะแนนรวม:</span>{" "}
                         {calculationResult.phqa_sum} คะแนน
                       </p>
-                      <p className="text-primary-600">
-                        <span className="font-semibold">ระดับความเสี่ยง:</span>{" "}
-                        {calculationResult.result}
-                      </p>
-                      <p className="text-primary-600">
-                        <span className="font-semibold">ผลการประเมิน:</span>{" "}
-                        {calculationResult.result_text}
-                      </p>
-                      <p className="text-primary-600">
-                        <span className="font-semibold">คะแนนข้อ 9:</span>{" "}
-                        {calculationResult.q9_value} คะแนน
-                      </p>
+                      <div className="w-full space-y-2">
+                        <p className="font-semibold text-center">ผลการประเมิน</p>
+                        <div className="flex flex-col gap-2 justify-center items-center">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex flex-col items-center gap-2">
+                              <span className={`
+                                ${calculationResult.result === "lightGreen" ? "text-green-700" :
+                                calculationResult.result === "Green" ? "text-green-700" :
+                                calculationResult.result === "Yellow" ? "text-yellow-700" :
+                                calculationResult.result === "Orange" ? "text-orange-700" :
+                                "text-red-700"}
+                              `}>
+                                {calculationResult.result_text}
+                              </span>
+                            </div>
+                            <div className="flex w-full h-2 rounded-full overflow-hidden">
+                              <div className={`h-full ${
+                                calculationResult.result === "lightGreen" ? "bg-green-200 w-full" :
+                                calculationResult.result === "Green" ? "bg-green-500 w-full" :
+                                calculationResult.result === "Yellow" ? "bg-yellow-500 w-full" :
+                                calculationResult.result === "Orange" ? "bg-orange-500 w-full" :
+                                "bg-red-500 w-full"
+                              }`}></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {calculationResult.q9_value > 0 && (
+                        <p className="text-center">
+                          <span className="font-semibold">ความเสี่ยงในการทำร้ายตนเอง:</span>{" "}
+                          พบความเสี่ยงในการทำร้ายตนเอง
+                        </p>
+                      )}
                     </div>
                   </ModalBody>
                   <ModalFooter className="flex flex-col justify-center">
