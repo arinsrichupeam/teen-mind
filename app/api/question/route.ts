@@ -282,7 +282,7 @@ function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
       result_text = "พบความเสี่ยง";
     } else {
       if (phqa_sum >= 0 && phqa_sum <= 4) {
-        result = "lightGreen";
+        result = "Green";
         result_text = "ไม่พบความเสี่ยง";
       } else if (phqa_sum >= 5 && phqa_sum <= 9) {
         result = "Green";

@@ -1,0 +1,83 @@
+import { NextResponse } from "next/server";
+
+import { prisma } from "@/utils/prisma";
+
+export async function POST(req: Request) {
+  try {
+    const { citizenId, source } = await req.json();
+
+    // ตรวจสอบรูปแบบเลขบัตรประชาชน
+    if (!citizenId || citizenId.length !== 13) {
+      return NextResponse.json(
+        { error: "กรอกเลขบัตรประชาชนไม่ครบถ้วน" },
+        { status: 400 }
+      );
+    }
+
+    const isDigit = /^[0-9]*$/.test(citizenId);
+
+    if (!isDigit) {
+      return NextResponse.json(
+        { error: "เลขบัตรประชาชนต้องเป็นตัวเลขเท่านั้น" },
+        { status: 400 }
+      );
+    }
+
+    // ตรวจสอบเลขตรวจสอบ
+    let sum = 0;
+
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(citizenId.charAt(i)) * (13 - i);
+    }
+    const checksum = (11 - (sum % 11)) % 10;
+
+    if (checksum !== parseInt(citizenId.charAt(12))) {
+      return NextResponse.json(
+        { error: "กรอกเลขบัตรประชาชนไม่ถูกต้อง" },
+        { status: 400 }
+      );
+    }
+
+    // ตรวจสอบการซ้ำซ้อนตาม source
+    if (source === "user") {
+      const existingUser = await prisma.profile.findUnique({
+        where: { citizenId },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
+          { status: 400 }
+        );
+      }
+    } else if (source === "admin") {
+      const existingAdmin = await prisma.profile_Admin.findUnique({
+        where: { citizenId },
+      });
+
+      if (existingAdmin) {
+        return NextResponse.json(
+          { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
+          { status: 400 }
+        );
+      }
+    } else if (source === "referent") {
+      const existingReferent = await prisma.referent.findUnique({
+        where: { citizenId },
+      });
+
+      if (existingReferent) {
+        return NextResponse.json(
+          { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
+          { status: 400 }
+        );
+      }
+    }
+
+    return NextResponse.json({ valid: true });
+  } catch (error) {
+    return {
+      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error,
+    };
+  }
+}

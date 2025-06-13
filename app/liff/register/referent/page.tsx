@@ -35,6 +35,7 @@ import { referentInitValue } from "@/types/initData";
 
 export default function ReferentPage() {
   const request = true;
+  const [error, setError] = useState<string>("");
 
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
@@ -133,12 +134,76 @@ export default function ReferentPage() {
     [selectedReferent, onOpen, affiliation, volunteerType]
   );
 
+  const validateCitizenId = async (value: string) => {
+    // ตรวจสอบความยาวต้องเป็น 13 หลัก
+    if (!value || value.length !== 13) {
+      setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
+
+      return false;
+    }
+
+    // ตรวจสอบว่าเป็นตัวเลขเท่านั้น
+    const isDigit = /^[0-9]*$/.test(value);
+
+    if (!isDigit) {
+      setError("เลขบัตรประชาชนต้องเป็นตัวเลขเท่านั้น");
+
+      return false;
+    }
+
+    // ตรวจสอบเลขตรวจสอบ
+    let sum = 0;
+
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(value.charAt(i)) * (13 - i);
+    }
+    const checksum = (11 - (sum % 11)) % 10;
+
+    if (checksum !== parseInt(value.charAt(12))) {
+      setError("กรอกเลขบัตรประชาชนไม่ถูกต้อง");
+
+      return false;
+    }
+
+    // ตรวจสอบการซ้ำซ้อนในระบบ
+    const result = await validateCitizen(value, "referent");
+
+    if (result !== true) {
+      setError(result.errorMessage);
+
+      return false;
+    }
+
+    setError("");
+
+    return true;
+  };
+
   const HandleChange = useCallback(
-    (e: any) => {
-      setSelectedReferent((prev) => ({
-        ...prev,
-        [e.target.name]: e.target.value,
-      }));
+    async (e: any) => {
+      if (e.target.name === "citizenId") {
+        const value = e.target.value;
+
+        if (value.length > 13) {
+          return;
+        }
+        if (value.length === 13) {
+          await validateCitizenId(value);
+        } else if (value.length > 0) {
+          setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
+        } else {
+          setError("");
+        }
+        setSelectedReferent((prev) => ({
+          ...prev,
+          [e.target.name]: value,
+        }));
+      } else {
+        setSelectedReferent((prev) => ({
+          ...prev,
+          [e.target.name]: e.target.value,
+        }));
+      }
     },
     [selectedReferent]
   );
@@ -276,15 +341,17 @@ export default function ReferentPage() {
         <div className="flex flex-col items-center w-full gap-4 mb-4">
           <Input
             className="max-w-xl"
+            errorMessage={error}
+            isInvalid={!!error}
             isRequired={request}
             label="เลขบัตรประชาชน"
             labelPlacement="inside"
+            maxLength={13}
             name="citizenId"
             placeholder="เลขบัตรประชาชน"
             radius="md"
             size="sm"
-            type="number"
-            validate={(val) => validateCitizen(val)}
+            type="text"
             variant="faded"
             onChange={HandleChange}
           />

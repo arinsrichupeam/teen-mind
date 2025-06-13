@@ -716,16 +716,13 @@ export default function PHQAPage() {
                         {calculationResult.phqa_sum} คะแนน
                       </p>
                       <div className="w-full space-y-2">
-                        <p className="font-semibold text-center">
-                          ผลการประเมิน
-                        </p>
                         <div className="flex flex-col gap-2 justify-center items-center">
                           <div className="flex flex-col gap-1">
                             <div className="flex flex-col items-center gap-2">
                               <span
                                 className={`
                                 ${
-                                  calculationResult.result === "lightGreen"
+                                  calculationResult.result === "Green"
                                     ? "text-green-700"
                                     : calculationResult.result === "Green"
                                       ? "text-green-700"
@@ -743,7 +740,7 @@ export default function PHQAPage() {
                             <div className="flex w-full h-2 rounded-full overflow-hidden">
                               <div
                                 className={`h-full ${
-                                  calculationResult.result === "lightGreen"
+                                  calculationResult.result === "Green"
                                     ? "bg-green-200 w-full"
                                     : calculationResult.result === "Green"
                                       ? "bg-green-500 w-full"

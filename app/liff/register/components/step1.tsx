@@ -8,12 +8,7 @@ import { Button } from "@heroui/button";
 import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
-import {
-  Autocomplete,
-  AutocompleteItem,
-  DatePicker,
-  NumberInput,
-} from "@heroui/react";
+import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
 import { prefix, sex } from "@/utils/data";
 import { validateCitizen, validateTel } from "@/utils/helper";
@@ -28,6 +23,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const request = true;
   const [birthday, setBirthday] = useState<CalendarDate>();
   const [school, setSchool] = useState<School[]>([]);
+  const [error, setError] = useState<string>("");
 
   const onSubmit = useCallback((e: any) => {
     e.preventDefault();
@@ -37,6 +33,35 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const DateChange = useCallback((val: any) => {
     HandleChange({ target: { name: "birthday", value: new Date(val) } });
   }, []);
+
+  const validateCitizenId = async (value: string) => {
+    const result = await validateCitizen(value, "user");
+
+    if (result !== true) {
+      setError(result.errorMessage);
+
+      return false;
+    }
+    setError("");
+
+    return true;
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    if (value.length === 13) {
+      await validateCitizenId(value);
+    } else {
+      setError("");
+    }
+
+    HandleChange({ target: { name: "citizenId", value } });
+  };
 
   useEffect(() => {
     if (Result?.birthday.getDate() != new Date().getDate()) {
@@ -56,34 +81,34 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       validationBehavior="native"
       onSubmit={onSubmit}
     >
-      <NumberInput
-        formatOptions={{ useGrouping: false }}
-        hideStepper={true}
+      <Input
+        errorMessage={error}
+        isInvalid={!!error}
         isRequired={request}
         label="เลขบัตรประชาชน"
         labelPlacement="inside"
+        maxLength={13}
         name="citizenId"
         placeholder="เลขบัตรประชาชน"
         radius="md"
         size="sm"
-        validate={(val) => validateCitizen(val.toString())}
-        value={parseInt(Result?.citizenId as string)}
+        type="text"
+        value={Result?.citizenId ?? ""}
         variant="faded"
-        onChange={HandleChange}
+        onChange={handleChange}
       />
       <div className="flex flex-row gap-4 w-full">
         <Select
           className="max-w-xs"
           errorMessage="กรุณาเลือกคำนำหน้า"
+          isDisabled={false}
           isRequired={request}
           label="คำนำหน้า"
           labelPlacement="inside"
           name="prefix"
           placeholder="คำนำหน้า"
           radius="md"
-          selectedKeys={
-            Result?.prefixId === 0 ? "" : Result?.prefixId.toString()
-          }
+          selectedKeys={Result?.prefixId ? [Result.prefixId.toString()] : []}
           size="sm"
           variant="faded"
           onChange={HandleChange}
@@ -95,13 +120,14 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         <Select
           className="max-w-xs"
           errorMessage="กรุณาเลือกเพศ"
+          isDisabled={false}
           isRequired={request}
           label="เพศ"
           labelPlacement="inside"
           name="sex"
           placeholder="เพศ"
           radius="md"
-          selectedKeys={Result?.sex === 0 ? "" : Result?.sex.toString()}
+          selectedKeys={Result?.sex ? [Result.sex.toString()] : []}
           size="sm"
           variant="faded"
           onChange={HandleChange}

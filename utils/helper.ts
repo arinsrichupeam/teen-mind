@@ -13,33 +13,33 @@ export function CheckPHQAStatus(val: number) {
   }
 }
 
-export function validateCitizen(idCardNo: string): string {
-  if (!idCardNo) {
-    return "กรุณากรอกเลขบัตรประชาชน";
+export async function validateCitizen(
+  idCardNo: string,
+  source: "user" | "admin" | "referent" = "user"
+): Promise<true | { errorMessage: string }> {
+  try {
+    const response = await fetch("/api/validate/citizen", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ citizenId: idCardNo, source }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        errorMessage: data.error,
+      };
+    }
+
+    return true;
+  } catch (error) {
+    return {
+      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error,
+    };
   }
-
-  if (idCardNo.length !== 13) {
-    return "กรอกเลขบัตรประชาชนไม่ครบถ้วน : " + idCardNo;
-  }
-  const isDigit: boolean = /^[0-9]*$/.test(idCardNo);
-
-  if (!isDigit) {
-    return "idCardNo is not only digit";
-  }
-
-  let sum: number = 0;
-
-  for (let i = 0; i < 12; i++) {
-    sum += parseInt(idCardNo.charAt(i)) * (13 - i);
-  }
-
-  const checksum: number = (11 - (sum % 11)) % 10;
-
-  if (checksum !== parseInt(idCardNo.charAt(12))) {
-    return "กรอกเลขบัตรประชาชนไม่ถูกต้อง";
-  }
-
-  return "";
 }
 
 export function validateEmail(email: string): string {
