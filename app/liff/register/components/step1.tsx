@@ -8,12 +8,7 @@ import { Button } from "@heroui/button";
 import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
-import {
-  Autocomplete,
-  AutocompleteItem,
-  DatePicker,
-  NumberInput,
-} from "@heroui/react";
+import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
 import { prefix, sex } from "@/utils/data";
 import { validateCitizen, validateTel } from "@/utils/helper";
@@ -41,11 +36,14 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
 
   const validateCitizenId = async (value: string) => {
     const result = await validateCitizen(value, "user");
+
     if (result !== true) {
       setError(result.errorMessage);
+
       return false;
     }
     setError("");
+
     return true;
   };
 
@@ -84,25 +82,26 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       onSubmit={onSubmit}
     >
       <Input
-        type="text"
+        errorMessage={error}
+        isInvalid={!!error}
         isRequired={request}
         label="เลขบัตรประชาชน"
         labelPlacement="inside"
+        maxLength={13}
         name="citizenId"
         placeholder="เลขบัตรประชาชน"
         radius="md"
         size="sm"
-        isInvalid={!!error}
-        errorMessage={error}
+        type="text"
         value={Result?.citizenId ?? ""}
         variant="faded"
-        maxLength={13}
         onChange={handleChange}
       />
       <div className="flex flex-row gap-4 w-full">
         <Select
           className="max-w-xs"
           errorMessage="กรุณาเลือกคำนำหน้า"
+          isDisabled={false}
           isRequired={request}
           label="คำนำหน้า"
           labelPlacement="inside"
@@ -112,7 +111,6 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           selectedKeys={Result?.prefixId ? [Result.prefixId.toString()] : []}
           size="sm"
           variant="faded"
-          isDisabled={false}
           onChange={HandleChange}
         >
           {prefix.map((prefix) => (
@@ -122,6 +120,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         <Select
           className="max-w-xs"
           errorMessage="กรุณาเลือกเพศ"
+          isDisabled={false}
           isRequired={request}
           label="เพศ"
           labelPlacement="inside"
@@ -131,7 +130,6 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           selectedKeys={Result?.sex ? [Result.sex.toString()] : []}
           size="sm"
           variant="faded"
-          isDisabled={false}
           onChange={HandleChange}
         >
           {sex.map((sex) => (

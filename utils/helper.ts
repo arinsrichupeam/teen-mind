@@ -13,7 +13,10 @@ export function CheckPHQAStatus(val: number) {
   }
 }
 
-export async function validateCitizen(idCardNo: string, source: "user" | "admin" | "referent" = "user"): Promise<true | { errorMessage: string }> {
+export async function validateCitizen(
+  idCardNo: string,
+  source: "user" | "admin" | "referent" = "user"
+): Promise<true | { errorMessage: string }> {
   try {
     const response = await fetch("/api/validate/citizen", {
       method: "POST",
@@ -24,18 +27,17 @@ export async function validateCitizen(idCardNo: string, source: "user" | "admin"
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       return {
-        errorMessage: data.error
+        errorMessage: data.error,
       };
     }
 
     return true;
   } catch (error) {
-    console.error("Error validating citizen ID:", error);
     return {
-      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน"
+      errorMessage: "เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน" + error,
     };
   }
 }
