@@ -28,6 +28,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const request = true;
   const [birthday, setBirthday] = useState<CalendarDate>();
   const [school, setSchool] = useState<School[]>([]);
+  const [error, setError] = useState<string>("");
 
   const onSubmit = useCallback((e: any) => {
     e.preventDefault();
@@ -37,6 +38,32 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const DateChange = useCallback((val: any) => {
     HandleChange({ target: { name: "birthday", value: new Date(val) } });
   }, []);
+
+  const validateCitizenId = async (value: string) => {
+    const result = await validateCitizen(value, "user");
+    if (result !== true) {
+      setError(result.errorMessage);
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    if (value.length === 13) {
+      await validateCitizenId(value);
+    } else {
+      setError("");
+    }
+
+    HandleChange({ target: { name: "citizenId", value } });
+  };
 
   useEffect(() => {
     if (Result?.birthday.getDate() != new Date().getDate()) {
@@ -56,9 +83,8 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       validationBehavior="native"
       onSubmit={onSubmit}
     >
-      <NumberInput
-        formatOptions={{ useGrouping: false }}
-        hideStepper={true}
+      <Input
+        type="text"
         isRequired={request}
         label="เลขบัตรประชาชน"
         labelPlacement="inside"
@@ -66,10 +92,12 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         placeholder="เลขบัตรประชาชน"
         radius="md"
         size="sm"
-        validate={(val) => validateCitizen(val.toString())}
-        value={parseInt(Result?.citizenId as string)}
+        isInvalid={!!error}
+        errorMessage={error}
+        value={Result?.citizenId ?? ""}
         variant="faded"
-        onChange={HandleChange}
+        maxLength={13}
+        onChange={handleChange}
       />
       <div className="flex flex-row gap-4 w-full">
         <Select
@@ -81,11 +109,10 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           name="prefix"
           placeholder="คำนำหน้า"
           radius="md"
-          selectedKeys={
-            Result?.prefixId === 0 ? "" : Result?.prefixId.toString()
-          }
+          selectedKeys={Result?.prefixId ? [Result.prefixId.toString()] : []}
           size="sm"
           variant="faded"
+          isDisabled={false}
           onChange={HandleChange}
         >
           {prefix.map((prefix) => (
@@ -101,9 +128,10 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
           name="sex"
           placeholder="เพศ"
           radius="md"
-          selectedKeys={Result?.sex === 0 ? "" : Result?.sex.toString()}
+          selectedKeys={Result?.sex ? [Result.sex.toString()] : []}
           size="sm"
           variant="faded"
+          isDisabled={false}
           onChange={HandleChange}
         >
           {sex.map((sex) => (
