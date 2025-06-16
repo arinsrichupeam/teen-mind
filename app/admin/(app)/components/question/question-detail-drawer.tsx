@@ -10,7 +10,7 @@ import {
 } from "@heroui/react";
 
 import { subtitle } from "@/components/primitives";
-import { q2, qPhqa } from "@/app/data";
+import { q2, qPhqa, phqaAddon } from "@/app/data";
 import { QuestionsData } from "@/types";
 
 interface Props {
@@ -22,7 +22,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
     <div>
       <div>
         <h2 className={subtitle()}>แบบประเมิน 2Q</h2>
-        <Table aria-label="Question Anwser PHQ-A-Addon">
+        <Table aria-label="Question Anwser 2Q">
           <TableHeader>
             <TableColumn>คำถาม</TableColumn>
             <TableColumn align="center">คำตอบ</TableColumn>
@@ -43,7 +43,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                           name={(index + 1).toString()}
                           orientation="horizontal"
                           value={Object.entries(val)
-                            [index + 2].toString()
+                          [index + 2].toString()
                             .substring(3)}
                         >
                           <Radio
@@ -92,7 +92,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                             name={(index + 1).toString()}
                             orientation="horizontal"
                             value={Object.entries(val)
-                              [index + 2].toString()
+                            [index + 2].toString()
                               .substring(3)}
                           >
                             <Radio
@@ -129,6 +129,54 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
             </TableBody>
           </Table>
         </div>
+      </div>
+      <div>
+        <h2 className={subtitle()}>แบบประเมิน PHQ-A Addon</h2>
+        <Table aria-label="Question Anwser PHQ-A-Addon">
+          <TableHeader>
+            <TableColumn>คำถาม</TableColumn>
+            <TableColumn align="center">คำตอบ</TableColumn>
+          </TableHeader>
+          <TableBody>
+            {phqaAddon.map((val, index) => {
+              return (
+                <TableRow key={index}>
+                  <TableCell className="min-w-[250px]">
+                    {index + 1} {val}
+                  </TableCell>
+                  <TableCell className="min-w-[250px]">
+                    {data?.addon.map((val) => {
+                      return (
+                        <RadioGroup
+                          key={index}
+                          className="items-center"
+                          name={(index + 1).toString()}
+                          orientation="horizontal"
+                          value={Object.entries(val)
+                          [index + 2].toString()
+                            .substring(3)}
+                        >
+                          <Radio
+                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                            value="1"
+                          >
+                            ใช่
+                          </Radio>
+                          <Radio
+                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
+                            value="0"
+                          >
+                            ไม่ใช่
+                          </Radio>
+                        </RadioGroup>
+                      );
+                    })}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

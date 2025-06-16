@@ -28,6 +28,7 @@ export type QuestionsData = {
   profile: Profile;
   phqa: Phqa[];
   q2: q2[];
+  addon: Addon[];
 };
 
 export interface User {
@@ -74,6 +75,11 @@ export interface Phqa {
 }
 
 export interface q2 {
+  q1: number;
+  q2: number;
+}
+
+export interface Addon {
   q1: number;
   q2: number;
 }
