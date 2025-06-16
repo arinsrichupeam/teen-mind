@@ -54,8 +54,8 @@ export default function QuestionPage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
-    column: "id",
-    direction: "ascending",
+    column: "createdAt",
+    direction: "descending",
   });
   const [mode, setMode] = useState("View");
   const { data: session, status } = useSession();

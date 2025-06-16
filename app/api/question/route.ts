@@ -34,6 +34,9 @@ export async function GET() {
         },
       },
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   return Response.json({ questionsList });
