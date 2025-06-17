@@ -59,26 +59,38 @@ export const SidebarWrapper = () => {
           </div>
           <div className="flex flex-col justify-between h-full">
             <div className={Sidebar.Body()}>
-              <SidebarItem
-                href="/admin"
-                icon={<HomeIcon className="size-6" />}
-                isActive={pathname === "/admin"}
-                title="หน้าหลัก"
-              />
-              <SidebarMenu title="Main Menu">
-                <SidebarItem
-                  href="/admin/question"
-                  icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                  isActive={pathname === "/admin/question"}
-                  title="แบบสอบถาม"
-                />
-                <SidebarItem
-                  href="/admin/mycase"
-                  icon={<UserIcon className="size-6" />}
-                  isActive={pathname === "/admin/mycase"}
-                  title="เคสที่ดูแล"
-                />
-              </SidebarMenu>
+              {profile.roleId === 2 ? (
+                <SidebarMenu title="Referent Menu">
+                  <SidebarItem
+                    href="/referent/question"
+                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
+                    isActive={pathname === "/referent/question"}
+                    title="แบบสอบถาม"
+                  />
+                </SidebarMenu>
+              ) : (
+                <SidebarMenu title="Main Menu">
+                  <SidebarItem
+                    href="/admin"
+                    icon={<HomeIcon className="size-6" />}
+                    isActive={pathname === "/admin"}
+                    title="หน้าหลัก"
+                  />
+                  <SidebarItem
+                    href="/admin/question"
+                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
+                    isActive={pathname === "/admin/question"}
+                    title="แบบสอบถาม"
+                  />
+                  <SidebarItem
+                    href="/admin/mycase"
+                    icon={<UserIcon className="size-6" />}
+                    isActive={pathname === "/admin/mycase"}
+                    title="เคสที่ดูแล"
+                  />
+                </SidebarMenu>
+              )}
+
               {profile.roleId === 4 ? (
                 <SidebarMenu title="Admin Menu">
                   <SidebarItem

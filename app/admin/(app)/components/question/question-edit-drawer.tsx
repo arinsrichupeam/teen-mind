@@ -408,6 +408,18 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     </div>
                   </CardBody>
                   <Divider />
+                  <CardBody>
+                    <div>
+                      <p className="text-small">
+                        ชื่อผู้ติดต่อฉุกเฉิน : <b>{data?.profile.emergency[0].name}</b>{" "}
+                      </p>
+                      <p className="text-small">
+                        โทรศัพท์ : <b>{data?.profile.emergency[0].tel}</b>{" "}
+                        ความสัมพันธ์ : <b>{data?.profile.emergency[0].relation}</b>
+                      </p>
+                    </div>
+                  </CardBody>
+                  <Divider />
                   <CardFooter>
                     <div className="flex flex-row gap-4">
                       <Input
@@ -431,7 +443,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 </Card>
                 <Card className="max-w-[400px]">
                   <CardBody>
-                    <div className="mx-auto w-[352px] h-[200px]">
+                    <div className="mx-auto w-[352px] h-[265px]">
                       <MapContainer
                         center={[latitude, longitude]}
                         doubleClickZoom={false}

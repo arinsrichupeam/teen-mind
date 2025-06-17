@@ -52,6 +52,13 @@ export async function GET(
               province: true,
             },
           },
+          emergency: {
+            select: {
+              name: true,
+              tel: true,
+              relation: true,
+            },
+          },
           user: {
             select: {
               image: true,

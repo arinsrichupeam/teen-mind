@@ -49,6 +49,7 @@ export interface Profile {
   school: string;
   hn: string;
   address: Address[];
+  emergency: Emergency[];
   user: User;
 }
 
@@ -60,6 +61,12 @@ export interface Address {
   subdistrict: number;
   district: number;
   province: number;
+}
+
+export interface Emergency {
+  name: string;
+  tel: string;
+  relation: string;
 }
 
 export interface Phqa {
