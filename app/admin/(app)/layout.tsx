@@ -1,6 +1,8 @@
 "use client";
 
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import { SidebarContext } from "./layout-context";
 import { NavbarWrapper } from "./components/navbar_admin";
@@ -9,9 +11,28 @@ import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { status } = useSession();
+  const router = useRouter();
+
   const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  useEffect(() => {
+    if (status !== "loading") {
+      if (status === "unauthenticated") {
+        router.replace("/admin/login");
+      }
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return null;
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   return (
     <SidebarContext.Provider

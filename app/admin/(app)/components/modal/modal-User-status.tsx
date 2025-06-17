@@ -27,8 +27,13 @@ export const ModalUserStatus = () => {
     } else if (data.status != 1) {
       onOpen();
     } else {
-      // บันทึกข้อมูล profile ลงใน sessionStorage
-      sessionStorage.setItem("adminProfile", JSON.stringify(data));
+      // บันทึกข้อมูล profile ลงใน sessionStorage เฉพาะเมื่อข้อมูลเปลี่ยนแปลง
+      const oldProfile = sessionStorage.getItem("adminProfile");
+      const newProfile = JSON.stringify(data);
+      if (oldProfile !== newProfile) {
+        sessionStorage.setItem("adminProfile", newProfile);
+        window.location.reload();
+      }
     }
   };
 

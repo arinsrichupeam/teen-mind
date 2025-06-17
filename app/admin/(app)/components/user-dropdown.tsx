@@ -27,6 +27,7 @@ export const UserDropdown = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = useCallback(async () => {
+    sessionStorage.clear();
     signOut();
     router.replace("/admin/login");
   }, [router]);
