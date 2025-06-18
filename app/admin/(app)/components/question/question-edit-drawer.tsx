@@ -424,7 +424,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     <div className="flex flex-row gap-4">
                       <Input
                         defaultValue={data?.profile.hn}
-                        isDisabled={mode == "View"}
+                        isDisabled={mode == "view-questionnaire" || mode == "view-consultation"}
                         name="hn"
                         startContent={<p> HN:</p>}
                         variant="bordered"
@@ -432,7 +432,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       />
                       <Button
                         color="primary"
-                        isDisabled={mode == "View"}
+                        isDisabled={mode == "view-questionnaire" || mode == "view-consultation"}
                         isLoading={hnIsloading}
                         onPress={() => ChangeHN()}
                       >
@@ -478,7 +478,138 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   </CardFooter>
                 </Card>
               </div>
-              {mode == "View" ? (
+              {mode === "view-questionnaire" ? (
+                <QuestionDetailDrawer data={data} />
+              ) : mode === "view-consultation" ? (
+                <div className="flex flex-col">
+                  <div>
+                    <div className="flex flex-row pb-3">
+                      <h2 className={subtitle()}>Telemedicine</h2>
+                      <Select
+                        className="max-w-xs"
+                        defaultSelectedKeys={data?.status.toString()}
+                        label="สถานะ"
+                        labelPlacement="outside-left"
+                        name="status"
+                        placeholder="สถานะ"
+                        radius="md"
+                        variant="bordered"
+                        isDisabled={true}
+                      >
+                        {options.map((item) => (
+                          <SelectItem key={item.uid}>{item.name}</SelectItem>
+                        ))}
+                      </Select>
+                    </div>
+                    <Card>
+                      <CardBody className="flex flex-row gap-5">
+                        <div className="w-full">
+                          <DatePicker
+                            defaultValue={
+                              data?.schedule_telemed
+                                ? parseDate(
+                                  moment(data?.schedule_telemed).format(
+                                    "YYYY-MM-DD"
+                                  )
+                                )
+                                : null
+                            }
+                            label="Schedule Telemed"
+                            labelPlacement="outside"
+                            name="schedule_telemed"
+                            selectorButtonPlacement="start"
+                            variant="bordered"
+                            isDisabled={true}
+                          />
+                        </div>
+                        <div className="w-full">
+                          <Autocomplete
+                            defaultItems={Consultant}
+                            defaultSelectedKey={data?.consult}
+                            label="Consultant"
+                            labelPlacement="outside"
+                            placeholder="Consultant"
+                            radius="md"
+                            variant="bordered"
+                            isDisabled={true}
+                          >
+                            {(item) => (
+                              <AutocompleteItem key={item.id}>
+                                {item.name}
+                              </AutocompleteItem>
+                            )}
+                          </Autocomplete>
+                        </div>
+                      </CardBody>
+                    </Card>
+                  </div>
+                  <div>
+                    <div className="flex flex-row py-3">
+                      <h2 className={subtitle()}>Discharge Summary</h2>
+                      <DatePicker
+                        className="max-w-xs"
+                        defaultValue={
+                          data?.follow_up
+                            ? parseDate(
+                              moment(data?.follow_up).format("YYYY-MM-DD")
+                            )
+                            : null
+                        }
+                        label="Follow Up"
+                        labelPlacement="outside-left"
+                        name="follow_up"
+                        selectorButtonPlacement="start"
+                        variant="bordered"
+                        isDisabled={true}
+                      />
+                    </div>
+                    <Card>
+                      <CardBody className="gap-5">
+                        <Textarea
+                          defaultValue={data?.subjective}
+                          label="1.	Subjective data"
+                          labelPlacement="outside"
+                          minRows={3}
+                          name="subjective"
+                          placeholder="Description"
+                          variant="bordered"
+                          isDisabled={true}
+                        />
+                        <Textarea
+                          defaultValue={data?.objective}
+                          label="2.	Objective data"
+                          labelPlacement="outside"
+                          minRows={3}
+                          name="objective"
+                          placeholder="Description"
+                          variant="bordered"
+                          isDisabled={true}
+                        />
+                        <Textarea
+                          defaultValue={data?.assessment}
+                          label="3.	Assessment"
+                          labelPlacement="outside"
+                          minRows={3}
+                          name="assessment"
+                          placeholder="Description"
+                          variant="bordered"
+                          isDisabled={true}
+                        />
+                        <Textarea
+                          defaultValue={data?.plan}
+                          label="4.	Plan"
+                          labelPlacement="outside"
+                          minRows={3}
+                          name="plan"
+                          placeholder="Description"
+                          variant="bordered"
+                          isDisabled={true}
+                        />
+                      </CardBody>
+                    </Card>
+                  </div>
+                </div>
+              ) : mode === "edit-questionnaire" ? (
                 <QuestionDetailDrawer data={data} />
               ) : (
                 <div className="flex flex-col">
@@ -515,10 +646,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             defaultValue={
                               data?.schedule_telemed
                                 ? parseDate(
-                                    moment(data?.schedule_telemed).format(
-                                      "YYYY-MM-DD"
-                                    )
+                                  moment(data?.schedule_telemed).format(
+                                    "YYYY-MM-DD"
                                   )
+                                )
                                 : null
                             }
                             label="Schedule Telemed"
@@ -571,8 +702,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         defaultValue={
                           data?.follow_up
                             ? parseDate(
-                                moment(data?.follow_up).format("YYYY-MM-DD")
-                              )
+                              moment(data?.follow_up).format("YYYY-MM-DD")
+                            )
                             : null
                         }
                         label="Follow Up"
@@ -668,7 +799,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
               </Button>
               <Button
                 color="primary"
-                isDisabled={mode === "View" || formIsloading}
+                isDisabled={mode === "view-questionnaire" || mode === "view-consultation" || formIsloading}
                 isLoading={formIsloading}
                 type="submit"
               >

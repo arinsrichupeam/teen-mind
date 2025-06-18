@@ -2,7 +2,7 @@ import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
-import { Button } from "@heroui/react";
+import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 
@@ -12,8 +12,8 @@ interface Props {
   data: any;
   columnKey: string | React.Key;
   index: number;
-  viewDetail(id: string): void;
-  editDetail(id: string): void;
+  viewDetail(id: string, type: 'view-questionnaire' | 'view-consultation'): void;
+  editDetail(id: string, type: 'edit-questionnaire' | 'edit-consultation'): void;
 }
 
 export const RenderCell = ({
@@ -143,26 +143,48 @@ export const RenderCell = ({
       return (
         <div className="flex justify-center gap-2">
           <div>
-            <Button
-              isIconOnly
-              name="Detail"
-              size="sm"
-              variant="light"
-              onPress={() => viewDetail(data.id)}
-            >
-              <EyeIcon className="size-6 text-primary-400" />
-            </Button>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  isIconOnly
+                  name="Detail"
+                  size="sm"
+                  variant="light"
+                >
+                  <EyeIcon className="size-6 text-primary-400" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Detail options">
+                <DropdownItem key="view-questionnaire" onPress={() => viewDetail(data.id, 'view-questionnaire')}>
+                  รายละเอียดแบบสอบถาม
+                </DropdownItem>
+                <DropdownItem key="view-consultation" onPress={() => viewDetail(data.id, 'view-consultation')}>
+                  รายละเอียดการให้คำปรึกษา
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
           <div>
-            <Button
-              isIconOnly
-              name="Edit"
-              size="sm"
-              variant="light"
-              onPress={() => editDetail(data.id)}
-            >
-              <PencilIcon className="size-6 text-warning-400" />
-            </Button>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  isIconOnly
+                  name="Edit"
+                  size="sm"
+                  variant="light"
+                >
+                  <PencilIcon className="size-6 text-warning-400" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Edit options">
+                <DropdownItem key="edit-questionnaire" onPress={() => editDetail(data.id, 'edit-questionnaire')}>
+                  แก้ไขแบบสอบถาม
+                </DropdownItem>
+                <DropdownItem key="edit-consultation" onPress={() => editDetail(data.id, 'edit-consultation')}>
+                  แก้ไขการให้คำปรึกษา
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
           <div>
             <Button isIconOnly size="sm" variant="light">
