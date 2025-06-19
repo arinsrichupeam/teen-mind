@@ -35,14 +35,23 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                     {index + 1} {val}
                   </TableCell>
                   <TableCell className="min-w-[250px]">
-                    {(data?.q2 && data.q2.length > 0 ? data.q2 : [undefined]).map((item, i) => {
+                    {(data?.q2 && data.q2.length > 0
+                      ? data.q2
+                      : [undefined]
+                    ).map((item, i) => {
                       return (
                         <RadioGroup
                           key={i}
                           className="items-center"
                           name={(index + 1).toString()}
                           orientation="horizontal"
-                          value={item ? Object.entries(item)[index + 2]?.toString().substring(3) : undefined}
+                          value={
+                            item
+                              ? Object.entries(item)
+                                  [index + 2]?.toString()
+                                  .substring(3)
+                              : undefined
+                          }
                         >
                           <Radio
                             className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
@@ -82,14 +91,23 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                       {index + 1} {val}
                     </TableCell>
                     <TableCell className="min-w-[250px]">
-                      {(data?.phqa && data.phqa.length > 0 ? data.phqa : [undefined]).map((item, i) => {
+                      {(data?.phqa && data.phqa.length > 0
+                        ? data.phqa
+                        : [undefined]
+                      ).map((item, i) => {
                         return (
                           <RadioGroup
                             key={i}
                             className="items-center"
                             name={(index + 1).toString()}
                             orientation="horizontal"
-                            value={item ? Object.entries(item)[index + 2]?.toString().substring(3) : undefined}
+                            value={
+                              item
+                                ? Object.entries(item)
+                                    [index + 2]?.toString()
+                                    .substring(3)
+                                : undefined
+                            }
                           >
                             <Radio
                               className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
@@ -141,14 +159,23 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                     {index + 1} {val}
                   </TableCell>
                   <TableCell className="min-w-[250px]">
-                    {(data?.addon && data.addon.length > 0 ? data.addon : [undefined]).map((item, i) => {
+                    {(data?.addon && data.addon.length > 0
+                      ? data.addon
+                      : [undefined]
+                    ).map((item, i) => {
                       return (
                         <RadioGroup
                           key={i}
                           className="items-center"
                           name={(index + 1).toString()}
                           orientation="horizontal"
-                          value={item ? Object.entries(item)[index + 2]?.toString().substring(3) : undefined}
+                          value={
+                            item
+                              ? Object.entries(item)
+                                  [index + 2]?.toString()
+                                  .substring(3)
+                              : undefined
+                          }
                         >
                           <Radio
                             className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"

@@ -41,6 +41,7 @@ export interface Profile {
   firstname: string;
   lastname: string;
   prefixId: string;
+  sex: string;
   birthday: string;
   ethnicity: string;
   nationality: string;

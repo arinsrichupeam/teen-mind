@@ -2,7 +2,13 @@ import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import { Chip } from "@heroui/chip";
-import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import {
+  Button,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/react";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 
@@ -12,8 +18,14 @@ interface Props {
   data: any;
   columnKey: string | React.Key;
   index: number;
-  viewDetail(id: string, type: 'view-questionnaire' | 'view-consultation'): void;
-  editDetail(id: string, type: 'edit-questionnaire' | 'edit-consultation'): void;
+  viewDetail(
+    id: string,
+    type: "view-questionnaire" | "view-consultation"
+  ): void;
+  editDetail(
+    id: string,
+    type: "edit-questionnaire" | "edit-consultation"
+  ): void;
 }
 
 export const RenderCell = ({
@@ -145,20 +157,21 @@ export const RenderCell = ({
           <div>
             <Dropdown>
               <DropdownTrigger>
-                <Button
-                  isIconOnly
-                  name="Detail"
-                  size="sm"
-                  variant="light"
-                >
+                <Button isIconOnly name="Detail" size="sm" variant="light">
                   <EyeIcon className="size-6 text-primary-400" />
                 </Button>
               </DropdownTrigger>
               <DropdownMenu aria-label="Detail options">
-                <DropdownItem key="view-questionnaire" onPress={() => viewDetail(data.id, 'view-questionnaire')}>
+                <DropdownItem
+                  key="view-questionnaire"
+                  onPress={() => viewDetail(data.id, "view-questionnaire")}
+                >
                   รายละเอียดแบบสอบถาม
                 </DropdownItem>
-                <DropdownItem key="view-consultation" onPress={() => viewDetail(data.id, 'view-consultation')}>
+                <DropdownItem
+                  key="view-consultation"
+                  onPress={() => viewDetail(data.id, "view-consultation")}
+                >
                   รายละเอียดการให้คำปรึกษา
                 </DropdownItem>
               </DropdownMenu>
@@ -167,20 +180,21 @@ export const RenderCell = ({
           <div>
             <Dropdown>
               <DropdownTrigger>
-                <Button
-                  isIconOnly
-                  name="Edit"
-                  size="sm"
-                  variant="light"
-                >
+                <Button isIconOnly name="Edit" size="sm" variant="light">
                   <PencilIcon className="size-6 text-warning-400" />
                 </Button>
               </DropdownTrigger>
               <DropdownMenu aria-label="Edit options">
-                <DropdownItem key="edit-questionnaire" onPress={() => editDetail(data.id, 'edit-questionnaire')}>
+                <DropdownItem
+                  key="edit-questionnaire"
+                  onPress={() => editDetail(data.id, "edit-questionnaire")}
+                >
                   แก้ไขแบบสอบถาม
                 </DropdownItem>
-                <DropdownItem key="edit-consultation" onPress={() => editDetail(data.id, 'edit-consultation')}>
+                <DropdownItem
+                  key="edit-consultation"
+                  onPress={() => editDetail(data.id, "edit-consultation")}
+                >
                   แก้ไขการให้คำปรึกษา
                 </DropdownItem>
               </DropdownMenu>
