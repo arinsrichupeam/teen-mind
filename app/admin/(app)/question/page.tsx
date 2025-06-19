@@ -407,17 +407,7 @@ export default function QuestionPage() {
             </div>
           );
         case "result":
-          let resultText = "";
-
-          if (item.result === "Green") {
-            resultText = "ไม่พบความเสี่ยง";
-          } else if (item.result === "Yellow") {
-            resultText = "พบความเสี่ยงปานกลาง";
-          } else if (item.result === "Orange") {
-            resultText = "พบความเสี่ยงมาก";
-          } else if (item.result === "Red") {
-            resultText = "พบความเสี่ยงรุนแรง";
-          }
+          let resultText = item.result_text;
 
           return (
             <Chip

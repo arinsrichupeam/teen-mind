@@ -15,9 +15,79 @@ import { QuestionsData } from "@/types";
 
 interface Props {
   data: QuestionsData | undefined;
+  mode?: string;
+  onQuestionChange?: (field: string, value: any) => void;
 }
 
-export const QuestionDetailDrawer = ({ data }: Props) => {
+export const QuestionDetailDrawer = ({
+  data,
+  mode,
+  onQuestionChange,
+}: Props) => {
+  const handleQ2Change = (questionIndex: number, value: string) => {
+    if (onQuestionChange) {
+      const updatedQ2 = [...(data?.q2 || [])];
+
+      if (!updatedQ2[0]) {
+        updatedQ2[0] = { q1: 0, q2: 0 } as any;
+      }
+      (updatedQ2[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+      onQuestionChange("q2", updatedQ2);
+    }
+  };
+
+  const handlePhqaChange = (questionIndex: number, value: string) => {
+    if (onQuestionChange) {
+      const updatedPhqa = [...(data?.phqa || [])];
+
+      if (!updatedPhqa[0]) {
+        updatedPhqa[0] = {
+          q1: 0,
+          q2: 0,
+          q3: 0,
+          q4: 0,
+          q5: 0,
+          q6: 0,
+          q7: 0,
+          q8: 0,
+          q9: 0,
+          sum: 0,
+        } as any;
+      }
+      (updatedPhqa[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+
+      // คำนวณ sum จากข้อมูล phqa
+      const phqaData = updatedPhqa[0];
+      const sum =
+        phqaData.q1 +
+        phqaData.q2 +
+        phqaData.q3 +
+        phqaData.q4 +
+        phqaData.q5 +
+        phqaData.q6 +
+        phqaData.q7 +
+        phqaData.q8 +
+        phqaData.q9;
+
+      // อัปเดต sum
+      (updatedPhqa[0] as any).sum = sum;
+
+      onQuestionChange("phqa", updatedPhqa);
+    }
+  };
+
+  const handleAddonChange = (questionIndex: number, value: string) => {
+    if (onQuestionChange) {
+      const updatedAddon = [...(data?.addon || [])];
+
+      if (!updatedAddon[0]) {
+        updatedAddon[0] = { q1: 0, q2: 0 } as any;
+      }
+      (updatedAddon[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+      onQuestionChange("addon", updatedAddon);
+    }
+  };
+
   return (
     <div>
       <div>
@@ -43,6 +113,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                         <RadioGroup
                           key={i}
                           className="items-center"
+                          isDisabled={mode !== "edit-questionnaire"}
                           name={(index + 1).toString()}
                           orientation="horizontal"
                           value={
@@ -51,6 +122,9 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                                   [index + 2]?.toString()
                                   .substring(3)
                               : undefined
+                          }
+                          onValueChange={(value) =>
+                            handleQ2Change(index, value)
                           }
                         >
                           <Radio
@@ -99,6 +173,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                           <RadioGroup
                             key={i}
                             className="items-center"
+                            isDisabled={mode !== "edit-questionnaire"}
                             name={(index + 1).toString()}
                             orientation="horizontal"
                             value={
@@ -107,6 +182,9 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                                     [index + 2]?.toString()
                                     .substring(3)
                                 : undefined
+                            }
+                            onValueChange={(value) =>
+                              handlePhqaChange(index, value)
                             }
                           >
                             <Radio
@@ -167,6 +245,7 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                         <RadioGroup
                           key={i}
                           className="items-center"
+                          isDisabled={mode !== "edit-questionnaire"}
                           name={(index + 1).toString()}
                           orientation="horizontal"
                           value={
@@ -175,6 +254,9 @@ export const QuestionDetailDrawer = ({ data }: Props) => {
                                   [index + 2]?.toString()
                                   .substring(3)
                               : undefined
+                          }
+                          onValueChange={(value) =>
+                            handleAddonChange(index, value)
                           }
                         >
                           <Radio

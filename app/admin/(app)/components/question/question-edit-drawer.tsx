@@ -25,11 +25,6 @@ import {
   Image,
   Input,
   Link,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Select,
   SelectItem,
   Textarea,
@@ -37,6 +32,7 @@ import {
 import { parseDate } from "@internationalized/date";
 
 import { questionStatusOptions as options } from "../../data/optionData";
+import { ModalEditProfile } from "../modal/modal-edit-profile";
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 
@@ -73,32 +69,6 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editProfileData, setEditProfileData] = useState({
-    hn: "",
-    citizenId: "",
-    prefixId: "",
-    firstname: "",
-    lastname: "",
-    birthday: "",
-    ethnicity: "",
-    nationality: "",
-    address: {
-      houseNo: "",
-      villageNo: "",
-      soi: "",
-      road: "",
-      subdistrict: "",
-      district: "",
-      province: "",
-    },
-    tel: "",
-    emergency: {
-      name: "",
-      tel: "",
-      relation: "",
-    },
-  });
-  const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   const latitude = data?.latitude != null ? data?.latitude : 0;
   const longitude = data?.longitude != null ? data?.longitude : 0;
@@ -227,12 +197,39 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     setError(null);
 
     try {
+      let updateData;
+
+      if (mode === "edit-questionnaire") {
+        updateData = {
+          id: questionData.id,
+          q2: questionData.q2,
+          phqa: questionData.phqa,
+          addon: questionData.addon,
+          status: questionData.status,
+        };
+      } else {
+        updateData = {
+          id: questionData.id,
+          consult: questionData.consult,
+          schedule_telemed: questionData.schedule_telemed,
+          subjective: questionData.subjective,
+          objective: questionData.objective,
+          assessment: questionData.assessment,
+          plan: questionData.plan,
+          follow_up: questionData.follow_up,
+          status: questionData.status,
+          q2: questionData.q2,
+          phqa: questionData.phqa,
+          addon: questionData.addon,
+        };
+      }
+
       await fetch("/api/question/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(questionData),
+        body: JSON.stringify(updateData),
       }).then(() => {
         addToast({
           title: "Success",
@@ -258,210 +255,35 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
+  const handleQuestionChange = (field: string, value: any) => {
+    setQuestionData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const validateForm = useCallback(() => {
-    if (questionData.status === 2 && questionData.consult === null) {
-      setIsError(true);
+    // ตรวจสอบ consult และ status เฉพาะเมื่ออยู่ในโหมด edit-consultation
+    if (mode === "edit-consultation") {
+      if (questionData.status === 2 && questionData.consult === null) {
+        setIsError(true);
 
-      return false;
-    }
+        return false;
+      }
 
-    if (!questionData.schedule_telemed) {
-      setError("กรุณาเลือกวันนัด Telemedicine");
+      if (!questionData.schedule_telemed) {
+        setError("กรุณาเลือกวันนัด Telemedicine");
 
-      return false;
+        return false;
+      }
     }
 
     return true;
-  }, [questionData, setError]);
+  }, [questionData, setError, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(e);
-  };
-
-  const handleEditProfileChange = (e: any) => {
-    const { name, value } = e.target;
-
-    if (name.startsWith("address.")) {
-      const field = name.split(".")[1];
-
-      setEditProfileData((prev) => {
-        const newData = {
-          ...prev,
-          address: {
-            ...prev.address,
-            [field]: value,
-          },
-        };
-
-        return newData;
-      });
-    } else if (name.startsWith("emergency.")) {
-      const field = name.split(".")[1];
-
-      setEditProfileData((prev) => {
-        const newData = {
-          ...prev,
-          emergency: {
-            ...prev.emergency,
-            [field]: value,
-          },
-        };
-
-        return newData;
-      });
-    } else {
-      setEditProfileData((prev) => {
-        const newData = {
-          ...prev,
-          [name]: value,
-        };
-
-        return newData;
-      });
-    }
-  };
-
-  const handleEditProfileSelectChange = (name: string, value: string) => {
-    if (name.startsWith("address.")) {
-      const field = name.split(".")[1];
-
-      setEditProfileData((prev) => {
-        const newData = {
-          ...prev,
-          address: {
-            ...prev.address,
-            [field]: value,
-          },
-        };
-
-        return newData;
-      });
-    } else {
-      setEditProfileData((prev) => {
-        const newData = {
-          ...prev,
-          [name]: value,
-        };
-
-        return newData;
-      });
-    }
-  };
-
-  const initializeEditProfileData = () => {
-    if (data?.profile) {
-      const currentProvince = province.find(
-        (x) => x.id == data?.profile.address[0].province
-      );
-      const currentDistrict = distrince.find(
-        (x) => x.id == data?.profile.address[0].district
-      );
-      const currentSubdistrict = subdistrince.find(
-        (x) => x.id == data?.profile.address[0].subdistrict
-      );
-
-      // แปลงวันเกิดเป็นรูปแบบ YYYY-MM-DD สำหรับ input type="date"
-      const birthdayDate = data.profile.birthday
-        ? new Date(data.profile.birthday).toISOString().split("T")[0]
-        : "";
-
-      const initialData = {
-        hn: data.profile.hn || "",
-        citizenId: data.profile.citizenId || "",
-        prefixId: data.profile.prefixId?.toString() || "",
-        firstname: data.profile.firstname || "",
-        lastname: data.profile.lastname || "",
-        birthday: birthdayDate,
-        ethnicity: data.profile.ethnicity || "",
-        nationality: data.profile.nationality || "",
-        address: {
-          houseNo: data.profile.address[0]?.houseNo || "",
-          villageNo: data.profile.address[0]?.villageNo || "",
-          soi: data.profile.address[0]?.soi || "",
-          road: data.profile.address[0]?.road || "",
-          subdistrict: currentSubdistrict?.id?.toString() || "",
-          district: currentDistrict?.id?.toString() || "",
-          province: currentProvince?.id?.toString() || "",
-        },
-        tel: data.profile.tel || "",
-        emergency: {
-          name: data.profile.emergency[0]?.name || "",
-          tel: data.profile.emergency[0]?.tel || "",
-          relation: data.profile.emergency[0]?.relation || "",
-        },
-      };
-
-      setEditProfileData(initialData);
-    }
-  };
-
-  const handleSaveProfileData = async () => {
-    setIsProfileSaving(true);
-    try {
-      const updateData = {
-        id: data?.profile.id,
-        hn: editProfileData.hn,
-        citizenId: editProfileData.citizenId,
-        prefixId: parseInt(editProfileData.prefixId),
-        firstname: editProfileData.firstname,
-        lastname: editProfileData.lastname,
-        birthday: editProfileData.birthday
-          ? new Date(editProfileData.birthday)
-          : null,
-        ethnicity: editProfileData.ethnicity,
-        nationality: editProfileData.nationality,
-        address: {
-          houseNo: editProfileData.address.houseNo,
-          villageNo: editProfileData.address.villageNo,
-          soi: editProfileData.address.soi,
-          road: editProfileData.address.road,
-          subdistrict: parseInt(editProfileData.address.subdistrict),
-          district: parseInt(editProfileData.address.district),
-          province: parseInt(editProfileData.address.province),
-        },
-        tel: editProfileData.tel,
-        emergency: {
-          name: editProfileData.emergency.name,
-          tel: editProfileData.emergency.tel,
-          relation: editProfileData.emergency.relation,
-        },
-      };
-
-      const response = await fetch(`/api/profile/user/${data?.profile.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        addToast({
-          title: "สำเร็จ",
-          description: "บันทึกข้อมูลผู้ประเมินสำเร็จ",
-          color: "success",
-        });
-        setIsModalOpen(false);
-        // รีเฟรชข้อมูลหลังจากบันทึกสำเร็จ
-        if (onClose) {
-          onClose();
-        }
-      } else {
-        throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-      }
-    } catch (error) {
-      addToast({
-        title: "ข้อผิดพลาด",
-        description:
-          error instanceof Error
-            ? error.message
-            : "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
-        color: "danger",
-      });
-    } finally {
-      setIsProfileSaving(false);
-    }
   };
 
   useEffect(() => {
@@ -474,17 +296,6 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       setQuestionData(data);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (
-      isModalOpen &&
-      province.length > 0 &&
-      distrince.length > 0 &&
-      subdistrince.length > 0
-    ) {
-      initializeEditProfileData();
-    }
-  }, [isModalOpen, data, province, distrince, subdistrince]);
 
   return (
     <>
@@ -854,7 +665,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               variant="flat"
                               onPress={() => setIsModalOpen(true)}
                             >
-                              แก้ไขข้อมูล
+                              แก้ไขข้อมูลส่วนตัว
                             </Button>
                           </div>
                         </CardFooter>
@@ -1031,7 +842,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     </div>
                   </div>
                 ) : mode === "edit-questionnaire" ? (
-                  <QuestionDetailDrawer data={data} />
+                  <QuestionDetailDrawer
+                    data={questionData}
+                    mode={mode}
+                    onQuestionChange={handleQuestionChange}
+                  />
                 ) : (
                   <div className="flex flex-col">
                     <div>
@@ -1204,347 +1019,39 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 <Button color="danger" type="reset" variant="light">
                   ปิด
                 </Button>
-                <Button
-                  color="primary"
-                  isDisabled={
-                    mode === "view-questionnaire" ||
-                    mode === "view-consultation" ||
-                    formIsloading
-                  }
-                  isLoading={formIsloading}
-                  type="submit"
-                >
-                  บันทึก
-                </Button>
+                {mode === "edit-questionnaire" && (
+                  <Button
+                    color="primary"
+                    isDisabled={formIsloading}
+                    isLoading={formIsloading}
+                    type="submit"
+                    variant="flat"
+                  >
+                    บันทึก
+                  </Button>
+                )}
+                {mode === "edit-consultation" && (
+                  <Button
+                    color="primary"
+                    isDisabled={formIsloading}
+                    isLoading={formIsloading}
+                    type="submit"
+                  >
+                    บันทึก
+                  </Button>
+                )}
               </DrawerFooter>
             </Form>
           )}
         </DrawerContent>
       </Drawer>
 
-      <Modal
-        backdrop="blur"
+      <ModalEditProfile
+        data={data}
         isOpen={isModalOpen}
-        radius="md"
-        scrollBehavior="inside"
-        shadow="lg"
-        size="2xl"
-        onOpenChange={setIsModalOpen}
-      >
-        <ModalContent>
-          <ModalHeader className="flex flex-row justify-center">
-            <h2 className="text-2xl font-bold">แก้ไขข้อมูลผู้ประเมิน</h2>
-          </ModalHeader>
-          <ModalBody>
-            <div className="flex flex-col gap-2">
-              <p className="text-md font-bold">ข้อมูลส่วนตัว</p>
-              <div className="flex flex-row gap-2">
-                <Input
-                  label="HN"
-                  name="hn"
-                  size="sm"
-                  value={editProfileData.hn}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-                <Input
-                  isRequired={true}
-                  label="เลขที่บัตรประชาชน"
-                  name="citizenId"
-                  size="sm"
-                  value={editProfileData.citizenId}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-              <div className="flex flex-row gap-2">
-                <Select
-                  isRequired={true}
-                  label="คำนำหน้า"
-                  name="prefixId"
-                  placeholder="เลือกคำนำหน้า"
-                  selectedKeys={
-                    editProfileData.prefixId ? [editProfileData.prefixId] : []
-                  }
-                  size="sm"
-                  variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selectedKey = Array.from(keys)[0] as string;
-
-                    handleEditProfileSelectChange("prefixId", selectedKey);
-                  }}
-                >
-                  {prefix.map((item) => (
-                    <SelectItem key={item.key}>{item.label}</SelectItem>
-                  ))}
-                </Select>
-                <Input
-                  isRequired={true}
-                  label="ชื่อ"
-                  name="firstname"
-                  size="sm"
-                  value={editProfileData.firstname}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-                <Input
-                  isRequired={true}
-                  label="นามสกุล"
-                  name="lastname"
-                  size="sm"
-                  value={editProfileData.lastname}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-              <div className="flex flex-row gap-2">
-                <DatePicker
-                  defaultValue={
-                    editProfileData.birthday
-                      ? parseDate(editProfileData.birthday)
-                      : null
-                  }
-                  isRequired={true}
-                  label="วันเกิด"
-                  size="sm"
-                  variant="bordered"
-                  onChange={(date: any) => {
-                    if (date) {
-                      const dateString = date.toString();
-
-                      handleEditProfileChange({
-                        target: { name: "birthday", value: dateString },
-                      });
-                    }
-                  }}
-                />
-                <Input
-                  isRequired={true}
-                  label="เชื้อชาติ"
-                  name="ethnicity"
-                  size="sm"
-                  value={editProfileData.ethnicity}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-                <Input
-                  isRequired={true}
-                  label="สัญชาติ"
-                  name="nationality"
-                  size="sm"
-                  value={editProfileData.nationality}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-            </div>
-            <Divider className="my-1" />
-            <p className="text-md font-bold">ที่อยู่</p>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-row gap-2">
-                <Input
-                  isRequired={true}
-                  label="บ้านเลขที่"
-                  name="address.houseNo"
-                  size="sm"
-                  value={editProfileData.address.houseNo}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-                <Input
-                  label="หมู่ที่"
-                  name="address.villageNo"
-                  size="sm"
-                  value={editProfileData.address.villageNo}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-              <div className="flex flex-row gap-2">
-                <Input
-                  label="ซอย"
-                  name="address.soi"
-                  size="sm"
-                  value={editProfileData.address.soi}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-                <Input
-                  isRequired={true}
-                  label="ถนน"
-                  name="address.road"
-                  size="sm"
-                  value={editProfileData.address.road}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-              <div className="flex flex-row gap-2">
-                <Select
-                  isRequired={true}
-                  label="จังหวัด"
-                  name="address.province"
-                  placeholder="เลือกจังหวัด"
-                  selectedKeys={
-                    editProfileData.address.province
-                      ? [editProfileData.address.province]
-                      : []
-                  }
-                  size="sm"
-                  variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selectedKey = Array.from(keys)[0] as string;
-
-                    handleEditProfileSelectChange(
-                      "address.province",
-                      selectedKey
-                    );
-                    // รีเซ็ตอำเภอและตำบลเมื่อเปลี่ยนจังหวัด
-                    handleEditProfileSelectChange("address.district", "");
-                    handleEditProfileSelectChange("address.subdistrict", "");
-                  }}
-                >
-                  {province.map((item) => (
-                    <SelectItem key={item.id.toString()}>
-                      {item.nameInThai}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Select
-                  isDisabled={!editProfileData.address.province}
-                  isRequired={true}
-                  label="อำเภอ"
-                  name="address.district"
-                  placeholder="เลือกอำเภอ"
-                  selectedKeys={
-                    editProfileData.address.district
-                      ? [editProfileData.address.district]
-                      : []
-                  }
-                  size="sm"
-                  variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selectedKey = Array.from(keys)[0] as string;
-
-                    handleEditProfileSelectChange(
-                      "address.district",
-                      selectedKey
-                    );
-                    // รีเซ็ตตำบลเมื่อเปลี่ยนอำเภอ
-                    handleEditProfileSelectChange("address.subdistrict", "");
-                  }}
-                >
-                  {distrince
-                    .filter(
-                      (item) =>
-                        item.provinceId.toString() ===
-                        editProfileData.address.province
-                    )
-                    .map((item) => (
-                      <SelectItem key={item.id.toString()}>
-                        {item.nameInThai}
-                      </SelectItem>
-                    ))}
-                </Select>
-              </div>
-              <div className="flex flex-row gap-2">
-                <Select
-                  isDisabled={!editProfileData.address.district}
-                  isRequired={true}
-                  label="ตำบล"
-                  name="address.subdistrict"
-                  placeholder="เลือกตำบล"
-                  selectedKeys={
-                    editProfileData.address.subdistrict
-                      ? [editProfileData.address.subdistrict]
-                      : []
-                  }
-                  size="sm"
-                  variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selectedKey = Array.from(keys)[0] as string;
-
-                    handleEditProfileSelectChange(
-                      "address.subdistrict",
-                      selectedKey
-                    );
-                  }}
-                >
-                  {subdistrince
-                    .filter(
-                      (item) =>
-                        item.districtId.toString() ===
-                        editProfileData.address.district
-                    )
-                    .map((item) => (
-                      <SelectItem key={item.id.toString()}>
-                        {item.nameInThai}
-                      </SelectItem>
-                    ))}
-                </Select>
-                <Input
-                  isRequired={true}
-                  label="โทรศัพท์"
-                  name="tel"
-                  size="sm"
-                  value={editProfileData.tel}
-                  variant="bordered"
-                  onChange={handleEditProfileChange}
-                />
-              </div>
-            </div>
-            <Divider className="my-1" />
-            <p className="text-md font-bold">ข้อมูลผู้ติดต่อฉุกเฉิน</p>
-            <div className="flex flex-row gap-2">
-              <Input
-                isRequired={true}
-                label="ชื่อผู้ติดต่อฉุกเฉิน"
-                name="emergency.name"
-                size="sm"
-                value={editProfileData.emergency.name}
-                variant="bordered"
-                onChange={handleEditProfileChange}
-              />
-              <Input
-                isRequired={true}
-                label="โทรศัพท์"
-                name="emergency.tel"
-                size="sm"
-                value={editProfileData.emergency.tel}
-                variant="bordered"
-                onChange={handleEditProfileChange}
-              />
-              <Input
-                isRequired={true}
-                label="ความสัมพันธ์"
-                name="emergency.relation"
-                size="sm"
-                value={editProfileData.emergency.relation}
-                variant="bordered"
-                onChange={handleEditProfileChange}
-              />
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              color="danger"
-              isDisabled={isProfileSaving}
-              variant="light"
-              onPress={() => setIsModalOpen(false)}
-            >
-              ปิด
-            </Button>
-            <Button
-              color="primary"
-              isDisabled={isProfileSaving}
-              isLoading={isProfileSaving}
-              onPress={handleSaveProfileData}
-            >
-              {isProfileSaving ? "กำลังบันทึก..." : "บันทึก"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={onClose}
+      />
     </>
   );
 };

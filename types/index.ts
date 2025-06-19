@@ -80,6 +80,7 @@ export interface Phqa {
   q7: number;
   q8: number;
   q9: number;
+  sum: number;
 }
 
 export interface q2 {

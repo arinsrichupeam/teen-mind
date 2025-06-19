@@ -165,12 +165,30 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const data = await req.json();
-
-  const question: QuestionsData = data;
-
   try {
-    await prisma.questions_Master.update({
+    const data = await req.json();
+    const question: QuestionsData = data;
+    const phqaForCalculation = {
+      id: "",
+      questions_MasterId: null,
+      q1: question.phqa[0].q1,
+      q2: question.phqa[0].q2,
+      q3: question.phqa[0].q3,
+      q4: question.phqa[0].q4,
+      q5: question.phqa[0].q5,
+      q6: question.phqa[0].q6,
+      q7: question.phqa[0].q7,
+      q8: question.phqa[0].q8,
+      q9: question.phqa[0].q9,
+      sum: question.phqa[0].sum,
+    };
+    const { result, result_text } = calculateResult(
+      question.phqa[0].sum,
+      phqaForCalculation
+    );
+
+    // อัปเดตข้อมูลหลัก
+    const updatedQuestion = await prisma.questions_Master.update({
       where: {
         id: question.id,
       },
@@ -183,12 +201,74 @@ export async function PUT(req: Request) {
         plan: question.plan,
         follow_up: question.follow_up,
         status: CalStatus(question),
+        result: result,
+        result_text: result_text,
       },
     });
 
-    return Response.json("Success");
+    // อัปเดตข้อมูล q2 ถ้ามี
+    if (question.q2 && question.q2.length > 0) {
+      await prisma.questions_2Q.updateMany({
+        where: {
+          questions_MasterId: question.id,
+        },
+        data: {
+          q1: question.q2[0].q1,
+          q2: question.q2[0].q2,
+        },
+      });
+    }
+
+    // อัปเดตข้อมูล phqa ถ้ามี
+    if (question.phqa && question.phqa.length > 0) {
+      await prisma.questions_PHQA.updateMany({
+        where: {
+          questions_MasterId: question.id,
+        },
+        data: {
+          q1: question.phqa[0].q1,
+          q2: question.phqa[0].q2,
+          q3: question.phqa[0].q3,
+          q4: question.phqa[0].q4,
+          q5: question.phqa[0].q5,
+          q6: question.phqa[0].q6,
+          q7: question.phqa[0].q7,
+          q8: question.phqa[0].q8,
+          q9: question.phqa[0].q9,
+          sum: question.phqa[0].sum,
+        },
+      });
+    }
+
+    // อัปเดตข้อมูล addon ถ้ามี
+    if (question.addon && question.addon.length > 0) {
+      await prisma.questions_PHQA_Addon.updateMany({
+        where: {
+          questions_MasterId: question.id,
+        },
+        data: {
+          q1: question.addon[0].q1,
+          q2: question.addon[0].q2,
+        },
+      });
+    }
+
+    return Response.json({
+      success: true,
+      message: "อัปเดตข้อมูลสำเร็จ",
+      updatedQuestion,
+    });
   } catch (err) {
-    throw err;
+    return Response.json(
+      {
+        success: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+      },
+      { status: 400 }
+    );
   }
 }
 
@@ -281,8 +361,8 @@ function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
     result_text = "พบความเสี่ยงปานกลาง";
   } else {
     if (phqa_data.q9 > 0) {
-      result = "Yellow";
-      result_text = "พบความเสี่ยง";
+      result = "Red";
+      result_text = "พบความเสี่ยงในการฆ่าตัวตาย";
     } else {
       if (phqa_sum >= 0 && phqa_sum <= 4) {
         result = "Green";
