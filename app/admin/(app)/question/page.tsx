@@ -578,13 +578,9 @@ export default function QuestionPage() {
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
-              isHeaderSticky
               aria-label="Question List Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
-              classNames={{
-                wrapper: "max-h-[calc(65vh)]",
-              }}
               sortDescriptor={sortDescriptor}
               topContent={topContent}
               topContentPlacement="outside"
