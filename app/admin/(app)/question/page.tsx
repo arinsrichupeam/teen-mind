@@ -42,8 +42,8 @@ import useSWR from "swr";
 import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
 import { QuestionColumnsName } from "../data/tableColumn";
-import { prefix } from "@/utils/data";
 
+import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
 
@@ -53,10 +53,10 @@ interface Column {
   align?: "center" | "start" | "end";
 }
 
-const tableColumns: Column[] = QuestionColumnsName.map(col => ({
+const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   key: col.uid,
   label: col.name,
-  align: (col.align || "start") as "center" | "start" | "end"
+  align: (col.align || "start") as "center" | "start" | "end",
 }));
 
 const calculateAge = (birthday: string) => {
@@ -64,11 +64,14 @@ const calculateAge = (birthday: string) => {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
     age--;
   }
-  
+
   return age;
 };
 
@@ -358,184 +361,197 @@ export default function QuestionPage() {
     }
   }, [error]);
 
-  const renderCell = useCallback((item: any, columnKey: any) => {
-    console.log('Item:', item);
-    console.log('Profile:', item.profile);
-    console.log('PrefixId:', item.profile?.prefixId);
-    console.log('Prefix Data:', prefix);
-    
-    const cellValue = item[columnKey];
+  const renderCell = useCallback(
+    (item: any, columnKey: any) => {
+      const cellValue = item[columnKey];
 
-    switch (columnKey) {
-      case "id":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">
-              {filteredItems.findIndex((x: QuestionsData) => x.id === item.id) + 1}
-            </p>
-          </div>
-        );
-      case "name":
-        const prefixLabel = prefix.find(p => p.key === item.profile?.prefixId?.toString())?.label || "";
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">
-              {prefixLabel} {item.profile?.firstname || ""} {item.profile?.lastname || ""}
-            </p>
-          </div>
-        );
-      case "age":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">
-              {item.profile.birthday ? calculateAge(item.profile.birthday) : "-"} ปี
-            </p>
-          </div>
-        );
-      case "school":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">
-              {item.profile.school.name}
-            </p>
-          </div>
-        );
-      case "result":
-        let resultText = "";
-        if (item.result === "Green") {
-          resultText = "ไม่พบความเสี่ยง";
-        } else if (item.result === "Yellow") {
-          resultText = "พบความเสี่ยงปานกลาง";
-        } else if (item.result === "Orange") {
-          resultText = "พบความเสี่ยงมาก";
-        } else if (item.result === "Red") {
-          resultText = "พบความเสี่ยงรุนแรง";
-        }
-        return (
-          <Chip
-            className="capitalize"
-            color={
-              item.result === "Green"
-                ? "success"
-                : item.result === "Yellow"
-                  ? "warning"
-                  : item.result === "Orange"
+      switch (columnKey) {
+        case "id":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {filteredItems.findIndex(
+                  (x: QuestionsData) => x.id === item.id
+                ) + 1}
+              </p>
+            </div>
+          );
+        case "name":
+          const prefixLabel =
+            prefix.find((p) => p.key === item.profile?.prefixId?.toString())
+              ?.label || "";
+
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {prefixLabel} {item.profile?.firstname || ""}{" "}
+                {item.profile?.lastname || ""}
+              </p>
+            </div>
+          );
+        case "age":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {item.profile.birthday
+                  ? calculateAge(item.profile.birthday)
+                  : "-"}{" "}
+                ปี
+              </p>
+            </div>
+          );
+        case "school":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">{item.profile.school.name}</p>
+            </div>
+          );
+        case "result":
+          let resultText = item.result_text;
+
+          return (
+            <Chip
+              className="capitalize"
+              color={
+                item.result === "Green"
+                  ? "success"
+                  : item.result === "Yellow"
                     ? "warning"
-                    : "danger"
-            }
-            size="sm"
-            variant="flat"
-          >
-            {resultText}
-          </Chip>
-        );
-      case "phqa":
-        if (Array.isArray(cellValue) && cellValue.length > 0) {
-          return cellValue[0].sum;
-        }
-        return "-";
-      case "date":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">
-              {new Date(item.createdAt).toLocaleDateString("th-TH", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })} น.
-            </p>
-          </div>
-        );
-      case "status":
-        return (
-          <Chip
-            className="capitalize"
-            color={
-              item.status === 0
-                ? "default"
+                    : item.result === "Orange"
+                      ? "warning"
+                      : "danger"
+              }
+              size="sm"
+              variant="flat"
+            >
+              {resultText}
+            </Chip>
+          );
+        case "phqa":
+          if (Array.isArray(cellValue) && cellValue.length > 0) {
+            return cellValue[0].sum;
+          }
+
+          return "-";
+        case "date":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {new Date(item.createdAt).toLocaleDateString("th-TH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                น.
+              </p>
+            </div>
+          );
+        case "status":
+          return (
+            <Chip
+              className="capitalize"
+              color={
+                item.status === 0
+                  ? "default"
+                  : item.status === 1
+                    ? "primary"
+                    : item.status === 2
+                      ? "warning"
+                      : "success"
+              }
+              size="sm"
+              variant="flat"
+            >
+              {item.status === 0
+                ? "รอเปิด HN"
                 : item.status === 1
-                  ? "primary"
+                  ? "รอนัดวัน Tele"
                   : item.status === 2
-                    ? "warning"
-                    : "success"
-            }
-            size="sm"
-            variant="flat"
-          >
-            {item.status === 0
-              ? "รอเปิด HN"
-              : item.status === 1
-                ? "รอนัดวัน Tele"
-                : item.status === 2
-                  ? "รอผล Tele"
-                  : "ดำเนินการเสร็จสิ้น"}
-          </Chip>
-        );
-      case "actions":
-        return (
-          <div className="relative flex items-center gap-2">
-            <div className="flex justify-center gap-2">
-              <div>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      name="Detail"
-                      size="sm"
-                      variant="light"
-                    >
-                      <EyeIcon className="size-6 text-primary-400" />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="Detail options">
-                    <DropdownItem key="view-questionnaire" onPress={() => onRowDetailPress(item.id)}>
-                      รายละเอียดแบบสอบถาม
-                    </DropdownItem>
-                    <DropdownItem key="view-consultation" onPress={() => onRowConsultationPress(item.id)}>
-                      รายละเอียดการให้คำปรึกษา
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </div>
-              <div>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      name="Edit"
-                      size="sm"
-                      variant="light"
-                    >
-                      <PencilIcon className="size-6 text-warning-400" />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="Edit options">
-                    <DropdownItem key="edit-questionnaire" onPress={() => onRowEditQuestionnairePress(item.id)}>
-                      แก้ไขแบบสอบถาม
-                    </DropdownItem>
-                    <DropdownItem key="edit-consultation" onPress={() => onRowEditConsultationPress(item.id)}>
-                      แก้ไขการให้คำปรึกษา
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </div>
-              <div>
-                <Button isIconOnly size="sm" variant="light">
-                  <TrashIcon className="size-6 text-danger-500" />
-                </Button>
+                    ? "รอผล Tele"
+                    : "ดำเนินการเสร็จสิ้น"}
+            </Chip>
+          );
+        case "actions":
+          return (
+            <div className="relative flex items-center gap-2">
+              <div className="flex justify-center gap-2">
+                <div>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button
+                        isIconOnly
+                        name="Detail"
+                        size="sm"
+                        variant="light"
+                      >
+                        <EyeIcon className="size-6 text-primary-400" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Detail options">
+                      <DropdownItem
+                        key="view-questionnaire"
+                        onPress={() => onRowDetailPress(item.id)}
+                      >
+                        รายละเอียดแบบสอบถาม
+                      </DropdownItem>
+                      <DropdownItem
+                        key="view-consultation"
+                        onPress={() => onRowConsultationPress(item.id)}
+                      >
+                        รายละเอียดการให้คำปรึกษา
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+                <div>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button isIconOnly name="Edit" size="sm" variant="light">
+                        <PencilIcon className="size-6 text-warning-400" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Edit options">
+                      <DropdownItem
+                        key="edit-questionnaire"
+                        onPress={() => onRowEditQuestionnairePress(item.id)}
+                      >
+                        แก้ไขแบบสอบถาม
+                      </DropdownItem>
+                      <DropdownItem
+                        key="edit-consultation"
+                        onPress={() => onRowEditConsultationPress(item.id)}
+                      >
+                        แก้ไขการให้คำปรึกษา
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+                <div>
+                  <Button isIconOnly size="sm" variant="light">
+                    <TrashIcon className="size-6 text-danger-500" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      default:
-        if (typeof cellValue === 'object' && cellValue !== null) {
-          return JSON.stringify(cellValue);
-        }
-        return cellValue;
-    }
-  }, [onRowDetailPress, onRowConsultationPress, onRowEditQuestionnairePress, onRowEditConsultationPress, filteredItems]);
+          );
+        default:
+          if (typeof cellValue === "object" && cellValue !== null) {
+            return JSON.stringify(cellValue);
+          }
+
+          return cellValue;
+      }
+    },
+    [
+      onRowDetailPress,
+      onRowConsultationPress,
+      onRowEditQuestionnairePress,
+      onRowEditConsultationPress,
+      filteredItems,
+    ]
+  );
 
   return (
     <Suspense fallback={<Loading />}>
@@ -552,13 +568,9 @@ export default function QuestionPage() {
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
-              isHeaderSticky
               aria-label="Question List Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
-              classNames={{
-                wrapper: "max-h-[calc(65vh)]",
-              }}
               sortDescriptor={sortDescriptor}
               topContent={topContent}
               topContentPlacement="outside"

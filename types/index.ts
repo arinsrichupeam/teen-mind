@@ -41,6 +41,7 @@ export interface Profile {
   firstname: string;
   lastname: string;
   prefixId: string;
+  sex: string;
   birthday: string;
   ethnicity: string;
   nationality: string;
@@ -79,6 +80,7 @@ export interface Phqa {
   q7: number;
   q8: number;
   q9: number;
+  sum: number;
 }
 
 export interface q2 {

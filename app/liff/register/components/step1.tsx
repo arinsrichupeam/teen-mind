@@ -82,6 +82,31 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       validationBehavior="native"
       onSubmit={onSubmit}
     >
+      <Autocomplete
+        defaultItems={school}
+        errorMessage="กรุณากรอกสถานศึกษา"
+        isRequired={request}
+        label="สถานศึกษา"
+        labelPlacement="inside"
+        menuTrigger="input"
+        name="school"
+        placeholder="โรงเรียน"
+        radius="md"
+        scrollShadowProps={{
+          isEnabled: false,
+        }}
+        selectedKey={Result?.schoolId?.toString()}
+        size="sm"
+        value={Result?.schoolId as number}
+        variant="faded"
+        onSelectionChange={(val) =>
+          HandleChange({ target: { name: "school", value: val } })
+        }
+      >
+        {(item) => (
+          <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
+        )}
+      </Autocomplete>
       <Input
         errorMessage={error}
         isInvalid={!!error}
@@ -226,31 +251,6 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         variant="faded"
         onChange={HandleChange}
       />
-      <Autocomplete
-        defaultItems={school}
-        errorMessage="กรุณากรอกสถานศึกษา"
-        isRequired={request}
-        label="สถานศึกษา"
-        labelPlacement="inside"
-        menuTrigger="input"
-        name="school"
-        placeholder="โรงเรียน"
-        radius="md"
-        scrollShadowProps={{
-          isEnabled: false,
-        }}
-        selectedKey={Result?.schoolId?.toString()}
-        size="sm"
-        value={Result?.schoolId as number}
-        variant="faded"
-        onSelectionChange={(val) =>
-          HandleChange({ target: { name: "school", value: val } })
-        }
-      >
-        {(item) => (
-          <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
-        )}
-      </Autocomplete>
       <Button
         className="w-full"
         color="primary"

@@ -30,6 +30,7 @@ export async function GET(
           firstname: true,
           lastname: true,
           prefixId: true,
+          sex: true,
           birthday: true,
           ethnicity: true,
           nationality: true,

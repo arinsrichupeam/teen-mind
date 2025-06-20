@@ -26,42 +26,76 @@ import {
   DropdownMenu,
   DropdownItem,
   addToast,
+  Chip,
 } from "@heroui/react";
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
-import { questionStatusOptions as statusOptions } from "../data/optionData";
-import { QuestionColumnsName as columns } from "../data/tableColumn";
+import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
-import { RenderCell } from "../components/question/render-cell";
+import { QuestionColumnsName } from "../data/tableColumn";
 
+import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
+
+interface Column {
+  key: string;
+  label: string;
+  align?: "center" | "start" | "end";
+}
+
+const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
+  key: col.uid,
+  label: col.name,
+  align: (col.align || "start") as "center" | "start" | "end",
+}));
+
+const calculateAge = (birthday: string) => {
+  const birthDate = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
+};
 
 export default function MyCasePage() {
   const router = useRouter();
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [statusFilter, setStatusFilter] = useState<Selection>("all");
+  const [statusFilter, setStatusFilter] = useState<Selection>(
+    new Set(["0", "1", "2", "3"])
+  );
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
-    column: "id",
-    direction: "ascending",
+    column: "createdAt",
+    direction: "descending",
   });
-  const [mode, setMode] = useState("View");
+  const [mode, setMode] = useState("view-questionnaire");
   const { data: session, status } = useSession();
   const [error] = useState("");
 
   const hasSearchFilter = Boolean(filterValue);
 
-  const { data, isLoading, mutate } = useSWR(
+  const { data, mutate } = useSWR(
     "/api/question",
     async (url) => {
       try {
@@ -80,32 +114,39 @@ export default function MyCasePage() {
       }
     },
     {
-      keepPreviousData: false,
+      keepPreviousData: true,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
   );
 
   const filteredItems = useMemo(() => {
-    let filteredUsers = [
-      ...(data?.filter((val: any) => val.consult === session?.user?.id) || []),
-    ];
+    if (!data) {
+      return [];
+    }
 
-    if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) => {
-        return val.user.profile[0].firstname
-          .toLowerCase()
+    // Filter by consult (current user's ID)
+    const myCases = data.filter(
+      (val: any) => val.consult === session?.user?.id
+    );
+
+    const finalFiltered = myCases.filter((val: any) => {
+      const matchesSearch =
+        !hasSearchFilter ||
+        val.profile?.firstname
+          ?.toLowerCase()
           .includes(filterValue.toLowerCase());
-      });
-    }
-    if (statusFilter !== "all") {
-      filteredUsers = filteredUsers.filter((user) =>
-        Array.from(statusFilter).includes(user.status.toString())
-      );
-    }
 
-    return filteredUsers;
-  }, [data, filterValue, statusFilter]);
+      const matchesStatus =
+        statusFilter === "all" ||
+        Array.from(statusFilter).includes(val.status?.toString());
+
+      return matchesSearch && matchesStatus;
+    });
+
+    return finalFiltered;
+  }, [data, filterValue, statusFilter, hasSearchFilter, session?.user?.id]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -121,13 +162,31 @@ export default function MyCasePage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
-      const first = a[sortDescriptor.column as keyof QuestionsData] as number;
-      const second = b[sortDescriptor.column as keyof QuestionsData] as number;
-      const cmp = first < second ? -1 : first > second ? 1 : 0;
+    if (!items.length) return [];
 
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
+    const { column, direction } = sortDescriptor;
+
+    const sorted = [...items].sort((a: any, b: any) => {
+      const first = a[column as keyof any];
+      const second = b[column as keyof any];
+
+      if (typeof first === "string" && typeof second === "string") {
+        return direction === "descending"
+          ? second.localeCompare(first)
+          : first.localeCompare(second);
+      }
+
+      const cmp =
+        (first as number) < (second as number)
+          ? -1
+          : (first as number) > (second as number)
+            ? 1
+            : 0;
+
+      return direction === "descending" ? -cmp : cmp;
     });
+
+    return sorted;
   }, [sortDescriptor, items]);
 
   const onRowsPerPageChange = useCallback(
@@ -150,8 +209,8 @@ export default function MyCasePage() {
     [filterValue]
   );
 
-  const topContent = useMemo(() => {
-    return (
+  const topContent = useMemo(
+    () => (
       <div className="flex flex-col">
         <div className="flex justify-between items-center gap-3">
           <Input
@@ -189,7 +248,7 @@ export default function MyCasePage() {
               selectionMode="multiple"
               onSelectionChange={setStatusFilter}
             >
-              {statusOptions.map((status) => (
+              {options.map((status) => (
                 <DropdownItem key={status.uid} className="capitalize">
                   {status.name}
                 </DropdownItem>
@@ -198,15 +257,9 @@ export default function MyCasePage() {
           </Dropdown>
         </div>
       </div>
-    );
-  }, [
-    filterValue,
-    statusFilter,
-    onSearchChange,
-    onRowsPerPageChange,
-    data?.length,
-    hasSearchFilter,
-  ]);
+    ),
+    [filterValue, statusFilter, onSearchChange]
+  );
 
   const bottomContent = useMemo(() => {
     return (
@@ -229,7 +282,7 @@ export default function MyCasePage() {
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
             <label className="flex items-center text-default-400 text-small">
-              Rows per page:
+              แสดงต่อหน้า:
               <select
                 className="bg-transparent outline-none text-default-400 text-small"
                 defaultValue={rowsPerPage}
@@ -252,24 +305,50 @@ export default function MyCasePage() {
         .then((res) => res.json())
         .then((val: QuestionsData[]) => {
           setSelectedKeys(val[0]);
-          setMode("View");
+          setMode("view-questionnaire");
           onOpen();
         });
     },
-    [selectedKeys, mode]
+    [selectedKeys]
   );
 
-  const onRowEditPress = useCallback(
+  const onRowConsultationPress = useCallback(
     (e: any) => {
       fetch("/api/question/" + e)
         .then((res) => res.json())
         .then((val: QuestionsData[]) => {
           setSelectedKeys(val[0]);
-          setMode("Edit");
+          setMode("view-consultation");
           onOpen();
         });
     },
-    [selectedKeys, mode]
+    [selectedKeys]
+  );
+
+  const onRowEditQuestionnairePress = useCallback(
+    (e: any) => {
+      fetch("/api/question/" + e)
+        .then((res) => res.json())
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
+          setMode("edit-questionnaire");
+          onOpen();
+        });
+    },
+    [selectedKeys]
+  );
+
+  const onRowEditConsultationPress = useCallback(
+    (e: any) => {
+      fetch("/api/question/" + e)
+        .then((res) => res.json())
+        .then((val: QuestionsData[]) => {
+          setSelectedKeys(val[0]);
+          setMode("edit-consultation");
+          onOpen();
+        });
+    },
+    [selectedKeys]
   );
 
   const onDrawerClose = useCallback(() => {
@@ -281,9 +360,10 @@ export default function MyCasePage() {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
+      } else {
       }
     }
-  }, [session, status]);
+  }, [session]);
 
   useEffect(() => {
     if (error) {
@@ -295,6 +375,198 @@ export default function MyCasePage() {
       });
     }
   }, [error]);
+
+  const renderCell = useCallback(
+    (item: any, columnKey: any) => {
+      const cellValue = item[columnKey];
+
+      switch (columnKey) {
+        case "id":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {filteredItems.findIndex((x: any) => x.id === item.id) + 1}
+              </p>
+            </div>
+          );
+        case "name":
+          const prefixLabel =
+            prefix.find((p) => p.key === item.profile?.prefixId?.toString())
+              ?.label || "";
+
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {prefixLabel} {item.profile?.firstname || ""}{" "}
+                {item.profile?.lastname || ""}
+              </p>
+            </div>
+          );
+        case "age":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {item.profile?.birthday
+                  ? calculateAge(item.profile.birthday)
+                  : "-"}{" "}
+                ปี
+              </p>
+            </div>
+          );
+        case "school":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {item.profile?.school?.name || "-"}
+              </p>
+            </div>
+          );
+        case "result":
+          let resultText = item.result_text || item.result || "-";
+
+          return (
+            <Chip
+              className="capitalize"
+              color={
+                item.result === "Green"
+                  ? "success"
+                  : item.result === "Yellow"
+                    ? "warning"
+                    : item.result === "Orange"
+                      ? "warning"
+                      : "danger"
+              }
+              size="sm"
+              variant="flat"
+            >
+              {resultText}
+            </Chip>
+          );
+        case "phqa":
+          if (Array.isArray(cellValue) && cellValue.length > 0) {
+            return cellValue[0].sum || "-";
+          }
+
+          return "-";
+        case "date":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {new Date(item.createdAt).toLocaleDateString("th-TH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                น.
+              </p>
+            </div>
+          );
+        case "status":
+          return (
+            <Chip
+              className="capitalize"
+              color={
+                item.status === 0
+                  ? "default"
+                  : item.status === 1
+                    ? "primary"
+                    : item.status === 2
+                      ? "warning"
+                      : "success"
+              }
+              size="sm"
+              variant="flat"
+            >
+              {item.status === 0
+                ? "รอเปิด HN"
+                : item.status === 1
+                  ? "รอนัดวัน Tele"
+                  : item.status === 2
+                    ? "รอผล Tele"
+                    : "ดำเนินการเสร็จสิ้น"}
+            </Chip>
+          );
+        case "actions":
+          return (
+            <div className="relative flex items-center gap-2">
+              <div className="flex justify-center gap-2">
+                <div>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button
+                        isIconOnly
+                        name="Detail"
+                        size="sm"
+                        variant="light"
+                      >
+                        <EyeIcon className="size-6 text-primary-400" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Detail options">
+                      <DropdownItem
+                        key="view-questionnaire"
+                        onPress={() => onRowDetailPress(item.id)}
+                      >
+                        รายละเอียดแบบสอบถาม
+                      </DropdownItem>
+                      <DropdownItem
+                        key="view-consultation"
+                        onPress={() => onRowConsultationPress(item.id)}
+                      >
+                        รายละเอียดการให้คำปรึกษา
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+                <div>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button isIconOnly name="Edit" size="sm" variant="light">
+                        <PencilIcon className="size-6 text-warning-400" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Edit options">
+                      <DropdownItem
+                        key="edit-questionnaire"
+                        onPress={() => onRowEditQuestionnairePress(item.id)}
+                      >
+                        แก้ไขแบบสอบถาม
+                      </DropdownItem>
+                      <DropdownItem
+                        key="edit-consultation"
+                        onPress={() => onRowEditConsultationPress(item.id)}
+                      >
+                        แก้ไขการให้คำปรึกษา
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+                <div>
+                  <Button isIconOnly size="sm" variant="light">
+                    <TrashIcon className="size-6 text-danger-500" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        default:
+          if (typeof cellValue === "object" && cellValue !== null) {
+            return JSON.stringify(cellValue);
+          }
+
+          return cellValue;
+      }
+    },
+    [
+      onRowDetailPress,
+      onRowConsultationPress,
+      onRowEditQuestionnairePress,
+      onRowEditConsultationPress,
+      filteredItems,
+    ]
+  );
 
   return (
     <Suspense fallback={<Loading />}>
@@ -311,46 +583,50 @@ export default function MyCasePage() {
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
-              isHeaderSticky
               aria-label="Question List Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
-              classNames={{
-                wrapper: "max-h-[calc(65vh)]",
-              }}
               sortDescriptor={sortDescriptor}
               topContent={topContent}
               topContentPlacement="outside"
               onSortChange={setSortDescriptor}
             >
-              <TableHeader columns={columns}>
+              <TableHeader columns={tableColumns}>
                 {(column) => (
                   <TableColumn
-                    key={column.uid}
-                    align={column.align as "center" | "start" | "end"}
+                    key={column.key}
+                    align={column.align}
+                    allowsSorting={true}
                   >
-                    {column.name}
+                    {column.label}
                   </TableColumn>
                 )}
               </TableHeader>
               <TableBody
-                emptyContent={"No users found"}
-                isLoading={isLoading}
+                emptyContent={
+                  <div className="text-center py-4">
+                    <p className="text-default-500">
+                      ไม่พบข้อมูลที่ได้รับมอบหมาย
+                    </p>
+                    <p className="text-small text-default-400">
+                      หากคุณเห็นข้อความนี้ อาจเป็นเพราะ:
+                    </p>
+                    <p className="text-small text-default-400">
+                      1. ยังไม่มีเคสที่ถูกมอบหมายให้คุณ
+                    </p>
+                    <p className="text-small text-default-400">
+                      2. เคสที่มีอยู่ยังไม่ได้ระบุผู้รับผิดชอบ
+                    </p>
+                  </div>
+                }
                 items={sortedItems}
-                loadingContent={<Spinner label="Loading..." />}
+                loadingContent={<Spinner label="กำลังโหลด..." />}
               >
-                {(item) => (
-                  <TableRow>
+                {(item: any) => (
+                  <TableRow key={item.id}>
                     {(columnKey) => (
                       <TableCell className="text-nowrap">
-                        {RenderCell({
-                          data: item,
-                          columnKey: columnKey,
-                          index:
-                            filteredItems.findIndex((x) => x.id == item.id) + 1,
-                          viewDetail: onRowDetailPress,
-                          editDetail: onRowEditPress,
-                        })}
+                        {renderCell(item, columnKey)}
                       </TableCell>
                     )}
                   </TableRow>
