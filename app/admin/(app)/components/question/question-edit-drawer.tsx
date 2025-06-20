@@ -476,8 +476,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultValue={data?.profile.hn}
                               isDisabled={
                                 mode == "view-questionnaire" ||
-                                mode == "view-consultation" ||
-                                mode == "edit-consultation"
+                                mode == "view-consultation"
                               }
                               name="hn"
                               startContent={<p> HN:</p>}
@@ -488,8 +487,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               color="primary"
                               isDisabled={
                                 mode == "view-questionnaire" ||
-                                mode == "view-consultation" ||
-                                mode == "edit-consultation"
+                                mode == "view-consultation"
                               }
                               isLoading={hnIsloading}
                               onPress={() => ChangeHN()}
@@ -888,12 +886,22 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     )
                                   : null
                               }
-                              isDisabled={true}
+                              isRequired={true}
                               label="Schedule Telemed"
                               labelPlacement="outside"
                               name="schedule_telemed"
                               selectorButtonPlacement="start"
                               variant="bordered"
+                              onChange={(date) => {
+                                if (date) {
+                                  HandleChange({
+                                    target: {
+                                      name: "schedule_telemed",
+                                      value: date.toString(),
+                                    },
+                                  });
+                                }
+                              }}
                             />
                           </div>
                           <div className="w-full">
@@ -902,6 +910,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultSelectedKey={data?.consult}
                               errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
                               isInvalid={isError}
+                              isRequired={true}
                               label="Consultant"
                               labelPlacement="outside"
                               placeholder="Consultant"
