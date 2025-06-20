@@ -208,49 +208,111 @@ export async function PUT(req: Request) {
 
     // อัปเดตข้อมูล q2 ถ้ามี
     if (question.q2 && question.q2.length > 0) {
-      await prisma.questions_2Q.updateMany({
+      const existingQ2 = await prisma.questions_2Q.findFirst({
         where: {
           questions_MasterId: question.id,
         },
-        data: {
-          q1: question.q2[0].q1,
-          q2: question.q2[0].q2,
-        },
       });
+
+      if (existingQ2) {
+        // อัปเดตข้อมูลที่มีอยู่
+        await prisma.questions_2Q.updateMany({
+          where: {
+            questions_MasterId: question.id,
+          },
+          data: {
+            q1: question.q2[0].q1,
+            q2: question.q2[0].q2,
+          },
+        });
+      } else {
+        // สร้างข้อมูลใหม่
+        await prisma.questions_2Q.create({
+          data: {
+            questions_MasterId: question.id,
+            q1: question.q2[0].q1,
+            q2: question.q2[0].q2,
+          },
+        });
+      }
     }
 
     // อัปเดตข้อมูล phqa ถ้ามี
     if (question.phqa && question.phqa.length > 0) {
-      await prisma.questions_PHQA.updateMany({
+      const existingPhqa = await prisma.questions_PHQA.findFirst({
         where: {
           questions_MasterId: question.id,
         },
-        data: {
-          q1: question.phqa[0].q1,
-          q2: question.phqa[0].q2,
-          q3: question.phqa[0].q3,
-          q4: question.phqa[0].q4,
-          q5: question.phqa[0].q5,
-          q6: question.phqa[0].q6,
-          q7: question.phqa[0].q7,
-          q8: question.phqa[0].q8,
-          q9: question.phqa[0].q9,
-          sum: question.phqa[0].sum,
-        },
       });
+
+      if (existingPhqa) {
+        // อัปเดตข้อมูลที่มีอยู่
+        await prisma.questions_PHQA.updateMany({
+          where: {
+            questions_MasterId: question.id,
+          },
+          data: {
+            q1: question.phqa[0].q1,
+            q2: question.phqa[0].q2,
+            q3: question.phqa[0].q3,
+            q4: question.phqa[0].q4,
+            q5: question.phqa[0].q5,
+            q6: question.phqa[0].q6,
+            q7: question.phqa[0].q7,
+            q8: question.phqa[0].q8,
+            q9: question.phqa[0].q9,
+            sum: question.phqa[0].sum,
+          },
+        });
+      } else {
+        // สร้างข้อมูลใหม่
+        await prisma.questions_PHQA.create({
+          data: {
+            questions_MasterId: question.id,
+            q1: question.phqa[0].q1,
+            q2: question.phqa[0].q2,
+            q3: question.phqa[0].q3,
+            q4: question.phqa[0].q4,
+            q5: question.phqa[0].q5,
+            q6: question.phqa[0].q6,
+            q7: question.phqa[0].q7,
+            q8: question.phqa[0].q8,
+            q9: question.phqa[0].q9,
+            sum: question.phqa[0].sum,
+          },
+        });
+      }
     }
 
     // อัปเดตข้อมูล addon ถ้ามี
     if (question.addon && question.addon.length > 0) {
-      await prisma.questions_PHQA_Addon.updateMany({
+      const existingAddon = await prisma.questions_PHQA_Addon.findFirst({
         where: {
           questions_MasterId: question.id,
         },
-        data: {
-          q1: question.addon[0].q1,
-          q2: question.addon[0].q2,
-        },
       });
+
+      if (existingAddon) {
+        // อัปเดตข้อมูลที่มีอยู่
+        await prisma.questions_PHQA_Addon.updateMany({
+          where: {
+            questions_MasterId: question.id,
+          },
+          data: {
+            q1: question.addon[0].q1,
+            q2: question.addon[0].q2,
+          },
+        });
+      } else {
+        // สร้างข้อมูลใหม่
+        await prisma.questions_PHQA_Addon.create({
+          data: {
+            questions_MasterId: question.id,
+            q1: question.addon[0].q1,
+            q2: question.addon[0].q2,
+          },
+        });
+      }
     }
 
     return Response.json({
