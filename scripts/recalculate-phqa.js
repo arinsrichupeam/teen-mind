@@ -20,8 +20,13 @@ function calculateResult(phqa_sum, phqa_data) {
         result_text = "พบความเสี่ยงรุนแรง";
       }
     } else if (phqa_sum > 9) {
-      result = "Yellow";
-      result_text = "พบความเสี่ยงปานกลาง";
+      if (phqa_data.q9 > 0) {
+        result = "Red";
+        result_text = "พบความเสี่ยง";
+      } else {
+        result = "Yellow";
+        result_text = "พบความเสี่ยงปานกลาง";
+      }
     } else {
       if (phqa_sum >= 0 && phqa_sum <= 4) {
         result = "Green";
