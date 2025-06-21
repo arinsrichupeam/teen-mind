@@ -724,8 +724,8 @@ export default function PHQAPage() {
                                 ${
                                   calculationResult.result === "Green"
                                     ? "text-green-700"
-                                    : calculationResult.result === "Green"
-                                      ? "text-green-700"
+                                    : calculationResult.result === "Green-Low"
+                                      ? "text-green-600"
                                       : calculationResult.result === "Yellow"
                                         ? "text-yellow-700"
                                         : calculationResult.result === "Orange"
@@ -742,8 +742,8 @@ export default function PHQAPage() {
                                 className={`h-full ${
                                   calculationResult.result === "Green"
                                     ? "bg-green-200 w-full"
-                                    : calculationResult.result === "Green"
-                                      ? "bg-green-500 w-full"
+                                    : calculationResult.result === "Green-Low"
+                                      ? "bg-green-400 w-full"
                                       : calculationResult.result === "Yellow"
                                         ? "bg-yellow-500 w-full"
                                         : calculationResult.result === "Orange"

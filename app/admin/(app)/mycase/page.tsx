@@ -430,11 +430,13 @@ export default function MyCasePage() {
               color={
                 item.result === "Green"
                   ? "success"
-                  : item.result === "Yellow"
-                    ? "warning"
-                    : item.result === "Orange"
+                  : item.result === "Green-Low"
+                    ? "success"
+                    : item.result === "Yellow"
                       ? "warning"
-                      : "danger"
+                      : item.result === "Orange"
+                        ? "warning"
+                        : "danger"
               }
               size="sm"
               variant="flat"

@@ -42,6 +42,7 @@ import useSWR from "swr";
 import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
 import { QuestionColumnsName } from "../data/tableColumn";
+import { RecalculatePHQA } from "../components/recalculate-phqa";
 
 import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
@@ -415,11 +416,13 @@ export default function QuestionPage() {
               color={
                 item.result === "Green"
                   ? "success"
-                  : item.result === "Yellow"
-                    ? "warning"
-                    : item.result === "Orange"
+                  : item.result === "Green-Low"
+                    ? "success"
+                    : item.result === "Yellow"
                       ? "warning"
-                      : "danger"
+                      : item.result === "Orange"
+                        ? "warning"
+                        : "danger"
               }
               size="sm"
               variant="flat"
@@ -430,6 +433,60 @@ export default function QuestionPage() {
         case "phqa":
           if (Array.isArray(cellValue) && cellValue.length > 0) {
             return cellValue[0].sum;
+          }
+
+          return "-";
+        case "2q":
+          if (Array.isArray(item.q2) && item.q2.length > 0) {
+            const q2Data = item.q2[0];
+            const hasRisk = q2Data.q1 === 1 || q2Data.q2 === 1;
+
+            return (
+              <Chip
+                className="capitalize"
+                color={hasRisk ? "danger" : "success"}
+                size="sm"
+                variant="flat"
+              >
+                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+              </Chip>
+            );
+          }
+
+          return "-";
+
+        // case "phqa-9":
+        //   if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+        //     const phqaData = item.phqa[0];
+        //     const hasRisk = phqaData.q9 > 0;
+        //     return (
+        //       <Chip
+        //         className="capitalize"
+        //         color={hasRisk ? "danger" : "success"}
+        //         size="sm"
+        //         variant="flat"
+        //       >
+        //         {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+        //       </Chip>
+        //     );
+        //   }
+        //   return "-";
+
+        case "addon":
+          if (Array.isArray(item.addon) && item.addon.length > 0) {
+            const addonData = item.addon[0];
+            const hasRisk = addonData.q1 === 1 || addonData.q2 === 1;
+
+            return (
+              <Chip
+                className="capitalize"
+                color={hasRisk ? "danger" : "success"}
+                size="sm"
+                variant="flat"
+              >
+                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+              </Chip>
+            );
           }
 
           return "-";
@@ -559,6 +616,11 @@ export default function QuestionPage() {
         <div className="flex justify-between items-end ">
           <h3 className="text-lg font-semibold">จัดการแบบสอบถาม</h3>
         </div>
+
+        <div className="w-full">
+          <RecalculatePHQA />
+        </div>
+
         <div className="max-w-[95rem] mx-auto w-full">
           <QuestionEditDrawer
             data={selectedKeys!}

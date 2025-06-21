@@ -5,11 +5,16 @@ import { Profile_Admin } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 
 import { CardGreen } from "./components/home/card-green";
+import { CardGreenLow } from "./components/home/card-green-low";
 import { CardYellow } from "./components/home/card-yellow";
 import { CardRed } from "./components/home/card-red";
+import { CardOrange } from "./components/home/card-orange";
 import { CardAgents } from "./components/home/card-agents";
 import { CardCaseTotal } from "./components/home/card-case-total";
 import { CardTotal } from "./components/home/card-total";
+import { CardTotalUser } from "./components/home/card-total-user";
+import { CardTotalManual } from "./components/home/card-total-manual";
+import { CardSchoolStats } from "./components/home/card-school-stats";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
@@ -28,8 +33,40 @@ const fetchNewMembers = async () => {
   return data.filter((val: Profile_Admin) => val.status === 3);
 };
 
+const fetchUsers = async () => {
+  const res = await fetch("/api/profile/user");
+  const data = await res.json();
+
+  return data;
+};
+
+const fetchManualUsers = async () => {
+  const res = await fetch("/api/profile/manual");
+  const data = await res.json();
+
+  return data;
+};
+
+const filterLatestQuestions = (questions: QuestionsData[]) => {
+  const latestQuestions: { [key: string]: QuestionsData } = {};
+
+  questions.forEach((question) => {
+    const profileId = question.profile.id;
+
+    if (
+      !latestQuestions[profileId] ||
+      new Date(question.createdAt) >
+        new Date(latestQuestions[profileId].createdAt)
+    ) {
+      latestQuestions[profileId] = question;
+    }
+  });
+
+  return Object.values(latestQuestions);
+};
+
 export default function AdminHome() {
-  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery({
+  const { data: rawQuestions = [], isLoading: isLoadingQuestions } = useQuery({
     queryKey: ["questions"],
     queryFn: fetchQuestions,
   });
@@ -39,17 +76,105 @@ export default function AdminHome() {
     queryFn: fetchNewMembers,
   });
 
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  });
+
+  const { data: manualUsers = [], isLoading: isLoadingManualUsers } = useQuery({
+    queryKey: ["manualUsers"],
+    queryFn: fetchManualUsers,
+  });
+
+  const questions = filterLatestQuestions(rawQuestions);
+  const allProfiles = [...users, ...manualUsers];
+
   const greenQuestions = questions.filter(
     (q: QuestionsData) => q.result === "Green"
   );
+  const greenLowQuestions = questions.filter(
+    (q: QuestionsData) => q.result === "Green-Low"
+  );
   const yellowQuestions = questions.filter(
     (q: QuestionsData) => q.result === "Yellow"
+  );
+  const orangeQuestions = questions.filter(
+    (q: QuestionsData) => q.result === "Orange"
   );
   const redQuestions = questions.filter(
     (q: QuestionsData) => q.result === "Red"
   );
 
-  if (isLoadingQuestions || isLoadingMembers) {
+  type SchoolStat = {
+    schoolName: string;
+    total: number;
+    green: number;
+    greenLow: number;
+    yellow: number;
+    orange: number;
+    red: number;
+  };
+
+  const schoolStats = Object.values(
+    questions.reduce((acc: Record<string, SchoolStat>, q) => {
+      let schoolName: string;
+
+      if (typeof q.profile.school === "object" && q.profile.school !== null) {
+        schoolName = (q.profile.school as any).name || "ไม่ระบุโรงเรียน";
+      } else {
+        schoolName = q.profile.school || "ไม่ระบุโรงเรียน";
+      }
+
+      if (!acc[schoolName]) {
+        acc[schoolName] = {
+          schoolName,
+          total: 0,
+          green: 0,
+          greenLow: 0,
+          yellow: 0,
+          orange: 0,
+          red: 0,
+        };
+      }
+      acc[schoolName].total++;
+      if (q.result === "Green") acc[schoolName].green++;
+      if (q.result === "Green-Low") acc[schoolName].greenLow++;
+      if (q.result === "Yellow") acc[schoolName].yellow++;
+      if (q.result === "Orange") acc[schoolName].orange++;
+      if (q.result === "Red") acc[schoolName].red++;
+
+      return acc;
+    }, {})
+  );
+
+  const schoolStatsSummary = schoolStats.reduce(
+    (acc, school) => {
+      acc.total += school.total;
+      acc.green += school.green;
+      acc.greenLow += school.greenLow;
+      acc.yellow += school.yellow;
+      acc.orange += school.orange;
+      acc.red += school.red;
+
+      return acc;
+    },
+    {
+      schoolName: "Total",
+      total: 0,
+      green: 0,
+      greenLow: 0,
+      yellow: 0,
+      orange: 0,
+      red: 0,
+    }
+  );
+
+  if (
+    isLoadingQuestions ||
+    isLoadingMembers ||
+    isLoadingUsers ||
+    isLoadingManualUsers
+  ) {
     return <></>;
   }
 
@@ -62,24 +187,38 @@ export default function AdminHome() {
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
               <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2  justify-center w-full">
-                <CardCaseTotal data={questions} />
-                <CardTotal data={questions} />
+                <CardCaseTotal data={rawQuestions} />
+                <CardTotal data={allProfiles} />
+                <CardTotalUser data={users} />
+                <CardTotalManual data={manualUsers} />
               </div>
             </div>
 
             {/* Card Section Top */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
-              <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-3 gap-2  justify-center w-full">
-                <CardGreen data={greenQuestions} />
-                <CardYellow data={yellowQuestions} />
-                <CardRed data={redQuestions} />
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
+                <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-5 gap-2  justify-center w-full">
+                  <CardGreen data={greenQuestions} />
+                  <CardGreenLow data={greenLowQuestions} />
+                  <CardYellow data={yellowQuestions} />
+                  <CardOrange data={orangeQuestions} />
+                  <CardRed data={redQuestions} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xl font-semibold">สถิติรายโรงเรียน</h3>
+                <CardSchoolStats
+                  data={schoolStats}
+                  summary={schoolStatsSummary}
+                />
               </div>
             </div>
           </div>
 
           {/* Left Section */}
-          <div className="mt-4 gap-2 flex flex-col xl:max-w-md w-full">
+          <div className="mt-4 gap-2 flex flex-col xl:max-w-sm w-full">
             <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
             <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
               <CardAgents data={newMembers} />

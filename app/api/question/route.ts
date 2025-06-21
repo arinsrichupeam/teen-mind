@@ -30,7 +30,28 @@ export async function GET() {
       },
       phqa: {
         select: {
+          q1: true,
+          q2: true,
+          q3: true,
+          q4: true,
+          q5: true,
+          q6: true,
+          q7: true,
+          q8: true,
+          q9: true,
           sum: true,
+        },
+      },
+      q2: {
+        select: {
+          q1: true,
+          q2: true,
+        },
+      },
+      addon: {
+        select: {
+          q1: true,
+          q2: true,
         },
       },
     },
@@ -410,27 +431,27 @@ function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
   let result = "";
   let result_text = "";
 
-  if (phqa_sum > 14) {
-    if (phqa_sum >= 15 && phqa_sum <= 19) {
-      result = "Orange";
-      result_text = "พบความเสี่ยงมาก";
-    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
-      result = "Red";
-      result_text = "พบความเสี่ยงรุนแรง";
-    }
-  } else if (phqa_sum > 9) {
-    result = "Yellow";
-    result_text = "พบความเสี่ยงปานกลาง";
+  if (phqa_data.q9 > 0) {
+    result = "Red";
+    result_text = "พบความเสี่ยง";
   } else {
-    if (phqa_data.q9 > 0) {
-      result = "Red";
-      result_text = "พบความเสี่ยงในการฆ่าตัวตาย";
+    if (phqa_sum > 14) {
+      if (phqa_sum >= 15 && phqa_sum <= 19) {
+        result = "Orange";
+        result_text = "พบความเสี่ยงมาก";
+      } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+        result = "Red";
+        result_text = "พบความเสี่ยงรุนแรง";
+      }
+    } else if (phqa_sum > 9) {
+      result = "Yellow";
+      result_text = "พบความเสี่ยงปานกลาง";
     } else {
       if (phqa_sum >= 0 && phqa_sum <= 4) {
         result = "Green";
         result_text = "ไม่พบความเสี่ยง";
       } else if (phqa_sum >= 5 && phqa_sum <= 9) {
-        result = "Green";
+        result = "Green-Low";
         result_text = "พบความเสี่ยงเล็กน้อย";
       }
     }

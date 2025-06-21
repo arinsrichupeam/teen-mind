@@ -337,9 +337,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         color={
                           data?.result === "Green"
                             ? "success"
-                            : data?.result === "Red"
-                              ? "danger"
-                              : "warning"
+                            : data?.result === "Green-Low"
+                              ? "success"
+                              : data?.result === "Yellow"
+                                ? "warning"
+                                : data?.result === "Orange"
+                                  ? "warning"
+                                  : "danger"
                         }
                         size="lg"
                         variant="flat"

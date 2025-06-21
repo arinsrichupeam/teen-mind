@@ -1,4 +1,3 @@
-import { UsersIcon } from "@heroicons/react/24/outline";
 import { Card, CardBody } from "@heroui/react";
 import React from "react";
 
@@ -14,16 +13,18 @@ export const CardYellow = ({ data }: props) => {
       <CardBody className="py-5 overflow-hidden">
         <div className="flex items-center gap-2.5 justify-start">
           <div className="flex flex-col basis-2/3">
-            <span className="font-semibold text-warning-700">พบความเสี่ยง</span>
+            <span className="font-semibold text-warning-700 whitespace-nowrap">
+              พบความเสี่ยงปานกลาง
+            </span>
             <span className=" text-xl font-semibold">{data.length}</span>
           </div>
-          <div className="flex basis-1/3 gap-2.5 py-2 items-center justify-end">
+          {/* <div className="flex basis-1/3 gap-2.5 py-2 items-center justify-end">
             <UsersIcon className="size-8 text-warning-700" />
-          </div>
+          </div> */}
         </div>
         <div className="flex flex-row items-center gap-2">
           <div className="basis-1/2">
-            <span className="text-xs">ระหว่างดำเนินการ</span>
+            <span className="text-xs">ดำเนินการ</span>
             <div>
               <span className="font-semibold">
                 {data.filter((val) => val.status !== 3).length}
@@ -32,7 +33,7 @@ export const CardYellow = ({ data }: props) => {
           </div>
 
           <div className="basis-1/2">
-            <span className=" text-xs ">ดำเนินการเสร็จสิ้น</span>
+            <span className=" text-xs ">เสร็จสิ้น</span>
             <div>
               <span className="font-semibold ">
                 {data.filter((val) => val.status === 3).length}

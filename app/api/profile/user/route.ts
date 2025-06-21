@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { prisma } from "@/utils/prisma";
 
 // Update Profile -> HN -> Update Question Status
@@ -34,4 +36,16 @@ export async function PATCH(req: Request) {
   }
 
   return new Response("Success");
+}
+
+export async function GET() {
+  const users = await prisma.profile.findMany({
+    where: {
+      userId: {
+        not: null,
+      },
+    },
+  });
+
+  return NextResponse.json(users);
 }

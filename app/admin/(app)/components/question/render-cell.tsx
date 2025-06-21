@@ -71,19 +71,6 @@ export const RenderCell = ({
     case "name":
       return (
         <div>
-          {/* <User
-            avatarProps={{
-              src: data.profile.user ? data.profile.user.image as string : "",
-            }}
-            name={
-              prefix.find((val) => val.key == data.profile.prefixId)
-                ?.label +
-              " " +
-              data.profile.firstname +
-              " " +
-              data.profile.lastname
-            }
-          /> */}
           <p>
             {prefix.find((val) => val.key == data.profile.prefixId)?.label +
               " " +
@@ -108,25 +95,30 @@ export const RenderCell = ({
     case "result":
       return (
         <div>
+          <span>{data.phqa[0].sum}</span>
+        </div>
+      );
+
+    case "phqa":
+      return (
+        <div>
           <Chip
             color={
               data.result === "Green"
                 ? "success"
-                : data.result === "Red"
-                  ? "danger"
-                  : "warning"
+                : data.result === "Green-Low"
+                  ? "success"
+                  : data.result === "Yellow"
+                    ? "warning"
+                    : data.result === "Orange"
+                      ? "warning"
+                      : "danger"
             }
             size="sm"
             variant="flat"
           >
             <span className="capitalize text-xs">{data.result_text}</span>
           </Chip>
-        </div>
-      );
-    case "phqa":
-      return (
-        <div>
-          <span>{data.phqa[0].sum}</span>
         </div>
       );
     case "date":

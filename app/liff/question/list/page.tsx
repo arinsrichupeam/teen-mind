@@ -75,33 +75,50 @@ export default function QuestionListPage() {
                       })}
                     </p>
                     {val.result === "Green" ? (
-                      <p className="font-semibold">
-                        ผลการสำรวจ{" "}
-                        <span className="text-success-500">
-                          {val.result_text}
-                        </span>
-                      </p>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-green-500 rounded-full" />
+                          <span className="text-green-700 font-semibold">
+                            {val.result_text}
+                          </span>
+                        </div>
+                      </div>
+                    ) : val.result === "Green-Low" ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-green-400 rounded-full" />
+                          <span className="text-green-600 font-semibold">
+                            {val.result_text}
+                          </span>
+                        </div>
+                      </div>
                     ) : val.result === "Yellow" ? (
-                      <p className="font-semibold">
-                        ผลการสำรวจ{" "}
-                        <span className="text-warning-500">
-                          {val.result_text}
-                        </span>
-                      </p>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                          <span className="text-yellow-700 font-semibold">
+                            {val.result_text}
+                          </span>
+                        </div>
+                      </div>
                     ) : val.result === "Orange" ? (
-                      <p className="font-semibold">
-                        ผลการสำรวจ{" "}
-                        <span className="text-orange-500">
-                          {val.result_text}
-                        </span>
-                      </p>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                          <span className="text-orange-700 font-semibold">
+                            {val.result_text}
+                          </span>
+                        </div>
+                      </div>
                     ) : (
-                      <p className="font-semibold">
-                        ผลการสำรวจ{" "}
-                        <span className="text-danger-500">
-                          {val.result_text}
-                        </span>
-                      </p>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-red-500 rounded-full" />
+                          <span className="text-red-700 font-semibold">
+                            {val.result_text}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </CardBody>
                 </Card>
