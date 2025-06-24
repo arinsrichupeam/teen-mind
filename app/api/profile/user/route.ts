@@ -45,8 +45,16 @@ export async function GET() {
       questions: {
         select: {
           id: true,
+          createdAt: true,
+          result: true,
+          result_text: true,
         },
+        orderBy: {
+          createdAt: 'desc'
+        }
       },
+      address: true,
+      emergency: true,
     },
   });
 

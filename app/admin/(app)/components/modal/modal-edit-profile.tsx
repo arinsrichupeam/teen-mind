@@ -204,9 +204,17 @@ export const ModalEditProfile = ({
       );
 
       // แปลงวันเกิดเป็นรูปแบบ YYYY-MM-DD สำหรับ input type="date"
-      const birthdayDate = data.profile.birthday
-        ? new Date(data.profile.birthday).toISOString().split("T")[0]
-        : "";
+      let birthdayDate = "";
+      if (data.profile.birthday) {
+        try {
+          const date = new Date(data.profile.birthday);
+          if (!isNaN(date.getTime())) {
+            birthdayDate = date.toISOString().split("T")[0];
+          }
+        } catch (error) {
+          console.error("Error parsing birthday:", error);
+        }
+      }
 
       const initialData = {
         hn: data.profile.hn || "",
@@ -284,11 +292,11 @@ export const ModalEditProfile = ({
           description: "บันทึกข้อมูลผู้ประเมินสำเร็จ",
           color: "success",
         });
-        onClose();
-        // รีเฟรชข้อมูลหลังจากบันทึกสำเร็จ
+        // รีเฟรชข้อมูลก่อนแล้วค่อยปิด modal
         if (onSuccess) {
           onSuccess();
         }
+        onClose();
       } else {
         throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
@@ -331,7 +339,6 @@ export const ModalEditProfile = ({
       scrollBehavior="inside"
       shadow="lg"
       size="2xl"
-      onOpenChange={onClose}
     >
       <ModalContent>
         <ModalHeader className="flex flex-row justify-center">
@@ -401,7 +408,7 @@ export const ModalEditProfile = ({
             </div>
             <div className="flex flex-row gap-2">
               <DatePicker
-                defaultValue={
+                value={
                   editProfileData.birthday
                     ? parseDate(editProfileData.birthday)
                     : null

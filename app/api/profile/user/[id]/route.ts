@@ -136,7 +136,7 @@ export async function PUT(
     // ดึงข้อมูล address และ emergency ที่เกี่ยวข้อง
     const profileWithRelations = await prisma.profile.findUnique({
       where: {
-        id: body.id,
+        id: userId,
       },
       include: {
         address: true,
@@ -185,7 +185,7 @@ export async function PUT(
     // ดึงข้อมูลที่อัปเดตแล้ว
     const finalProfile = await prisma.profile.findUnique({
       where: {
-        id: body.id,
+        id: userId,
       },
       include: {
         address: true,

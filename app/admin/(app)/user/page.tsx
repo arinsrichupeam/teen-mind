@@ -21,7 +21,6 @@ import {
     Input,
     Chip,
     SortDescriptor,
-    Tooltip,
 } from "@heroui/react";
 import {
     MagnifyingGlassIcon,
@@ -35,6 +34,7 @@ import useSWR from "swr";
 
 import { prefix } from "@/utils/data";
 import Loading from "@/app/loading";
+import UserDetailDrawer from "./components/user-detail-drawer";
 
 interface UserData {
     id: string;
@@ -49,6 +49,9 @@ interface UserData {
     } | null;
     questions: {
         id: string;
+        createdAt: string;
+        result: string;
+        result_text?: string;
     }[];
 }
 
@@ -71,7 +74,7 @@ export default function UserPage() {
     const { data: session } = useSession();
     const router = useRouter();
 
-    const { data: users = [], isLoading } = useSWR<UserData[]>(
+    const { data: users = [], isLoading, mutate } = useSWR<UserData[]>(
         "/api/profile/user",
         fetcher
     );
@@ -83,6 +86,11 @@ export default function UserPage() {
         column: "id",
         direction: "ascending",
     });
+
+    // State สำหรับ UserDetailDrawer
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+    const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -261,45 +269,41 @@ export default function UserPage() {
                 case "actions":
                     return (
                         <div className="flex items-center gap-4">
-                            <Tooltip content="ดูรายละเอียด">
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    variant="light"
-                                    onClick={() => {
-                                        // TODO: Implement view user detail
-                                        console.log("View user:", user.id);
-                                    }}
-                                >
-                                    <EyeIcon className="size-6 text-primary-400" />
-                                </Button>
-                            </Tooltip>
-                            <Tooltip content="ลบ">
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    variant="light"
-                                    onClick={() => {
-                                        // TODO: Implement edit user
-                                        console.log("Edit user:", user.id);
-                                    }}
-                                >
-                                    <PencilIcon className="size-6 text-warning-400" />
-                                </Button>
-                            </Tooltip>
-                            <Tooltip content="แก้ไข">
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    variant="light"
-                                    onClick={() => {
-                                        // TODO: Implement edit user
-                                        console.log("Edit user:", user.id);
-                                    }}
-                                >
-                                    <TrashIcon className="size-6 text-danger-500" />
-                                </Button>
-                            </Tooltip>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={() => {
+                                    setSelectedUser(user);
+                                    setDrawerMode("view");
+                                    setIsDrawerOpen(true);
+                                }}
+                            >
+                                <EyeIcon className="size-6 text-primary-400" />
+                            </Button>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={() => {
+                                    setSelectedUser(user);
+                                    setDrawerMode("edit");
+                                    setIsDrawerOpen(true);
+                                }}
+                            >
+                                <PencilIcon className="size-6 text-warning-400" />
+                            </Button>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={() => {
+                                    // TODO: Implement edit user
+                                    console.log("Edit user:", user.id);
+                                }}
+                            >
+                                <TrashIcon className="size-6 text-danger-500" />
+                            </Button>
                         </div>
                     );
                 default:
@@ -359,6 +363,25 @@ export default function UserPage() {
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* UserDetailDrawer */}
+                <UserDetailDrawer
+                    isOpen={isDrawerOpen}
+                    onClose={() => {
+                        setIsDrawerOpen(false);
+                        setSelectedUser(null);
+                        setDrawerMode("view");
+                    }}
+                    user={selectedUser}
+                    mode={drawerMode}
+                    onRefresh={() => {
+                        mutate();
+                        // ปิด drawer หลังจากรีเฟรชข้อมูล
+                        setIsDrawerOpen(false);
+                        setSelectedUser(null);
+                        setDrawerMode("view");
+                    }}
+                />
             </div>
         </Suspense>
     );
