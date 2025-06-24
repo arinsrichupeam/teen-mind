@@ -27,6 +27,8 @@ import {
   DropdownItem,
   addToast,
   Chip,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 import {
   ChevronDownIcon,
@@ -59,6 +61,21 @@ const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   label: col.name,
   align: (col.align || "start") as "center" | "start" | "end",
 }));
+
+// ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
+const riskStatusOptions = [
+  { name: "พบความเสี่ยง", uid: "risk" },
+  { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
+];
+
+// ตัวเลือกสำหรับ filter สถานะ PHQA 5 ระดับ
+const phqaStatusOptions = [
+  { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
+  { name: "พบความเสี่ยงเล็กน้อย", uid: "low-risk" },
+  { name: "พบความเสี่ยงปานกลาง", uid: "medium-risk" },
+  { name: "พบความเสี่ยงมาก", uid: "high-risk" },
+  { name: "พบความเสี่ยงรุนแรง", uid: "severe-risk" },
+];
 
 const calculateAge = (birthday: string) => {
   const birthDate = new Date(birthday);
@@ -94,7 +111,32 @@ export default function QuestionPage() {
   const { data: session, status } = useSession();
   const [error] = useState("");
 
+  // เพิ่ม state สำหรับ filter ใหม่
+  const [schoolFilter, setSchoolFilter] = useState<string>("");
+  const [phqaFilter, setPhqaFilter] = useState<Selection>(new Set([]));
+  const [q2Filter, setQ2Filter] = useState<Selection>(new Set([]));
+  const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
+
   const hasSearchFilter = Boolean(filterValue);
+
+  // ดึงข้อมูลโรงเรียน
+  const { data: schoolsData } = useSWR(
+    "/api/data/school",
+    async (url) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch schools");
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching schools:", error);
+        return [];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
 
   const { data, mutate } = useSWR(
     "/api/question",
@@ -122,20 +164,84 @@ export default function QuestionPage() {
     }
   );
 
+  // ฟังก์ชันตรวจสอบสถานะความเสี่ยง
+  const hasRisk = useCallback((item: QuestionsData, type: 'phqa' | 'q2' | 'addon') => {
+    switch (type) {
+      case 'phqa':
+        if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+          return item.phqa[0].sum > 0;
+        }
+        return false;
+      case 'q2':
+        if (Array.isArray(item.q2) && item.q2.length > 0) {
+          const q2Data = item.q2[0];
+          return q2Data.q1 === 1 || q2Data.q2 === 1;
+        }
+        return false;
+      case 'addon':
+        if (Array.isArray(item.addon) && item.addon.length > 0) {
+          const addonData = item.addon[0];
+          return addonData.q1 === 1 || addonData.q2 === 1;
+        }
+        return false;
+      default:
+        return false;
+    }
+  }, []);
+
+  // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
+  const getPhqaRiskLevel = useCallback((item: QuestionsData) => {
+    if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+      const sum = item.phqa[0].sum;
+      if (sum === 0) return "no-risk";
+      if (sum <= 4) return "low-risk";
+      if (sum <= 9) return "medium-risk";
+      if (sum <= 14) return "high-risk";
+      return "severe-risk";
+    }
+    return "no-risk";
+  }, []);
+
   const filteredItems = useMemo(() => {
     if (!data) return [];
 
     return data.filter((val: QuestionsData) => {
+      // Filter ชื่อ
       const matchesSearch =
         !hasSearchFilter ||
         val.profile.firstname.toLowerCase().includes(filterValue.toLowerCase());
+      
+      // Filter สถานะ
       const matchesStatus =
         statusFilter === "all" ||
         Array.from(statusFilter).includes(val.status.toString());
+      
+      // Filter โรงเรียน
+      const matchesSchool = 
+        !schoolFilter ||
+        (val.profile.school && typeof val.profile.school === 'object' && 'name' in val.profile.school && (val.profile.school as any).name === schoolFilter);
+      
+      // Filter PHQA
+      const phqaRiskLevel = getPhqaRiskLevel(val);
+      const matchesPhqa = 
+        (phqaFilter as Set<string>).size === 0 ||
+        Array.from(phqaFilter as Set<string>).includes(phqaRiskLevel);
+      
+      // Filter 2Q
+      const matchesQ2 = 
+        (q2Filter as Set<string>).size === 0 ||
+        (Array.from(q2Filter as Set<string>).includes("risk") && hasRisk(val, 'q2')) ||
+        (Array.from(q2Filter as Set<string>).includes("no-risk") && !hasRisk(val, 'q2'));
+      
+      // Filter Addon
+      const matchesAddon = 
+        (addonFilter as Set<string>).size === 0 ||
+        (Array.from(addonFilter as Set<string>).includes("risk") && hasRisk(val, 'addon')) ||
+        (Array.from(addonFilter as Set<string>).includes("no-risk") && !hasRisk(val, 'addon'));
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesSchool && matchesPhqa && matchesQ2 && matchesAddon;
     });
-  }, [data, filterValue, statusFilter, hasSearchFilter]);
+  }, [data, filterValue, statusFilter, hasSearchFilter, schoolFilter, phqaFilter, q2Filter, addonFilter, hasRisk, getPhqaRiskLevel]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -198,12 +304,13 @@ export default function QuestionPage() {
 
   const topContent = useMemo(
     () => (
-      <div className="flex flex-col">
-        <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col gap-4">
+        {/* Search Bar และ Filter ทั้งหมด */}
+        <div className="flex flex-wrap gap-3 items-center">
           <Input
             isClearable
             classNames={{
-              base: "w-full",
+              base: "w-full sm:w-64",
               inputWrapper: "border-1 bg-white",
             }}
             placeholder="Search by name..."
@@ -216,13 +323,34 @@ export default function QuestionPage() {
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
+          
+          {/* โรงเรียน Filter */}
+          <Autocomplete
+            classNames={{
+              base: "w-full sm:w-64",
+            }}
+            placeholder="เลือกโรงเรียน"
+            size="md"
+            variant="bordered"
+            selectedKey={schoolFilter}
+            onSelectionChange={(key) => setSchoolFilter(key as string)}
+            onClear={() => setSchoolFilter("")}
+          >
+            {schoolsData?.map((school: any) => (
+              <AutocompleteItem key={school.name}>
+                {school.name}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+
+          {/* สถานะ Filter */}
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
               <Button
                 color="primary"
                 endContent={<ChevronDownIcon className="size-6" />}
-                size="sm"
-                variant="solid"
+                size="md"
+                variant="flat"
               >
                 สถานะ
               </Button>
@@ -242,10 +370,220 @@ export default function QuestionPage() {
               ))}
             </DropdownMenu>
           </Dropdown>
+
+          {/* PHQA Filter */}
+          <Dropdown>
+            <DropdownTrigger>
+              <Button
+                color="primary"
+                endContent={<ChevronDownIcon className="size-6" />}
+                size="md"
+                variant="flat"
+              >
+                PHQA
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="PHQA Filter"
+              closeOnSelect={false}
+              selectedKeys={phqaFilter}
+              selectionMode="multiple"
+              onSelectionChange={setPhqaFilter}
+            >
+              {phqaStatusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {status.name}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          {/* 2Q Filter */}
+          <Dropdown>
+            <DropdownTrigger>
+              <Button
+                color="primary"
+                endContent={<ChevronDownIcon className="size-6" />}
+                size="md"
+                variant="flat"
+              >
+                2Q
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="2Q Filter"
+              closeOnSelect={false}
+              selectedKeys={q2Filter}
+              selectionMode="multiple"
+              onSelectionChange={setQ2Filter}
+            >
+              {riskStatusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {status.name}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          {/* Addon Filter */}
+          <Dropdown>
+            <DropdownTrigger>
+              <Button
+                color="primary"
+                endContent={<ChevronDownIcon className="size-6" />}
+                size="md"
+                variant="flat"
+              >
+                Addon
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="Addon Filter"
+              closeOnSelect={false}
+              selectedKeys={addonFilter}
+              selectionMode="multiple"
+              onSelectionChange={setAddonFilter}
+            >
+              {riskStatusOptions.map((status) => (
+                <DropdownItem key={status.uid} className="capitalize">
+                  {status.name}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          {/* Clear All Filters */}
+          <Button
+            color="danger"
+            size="md"
+            variant="bordered"
+            onPress={() => {
+              setSchoolFilter("");
+              setPhqaFilter(new Set([]));
+              setQ2Filter(new Set([]));
+              setAddonFilter(new Set([]));
+            }}
+          >
+            ล้าง Filter
+          </Button>
         </div>
+
+        {/* แสดง Filter ที่เลือก */}
+        {(filterValue || schoolFilter || (statusFilter as Set<string>).size > 0 || (phqaFilter as Set<string>).size > 0 || (q2Filter as Set<string>).size > 0 || (addonFilter as Set<string>).size > 0) && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-small text-default-500">Filter :</span>
+            
+            {/* Search Filter */}
+            {filterValue && (
+              <Chip
+                color="default"
+                size="sm"
+                variant="flat"
+                onClose={() => setFilterValue("")}
+              >
+                ชื่อ: {filterValue}
+              </Chip>
+            )}
+
+            {/* School Filter */}
+            {schoolFilter && (
+              <Chip
+                color="default"
+                size="sm"
+                variant="flat"
+                onClose={() => setSchoolFilter("")}
+              >
+                โรงเรียน: {schoolFilter}
+              </Chip>
+            )}
+
+            {/* Status Filter */}
+            {(statusFilter as Set<string>).size > 0 && Array.from(statusFilter as Set<string>).map((status) => {
+              const statusOption = options.find(opt => opt.uid === status);
+              return (
+                <Chip
+                  key={status}
+                  color="default"
+                  size="sm"
+                  variant="flat"
+                  onClose={() => {
+                    const newStatusFilter = new Set(statusFilter as Set<string>);
+                    newStatusFilter.delete(status);
+                    setStatusFilter(newStatusFilter);
+                  }}
+                >
+                  สถานะ: {statusOption?.name}
+                </Chip>
+              );
+            })}
+
+            {/* PHQA Filter */}
+            {(phqaFilter as Set<string>).size > 0 && Array.from(phqaFilter as Set<string>).map((phqa) => {
+              const phqaOption = phqaStatusOptions.find(opt => opt.uid === phqa);
+              return (
+                <Chip
+                  key={phqa}
+                  color="default"
+                  size="sm"
+                  variant="flat"
+                  onClose={() => {
+                    const newPhqaFilter = new Set(phqaFilter as Set<string>);
+                    newPhqaFilter.delete(phqa);
+                    setPhqaFilter(newPhqaFilter);
+                  }}
+                >
+                  PHQA: {phqaOption?.name}
+                </Chip>
+              );
+            })}
+
+            {/* 2Q Filter */}
+            {(q2Filter as Set<string>).size > 0 && Array.from(q2Filter as Set<string>).map((q2) => {
+              const q2Option = riskStatusOptions.find(opt => opt.uid === q2);
+              return (
+                <Chip
+                  key={q2}
+                  color="default"
+                  size="sm"
+                  variant="flat"
+                  onClose={() => {
+                    const newQ2Filter = new Set(q2Filter as Set<string>);
+                    newQ2Filter.delete(q2);
+                    setQ2Filter(newQ2Filter);
+                  }}
+                >
+                  2Q: {q2Option?.name}
+                </Chip>
+              );
+            })}
+
+            {/* Addon Filter */}
+            {(addonFilter as Set<string>).size > 0 && Array.from(addonFilter as Set<string>).map((addon) => {
+              const addonOption = riskStatusOptions.find(opt => opt.uid === addon);
+              return (
+                <Chip
+                  key={addon}
+                  color="default"
+                  size="sm"
+                  variant="flat"
+                  onClose={() => {
+                    const newAddonFilter = new Set(addonFilter as Set<string>);
+                    newAddonFilter.delete(addon);
+                    setAddonFilter(newAddonFilter);
+                  }}
+                >
+                  Addon: {addonOption?.name}
+                </Chip>
+              );
+            })}
+          </div>
+        )}
       </div>
     ),
-    [filterValue, statusFilter, onSearchChange]
+    [filterValue, statusFilter, onSearchChange, schoolFilter, phqaFilter, q2Filter, addonFilter, schoolsData]
   );
 
   const bottomContent = useMemo(() => {
