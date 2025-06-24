@@ -205,14 +205,22 @@ export const ModalEditProfile = ({
 
       // แปลงวันเกิดเป็นรูปแบบ YYYY-MM-DD สำหรับ input type="date"
       let birthdayDate = "";
+
       if (data.profile.birthday) {
         try {
           const date = new Date(data.profile.birthday);
+
           if (!isNaN(date.getTime())) {
             birthdayDate = date.toISOString().split("T")[0];
           }
         } catch (error) {
-          console.error("Error parsing birthday:", error);
+          addToast({
+            title: "ผิดพลาด",
+            description:
+              "ไม่สามารถดึงข้อมูลจากระบบ" +
+              (error instanceof Error ? error.message : "ไม่ระบุข้อมูล"),
+            color: "danger",
+          });
         }
       }
 
@@ -408,14 +416,14 @@ export const ModalEditProfile = ({
             </div>
             <div className="flex flex-row gap-2">
               <DatePicker
+                isRequired={true}
+                label="วันเกิด"
+                size="sm"
                 value={
                   editProfileData.birthday
                     ? parseDate(editProfileData.birthday)
                     : null
                 }
-                isRequired={true}
-                label="วันเกิด"
-                size="sm"
                 variant="bordered"
                 onChange={(date: any) => {
                   if (date) {

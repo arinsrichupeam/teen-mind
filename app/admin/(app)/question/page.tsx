@@ -125,10 +125,19 @@ export default function QuestionPage() {
     async (url) => {
       try {
         const res = await fetch(url);
+
         if (!res.ok) throw new Error("Failed to fetch schools");
+
         return res.json();
       } catch (error) {
-        console.error("Error fetching schools:", error);
+        addToast({
+          title: "ผิดพลาด",
+          description:
+            "ไม่สามารถดึงข้อมูลจากระบบ" +
+            (error instanceof Error ? error.message : "ไม่ระบุข้อมูล"),
+          color: "danger",
+        });
+
         return [];
       }
     },
@@ -153,7 +162,15 @@ export default function QuestionPage() {
 
         return data.questionsList;
       } catch (error) {
-        throw error;
+        addToast({
+          title: "ผิดพลาด",
+          description:
+            "ไม่สามารถดึงข้อมูลจากระบบ" +
+            (error instanceof Error ? error.message : "ไม่ระบุข้อมูล"),
+          color: "danger",
+        });
+
+        return [];
       }
     },
     {
@@ -165,40 +182,51 @@ export default function QuestionPage() {
   );
 
   // ฟังก์ชันตรวจสอบสถานะความเสี่ยง
-  const hasRisk = useCallback((item: QuestionsData, type: 'phqa' | 'q2' | 'addon') => {
-    switch (type) {
-      case 'phqa':
-        if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-          return item.phqa[0].sum > 0;
-        }
-        return false;
-      case 'q2':
-        if (Array.isArray(item.q2) && item.q2.length > 0) {
-          const q2Data = item.q2[0];
-          return q2Data.q1 === 1 || q2Data.q2 === 1;
-        }
-        return false;
-      case 'addon':
-        if (Array.isArray(item.addon) && item.addon.length > 0) {
-          const addonData = item.addon[0];
-          return addonData.q1 === 1 || addonData.q2 === 1;
-        }
-        return false;
-      default:
-        return false;
-    }
-  }, []);
+  const hasRisk = useCallback(
+    (item: QuestionsData, type: "phqa" | "q2" | "addon") => {
+      switch (type) {
+        case "phqa":
+          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+            return item.phqa[0].sum > 0;
+          }
+
+          return false;
+        case "q2":
+          if (Array.isArray(item.q2) && item.q2.length > 0) {
+            const q2Data = item.q2[0];
+
+            return q2Data.q1 === 1 || q2Data.q2 === 1;
+          }
+
+          return false;
+        case "addon":
+          if (Array.isArray(item.addon) && item.addon.length > 0) {
+            const addonData = item.addon[0];
+
+            return addonData.q1 === 1 || addonData.q2 === 1;
+          }
+
+          return false;
+        default:
+          return false;
+      }
+    },
+    []
+  );
 
   // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
   const getPhqaRiskLevel = useCallback((item: QuestionsData) => {
     if (Array.isArray(item.phqa) && item.phqa.length > 0) {
       const sum = item.phqa[0].sum;
+
       if (sum === 0) return "no-risk";
       if (sum <= 4) return "low-risk";
       if (sum <= 9) return "medium-risk";
       if (sum <= 14) return "high-risk";
+
       return "severe-risk";
     }
+
     return "no-risk";
   }, []);
 
@@ -210,38 +238,63 @@ export default function QuestionPage() {
       const matchesSearch =
         !hasSearchFilter ||
         val.profile.firstname.toLowerCase().includes(filterValue.toLowerCase());
-      
+
       // Filter สถานะ
       const matchesStatus =
         statusFilter === "all" ||
         Array.from(statusFilter).includes(val.status.toString());
-      
+
       // Filter โรงเรียน
-      const matchesSchool = 
+      const matchesSchool =
         !schoolFilter ||
-        (val.profile.school && typeof val.profile.school === 'object' && 'name' in val.profile.school && (val.profile.school as any).name === schoolFilter);
-      
+        (val.profile.school &&
+          typeof val.profile.school === "object" &&
+          "name" in val.profile.school &&
+          (val.profile.school as any).name === schoolFilter);
+
       // Filter PHQA
       const phqaRiskLevel = getPhqaRiskLevel(val);
-      const matchesPhqa = 
+      const matchesPhqa =
         (phqaFilter as Set<string>).size === 0 ||
         Array.from(phqaFilter as Set<string>).includes(phqaRiskLevel);
-      
-      // Filter 2Q
-      const matchesQ2 = 
-        (q2Filter as Set<string>).size === 0 ||
-        (Array.from(q2Filter as Set<string>).includes("risk") && hasRisk(val, 'q2')) ||
-        (Array.from(q2Filter as Set<string>).includes("no-risk") && !hasRisk(val, 'q2'));
-      
-      // Filter Addon
-      const matchesAddon = 
-        (addonFilter as Set<string>).size === 0 ||
-        (Array.from(addonFilter as Set<string>).includes("risk") && hasRisk(val, 'addon')) ||
-        (Array.from(addonFilter as Set<string>).includes("no-risk") && !hasRisk(val, 'addon'));
 
-      return matchesSearch && matchesStatus && matchesSchool && matchesPhqa && matchesQ2 && matchesAddon;
+      // Filter 2Q
+      const matchesQ2 =
+        (q2Filter as Set<string>).size === 0 ||
+        (Array.from(q2Filter as Set<string>).includes("risk") &&
+          hasRisk(val, "q2")) ||
+        (Array.from(q2Filter as Set<string>).includes("no-risk") &&
+          !hasRisk(val, "q2"));
+
+      // Filter Addon
+      const matchesAddon =
+        (addonFilter as Set<string>).size === 0 ||
+        (Array.from(addonFilter as Set<string>).includes("risk") &&
+          hasRisk(val, "addon")) ||
+        (Array.from(addonFilter as Set<string>).includes("no-risk") &&
+          !hasRisk(val, "addon"));
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesSchool &&
+        matchesPhqa &&
+        matchesQ2 &&
+        matchesAddon
+      );
     });
-  }, [data, filterValue, statusFilter, hasSearchFilter, schoolFilter, phqaFilter, q2Filter, addonFilter, hasRisk, getPhqaRiskLevel]);
+  }, [
+    data,
+    filterValue,
+    statusFilter,
+    hasSearchFilter,
+    schoolFilter,
+    phqaFilter,
+    q2Filter,
+    addonFilter,
+    hasRisk,
+    getPhqaRiskLevel,
+  ]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -323,18 +376,18 @@ export default function QuestionPage() {
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          
+
           {/* โรงเรียน Filter */}
           <Autocomplete
             classNames={{
               base: "w-full sm:w-64",
             }}
             placeholder="เลือกโรงเรียน"
+            selectedKey={schoolFilter}
             size="md"
             variant="bordered"
-            selectedKey={schoolFilter}
-            onSelectionChange={(key) => setSchoolFilter(key as string)}
             onClear={() => setSchoolFilter("")}
+            onSelectionChange={(key) => setSchoolFilter(key as string)}
           >
             {schoolsData?.map((school: any) => (
               <AutocompleteItem key={school.name}>
@@ -472,10 +525,15 @@ export default function QuestionPage() {
         </div>
 
         {/* แสดง Filter ที่เลือก */}
-        {(filterValue || schoolFilter || (statusFilter as Set<string>).size > 0 || (phqaFilter as Set<string>).size > 0 || (q2Filter as Set<string>).size > 0 || (addonFilter as Set<string>).size > 0) && (
+        {(filterValue ||
+          schoolFilter ||
+          (statusFilter as Set<string>).size > 0 ||
+          (phqaFilter as Set<string>).size > 0 ||
+          (q2Filter as Set<string>).size > 0 ||
+          (addonFilter as Set<string>).size > 0) && (
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-small text-default-500">Filter :</span>
-            
+
             {/* Search Filter */}
             {filterValue && (
               <Chip
@@ -501,89 +559,120 @@ export default function QuestionPage() {
             )}
 
             {/* Status Filter */}
-            {(statusFilter as Set<string>).size > 0 && Array.from(statusFilter as Set<string>).map((status) => {
-              const statusOption = options.find(opt => opt.uid === status);
-              return (
-                <Chip
-                  key={status}
-                  color="default"
-                  size="sm"
-                  variant="flat"
-                  onClose={() => {
-                    const newStatusFilter = new Set(statusFilter as Set<string>);
-                    newStatusFilter.delete(status);
-                    setStatusFilter(newStatusFilter);
-                  }}
-                >
-                  สถานะ: {statusOption?.name}
-                </Chip>
-              );
-            })}
+            {(statusFilter as Set<string>).size > 0 &&
+              Array.from(statusFilter as Set<string>).map((status) => {
+                const statusOption = options.find((opt) => opt.uid === status);
+
+                return (
+                  <Chip
+                    key={status}
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const newStatusFilter = new Set(
+                        statusFilter as Set<string>
+                      );
+
+                      newStatusFilter.delete(status);
+                      setStatusFilter(newStatusFilter);
+                    }}
+                  >
+                    สถานะ: {statusOption?.name}
+                  </Chip>
+                );
+              })}
 
             {/* PHQA Filter */}
-            {(phqaFilter as Set<string>).size > 0 && Array.from(phqaFilter as Set<string>).map((phqa) => {
-              const phqaOption = phqaStatusOptions.find(opt => opt.uid === phqa);
-              return (
-                <Chip
-                  key={phqa}
-                  color="default"
-                  size="sm"
-                  variant="flat"
-                  onClose={() => {
-                    const newPhqaFilter = new Set(phqaFilter as Set<string>);
-                    newPhqaFilter.delete(phqa);
-                    setPhqaFilter(newPhqaFilter);
-                  }}
-                >
-                  PHQA: {phqaOption?.name}
-                </Chip>
-              );
-            })}
+            {(phqaFilter as Set<string>).size > 0 &&
+              Array.from(phqaFilter as Set<string>).map((phqa) => {
+                const phqaOption = phqaStatusOptions.find(
+                  (opt) => opt.uid === phqa
+                );
+
+                return (
+                  <Chip
+                    key={phqa}
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const newPhqaFilter = new Set(phqaFilter as Set<string>);
+
+                      newPhqaFilter.delete(phqa);
+                      setPhqaFilter(newPhqaFilter);
+                    }}
+                  >
+                    PHQA: {phqaOption?.name}
+                  </Chip>
+                );
+              })}
 
             {/* 2Q Filter */}
-            {(q2Filter as Set<string>).size > 0 && Array.from(q2Filter as Set<string>).map((q2) => {
-              const q2Option = riskStatusOptions.find(opt => opt.uid === q2);
-              return (
-                <Chip
-                  key={q2}
-                  color="default"
-                  size="sm"
-                  variant="flat"
-                  onClose={() => {
-                    const newQ2Filter = new Set(q2Filter as Set<string>);
-                    newQ2Filter.delete(q2);
-                    setQ2Filter(newQ2Filter);
-                  }}
-                >
-                  2Q: {q2Option?.name}
-                </Chip>
-              );
-            })}
+            {(q2Filter as Set<string>).size > 0 &&
+              Array.from(q2Filter as Set<string>).map((q2) => {
+                const q2Option = riskStatusOptions.find(
+                  (opt) => opt.uid === q2
+                );
+
+                return (
+                  <Chip
+                    key={q2}
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const newQ2Filter = new Set(q2Filter as Set<string>);
+
+                      newQ2Filter.delete(q2);
+                      setQ2Filter(newQ2Filter);
+                    }}
+                  >
+                    2Q: {q2Option?.name}
+                  </Chip>
+                );
+              })}
 
             {/* Addon Filter */}
-            {(addonFilter as Set<string>).size > 0 && Array.from(addonFilter as Set<string>).map((addon) => {
-              const addonOption = riskStatusOptions.find(opt => opt.uid === addon);
-              return (
-                <Chip
-                  key={addon}
-                  color="default"
-                  size="sm"
-                  variant="flat"
-                  onClose={() => {
-                    const newAddonFilter = new Set(addonFilter as Set<string>);
-                    newAddonFilter.delete(addon);
-                    setAddonFilter(newAddonFilter);
-                  }}
-                >
-                  Addon: {addonOption?.name}
-                </Chip>
-              );
-            })}
+            {(addonFilter as Set<string>).size > 0 &&
+              Array.from(addonFilter as Set<string>).map((addon) => {
+                const addonOption = riskStatusOptions.find(
+                  (opt) => opt.uid === addon
+                );
+
+                return (
+                  <Chip
+                    key={addon}
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const newAddonFilter = new Set(
+                        addonFilter as Set<string>
+                      );
+
+                      newAddonFilter.delete(addon);
+                      setAddonFilter(newAddonFilter);
+                    }}
+                  >
+                    Addon: {addonOption?.name}
+                  </Chip>
+                );
+              })}
           </div>
         )}
       </div>
     ),
-    [filterValue, statusFilter, onSearchChange, schoolFilter, phqaFilter, q2Filter, addonFilter, schoolsData]
+    [
+      filterValue,
+      statusFilter,
+      onSearchChange,
+      schoolFilter,
+      phqaFilter,
+      q2Filter,
+      addonFilter,
+      schoolsData,
+    ]
   );
 
   const bottomContent = useMemo(() => {

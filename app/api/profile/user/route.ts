@@ -50,8 +50,8 @@ export async function GET() {
           result_text: true,
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: "desc",
+        },
       },
       address: true,
       emergency: true,
