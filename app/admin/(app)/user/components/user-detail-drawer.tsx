@@ -17,6 +17,7 @@ import { PencilIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { prefix } from "@/utils/data";
 import { useEffect, useState } from "react";
 import { ModalEditProfile } from "../../components/modal/modal-edit-profile";
+import { ModalAddQuestion } from "../../components/modal/modal-add-question";
 
 interface Provinces {
     id: number;
@@ -90,6 +91,7 @@ export default function UserDetailDrawer({
     const [districts, setDistricts] = useState<Districts[]>([]);
     const [subdistricts, setSubdistricts] = useState<Subdistricts[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -240,17 +242,21 @@ export default function UserDetailDrawer({
                                 <h4 className="text-md font-semibold mb-3 text-primary">
                                     ข้อมูลแบบสอบถาม
                                 </h4>
-                                <Button
-                                    startContent={<PlusIcon className="size-6 text-success-500" />}
-                                    size="md"
-                                    variant="flat"
-                                    color="success"
-                                    onClick={() => {
-                                        console.log("add");
-                                    }}
-                                >
-                                    เพิ่มแบบสอบถาม
-                                </Button>
+                                {
+                                    mode === "edit" && (
+                                        <Button
+                                            startContent={<PlusIcon className="size-6 text-success-500" />}
+                                            size="md"
+                                            variant="flat"
+                                            color="success"
+                                            onClick={() => {
+                                                setIsAddQuestionModalOpen(true);
+                                            }}
+                                        >
+                                            เพิ่มแบบทดสอบ
+                                        </Button>
+                                    )
+                                }
                             </div>
 
                             <div className="flex justify-between items-center">
@@ -348,13 +354,26 @@ export default function UserDetailDrawer({
                     profile: {
                         ...user,
                         // แปลง address เป็น array ตามที่ ModalEditProfile คาดหวัง
-                        address: user.address ? 
+                        address: user.address ?
                             (Array.isArray(user.address) ? user.address : [user.address]) : [],
                         // แปลง emergency เป็น array ตามที่ ModalEditProfile คาดหวัง
-                        emergency: user.emergency ? 
+                        emergency: user.emergency ?
                             (Array.isArray(user.emergency) ? user.emergency : [user.emergency]) : []
                     }
                 }}
+                onSuccess={() => {
+                    // รีเฟรชข้อมูลหลังจากบันทึกสำเร็จ
+                    if (onRefresh) {
+                        onRefresh();
+                    }
+                }}
+            />
+            <ModalAddQuestion
+                isOpen={isAddQuestionModalOpen}
+                onClose={() => {
+                    setIsAddQuestionModalOpen(false);
+                }}
+                userId={user.id}
                 onSuccess={() => {
                     // รีเฟรชข้อมูลหลังจากบันทึกสำเร็จ
                     if (onRefresh) {
