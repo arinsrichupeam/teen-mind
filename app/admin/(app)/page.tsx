@@ -19,6 +19,23 @@ import { CardSchoolStats } from "./components/home/card-school-stats";
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 
+// Temporary Profile type with userId
+interface ProfileWithUserId {
+  id: string;
+  firstname: string;
+  lastname: string;
+  prefixId: string;
+  sex: string;
+  birthday: string;
+  ethnicity: string;
+  nationality: string;
+  citizenId: string;
+  tel: string;
+  school: any; // Keeping it simple for now
+  hn: string;
+  userId?: string | null;
+}
+
 const fetchQuestions = async () => {
   const res = await fetch("/api/question");
   const data = await res.json();
@@ -35,14 +52,7 @@ const fetchNewMembers = async () => {
 
 const fetchUsers = async () => {
   const res = await fetch("/api/profile/user");
-  const data = await res.json();
-
-  return data;
-};
-
-const fetchManualUsers = async () => {
-  const res = await fetch("/api/profile/manual");
-  const data = await res.json();
+  const data: ProfileWithUserId[] = await res.json();
 
   return data;
 };
@@ -76,18 +86,15 @@ export default function AdminHome() {
     queryFn: fetchNewMembers,
   });
 
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: allProfiles = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
   });
 
-  const { data: manualUsers = [], isLoading: isLoadingManualUsers } = useQuery({
-    queryKey: ["manualUsers"],
-    queryFn: fetchManualUsers,
-  });
-
   const questions = filterLatestQuestions(rawQuestions);
-  const allProfiles = [...users, ...manualUsers];
+
+  const appUsers = allProfiles.filter((p) => p.userId);
+  const manualUsers = allProfiles.filter((p) => !p.userId);
 
   const greenQuestions = questions.filter(
     (q: QuestionsData) => q.result === "Green"
@@ -169,12 +176,7 @@ export default function AdminHome() {
     }
   );
 
-  if (
-    isLoadingQuestions ||
-    isLoadingMembers ||
-    isLoadingUsers ||
-    isLoadingManualUsers
-  ) {
+  if (isLoadingQuestions || isLoadingMembers || isLoadingUsers) {
     return <></>;
   }
 
@@ -189,7 +191,7 @@ export default function AdminHome() {
               <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2  justify-center w-full">
                 <CardCaseTotal data={rawQuestions} />
                 <CardTotal data={allProfiles} />
-                <CardTotalUser data={users} />
+                <CardTotalUser data={appUsers} />
                 <CardTotalManual data={manualUsers} />
               </div>
             </div>

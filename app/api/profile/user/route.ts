@@ -40,9 +40,12 @@ export async function PATCH(req: Request) {
 
 export async function GET() {
   const users = await prisma.profile.findMany({
-    where: {
-      userId: {
-        not: null,
+    include: {
+      school: true,
+      questions: {
+        select: {
+          id: true,
+        },
       },
     },
   });

@@ -97,7 +97,13 @@ export const SidebarWrapper = () => {
                     href="/admin/members"
                     icon={<UserGroupIcon className="size-6" />}
                     isActive={pathname === "/admin/members"}
-                    title="ผู้ใช้งาน"
+                    title="ผู้ใช้งาน (Admin)"
+                  />
+                  <SidebarItem
+                    href="/admin/user"
+                    icon={<UserGroupIcon className="size-6" />}
+                    isActive={pathname === "/admin/user"}
+                    title="ผู้ใช้งาน (User)"
                   />
                   <SidebarItem
                     href="/admin/school"
