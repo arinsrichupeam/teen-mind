@@ -12,6 +12,7 @@ import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Suspense, useEffect, useState } from "react";
+import { CalculatorIcon } from "@heroicons/react/24/outline";
 
 import { ProfileAdminDataInitData } from "../../../../../types/initData";
 
@@ -121,6 +122,11 @@ export const SidebarWrapper = () => {
                     icon={<MapIcon className="size-6" />}
                     isActive={pathname === "/admin/area"}
                     title="พื้นที่อยู่อาศัย"
+                  />
+                  <SidebarItem
+                    icon={<CalculatorIcon className="size-6" />}
+                    isActive={pathname === "/admin/recalculate-phqa"}
+                    title="คำนวณคะแนน PHQA"
                   />
                 </SidebarMenu>
               ) : (

@@ -20,7 +20,6 @@ import {
   TableRow,
   useDisclosure,
   Selection,
-  Input,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
@@ -28,20 +27,14 @@ import {
   addToast,
   Chip,
 } from "@heroui/react";
-import {
-  ChevronDownIcon,
-  MagnifyingGlassIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
-import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
 import { QuestionColumnsName } from "../data/tableColumn";
+import { QuestionFilterContent } from "../components/question/question-filter-content";
 
 import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
@@ -93,7 +86,59 @@ export default function MyCasePage() {
   const { data: session, status } = useSession();
   const [error] = useState("");
 
+  // เพิ่ม state สำหรับ filter ใหม่
+  const [schoolFilter, setSchoolFilter] = useState<string>("");
+  const [phqaFilter, setPhqaFilter] = useState<Selection>(new Set([]));
+  const [q2Filter, setQ2Filter] = useState<Selection>(new Set([]));
+  const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
+
   const hasSearchFilter = Boolean(filterValue);
+
+  // ฟังก์ชันตรวจสอบสถานะความเสี่ยง
+  const hasRisk = useCallback((item: any, type: "phqa" | "q2" | "addon") => {
+    switch (type) {
+      case "phqa":
+        if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+          return item.phqa[0].sum > 0;
+        }
+
+        return false;
+      case "q2":
+        if (Array.isArray(item.q2) && item.q2.length > 0) {
+          const q2Data = item.q2[0];
+
+          return q2Data.q1 === 1 || q2Data.q2 === 1;
+        }
+
+        return false;
+      case "addon":
+        if (Array.isArray(item.addon) && item.addon.length > 0) {
+          const addonData = item.addon[0];
+
+          return addonData.q1 === 1 || addonData.q2 === 1;
+        }
+
+        return false;
+      default:
+        return false;
+    }
+  }, []);
+
+  // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
+  const getPhqaRiskLevel = useCallback((item: any) => {
+    if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+      const sum = item.phqa[0].sum;
+
+      if (sum === 0) return "no-risk";
+      if (sum <= 4) return "low-risk";
+      if (sum <= 9) return "medium-risk";
+      if (sum <= 14) return "high-risk";
+
+      return "severe-risk";
+    }
+
+    return "no-risk";
+  }, []);
 
   const { data, mutate } = useSWR(
     "/api/question",
@@ -142,11 +187,60 @@ export default function MyCasePage() {
         statusFilter === "all" ||
         Array.from(statusFilter).includes(val.status?.toString());
 
-      return matchesSearch && matchesStatus;
+      // Filter โรงเรียน
+      const matchesSchool =
+        !schoolFilter ||
+        (val.profile.school &&
+          typeof val.profile.school === "object" &&
+          "name" in val.profile.school &&
+          (val.profile.school as any).name === schoolFilter);
+
+      // Filter PHQA
+      const phqaRiskLevel = getPhqaRiskLevel(val);
+      const matchesPhqa =
+        (phqaFilter as Set<string>).size === 0 ||
+        Array.from(phqaFilter as Set<string>).includes(phqaRiskLevel);
+
+      // Filter 2Q
+      const matchesQ2 =
+        (q2Filter as Set<string>).size === 0 ||
+        (Array.from(q2Filter as Set<string>).includes("risk") &&
+          hasRisk(val, "q2")) ||
+        (Array.from(q2Filter as Set<string>).includes("no-risk") &&
+          !hasRisk(val, "q2"));
+
+      // Filter Addon
+      const matchesAddon =
+        (addonFilter as Set<string>).size === 0 ||
+        (Array.from(addonFilter as Set<string>).includes("risk") &&
+          hasRisk(val, "addon")) ||
+        (Array.from(addonFilter as Set<string>).includes("no-risk") &&
+          !hasRisk(val, "addon"));
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesSchool &&
+        matchesPhqa &&
+        matchesQ2 &&
+        matchesAddon
+      );
     });
 
     return finalFiltered;
-  }, [data, filterValue, statusFilter, hasSearchFilter, session?.user?.id]);
+  }, [
+    data,
+    filterValue,
+    statusFilter,
+    hasSearchFilter,
+    session?.user?.id,
+    schoolFilter,
+    phqaFilter,
+    q2Filter,
+    addonFilter,
+    hasRisk,
+    getPhqaRiskLevel,
+  ]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -211,54 +305,35 @@ export default function MyCasePage() {
 
   const topContent = useMemo(
     () => (
-      <div className="flex flex-col">
-        <div className="flex justify-between items-center gap-3">
-          <Input
-            isClearable
-            classNames={{
-              base: "w-full",
-              inputWrapper: "border-1 bg-white",
-            }}
-            placeholder="Search by name..."
-            size="md"
-            startContent={
-              <MagnifyingGlassIcon className="size-6 text-default-400" />
-            }
-            value={filterValue}
-            variant="bordered"
-            onClear={() => setFilterValue("")}
-            onValueChange={onSearchChange}
-          />
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="sm"
-                variant="solid"
-              >
-                สถานะ
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              selectedKeys={statusFilter}
-              selectionMode="multiple"
-              onSelectionChange={setStatusFilter}
-            >
-              {options.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
-        </div>
-      </div>
+      <QuestionFilterContent
+        addonFilter={addonFilter}
+        filterValue={filterValue}
+        phqaFilter={phqaFilter}
+        q2Filter={q2Filter}
+        schoolFilter={schoolFilter}
+        setAddonFilter={setAddonFilter}
+        setPhqaFilter={setPhqaFilter}
+        setQ2Filter={setQ2Filter}
+        setSchoolFilter={setSchoolFilter}
+        setStatusFilter={setStatusFilter}
+        statusFilter={statusFilter}
+        onSearchChange={onSearchChange}
+      />
     ),
-    [filterValue, statusFilter, onSearchChange]
+    [
+      filterValue,
+      onSearchChange,
+      statusFilter,
+      setStatusFilter,
+      schoolFilter,
+      setSchoolFilter,
+      phqaFilter,
+      setPhqaFilter,
+      q2Filter,
+      setQ2Filter,
+      addonFilter,
+      setAddonFilter,
+    ]
   );
 
   const bottomContent = useMemo(() => {
@@ -422,7 +497,7 @@ export default function MyCasePage() {
             </div>
           );
         case "result":
-          let resultText = item.result_text || item.result || "-";
+          let resultText = item.result_text;
 
           return (
             <Chip
@@ -445,8 +520,44 @@ export default function MyCasePage() {
             </Chip>
           );
         case "phqa":
-          if (Array.isArray(cellValue) && cellValue.length > 0) {
-            return cellValue[0].sum || "-";
+          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+            return item.phqa[0].sum;
+          }
+
+          return "-";
+        case "2q":
+          if (Array.isArray(item.q2) && item.q2.length > 0) {
+            const q2Data = item.q2[0];
+            const hasRisk = q2Data.q1 === 1 || q2Data.q2 === 1;
+
+            return (
+              <Chip
+                className="capitalize"
+                color={hasRisk ? "danger" : "success"}
+                size="sm"
+                variant="flat"
+              >
+                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+              </Chip>
+            );
+          }
+
+          return "-";
+        case "addon":
+          if (Array.isArray(item.addon) && item.addon.length > 0) {
+            const addonData = item.addon[0];
+            const hasRisk = addonData.q1 === 1 || addonData.q2 === 1;
+
+            return (
+              <Chip
+                className="capitalize"
+                color={hasRisk ? "danger" : "success"}
+                size="sm"
+                variant="flat"
+              >
+                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+              </Chip>
+            );
           }
 
           return "-";

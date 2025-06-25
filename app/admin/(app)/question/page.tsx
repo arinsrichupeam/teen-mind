@@ -20,31 +20,21 @@ import {
   TableRow,
   useDisclosure,
   Selection,
-  Input,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
   addToast,
   Chip,
-  Autocomplete,
-  AutocompleteItem,
 } from "@heroui/react";
-import {
-  ChevronDownIcon,
-  MagnifyingGlassIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
-import { questionStatusOptions as options } from "../data/optionData";
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
 import { QuestionColumnsName } from "../data/tableColumn";
-import { RecalculatePHQA } from "../components/recalculate-phqa";
+import { QuestionFilterContent } from "../components/question/question-filter-content";
 
 import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
@@ -61,21 +51,6 @@ const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   label: col.name,
   align: (col.align || "start") as "center" | "start" | "end",
 }));
-
-// ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
-const riskStatusOptions = [
-  { name: "พบความเสี่ยง", uid: "risk" },
-  { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
-];
-
-// ตัวเลือกสำหรับ filter สถานะ PHQA 5 ระดับ
-const phqaStatusOptions = [
-  { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
-  { name: "พบความเสี่ยงเล็กน้อย", uid: "low-risk" },
-  { name: "พบความเสี่ยงปานกลาง", uid: "medium-risk" },
-  { name: "พบความเสี่ยงมาก", uid: "high-risk" },
-  { name: "พบความเสี่ยงรุนแรง", uid: "severe-risk" },
-];
 
 const calculateAge = (birthday: string) => {
   const birthDate = new Date(birthday);
@@ -118,34 +93,6 @@ export default function QuestionPage() {
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
 
   const hasSearchFilter = Boolean(filterValue);
-
-  // ดึงข้อมูลโรงเรียน
-  const { data: schoolsData } = useSWR(
-    "/api/data/school",
-    async (url) => {
-      try {
-        const res = await fetch(url);
-
-        if (!res.ok) throw new Error("Failed to fetch schools");
-
-        return res.json();
-      } catch (error) {
-        addToast({
-          title: "ผิดพลาด",
-          description:
-            "ไม่สามารถดึงข้อมูลจากระบบ" +
-            (error instanceof Error ? error.message : "ไม่ระบุข้อมูล"),
-          color: "danger",
-        });
-
-        return [];
-      }
-    },
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 5000,
-    }
-  );
 
   const { data, mutate } = useSWR(
     "/api/question",
@@ -355,371 +302,6 @@ export default function QuestionPage() {
     [filterValue]
   );
 
-  const topContent = useMemo(
-    () => (
-      <div className="flex flex-col gap-4 w-full">
-        {/* Search Bar และ Filter ทั้งหมด */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-center w-full">
-          <Input
-            isClearable
-            classNames={{
-              base: "w-full sm:w-64 flex-1",
-              inputWrapper: "border-1 bg-white",
-            }}
-            placeholder="Search by name..."
-            size="md"
-            startContent={
-              <MagnifyingGlassIcon className="size-6 text-default-400" />
-            }
-            value={filterValue}
-            variant="bordered"
-            onClear={() => setFilterValue("")}
-            onValueChange={onSearchChange}
-          />
-
-          {/* โรงเรียน Filter */}
-          <Autocomplete
-            classNames={{
-              base: "w-full sm:w-64 flex-1",
-            }}
-            placeholder="เลือกโรงเรียน"
-            selectedKey={schoolFilter}
-            size="md"
-            variant="bordered"
-            onClear={() => setSchoolFilter("")}
-            onSelectionChange={(key) => setSchoolFilter(key as string)}
-          >
-            {schoolsData?.map((school: any) => (
-              <AutocompleteItem key={school.name}>
-                {school.name}
-              </AutocompleteItem>
-            ))}
-          </Autocomplete>
-
-          {/* สถานะ Filter (ซ่อนใน mobile) */}
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="md"
-                variant="flat"
-              >
-                สถานะ
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              selectedKeys={statusFilter}
-              selectionMode="multiple"
-              onSelectionChange={setStatusFilter}
-            >
-              {options.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
-
-          {/* กลุ่มปุ่ม PHQA, 2Q, Addon ให้อยู่บรรทัดเดียวกันใน mobile */}
-          <div className="flex flex-row gap-2 w-full sm:w-auto">
-            {/* PHQA Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                  className="w-full"
-                >
-                  PHQA
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="PHQA Filter"
-                closeOnSelect={false}
-                selectedKeys={phqaFilter}
-                selectionMode="multiple"
-                onSelectionChange={setPhqaFilter}
-              >
-                {phqaStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            {/* 2Q Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                  className="w-full"
-                >
-                  2Q
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="2Q Filter"
-                closeOnSelect={false}
-                selectedKeys={q2Filter}
-                selectionMode="multiple"
-                onSelectionChange={setQ2Filter}
-              >
-                {riskStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            {/* Addon Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                  className="w-full"
-                >
-                  Addon
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Addon Filter"
-                closeOnSelect={false}
-                selectedKeys={addonFilter}
-                selectionMode="multiple"
-                onSelectionChange={setAddonFilter}
-              >
-                {riskStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-
-          {/* Clear All Filters */}
-          <Button
-            color="danger"
-            size="md"
-            variant="bordered"
-            onPress={() => {
-              setSchoolFilter("");
-              setPhqaFilter(new Set([]));
-              setQ2Filter(new Set([]));
-              setAddonFilter(new Set([]));
-            }}
-            className="w-full sm:w-auto"
-          >
-            ล้าง Filter
-          </Button>
-        </div>
-
-        {/* แสดง Filter ที่เลือก */}
-        {(filterValue ||
-          schoolFilter ||
-          (statusFilter as Set<string>).size > 0 ||
-          (phqaFilter as Set<string>).size > 0 ||
-          (q2Filter as Set<string>).size > 0 ||
-          (addonFilter as Set<string>).size > 0) && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-small text-default-500">Filter :</span>
-
-            {/* Search Filter */}
-            {filterValue && (
-              <Chip
-                color="default"
-                size="sm"
-                variant="flat"
-                onClose={() => setFilterValue("")}
-              >
-                ชื่อ: {filterValue}
-              </Chip>
-            )}
-
-            {/* School Filter */}
-            {schoolFilter && (
-              <Chip
-                color="default"
-                size="sm"
-                variant="flat"
-                onClose={() => setSchoolFilter("")}
-              >
-                โรงเรียน: {schoolFilter}
-              </Chip>
-            )}
-
-            {/* Status Filter */}
-            {(statusFilter as Set<string>).size > 0 &&
-              Array.from(statusFilter as Set<string>).map((status) => {
-                const statusOption = options.find((opt) => opt.uid === status);
-
-                return (
-                  <Chip
-                    key={status}
-                    color="default"
-                    size="sm"
-                    variant="flat"
-                    onClose={() => {
-                      const newStatusFilter = new Set(
-                        statusFilter as Set<string>
-                      );
-
-                      newStatusFilter.delete(status);
-                      setStatusFilter(newStatusFilter);
-                    }}
-                  >
-                    สถานะ: {statusOption?.name}
-                  </Chip>
-                );
-              })}
-
-            {/* PHQA Filter */}
-            {(phqaFilter as Set<string>).size > 0 &&
-              Array.from(phqaFilter as Set<string>).map((phqa) => {
-                const phqaOption = phqaStatusOptions.find(
-                  (opt) => opt.uid === phqa
-                );
-
-                return (
-                  <Chip
-                    key={phqa}
-                    color="default"
-                    size="sm"
-                    variant="flat"
-                    onClose={() => {
-                      const newPhqaFilter = new Set(phqaFilter as Set<string>);
-
-                      newPhqaFilter.delete(phqa);
-                      setPhqaFilter(newPhqaFilter);
-                    }}
-                  >
-                    PHQA: {phqaOption?.name}
-                  </Chip>
-                );
-              })}
-
-            {/* 2Q Filter */}
-            {(q2Filter as Set<string>).size > 0 &&
-              Array.from(q2Filter as Set<string>).map((q2) => {
-                const q2Option = riskStatusOptions.find(
-                  (opt) => opt.uid === q2
-                );
-
-                return (
-                  <Chip
-                    key={q2}
-                    color="default"
-                    size="sm"
-                    variant="flat"
-                    onClose={() => {
-                      const newQ2Filter = new Set(q2Filter as Set<string>);
-
-                      newQ2Filter.delete(q2);
-                      setQ2Filter(newQ2Filter);
-                    }}
-                  >
-                    2Q: {q2Option?.name}
-                  </Chip>
-                );
-              })}
-
-            {/* Addon Filter */}
-            {(addonFilter as Set<string>).size > 0 &&
-              Array.from(addonFilter as Set<string>).map((addon) => {
-                const addonOption = riskStatusOptions.find(
-                  (opt) => opt.uid === addon
-                );
-
-                return (
-                  <Chip
-                    key={addon}
-                    color="default"
-                    size="sm"
-                    variant="flat"
-                    onClose={() => {
-                      const newAddonFilter = new Set(
-                        addonFilter as Set<string>
-                      );
-
-                      newAddonFilter.delete(addon);
-                      setAddonFilter(newAddonFilter);
-                    }}
-                  >
-                    Addon: {addonOption?.name}
-                  </Chip>
-                );
-              })}
-          </div>
-        )}
-      </div>
-    ),
-    [
-      filterValue,
-      statusFilter,
-      onSearchChange,
-      schoolFilter,
-      phqaFilter,
-      q2Filter,
-      addonFilter,
-      schoolsData,
-    ]
-  );
-
-  const bottomContent = useMemo(() => {
-    return (
-      <div>
-        <div className="flex justify-center">
-          <Pagination
-            isCompact
-            showControls
-            showShadow
-            color="primary"
-            page={page}
-            total={pages}
-            onChange={(page) => setPage(page)}
-          />
-        </div>
-        <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
-          <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({filteredItems.length} รายการ)
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-default-400 text-small" />
-            <label className="flex items-center text-default-400 text-small">
-              แสดงต่อหน้า:
-              <select
-                className="bg-transparent outline-none text-default-400 text-small"
-                defaultValue={rowsPerPage}
-                onChange={onRowsPerPageChange}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-              </select>
-            </label>
-          </div>
-        </div>
-      </div>
-    );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
-
   const onRowDetailPress = useCallback(
     (e: any) => {
       fetch("/api/question/" + e)
@@ -889,23 +471,6 @@ export default function QuestionPage() {
 
           return "-";
 
-        // case "phqa-9":
-        //   if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-        //     const phqaData = item.phqa[0];
-        //     const hasRisk = phqaData.q9 > 0;
-        //     return (
-        //       <Chip
-        //         className="capitalize"
-        //         color={hasRisk ? "danger" : "success"}
-        //         size="sm"
-        //         variant="flat"
-        //       >
-        //         {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
-        //       </Chip>
-        //     );
-        //   }
-        //   return "-";
-
         case "addon":
           if (Array.isArray(item.addon) && item.addon.length > 0) {
             const addonData = item.addon[0];
@@ -1044,15 +609,82 @@ export default function QuestionPage() {
     ]
   );
 
+  const topContent = useMemo(
+    () => (
+      <QuestionFilterContent
+        addonFilter={addonFilter}
+        filterValue={filterValue}
+        phqaFilter={phqaFilter}
+        q2Filter={q2Filter}
+        schoolFilter={schoolFilter}
+        setAddonFilter={setAddonFilter}
+        setPhqaFilter={setPhqaFilter}
+        setQ2Filter={setQ2Filter}
+        setSchoolFilter={setSchoolFilter}
+        setStatusFilter={setStatusFilter}
+        statusFilter={statusFilter}
+        onSearchChange={onSearchChange}
+      />
+    ),
+    [
+      filterValue,
+      onSearchChange,
+      statusFilter,
+      setStatusFilter,
+      schoolFilter,
+      setSchoolFilter,
+      phqaFilter,
+      setPhqaFilter,
+      q2Filter,
+      setQ2Filter,
+      addonFilter,
+      setAddonFilter,
+    ]
+  );
+
+  const bottomContent = useMemo(() => {
+    return (
+      <div>
+        <div className="flex justify-center">
+          <Pagination
+            isCompact
+            showControls
+            showShadow
+            color="primary"
+            page={page}
+            total={pages}
+            onChange={(page) => setPage(page)}
+          />
+        </div>
+        <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
+          <div className="w-[30%] text-small text-default-400">
+            หน้า {page}/{pages} ({filteredItems.length} รายการ)
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-default-400 text-small" />
+            <label className="flex items-center text-default-400 text-small">
+              แสดงต่อหน้า:
+              <select
+                className="bg-transparent outline-none text-default-400 text-small"
+                defaultValue={rowsPerPage}
+                onChange={onRowsPerPageChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  }, [page, pages, filteredItems.length, rowsPerPage, onRowsPerPageChange]);
+
   return (
     <Suspense fallback={<Loading />}>
       <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
         <div className="flex justify-between items-end ">
           <h3 className="text-lg font-semibold">จัดการแบบสอบถาม</h3>
-        </div>
-
-        <div className="w-full">
-          <RecalculatePHQA />
         </div>
 
         <div className="max-w-[95rem] mx-auto w-full">
