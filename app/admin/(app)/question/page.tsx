@@ -696,6 +696,7 @@ export default function QuestionPage() {
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
+              isStriped
               aria-label="Question List Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"

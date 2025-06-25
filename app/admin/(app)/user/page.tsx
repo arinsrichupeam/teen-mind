@@ -21,6 +21,8 @@ import {
   Input,
   Chip,
   SortDescriptor,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 import {
   MagnifyingGlassIcon,
@@ -54,6 +56,13 @@ interface UserData {
   }[];
 }
 
+interface SchoolData {
+  id: number;
+  name: string;
+  districtId: number;
+  status: boolean;
+}
+
 const columns = [
   { name: "ลำดับ", uid: "id", align: "center" as const, sortable: true },
   {
@@ -81,7 +90,14 @@ export default function UserPage() {
     mutate,
   } = useSWR<UserData[]>("/api/profile/user", fetcher);
 
+  // ดึงข้อมูลโรงเรียน
+  const { data: schools = [] } = useSWR<SchoolData[]>(
+    "/api/data/school",
+    fetcher
+  );
+
   const [filterValue, setFilterValue] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState<string>("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -95,6 +111,7 @@ export default function UserPage() {
   const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
 
   const hasSearchFilter = Boolean(filterValue);
+  const hasSchoolFilter = Boolean(schoolFilter);
 
   const filteredItems = useMemo(() => {
     let filteredUsers = [...users];
@@ -109,8 +126,14 @@ export default function UserPage() {
       );
     }
 
+    if (hasSchoolFilter) {
+      filteredUsers = filteredUsers.filter(
+        (user) => user.school?.id.toString() === schoolFilter
+      );
+    }
+
     return filteredUsers;
-  }, [users, filterValue]);
+  }, [users, filterValue, schoolFilter]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -166,15 +189,27 @@ export default function UserPage() {
 
   const onClear = useCallback(() => {
     setFilterValue("");
+    setSchoolFilter("");
     setPage(1);
   }, []);
 
   const topContent = useMemo(() => {
+    // สร้าง items สำหรับ Autocomplete
+    const schoolItems = [
+      { key: "", name: "ทั้งหมด" },
+      ...schools.map((school) => ({
+        key: school.id.toString(),
+        name: school.name,
+      })),
+    ];
+
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 bg-white p-4 rounded-lg shadow-sm border border-default-200">
         <div className="flex justify-between gap-3 items-end">
           <Input
             isClearable
+            label="ค้นหาชื่อ-นามสกุล"
+            labelPlacement="outside"
             className="w-full sm:max-w-[44%]"
             placeholder="ค้นหาชื่อ-นามสกุล..."
             startContent={
@@ -184,13 +219,38 @@ export default function UserPage() {
             onClear={() => onClear()}
             onValueChange={onSearchChange}
           />
+          <Autocomplete
+            label="เลือกโรงเรียน"
+            labelPlacement="outside"
+            className="w-full sm:max-w-[44%]"
+            defaultItems={schoolItems}
+            placeholder="เลือกโรงเรียน"
+            selectedKey={schoolFilter}
+            onSelectionChange={(key) => {
+              setSchoolFilter(key as string);
+              setPage(1);
+            }}
+          >
+            {(item) => (
+              <AutocompleteItem key={item.key} textValue={item.name}>
+                {item.name}
+              </AutocompleteItem>
+            )}
+          </Autocomplete>
         </div>
         <span className="text-default-400 text-small">
           รวม {filteredItems.length} รายการ
         </span>
       </div>
     );
-  }, [filterValue, onSearchChange, onClear, filteredItems.length]);
+  }, [
+    filterValue,
+    onSearchChange,
+    onClear,
+    filteredItems.length,
+    schools,
+    schoolFilter,
+  ]);
 
   const bottomContent = useMemo(() => {
     return (
@@ -317,7 +377,7 @@ export default function UserPage() {
 
         <div className="w-full flex flex-col gap-4 text-nowrap">
           <Table
-            isHeaderSticky
+            isStriped
             aria-label="User List Table"
             bottomContent={bottomContent}
             bottomContentPlacement="outside"

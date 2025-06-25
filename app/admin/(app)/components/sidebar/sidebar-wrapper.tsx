@@ -119,11 +119,13 @@ export const SidebarWrapper = () => {
                     title="รายชื่อ อสท."
                   />
                   <SidebarItem
+                    // href="/admin/area"
                     icon={<MapIcon className="size-6" />}
                     isActive={pathname === "/admin/area"}
                     title="พื้นที่อยู่อาศัย"
                   />
                   <SidebarItem
+                    href="/admin/recalculate-phqa"
                     icon={<CalculatorIcon className="size-6" />}
                     isActive={pathname === "/admin/recalculate-phqa"}
                     title="คำนวณคะแนน PHQA"

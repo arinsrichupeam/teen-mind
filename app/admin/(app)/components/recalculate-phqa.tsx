@@ -1,35 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Progress,
-  Chip,
   Spinner,
-  addToast,
+  Chip,
+  Divider,
 } from "@heroui/react";
 import {
   CalculatorIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import useSWR from "swr";
+
+import Loading from "@/app/loading";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface RecalculateStats {
   totalQuestions: number;
-  resultStats: Array<{
+  resultStats: {
     result: string;
     count: number;
-  }>;
+  }[];
 }
 
-interface RecalculateResult {
+interface RecalculateResponse {
   success: boolean;
   message: string;
   summary: {
@@ -40,95 +42,45 @@ interface RecalculateResult {
   errors?: string[];
 }
 
-export const RecalculatePHQA = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function RecalculatePHQAPage() {
   const [isRecalculating, setIsRecalculating] = useState(false);
-  const [stats, setStats] = useState<RecalculateStats | null>(null);
-  const [result, setResult] = useState<RecalculateResult | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [recalculateResult, setRecalculateResult] = useState<RecalculateResponse | null>(null);
 
   // ดึงข้อมูลสถิติ
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/question/recalculate");
-      const data = await response.json();
+  const {
+    data: stats,
+    isLoading: isLoadingStats,
+    mutate: mutateStats,
+  } = useSWR<{ success: boolean; data: RecalculateStats }>(
+    "/api/question/recalculate",
+    fetcher
+  );
 
-      if (data.success) {
-        setStats(data.data);
-      }
-    } catch (error) {
-      addToast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "ไม่สามารถดึงข้อมูลสถิติได้",
-        color: "danger",
-      });
-    }
-  };
-
-  // Re-calculate ทั้งหมด
   const handleRecalculate = async () => {
     setIsRecalculating(true);
-    setProgress(0);
-    setResult(null);
+    setRecalculateResult(null);
 
     try {
-      // จำลอง progress
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-
-            return 90;
-          }
-
-          return prev + 10;
-        });
-      }, 200);
-
       const response = await fetch("/api/question/recalculate", {
         method: "POST",
       });
+      const result: RecalculateResponse = await response.json();
+      setRecalculateResult(result);
 
-      const data: RecalculateResult = await response.json();
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (data.success) {
-        setResult(data);
-        addToast({
-          title: "สำเร็จ",
-          description: data.message,
-          color: "success",
-        });
-
-        // รีเฟรชข้อมูลสถิติ
-        await fetchStats();
-      } else {
-        addToast({
-          title: "ผิดพลาด",
-          description: "เกิดข้อผิดพลาดในการ re-calculate",
-          color: "danger",
-        });
+      // รีเฟรชข้อมูลสถิติหลังจาก recalculation
+      if (result.success) {
+        mutateStats();
       }
     } catch (error) {
-      addToast({
-        title: "ผิดพลาด",
-        description:
-          error instanceof Error
-            ? error.message
-            : "เกิดข้อผิดพลาดในการเชื่อมต่อ",
-        color: "danger",
+      setRecalculateResult({
+        success: false,
+        message: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        summary: { total: 0, success: 0, error: 1 },
       });
     } finally {
       setIsRecalculating(false);
     }
   };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
 
   const getResultColor = (result: string) => {
     switch (result) {
@@ -164,8 +116,8 @@ export const RecalculatePHQA = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับเรียงลำดับผลลัพธ์
-  const sortResultStats = (stats: Array<{ result: string; count: number }>) => {
+  // ฟังก์ชันเรียงลำดับผลลัพธ์ตามลำดับที่กำหนด
+  const sortResultStats = (stats: { result: string; count: number }[]) => {
     const order = ["Green", "Green-Low", "Yellow", "Orange", "Red"];
 
     return stats.sort((a, b) => {
@@ -176,176 +128,175 @@ export const RecalculatePHQA = () => {
     });
   };
 
+  if (isLoadingStats) {
+    return <Loading />;
+  }
+
   return (
-    <>
+    <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-semibold">คำนวณคะแนน PHQA ใหม่</h3>
+      </div>
+
+      {/* สถิติปัจจุบัน */}
       <Card className="w-full">
         <CardHeader className="flex gap-3">
-          <CalculatorIcon className="w-6 h-6 text-primary" />
+          <InformationCircleIcon className="size-6 text-primary" />
           <div className="flex flex-col">
-            <p className="text-md font-semibold">Re-calculate PHQA Results</p>
+            <p className="text-md">สถิติปัจจุบัน</p>
             <p className="text-small text-default-500">
-              คำนวณผลลัพธ์ PHQA ใหม่ทั้งหมดในระบบ
+              จำนวนแบบสอบถามทั้งหมดที่มีข้อมูล PHQA
             </p>
           </div>
         </CardHeader>
         <CardBody>
-          {stats && (
-            <div className="mb-4">
-              <p className="text-sm text-default-600 mb-2">
-                จำนวนแบบสอบถามทั้งหมด: <strong>{stats.totalQuestions}</strong>{" "}
-                รายการ
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {sortResultStats(stats.resultStats).map((stat) => (
-                  <Chip
-                    key={stat.result}
-                    color={getResultColor(stat.result)}
-                    size="sm"
-                    variant="flat"
-                  >
-                    {getResultText(stat.result)}: {stat.count}
-                  </Chip>
-                ))}
+          {stats?.success && stats.data ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold">
+                  รวม {stats.data.totalQuestions} รายการ
+                </span>
+              </div>
+
+              <div className="flex gap-4 w-full">
+                {sortResultStats(stats.data.resultStats).map((stat) => {
+                  let bgColor = "bg-default-100";
+                  switch (stat.result) {
+                    case "Green":
+                      bgColor = "bg-green-100";
+                      break;
+                    case "Green-Low":
+                      bgColor = "bg-emerald-100";
+                      break;
+                    case "Yellow":
+                      bgColor = "bg-yellow-100";
+                      break;
+                    case "Orange":
+                      bgColor = "bg-orange-100";
+                      break;
+                    case "Red":
+                      bgColor = "bg-red-100";
+                      break;
+                  }
+                  return (
+                    <div
+                      key={stat.result}
+                      className={`flex-1 flex items-center justify-between p-3 border rounded-lg gap-5 ${bgColor}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-default-600 whitespace-nowrap">
+                          {getResultText(stat.result)}
+                        </span>
+                      </div>
+                      <span className="text-lg font-semibold">
+                        {stat.count}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          ) : (
+            <div className="text-center text-default-500">
+              ไม่สามารถโหลดข้อมูลสถิติได้
+            </div>
           )}
-
-          <div className="flex gap-2">
-            <Button
-              color="primary"
-              isDisabled={isRecalculating}
-              startContent={<CalculatorIcon className="w-4 h-4" />}
-              variant="flat"
-              onPress={() => setIsModalOpen(true)}
-            >
-              Re-calculate ทั้งหมด
-            </Button>
-          </div>
         </CardBody>
       </Card>
 
-      <Modal
-        hideCloseButton={isRecalculating}
-        isDismissable={!isRecalculating}
-        isOpen={isModalOpen}
-        size="lg"
-        onClose={() => !isRecalculating && setIsModalOpen(false)}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
-                  ยืนยันการ Re-calculate
-                </div>
-              </ModalHeader>
-              <ModalBody>
-                {!isRecalculating ? (
-                  <div className="space-y-4">
-                    <p>คุณต้องการคำนวณผลลัพธ์ PHQA ใหม่ทั้งหมดในระบบหรือไม่?</p>
-                    <div className="bg-warning-50 p-3 rounded-lg">
-                      <p className="text-warning-700 text-sm">
-                        <strong>คำเตือน:</strong>{" "}
-                        การดำเนินการนี้จะอัปเดตผลลัพธ์ทั้งหมดในระบบ
-                        และอาจใช้เวลาสักครู่
-                        กรุณารอจนกว่าการดำเนินการจะเสร็จสิ้น
-                      </p>
-                    </div>
-                    {stats && (
-                      <p className="text-sm text-default-600">
-                        จะประมวลผลทั้งหมด{" "}
-                        <strong>{stats.totalQuestions}</strong> รายการ
-                      </p>
-                    )}
-                  </div>
+      {/* ปุ่ม Recalculate */}
+      <Card className="w-full">
+        <CardHeader className="flex gap-3">
+          <CalculatorIcon className="size-6 text-warning" />
+          <div className="flex flex-col">
+            <p className="text-md">คำนวณคะแนนใหม่</p>
+            <p className="text-small text-default-500">
+              คำนวณคะแนน PHQA และผลลัพธ์ใหม่ทั้งหมด
+            </p>
+          </div>
+        </CardHeader>
+        <CardBody>
+          <div className="space-y-4">
+            <Button
+              color="warning"
+              variant="flat"
+              size="lg"
+              startContent={
+                isRecalculating ? (
+                  <Spinner size="sm" />
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Spinner size="sm" />
-                      <span>กำลังประมวลผล...</span>
+                  <CalculatorIcon className="size-5" />
+                )
+              }
+              onPress={handleRecalculate}
+              isDisabled={isRecalculating}
+              className="w-full md:w-auto"
+            >
+              {isRecalculating ? "กำลังคำนวณ..." : "คำนวณคะแนนใหม่"}
+            </Button>
+
+            {recalculateResult && (
+              <div className="mt-4 p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  {recalculateResult.success ? (
+                    <CheckCircleIcon className="size-5 text-success" />
+                  ) : (
+                    <ExclamationTriangleIcon className="size-5 text-danger" />
+                  )}
+                  <span
+                    className={`font-semibold ${recalculateResult.success
+                        ? "text-success"
+                        : "text-danger"
+                      }`}
+                  >
+                    {recalculateResult.success ? "สำเร็จ" : "เกิดข้อผิดพลาด"}
+                  </span>
+                </div>
+
+                <p className="text-sm mb-3">{recalculateResult.message}</p>
+
+                {recalculateResult.summary && (
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-semibold">
+                        {recalculateResult.summary.total}
+                      </div>
+                      <div className="text-xs text-default-500">ทั้งหมด</div>
                     </div>
-                    <Progress
-                      className="w-full"
-                      color="primary"
-                      value={progress}
-                    />
-                    <p className="text-sm text-default-600">
-                      ความคืบหน้า: {progress}%
-                    </p>
+                    <div>
+                      <div className="text-lg font-semibold text-success">
+                        {recalculateResult.summary.success}
+                      </div>
+                      <div className="text-xs text-default-500">สำเร็จ</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-danger">
+                        {recalculateResult.summary.error}
+                      </div>
+                      <div className="text-xs text-default-500">ผิดพลาด</div>
+                    </div>
                   </div>
                 )}
 
-                {result && (
-                  <div className="space-y-3">
-                    <div className="bg-success-50 p-3 rounded-lg">
-                      <p className="text-success-700 text-sm font-medium">
-                        {result.message}
-                      </p>
+                {recalculateResult.errors && recalculateResult.errors.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm font-semibold text-danger mb-2">
+                      รายละเอียดข้อผิดพลาด:
+                    </p>
+                    <div className="max-h-32 overflow-y-auto">
+                      {recalculateResult.errors.map((error, index) => (
+                        <p key={index} className="text-xs text-danger mb-1">
+                          • {error}
+                        </p>
+                      ))}
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center">
-                        <p className="font-semibold text-primary">
-                          {result.summary.total}
-                        </p>
-                        <p className="text-default-500">ทั้งหมด</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-success">
-                          {result.summary.success}
-                        </p>
-                        <p className="text-default-500">สำเร็จ</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-danger">
-                          {result.summary.error}
-                        </p>
-                        <p className="text-default-500">ผิดพลาด</p>
-                      </div>
-                    </div>
-                    {result.errors && result.errors.length > 0 && (
-                      <div className="bg-danger-50 p-3 rounded-lg">
-                        <p className="text-danger-700 text-sm font-medium mb-2">
-                          ข้อผิดพลาด ({result.errors.length} รายการ):
-                        </p>
-                        <div className="max-h-32 overflow-y-auto">
-                          {result.errors.slice(0, 5).map((error, index) => (
-                            <p key={index} className="text-danger-600 text-xs">
-                              {error}
-                            </p>
-                          ))}
-                          {result.errors.length > 5 && (
-                            <p className="text-danger-600 text-xs">
-                              และอีก {result.errors.length - 5} รายการ...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
-              </ModalBody>
-              <ModalFooter>
-                {!isRecalculating && !result && (
-                  <>
-                    <Button variant="light" onPress={onClose}>
-                      ยกเลิก
-                    </Button>
-                    <Button color="primary" onPress={handleRecalculate}>
-                      ยืนยัน
-                    </Button>
-                  </>
-                )}
-                {!isRecalculating && result && (
-                  <Button color="primary" onPress={onClose}>
-                    ปิด
-                  </Button>
-                )}
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </>
+              </div>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+    </div>
   );
-};
+}

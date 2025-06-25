@@ -48,6 +48,19 @@ export async function GET() {
           createdAt: true,
           result: true,
           result_text: true,
+          referent: {
+            select: {
+              id: true,
+              firstname: true,
+              lastname: true,
+              affiliation: {
+                select: {
+                  name: true,
+                },
+              },
+              agency: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",

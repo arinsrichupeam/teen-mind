@@ -11,9 +11,11 @@ import {
   RadioGroup,
   Card,
   CardBody,
+  InputOtp,
+  Divider,
   addToast,
 } from "@heroui/react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 import { q2, qPhqa, phqaAddon } from "@/app/data";
 
@@ -32,7 +34,14 @@ export const ModalAddQuestion = ({
 }: ModalAddQuestionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [referentData, setReferentData] = useState<{
+    fullName: string;
+    affiliation: string;
+    agency: string;
+  }>();
   const [formData, setFormData] = useState({
+    // Referent
+    referentId: "",
     // 2Q
     q2_q1: "",
     q2_q2: "",
@@ -51,8 +60,50 @@ export const ModalAddQuestion = ({
     addon_q2: "",
   });
 
+  const fetchReferentData = useCallback(async (id: string) => {
+    const referentId = parseInt(id);
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/data/referent/${referentId}`);
+      const data = await response.json();
+      const fullName = data[0].firstname + " " + data[0].lastname;
+      const affiliation = data[0].affiliation.name;
+      const agency = data[0].agency;
+
+      setReferentData({
+        fullName: fullName,
+        affiliation: affiliation,
+        agency: agency,
+      });
+    } catch {
+      setReferentData({
+        fullName: "ไม่พบข้อมูล",
+        affiliation: "ไม่พบข้อมูล",
+        agency: "ไม่พบข้อมูล",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleReferentChange = useCallback(
+    (value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        referentId: value,
+      }));
+      if (value.length === 3) {
+        fetchReferentData(value);
+      }
+    },
+    [fetchReferentData]
+  );
+
   const isFormComplete = () => {
     const requiredFields = [
+      "referentId",
       "q2_q1",
       "q2_q2",
       "phqa_q1",
@@ -76,8 +127,12 @@ export const ModalAddQuestion = ({
   const isStepComplete = (step: number) => {
     switch (step) {
       case 1:
-        return formData.q2_q1 !== "" && formData.q2_q2 !== "";
+        return (
+          formData.referentId !== "" && referentData?.fullName !== "ไม่พบข้อมูล"
+        );
       case 2:
+        return formData.q2_q1 !== "" && formData.q2_q2 !== "";
+      case 3:
         return (
           formData.phqa_q1 !== "" &&
           formData.phqa_q2 !== "" &&
@@ -89,7 +144,7 @@ export const ModalAddQuestion = ({
           formData.phqa_q8 !== "" &&
           formData.phqa_q9 !== ""
         );
-      case 3:
+      case 4:
         return formData.addon_q1 !== "" && formData.addon_q2 !== "";
       default:
         return false;
@@ -197,6 +252,7 @@ export const ModalAddQuestion = ({
         },
         body: JSON.stringify({
           profileId: userId,
+          reference: parseInt(formData.referentId),
           result: result,
           result_text: result_text,
           phqa: {
@@ -229,6 +285,7 @@ export const ModalAddQuestion = ({
       if (response.ok) {
         // รีเซ็ตฟอร์ม
         setFormData({
+          referentId: "",
           q2_q1: "",
           q2_q2: "",
           phqa_q1: "",
@@ -243,6 +300,7 @@ export const ModalAddQuestion = ({
           addon_q1: "",
           addon_q2: "",
         });
+        setReferentData(undefined);
         setCurrentStep(1);
 
         // เรียก callback เมื่อสำเร็จ
@@ -275,6 +333,7 @@ export const ModalAddQuestion = ({
   const handleClose = () => {
     // รีเซ็ตฟอร์มเมื่อปิด modal
     setFormData({
+      referentId: "",
       q2_q1: "",
       q2_q2: "",
       phqa_q1: "",
@@ -289,12 +348,13 @@ export const ModalAddQuestion = ({
       addon_q1: "",
       addon_q2: "",
     });
+    setReferentData(undefined);
     setCurrentStep(1);
     onClose();
   };
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -308,6 +368,48 @@ export const ModalAddQuestion = ({
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-primary">
+              ข้อมูลผู้ให้คำแนะนำ
+            </h3>
+            <div className="flex flex-col items-center text-center">
+              <Divider />
+              <div className="flex justify-center">
+                <InputOtp
+                  className="items-center"
+                  errorMessage="กรุณากรอกรหัสผู้ให้คำแนะนำให้ถูกต้อง"
+                  length={3}
+                  radius="lg"
+                  size="lg"
+                  value={formData.referentId}
+                  variant="bordered"
+                  onValueChange={(val) => handleReferentChange(val)}
+                />
+              </div>
+              <Divider />
+              {formData.referentId.length === 3 &&
+                (isLoading ? (
+                  <div className="flex justify-center items-center p-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+                  </div>
+                ) : referentData?.fullName !== "ไม่พบข้อมูล" ? (
+                  <span className="flex flex-col box-border rounded-lg bg-primary-100 text-primary-500 p-3 text-left w-full text-md font-semibold">
+                    ชื่อผู้ให้คำแนะนำ : {referentData?.fullName}
+                    <br />
+                    สังกัด : {referentData?.affiliation}
+                    <br />
+                    หน่วยงาน : {referentData?.agency}
+                  </span>
+                ) : (
+                  <span className="flex flex-col box-border rounded-lg bg-danger-100 text-danger-500 p-3 text-center w-full text-md font-semibold">
+                    รหัสผู้ให้คำแนะนำไม่ถูกต้อง
+                  </span>
+                ))}
+            </div>
+          </div>
+        );
+      case 2:
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-primary">แบบทดสอบ 2Q</h3>
@@ -341,7 +443,7 @@ export const ModalAddQuestion = ({
             </div>
           </div>
         );
-      case 2:
+      case 3:
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-primary">
@@ -382,7 +484,7 @@ export const ModalAddQuestion = ({
             </div>
           </div>
         );
-      case 3:
+      case 4:
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-primary">
@@ -442,15 +544,20 @@ export const ModalAddQuestion = ({
                   <span
                     className={`px-2 py-1 rounded text-xs ${currentStep >= 1 ? "bg-primary text-white" : "bg-default-200"}`}
                   >
-                    2Q
+                    Referent
                   </span>
                   <span
                     className={`px-2 py-1 rounded text-xs ${currentStep >= 2 ? "bg-primary text-white" : "bg-default-200"}`}
                   >
-                    PHQA
+                    2Q
                   </span>
                   <span
                     className={`px-2 py-1 rounded text-xs ${currentStep >= 3 ? "bg-primary text-white" : "bg-default-200"}`}
+                  >
+                    PHQA
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${currentStep >= 4 ? "bg-primary text-white" : "bg-default-200"}`}
                   >
                     Addon
                   </span>
@@ -477,7 +584,7 @@ export const ModalAddQuestion = ({
                   ย้อนกลับ
                 </Button>
               )}
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <Button
                   color="primary"
                   isDisabled={isLoading || !isStepComplete(currentStep)}

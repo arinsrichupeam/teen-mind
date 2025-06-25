@@ -55,6 +55,15 @@ interface UserData {
     createdAt: string;
     result: string;
     result_text?: string;
+    referent?: {
+      id: number;
+      firstname: string;
+      lastname: string;
+      affiliation: {
+        name: string;
+      };
+      agency: string;
+    };
   }[];
   birthday?: string;
   ethnicity?: string;
@@ -385,6 +394,17 @@ export default function UserDetailDrawer({
                           >
                             {question.result_text || question.result}
                           </Chip>
+                          {question.referent && (
+                            <span className="text-xs text-default-500">
+                              ผู้แนะนำ: {question.referent.firstname}{" "}
+                              {question.referent.lastname}
+                              {question.referent.affiliation && (
+                                <span className="ml-1">
+                                  ({question.referent.affiliation.name})
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
                         {mode === "edit" && (
                           <Button
