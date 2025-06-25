@@ -357,13 +357,13 @@ export default function QuestionPage() {
 
   const topContent = useMemo(
     () => (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 w-full">
         {/* Search Bar และ Filter ทั้งหมด */}
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-center w-full">
           <Input
             isClearable
             classNames={{
-              base: "w-full sm:w-64",
+              base: "w-full sm:w-64 flex-1",
               inputWrapper: "border-1 bg-white",
             }}
             placeholder="Search by name..."
@@ -380,7 +380,7 @@ export default function QuestionPage() {
           {/* โรงเรียน Filter */}
           <Autocomplete
             classNames={{
-              base: "w-full sm:w-64",
+              base: "w-full sm:w-64 flex-1",
             }}
             placeholder="เลือกโรงเรียน"
             selectedKey={schoolFilter}
@@ -396,7 +396,7 @@ export default function QuestionPage() {
             ))}
           </Autocomplete>
 
-          {/* สถานะ Filter */}
+          {/* สถานะ Filter (ซ่อนใน mobile) */}
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
               <Button
@@ -424,89 +424,95 @@ export default function QuestionPage() {
             </DropdownMenu>
           </Dropdown>
 
-          {/* PHQA Filter */}
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="md"
-                variant="flat"
+          {/* กลุ่มปุ่ม PHQA, 2Q, Addon ให้อยู่บรรทัดเดียวกันใน mobile */}
+          <div className="flex flex-row gap-2 w-full sm:w-auto">
+            {/* PHQA Filter */}
+            <Dropdown className="flex-1">
+              <DropdownTrigger>
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="md"
+                  variant="flat"
+                  className="w-full"
+                >
+                  PHQA
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="PHQA Filter"
+                closeOnSelect={false}
+                selectedKeys={phqaFilter}
+                selectionMode="multiple"
+                onSelectionChange={setPhqaFilter}
               >
-                PHQA
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="PHQA Filter"
-              closeOnSelect={false}
-              selectedKeys={phqaFilter}
-              selectionMode="multiple"
-              onSelectionChange={setPhqaFilter}
-            >
-              {phqaStatusOptions.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+                {phqaStatusOptions.map((status) => (
+                  <DropdownItem key={status.uid} className="capitalize">
+                    {status.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
 
-          {/* 2Q Filter */}
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="md"
-                variant="flat"
+            {/* 2Q Filter */}
+            <Dropdown className="flex-1">
+              <DropdownTrigger>
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="md"
+                  variant="flat"
+                  className="w-full"
+                >
+                  2Q
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="2Q Filter"
+                closeOnSelect={false}
+                selectedKeys={q2Filter}
+                selectionMode="multiple"
+                onSelectionChange={setQ2Filter}
               >
-                2Q
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="2Q Filter"
-              closeOnSelect={false}
-              selectedKeys={q2Filter}
-              selectionMode="multiple"
-              onSelectionChange={setQ2Filter}
-            >
-              {riskStatusOptions.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+                {riskStatusOptions.map((status) => (
+                  <DropdownItem key={status.uid} className="capitalize">
+                    {status.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
 
-          {/* Addon Filter */}
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="md"
-                variant="flat"
+            {/* Addon Filter */}
+            <Dropdown className="flex-1">
+              <DropdownTrigger>
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="md"
+                  variant="flat"
+                  className="w-full"
+                >
+                  Addon
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Addon Filter"
+                closeOnSelect={false}
+                selectedKeys={addonFilter}
+                selectionMode="multiple"
+                onSelectionChange={setAddonFilter}
               >
-                Addon
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Addon Filter"
-              closeOnSelect={false}
-              selectedKeys={addonFilter}
-              selectionMode="multiple"
-              onSelectionChange={setAddonFilter}
-            >
-              {riskStatusOptions.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+                {riskStatusOptions.map((status) => (
+                  <DropdownItem key={status.uid} className="capitalize">
+                    {status.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
 
           {/* Clear All Filters */}
           <Button
@@ -519,6 +525,7 @@ export default function QuestionPage() {
               setQ2Filter(new Set([]));
               setAddonFilter(new Set([]));
             }}
+            className="w-full sm:w-auto"
           >
             ล้าง Filter
           </Button>
