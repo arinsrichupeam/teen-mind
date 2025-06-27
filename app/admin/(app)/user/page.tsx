@@ -33,8 +33,9 @@ import {
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
-import UserDetailDrawer from "./components/user-detail-drawer";
 import { ModalEditProfile } from "../components/modal/modal-edit-profile";
+
+import UserDetailDrawer from "./components/user-detail-drawer";
 
 import { prefix } from "@/utils/data";
 import Loading from "@/app/loading";
@@ -211,9 +212,9 @@ export default function UserPage() {
         <div className="flex flex-col sm:flex-row justify-between gap-3 items-end">
           <Input
             isClearable
+            className="w-full sm:max-w-[44%]"
             label="ค้นหาชื่อ-นามสกุล"
             labelPlacement="outside"
-            className="w-full sm:max-w-[44%]"
             placeholder="ค้นหาชื่อ-นามสกุล..."
             startContent={
               <MagnifyingGlassIcon className="size-4 text-default-400" />
@@ -223,10 +224,10 @@ export default function UserPage() {
             onValueChange={onSearchChange}
           />
           <Autocomplete
-            label="เลือกโรงเรียน"
-            labelPlacement="outside"
             className="w-full sm:max-w-[44%]"
             defaultItems={schoolItems}
+            label="เลือกโรงเรียน"
+            labelPlacement="outside"
             placeholder="เลือกโรงเรียน"
             selectedKey={schoolFilter}
             onSelectionChange={(key) => {
@@ -247,8 +248,8 @@ export default function UserPage() {
               รวม {filteredItems.length} รายการ
             </span>
             <Button
-              color="success"
               className="text-white font-semibold"
+              color="success"
               size="md"
               startContent={<PlusIcon className="size-5 text-white" />}
               variant="solid"
@@ -459,10 +460,10 @@ export default function UserPage() {
 
         {/* Modal เพิ่ม Profile */}
         <ModalEditProfile
-          isOpen={isAddProfileModalOpen}
-          onClose={() => setIsAddProfileModalOpen(false)}
           data={{}}
+          isOpen={isAddProfileModalOpen}
           mode="create"
+          onClose={() => setIsAddProfileModalOpen(false)}
           onSuccess={() => {
             mutate();
             setIsAddProfileModalOpen(false);

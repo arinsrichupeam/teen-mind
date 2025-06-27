@@ -209,7 +209,11 @@ export default function UserDetailDrawer({
                   <div>
                     <span className="text-default-500">เพศ:</span>
                     <span className="font-medium ml-2">
-                      {user.sex === 1 ? "ชาย" : user.sex === 2 ? "หญิง" : "ไม่ระบุ"}
+                      {user.sex === 1
+                        ? "ชาย"
+                        : user.sex === 2
+                          ? "หญิง"
+                          : "ไม่ระบุ"}
                     </span>
                   </div>
                   <div>

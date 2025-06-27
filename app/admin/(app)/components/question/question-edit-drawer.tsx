@@ -1062,9 +1062,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       <ModalEditProfile
         data={data}
         isOpen={isModalOpen}
+        mode="edit"
         onClose={() => setIsModalOpen(false)}
         onSuccess={onClose}
-        mode="edit"
       />
     </>
   );

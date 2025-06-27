@@ -20,7 +20,10 @@ export async function GET(
   return Response.json(data);
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const id = (await params).id;
     const body = await request.json();
@@ -34,15 +37,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         lastname: body.lastname,
         email: body.email,
         tel: body.tel,
-        affiliation_id: body.affiliation_id ? parseInt(body.affiliation_id) : undefined,
-        volunteer_type_id: body.volunteer_type_id ? parseInt(body.volunteer_type_id) : undefined,
-        employee_type_id: body.employee_type_id ? parseInt(body.employee_type_id) : undefined,
+        affiliation_id: body.affiliation_id
+          ? parseInt(body.affiliation_id)
+          : undefined,
+        volunteer_type_id: body.volunteer_type_id
+          ? parseInt(body.volunteer_type_id)
+          : undefined,
+        employee_type_id: body.employee_type_id
+          ? parseInt(body.employee_type_id)
+          : undefined,
         agency: body.agency,
       },
     });
 
     return Response.json({ success: true, data: updated });
   } catch (error) {
-    return Response.json({ success: false, error: (error as Error).message }, { status: 500 });
+    return Response.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    );
   }
 }

@@ -49,11 +49,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newProfile);
   } catch (error) {
-    console.error("Error creating profile:", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการสร้างข้อมูล" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error }, { status: 500 });
   }
 }
 

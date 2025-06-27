@@ -156,7 +156,16 @@ export default function ReferentPage() {
           }
         });
     },
-    [selectedReferent, onOpen, affiliation, volunteerType, mode, onCloseModal3, onOpenModal4, employeeType]
+    [
+      selectedReferent,
+      onOpen,
+      affiliation,
+      volunteerType,
+      mode,
+      onCloseModal3,
+      onOpenModal4,
+      employeeType,
+    ]
   );
 
   const validateCitizenId = async (value: string) => {
@@ -262,16 +271,16 @@ export default function ReferentPage() {
             }
           });
       } else {
-        
         if (!selectedReferent.id) {
           addToast({
             title: "แจ้งเตือน",
             color: "danger",
             description: "ไม่พบ ID ของข้อมูลที่ต้องการอัปเดต",
           });
+
           return;
         }
-        
+
         await fetch(`/api/data/referent/${selectedReferent.id}`, {
           method: "PUT",
           headers: {
@@ -281,6 +290,7 @@ export default function ReferentPage() {
         })
           .then((res) => {
             setIsLoading(true);
+
             return res.json();
           })
           .then((data) => {
@@ -306,7 +316,7 @@ export default function ReferentPage() {
             addToast({
               title: "แจ้งเตือน",
               color: "danger",
-              description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+              description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" + error,
             });
             setIsLoading(false);
           });
@@ -325,11 +335,6 @@ export default function ReferentPage() {
     setSelectedReferent(referentInitValue);
     setError("");
     formRef.current?.reset();
-  }, []);
-
-  const loadReferentData = useCallback((referentData: Referent) => {
-    setSelectedReferent(referentData);
-    setMode("edit");
   }, []);
 
   const generateQR = async () => {
@@ -397,6 +402,7 @@ export default function ReferentPage() {
             className="max-w-xl w-full min-w-[320px]"
             errorMessage={error}
             isInvalid={!!error}
+            isReadOnly={mode === "edit"}
             isRequired={request}
             label="เลขบัตรประชาชน"
             labelPlacement="inside"
@@ -406,10 +412,9 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="text"
-            variant="faded"
             value={selectedReferent.citizenId || ""}
+            variant="faded"
             onChange={HandleChange}
-            isReadOnly={mode === "edit"}
           />
           <Select
             className="max-w-xl w-full min-w-[320px]"
@@ -420,9 +425,13 @@ export default function ReferentPage() {
             name="prefixId"
             placeholder="คำนำหน้า"
             radius="md"
+            selectedKeys={
+              selectedReferent.prefixId
+                ? [selectedReferent.prefixId.toString()]
+                : []
+            }
             size="sm"
             variant="faded"
-            selectedKeys={selectedReferent.prefixId ? [selectedReferent.prefixId.toString()] : []}
             onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -440,8 +449,8 @@ export default function ReferentPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
-            variant="faded"
             value={selectedReferent.firstname || ""}
+            variant="faded"
             onChange={HandleChange}
           />
           <Input
@@ -454,8 +463,8 @@ export default function ReferentPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
-            variant="faded"
             value={selectedReferent.lastname || ""}
+            variant="faded"
             onChange={HandleChange}
           />
           <Input
@@ -469,8 +478,8 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
-            variant="faded"
             value={selectedReferent.tel || ""}
+            variant="faded"
             onChange={HandleChange}
           />
           <Input
@@ -484,8 +493,8 @@ export default function ReferentPage() {
             size="sm"
             type="text"
             validate={(val) => validateEmail(val.toString())}
-            variant="faded"
             value={selectedReferent.email || ""}
+            variant="faded"
             onChange={HandleChange}
           />
           <Select
@@ -497,9 +506,13 @@ export default function ReferentPage() {
             name="volunteer_type_id"
             placeholder="ประเภทอาสาสมัคร"
             radius="md"
+            selectedKeys={
+              selectedReferent.volunteer_type_id
+                ? [selectedReferent.volunteer_type_id.toString()]
+                : []
+            }
             size="sm"
             variant="faded"
-            selectedKeys={selectedReferent.volunteer_type_id ? [selectedReferent.volunteer_type_id.toString()] : []}
             onChange={HandleChange}
           >
             {volunteerType.map((volunteerType) => (
@@ -517,9 +530,13 @@ export default function ReferentPage() {
             name="affiliation_id"
             placeholder="สังกัด"
             radius="md"
+            selectedKeys={
+              selectedReferent.affiliation_id
+                ? [selectedReferent.affiliation_id.toString()]
+                : []
+            }
             size="sm"
             variant="faded"
-            selectedKeys={selectedReferent.affiliation_id ? [selectedReferent.affiliation_id.toString()] : []}
             onChange={HandleChange}
           >
             {affiliation.map((affiliation) => (
@@ -536,8 +553,8 @@ export default function ReferentPage() {
             placeholder="หน่วยงาน"
             radius="md"
             size="sm"
-            variant="faded"
             value={selectedReferent.agency || ""}
+            variant="faded"
             onChange={HandleChange}
           />
           <Select
@@ -549,9 +566,13 @@ export default function ReferentPage() {
             name="employee_type_id"
             placeholder="ประเภทการจ้างงาน"
             radius="md"
+            selectedKeys={
+              selectedReferent.employee_type_id
+                ? [selectedReferent.employee_type_id.toString()]
+                : []
+            }
             size="sm"
             variant="faded"
-            selectedKeys={selectedReferent.employee_type_id ? [selectedReferent.employee_type_id.toString()] : []}
             onChange={HandleChange}
           >
             {employeeType.map((employeeType) => (
@@ -566,10 +587,13 @@ export default function ReferentPage() {
             type="submit"
             variant="solid"
           >
-            {isLoading 
-              ? (mode === "register" ? "กำลังลงทะเบียน..." : "กำลังบันทึก...") 
-              : (mode === "register" ? "ลงทะเบียน" : "บันทึกข้อมูล")
-            }
+            {isLoading
+              ? mode === "register"
+                ? "กำลังลงทะเบียน..."
+                : "กำลังบันทึก..."
+              : mode === "register"
+                ? "ลงทะเบียน"
+                : "บันทึกข้อมูล"}
           </Button>
         </div>
 
@@ -589,14 +613,14 @@ export default function ReferentPage() {
       </Form>
 
       <RegistrationInfoModal
-        isOpen={isOpen}
-        onClose={onClose}
-        selectedReferent={selectedReferent}
         affiliation={affiliation}
-        volunteerType={volunteerType}
-        qrCode={qrCode}
         formRef={formRef as React.RefObject<HTMLFormElement>}
+        isOpen={isOpen}
+        qrCode={qrCode}
+        selectedReferent={selectedReferent}
         setIsLoading={setIsLoading}
+        volunteerType={volunteerType}
+        onClose={onClose}
       />
 
       <ReferentQRCodeModal
@@ -609,11 +633,11 @@ export default function ReferentPage() {
 
       <VerificationModal
         isOpen={isOpenModal3}
+        mode={mode}
+        request={request}
         onClose={onCloseModal3}
         onOpenChange={onOpenChange}
         onSubmit={handleVerification}
-        request={request}
-        mode={mode}
       />
     </div>
   );
