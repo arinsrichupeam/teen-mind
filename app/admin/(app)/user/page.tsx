@@ -29,10 +29,12 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
 import UserDetailDrawer from "./components/user-detail-drawer";
+import { ModalEditProfile } from "../components/modal/modal-edit-profile";
 
 import { prefix } from "@/utils/data";
 import Loading from "@/app/loading";
@@ -42,6 +44,7 @@ interface UserData {
   firstname: string;
   lastname: string;
   prefixId: number;
+  sex: number;
   citizenId: string;
   tel: string;
   school: {
@@ -109,6 +112,9 @@ export default function UserPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
+
+  // State สำหรับ Modal เพิ่ม Profile
+  const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState(false);
 
   const hasSearchFilter = Boolean(filterValue);
   const hasSchoolFilter = Boolean(schoolFilter);
@@ -195,17 +201,14 @@ export default function UserPage() {
 
   const topContent = useMemo(() => {
     // สร้าง items สำหรับ Autocomplete
-    const schoolItems = [
-      { key: "", name: "ทั้งหมด" },
-      ...schools.map((school) => ({
-        key: school.id.toString(),
-        name: school.name,
-      })),
-    ];
+    const schoolItems = schools.map((school) => ({
+      key: school.id.toString(),
+      name: school.name,
+    }));
 
     return (
       <div className="flex flex-col gap-4 bg-white p-4 rounded-lg shadow-sm border border-default-200">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 items-end">
           <Input
             isClearable
             label="ค้นหาชื่อ-นามสกุล"
@@ -238,9 +241,25 @@ export default function UserPage() {
             )}
           </Autocomplete>
         </div>
-        <span className="text-default-400 text-small">
-          รวม {filteredItems.length} รายการ
-        </span>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2 justify-between w-full">
+            <span className="text-default-400 text-small">
+              รวม {filteredItems.length} รายการ
+            </span>
+            <Button
+              color="success"
+              className="text-white font-semibold"
+              size="md"
+              startContent={<PlusIcon className="size-5 text-white" />}
+              variant="solid"
+              onClick={() => {
+                setIsAddProfileModalOpen(true);
+              }}
+            >
+              เพิ่มผู้ใช้งาน
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }, [
@@ -435,6 +454,18 @@ export default function UserPage() {
             setIsDrawerOpen(false);
             setSelectedUser(null);
             setDrawerMode("view");
+          }}
+        />
+
+        {/* Modal เพิ่ม Profile */}
+        <ModalEditProfile
+          isOpen={isAddProfileModalOpen}
+          onClose={() => setIsAddProfileModalOpen(false)}
+          data={{}}
+          mode="create"
+          onSuccess={() => {
+            mutate();
+            setIsAddProfileModalOpen(false);
           }}
         />
       </div>

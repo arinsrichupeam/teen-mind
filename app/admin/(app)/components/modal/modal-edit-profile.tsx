@@ -15,15 +15,19 @@ import {
   ModalFooter,
   Select,
   SelectItem,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
 import { prefix } from "@/utils/data";
+import { validateCitizen } from "@/utils/helper";
 
 interface EditProfileData {
   hn: string;
   citizenId: string;
   prefixId: string;
+  sex: string;
   firstname: string;
   lastname: string;
   birthday: string;
@@ -44,12 +48,14 @@ interface EditProfileData {
     tel: string;
     relation: string;
   };
+  school: string;
 }
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   data: any;
+  mode?: "create" | "edit";
   onSuccess?: () => void;
 }
 
@@ -57,15 +63,18 @@ export const ModalEditProfile = ({
   isOpen,
   onClose,
   data,
+  mode,
   onSuccess,
 }: Props) => {
   const [distrince, setDistrince] = useState<Districts[]>([]);
   const [province, setProvince] = useState<Provinces[]>([]);
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
   const [editProfileData, setEditProfileData] = useState<EditProfileData>({
     hn: "",
     citizenId: "",
     prefixId: "",
+    sex: "",
     firstname: "",
     lastname: "",
     birthday: "",
@@ -86,8 +95,10 @@ export const ModalEditProfile = ({
       tel: "",
       relation: "",
     },
+    school: "",
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [citizenIdError, setCitizenIdError] = useState<string>("");
 
   const fetchData = async (url: string, setter: (data: any) => void) => {
     try {
@@ -119,6 +130,10 @@ export const ModalEditProfile = ({
 
   const GetSubdistrictList = async () => {
     await fetchData("/api/data/subdistricts", setSubDistrince);
+  };
+
+  const GetSchoolList = async () => {
+    await fetchData("/api/data/school", setSchools);
   };
 
   const handleEditProfileChange = (e: any) => {
@@ -161,6 +176,17 @@ export const ModalEditProfile = ({
 
         return newData;
       });
+
+      // Validate citizenId ในโหมด create
+      if (name === "citizenId" && mode === "create") {
+        if (value.length === 13) {
+          validateCitizenIdAsync(value);
+        } else if (value.length > 0) {
+          setCitizenIdError("เลขบัตรประชาชนต้องมี 13 หลัก");
+        } else {
+          setCitizenIdError("");
+        }
+      }
     }
   };
 
@@ -191,7 +217,60 @@ export const ModalEditProfile = ({
     }
   };
 
+  const validateCitizenIdAsync = async (citizenId: string): Promise<boolean> => {
+    try {
+      const response = await validateCitizen(citizenId, "user");
+      const data = await response.json();
+
+      if (data.error) {
+        setCitizenIdError(data.error);
+        return false;
+      }
+
+      setCitizenIdError("");
+      return true;
+    } catch (error) {
+      setCitizenIdError("เกิดข้อผิดพลาดในการตรวจสอบเลขบัตรประชาชน");
+      return false;
+    }
+  };
+
   const initializeEditProfileData = () => {
+    // รีเซ็ต error message
+    setCitizenIdError("");
+
+    if (mode === "create") {
+      // รีเซ็ตข้อมูลสำหรับการสร้างใหม่
+      setEditProfileData({
+        hn: "",
+        citizenId: "",
+        prefixId: "",
+        sex: "",
+        firstname: "",
+        lastname: "",
+        birthday: "",
+        ethnicity: "",
+        nationality: "",
+        address: {
+          houseNo: "",
+          villageNo: "",
+          soi: "",
+          road: "",
+          subdistrict: "",
+          district: "",
+          province: "",
+        },
+        tel: "",
+        emergency: {
+          name: "",
+          tel: "",
+          relation: "",
+        },
+        school: "",
+      });
+      return;
+    }
+
     if (data?.profile) {
       const currentProvince = province.find(
         (x) => x.id == data?.profile.address[0].province
@@ -228,6 +307,7 @@ export const ModalEditProfile = ({
         hn: data.profile.hn || "",
         citizenId: data.profile.citizenId || "",
         prefixId: data.profile.prefixId?.toString() || "",
+        sex: data.profile.sex?.toString() || "",
         firstname: data.profile.firstname || "",
         lastname: data.profile.lastname || "",
         birthday: birthdayDate,
@@ -248,6 +328,7 @@ export const ModalEditProfile = ({
           tel: data.profile.emergency[0]?.tel || "",
           relation: data.profile.emergency[0]?.relation || "",
         },
+        school: data.profile.school?.id?.toString() || "",
       };
 
       setEditProfileData(initialData);
@@ -255,13 +336,26 @@ export const ModalEditProfile = ({
   };
 
   const handleSaveProfileData = async () => {
+    // ตรวจสอบ validation ในโหมด create
+    if (mode === "create") {
+      const isValid = await validateCitizenIdAsync(editProfileData.citizenId);
+      if (!isValid) {
+        addToast({
+          title: "ข้อผิดพลาด",
+          description: "กรุณาตรวจสอบเลขบัตรประชาชน",
+          color: "danger",
+        });
+        return;
+      }
+    }
+
     setIsProfileSaving(true);
     try {
-      const updateData = {
-        id: data?.profile.id,
+      const profileData = {
         hn: editProfileData.hn,
         citizenId: editProfileData.citizenId,
         prefixId: parseInt(editProfileData.prefixId),
+        sex: parseInt(editProfileData.sex),
         firstname: editProfileData.firstname,
         lastname: editProfileData.lastname,
         birthday: editProfileData.birthday
@@ -269,6 +363,7 @@ export const ModalEditProfile = ({
           : null,
         ethnicity: editProfileData.ethnicity,
         nationality: editProfileData.nationality,
+        schoolId: editProfileData.school ? parseInt(editProfileData.school) : null,
         address: {
           houseNo: editProfileData.address.houseNo,
           villageNo: editProfileData.address.villageNo,
@@ -286,18 +381,37 @@ export const ModalEditProfile = ({
         },
       };
 
-      const response = await fetch(`/api/profile/user/${data?.profile.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
+      let response;
+      if (mode === "create") {
+        // สร้าง profile ใหม่
+        response = await fetch("/api/profile/user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(profileData),
+        });
+      } else {
+        // แก้ไข profile ที่มีอยู่
+        const updateData = {
+          id: data?.profile.id,
+          ...profileData,
+        };
+        response = await fetch(`/api/profile/user/${data?.profile.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        });
+      }
 
       if (response.ok) {
         addToast({
           title: "สำเร็จ",
-          description: "บันทึกข้อมูลผู้ประเมินสำเร็จ",
+          description: mode === "create"
+            ? "สร้างข้อมูลผู้ประเมินสำเร็จ"
+            : "บันทึกข้อมูลผู้ประเมินสำเร็จ",
           color: "success",
         });
         // รีเฟรชข้อมูลก่อนแล้วค่อยปิด modal
@@ -326,6 +440,7 @@ export const ModalEditProfile = ({
     GetProvinceList();
     GetDistrictList();
     GetSubdistrictList();
+    GetSchoolList();
   }, []);
 
   useEffect(() => {
@@ -333,11 +448,12 @@ export const ModalEditProfile = ({
       isOpen &&
       province.length > 0 &&
       distrince.length > 0 &&
-      subdistrince.length > 0
+      subdistrince.length > 0 &&
+      schools.length > 0
     ) {
       initializeEditProfileData();
     }
-  }, [isOpen, data, province, distrince, subdistrince]);
+  }, [isOpen, data, province, distrince, subdistrince, schools, mode]);
 
   return (
     <Modal
@@ -347,10 +463,13 @@ export const ModalEditProfile = ({
       scrollBehavior="inside"
       shadow="lg"
       size="2xl"
+      closeButton={false}
     >
       <ModalContent>
         <ModalHeader className="flex flex-row justify-center">
-          <h2 className="text-2xl font-bold">แก้ไขข้อมูลผู้ประเมิน</h2>
+          <h2 className="text-2xl font-bold">
+            {mode === "create" ? "เพิ่มข้อมูลผู้ประเมิน" : "แก้ไขข้อมูลผู้ประเมิน"}
+          </h2>
         </ModalHeader>
         <ModalBody>
           <div className="flex flex-col gap-2">
@@ -372,9 +491,15 @@ export const ModalEditProfile = ({
                 value={editProfileData.citizenId}
                 variant="bordered"
                 onChange={handleEditProfileChange}
+                readOnly={mode === "edit"}
+                isInvalid={mode === "create" && citizenIdError !== ""}
+                errorMessage={mode === "create" ? citizenIdError : ""}
+                maxLength={13}
+                placeholder="กรอกเลขบัตรประชาชน 13 หลัก"
               />
             </div>
             <div className="flex flex-row gap-2">
+
               <Select
                 isRequired={true}
                 label="คำนำหน้า"
@@ -415,6 +540,46 @@ export const ModalEditProfile = ({
               />
             </div>
             <div className="flex flex-row gap-2">
+              <Select
+                isRequired={true}
+                label="เพศ"
+                name="sex"
+                placeholder="เลือกเพศ"
+                selectedKeys={
+                  editProfileData.sex ? [editProfileData.sex] : []
+                }
+                size="sm"
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selectedKey = Array.from(keys)[0] as string;
+
+                  handleEditProfileSelectChange("sex", selectedKey);
+                }}
+              >
+                <SelectItem key="1">ชาย</SelectItem>
+                <SelectItem key="2">หญิง</SelectItem>
+                <SelectItem key="3">ไม่ระบุ</SelectItem>
+              </Select>
+              <Input
+                isRequired={true}
+                label="เชื้อชาติ"
+                name="ethnicity"
+                size="sm"
+                value={editProfileData.ethnicity}
+                variant="bordered"
+                onChange={handleEditProfileChange}
+              />
+              <Input
+                isRequired={true}
+                label="สัญชาติ"
+                name="nationality"
+                size="sm"
+                value={editProfileData.nationality}
+                variant="bordered"
+                onChange={handleEditProfileChange}
+              />
+            </div>
+            <div className="flex flex-row gap-2">
               <DatePicker
                 isRequired={true}
                 label="วันเกิด"
@@ -435,24 +600,26 @@ export const ModalEditProfile = ({
                   }
                 }}
               />
-              <Input
+              <Autocomplete
                 isRequired={true}
-                label="เชื้อชาติ"
-                name="ethnicity"
+                label="สถานศึกษา"
+                name="school"
                 size="sm"
-                value={editProfileData.ethnicity}
                 variant="bordered"
-                onChange={handleEditProfileChange}
-              />
-              <Input
-                isRequired={true}
-                label="สัญชาติ"
-                name="nationality"
-                size="sm"
-                value={editProfileData.nationality}
-                variant="bordered"
-                onChange={handleEditProfileChange}
-              />
+                defaultItems={schools}
+                placeholder="เลือกสถานศึกษา"
+                selectedKey={editProfileData.school || ""}
+                onSelectionChange={(key) => {
+                  const selectedKey = key as string;
+                  handleEditProfileSelectChange("school", selectedKey);
+                }}
+              >
+                {(item) => (
+                  <AutocompleteItem key={item.id} textValue={item.name}>
+                    {item.name}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
             </div>
           </div>
           <Divider className="my-1" />
@@ -657,7 +824,9 @@ export const ModalEditProfile = ({
             isLoading={isProfileSaving}
             onPress={handleSaveProfileData}
           >
-            {isProfileSaving ? "กำลังบันทึก..." : "บันทึก"}
+            {isProfileSaving
+              ? "กำลังบันทึก..."
+              : mode === "create" ? "สร้าง" : "บันทึก"}
           </Button>
         </ModalFooter>
       </ModalContent>

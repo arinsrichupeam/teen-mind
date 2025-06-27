@@ -1064,6 +1064,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={onClose}
+        mode="edit"
       />
     </>
   );

@@ -420,7 +420,7 @@ export default function QuestionPage() {
         case "school":
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small">{item.profile.school.name}</p>
+              <p className="text-bold text-small">{item.profile.school?.name || "-"}</p>
             </div>
           );
         case "result":

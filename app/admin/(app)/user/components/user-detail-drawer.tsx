@@ -44,6 +44,7 @@ interface UserData {
   firstname: string;
   lastname: string;
   prefixId: number;
+  sex: number;
   citizenId: string;
   tel: string;
   school: {
@@ -204,6 +205,12 @@ export default function UserDetailDrawer({
                   <div>
                     <span className="text-default-500">เลขบัตรประชาชน:</span>
                     <span className="font-medium ml-2">{user.citizenId}</span>
+                  </div>
+                  <div>
+                    <span className="text-default-500">เพศ:</span>
+                    <span className="font-medium ml-2">
+                      {user.sex === 1 ? "ชาย" : user.sex === 2 ? "หญิง" : "ไม่ระบุ"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-default-500">วัน/เดือน/ปี เกิด:</span>
