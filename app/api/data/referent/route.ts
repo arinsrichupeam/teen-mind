@@ -21,19 +21,25 @@ export async function POST(request: Request) {
     },
     select: {
       id: true,
+      citizenId: true,
+      prefixId: true,
       firstname: true,
       lastname: true,
+      email: true,
+      tel: true,
       affiliation_id: true,
       affiliation: true,
       volunteer_type_id: true,
       volunteer_type: true,
+      employee_type_id: true,
+      employee_type: true,
       agency: true,
     },
   });
 
   const formattedData = data.map((referent) => ({
     ...referent,
-    id: referent.id.toString().padStart(3, "0"),
+    id: referent.id,
   }));
 
   return Response.json(formattedData);

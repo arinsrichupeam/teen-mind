@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Button,
   Divider,
@@ -15,7 +17,7 @@ import Image from "next/image";
 import { prefix } from "@/utils/data";
 import { generateQRCode } from "@/utils/qrcode";
 
-interface ModalProps {
+interface ReferentQRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: Referent;
@@ -23,13 +25,13 @@ interface ModalProps {
   volunteerType: Volunteer_Type[];
 }
 
-const ReferentQRCodeModal = ({
+export default function ReferentQRCodeModal({
   isOpen,
   onClose,
   data,
   affiliation,
   volunteerType,
-}: ModalProps) => {
+}: ReferentQRCodeModalProps) {
   const [qrCode, setQrCode] = useState<string>("");
 
   useEffect(() => {
@@ -107,8 +109,6 @@ const ReferentQRCodeModal = ({
               variant="solid"
               onPress={() => {
                 onClose();
-                // formRef.current?.reset();
-                //   setIsLoading(false);
               }}
             >
               ปิด
@@ -118,6 +118,4 @@ const ReferentQRCodeModal = ({
       </ModalContent>
     </Modal>
   );
-};
-
-export default ReferentQRCodeModal;
+} 

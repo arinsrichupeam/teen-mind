@@ -8,7 +8,7 @@ import { useDisclosure } from "@heroui/react";
 import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
 import { useSession } from "next-auth/react";
 
-import ReferentQRCodeModal from "../componant/modalReferent";
+import { ReferentQRCodeModal } from "../register/referent/components";
 
 import Loading from "@/app/loading";
 import { referentInitValue } from "@/types/initData";

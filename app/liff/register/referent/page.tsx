@@ -3,14 +3,8 @@
 import {
   addToast,
   Button,
-  Divider,
   Form,
   Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
   Select,
   SelectItem,
   useDisclosure,
@@ -23,9 +17,13 @@ import {
   Volunteer_Type,
 } from "@prisma/client";
 import React from "react";
-import Image from "next/image";
 
-import ReferentQRCodeModal from "../../componant/modalReferent";
+import {
+  RegistrationInfoModal,
+  RegistrationDescriptionModal,
+  VerificationModal,
+  ReferentQRCodeModal,
+} from "./components";
 
 import { title } from "@/components/primitives";
 import { prefix } from "@/utils/data";
@@ -33,15 +31,16 @@ import { validateCitizen, validateEmail } from "@/utils/helper";
 import { generateQRCode } from "@/utils/qrcode";
 import { referentInitValue } from "@/types/initData";
 
+type Mode = "register" | "edit";
+
 export default function ReferentPage() {
   const request = true;
   const [error, setError] = useState<string>("");
+  const [mode, setMode] = useState<Mode>("register");
 
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
     useState<Referent>(referentInitValue);
-  // const [selectVerification, setSelectVerification] =
-  //   useState<Referent>(referentInitValue);
   const [referent, setReferent] = useState<Referent>(referentInitValue);
   const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
@@ -113,14 +112,40 @@ export default function ReferentPage() {
           if (data && data.length > 0) {
             const referent = data[0];
 
-            referent.affiliation_id = affiliation.find(
-              (x) => x.name === referent.affiliation.name
-            )?.id;
-            referent.volunteer_type_id = volunteerType.find(
-              (x) => x.name === referent.volunteer_type.name
-            )?.id;
-            setReferent(referent);
-            onOpenModal4();
+            if (referent.affiliation?.name) {
+              referent.affiliation_id = affiliation.find(
+                (x) => x.name === referent.affiliation.name
+              )?.id;
+            }
+
+            if (referent.volunteer_type?.name) {
+              referent.volunteer_type_id = volunteerType.find(
+                (x) => x.name === referent.volunteer_type.name
+              )?.id;
+            }
+
+            if (referent.employee_type?.name) {
+              referent.employee_type_id = employeeType.find(
+                (x) => x.name === referent.employee_type.name
+              )?.id;
+            }
+
+            if (referent.prefixId) {
+              referent.prefixId = referent.prefixId.toString();
+            }
+
+            if (mode === "edit") {
+              setSelectedReferent(referent);
+              onCloseModal3();
+              addToast({
+                title: "สำเร็จ",
+                color: "success",
+                description: "พบข้อมูลการลงทะเบียน สามารถแก้ไขได้",
+              });
+            } else {
+              setReferent(referent);
+              onOpenModal4();
+            }
           } else {
             addToast({
               title: "แจ้งเตือน",
@@ -131,18 +156,16 @@ export default function ReferentPage() {
           }
         });
     },
-    [selectedReferent, onOpen, affiliation, volunteerType]
+    [selectedReferent, onOpen, affiliation, volunteerType, mode, onCloseModal3, onOpenModal4, employeeType]
   );
 
   const validateCitizenId = async (value: string) => {
-    // ตรวจสอบความยาวต้องเป็น 13 หลัก
     if (!value || value.length !== 13) {
       setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
 
       return false;
     }
 
-    // ตรวจสอบว่าเป็นตัวเลขเท่านั้น
     const isDigit = /^[0-9]*$/.test(value);
 
     if (!isDigit) {
@@ -151,7 +174,6 @@ export default function ReferentPage() {
       return false;
     }
 
-    // ตรวจสอบเลขตรวจสอบ
     let sum = 0;
 
     for (let i = 0; i < 12; i++) {
@@ -165,7 +187,6 @@ export default function ReferentPage() {
       return false;
     }
 
-    // ตรวจสอบการซ้ำซ้อนในระบบ
     const result = await validateCitizen(value, "referent");
     const data = await result.json();
 
@@ -214,34 +235,102 @@ export default function ReferentPage() {
       e.preventDefault();
       const data = JSON.stringify({ referent_data: selectedReferent });
 
-      await fetch("/api/register/referent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: data,
-      })
-        .then((res) => {
-          setIsLoading(true);
-
-          return res.json();
+      if (mode === "register") {
+        await fetch("/api/register/referent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: data,
         })
-        .then((data) => {
-          if (data == "000") {
+          .then((res) => {
+            setIsLoading(true);
+
+            return res.json();
+          })
+          .then((data) => {
+            if (data == "000") {
+              addToast({
+                title: "แจ้งเตือน",
+                color: "danger",
+                description: "เลขบัตรประชาชนนี้ได้ถูกลงทะเบียนไว้แล้ว",
+              });
+              setIsLoading(false);
+            } else {
+              HandleChange({ target: { name: "id", value: data } });
+              onOpen();
+            }
+          });
+      } else {
+        
+        if (!selectedReferent.id) {
+          addToast({
+            title: "แจ้งเตือน",
+            color: "danger",
+            description: "ไม่พบ ID ของข้อมูลที่ต้องการอัปเดต",
+          });
+          return;
+        }
+        
+        await fetch(`/api/data/referent/${selectedReferent.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(selectedReferent),
+        })
+          .then((res) => {
+            setIsLoading(true);
+            return res.json();
+          })
+          .then((data) => {
+            if (data.success) {
+              addToast({
+                title: "สำเร็จ",
+                color: "success",
+                description: "อัปเดตข้อมูลเรียบร้อยแล้ว",
+              });
+              setMode("register");
+              formRef.current?.reset();
+              setSelectedReferent(referentInitValue);
+            } else {
+              addToast({
+                title: "แจ้งเตือน",
+                color: "danger",
+                description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+              });
+            }
+            setIsLoading(false);
+          })
+          .catch((error) => {
             addToast({
               title: "แจ้งเตือน",
               color: "danger",
-              description: "เลขบัตรประชาชนนี้ได้ถูกลงทะเบียนไว้แล้ว",
+              description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
             });
             setIsLoading(false);
-          } else {
-            HandleChange({ target: { name: "id", value: data } });
-            onOpen();
-          }
-        });
+          });
+      }
     },
-    [selectedReferent, HandleChange, onOpen]
+    [selectedReferent, HandleChange, onOpen, mode]
   );
+
+  const handleEditMode = useCallback(async () => {
+    setMode("edit");
+    onOpenModal3();
+  }, [onOpenModal3]);
+
+  const handleRegisterMode = useCallback(() => {
+    setMode("register");
+    setSelectedReferent(referentInitValue);
+    setError("");
+    formRef.current?.reset();
+  }, []);
+
+  const loadReferentData = useCallback((referentData: Referent) => {
+    setSelectedReferent(referentData);
+    setMode("edit");
+  }, []);
 
   const generateQR = async () => {
     try {
@@ -260,78 +349,42 @@ export default function ReferentPage() {
   };
 
   useEffect(() => {
-    onOpenModal2();
+    if (mode === "register") {
+      onOpenModal2();
+    }
     GetvolunteerType();
     GetEmployeeType();
     GetAffiliation();
     generateQR();
-  }, []);
+  }, [mode, onOpenModal2]);
 
   return (
     <div className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
-      <h1 className={title({ size: "sm" })}>ลงทะเบียน อสท.</h1>
+      <h1 className={title({ size: "sm" })}>
+        {mode === "register" ? "ลงทะเบียน อสท." : "แก้ไขข้อมูล อสท."}
+      </h1>
 
-      <Modal
-        backdrop="blur"
-        id="modal-content-2"
+      <div className="flex gap-4 mb-4">
+        <Button
+          color={mode === "register" ? "primary" : "default"}
+          variant={mode === "register" ? "solid" : "bordered"}
+          onPress={handleRegisterMode}
+        >
+          ลงทะเบียนใหม่
+        </Button>
+        <Button
+          color={mode === "edit" ? "primary" : "default"}
+          variant={mode === "edit" ? "solid" : "bordered"}
+          onPress={handleEditMode}
+        >
+          แก้ไขข้อมูล
+        </Button>
+      </div>
+
+      <RegistrationDescriptionModal
         isOpen={isOpenModal2}
-        placement="center"
-        size="sm"
         onClose={onCloseModal2}
-      >
-        <ModalContent>
-          {(onCloseModal2) => (
-            <>
-              <ModalHeader className="flex flex-col text-center">
-                คำอธิบายการลงทะเบียน
-              </ModalHeader>
-              <ModalBody className="flex flex-col gap-2 text-sm">
-                <Divider />
-                <div>
-                  <p>
-                    <span className="font-semibold">คุณสมบัติ</span>{" "}
-                    ผู้ที่มีอายุระหว่าง 18 - 60 ปี{" "}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-semibold">ขอบเขตงาน </span>
-                  <p className="indent-5">
-                    <span className="font-semibold">
-                      1. สำรวจภาวะสุขภาพจิตเด็กและวัยรุ่น{" "}
-                    </span>{" "}
-                    ด้วยการประเมินคัดกรองประเมินภาวะซึมเศร้าในวัยรุ่น (PHQ-A)
-                  </p>
-                  <p className="indent-5">
-                    <span className="font-semibold">
-                      2. ให้คำปรึกษาทางจิตวิทยา{" "}
-                    </span>{" "}
-                    กรณีคัดกรองพบความผิดปกติ (สำหรับนักจิตวิทยาเท่านั้น)
-                  </p>
-                </div>
-                <div>
-                  <p className="">
-                    <span className="font-semibold">พื้นที่ดำเนินโครงการ</span>{" "}
-                    เขตบางแค หนองแขม ทวีวัฒนา ตลิ่งชัน ภาษีเจริญ บางบอน
-                    บางขุนเทียน เท่านั้น{" "}
-                  </p>
-                </div>
-                <div>
-                  <p className="">
-                    <span className="font-semibold">ค่าตอบแทน</span>{" "}
-                    50บาท/1แบบสอบถาม (จ่ายเป็นเงินก้อนเมื่อครบสัญญา)
-                  </p>
-                </div>
-                <Divider />
-              </ModalBody>
-              <ModalFooter className="flex justify-center">
-                <Button color="primary" variant="solid" onPress={onCloseModal2}>
-                  ปิด
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      />
 
       <Form
         ref={formRef}
@@ -341,7 +394,7 @@ export default function ReferentPage() {
       >
         <div className="flex flex-col items-center w-full gap-4 mb-4">
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage={error}
             isInvalid={!!error}
             isRequired={request}
@@ -354,10 +407,12 @@ export default function ReferentPage() {
             size="sm"
             type="text"
             variant="faded"
+            value={selectedReferent.citizenId || ""}
             onChange={HandleChange}
+            isReadOnly={mode === "edit"}
           />
           <Select
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณาเลือกคำนำหน้า"
             isRequired={request}
             label="คำนำหน้า"
@@ -367,6 +422,7 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            selectedKeys={selectedReferent.prefixId ? [selectedReferent.prefixId.toString()] : []}
             onChange={HandleChange}
           >
             {prefix.map((prefix) => (
@@ -375,7 +431,7 @@ export default function ReferentPage() {
           </Select>
 
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณากรอกชื่อ"
             isRequired={request}
             label="ชื่อ"
@@ -385,10 +441,11 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            value={selectedReferent.firstname || ""}
             onChange={HandleChange}
           />
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณากรอกนามสกุล"
             isRequired={request}
             label="นามสกุล"
@@ -398,10 +455,11 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            value={selectedReferent.lastname || ""}
             onChange={HandleChange}
           />
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณากรอกเบอร์โทรศัพท์"
             isRequired={request}
             label="เบอร์โทรศัพท์"
@@ -412,10 +470,11 @@ export default function ReferentPage() {
             size="sm"
             type="number"
             variant="faded"
+            value={selectedReferent.tel || ""}
             onChange={HandleChange}
           />
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             isRequired={request}
             label="อีเมล"
             labelPlacement="inside"
@@ -426,10 +485,11 @@ export default function ReferentPage() {
             type="text"
             validate={(val) => validateEmail(val.toString())}
             variant="faded"
+            value={selectedReferent.email || ""}
             onChange={HandleChange}
           />
           <Select
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณาเลือกประเภทอาสาสมัคร"
             isRequired={request}
             label="ประเภทอาสาสมัคร"
@@ -439,6 +499,7 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            selectedKeys={selectedReferent.volunteer_type_id ? [selectedReferent.volunteer_type_id.toString()] : []}
             onChange={HandleChange}
           >
             {volunteerType.map((volunteerType) => (
@@ -448,7 +509,7 @@ export default function ReferentPage() {
             ))}
           </Select>
           <Select
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณาเลือกสังกัด"
             isRequired={request}
             label="สังกัด"
@@ -458,6 +519,7 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            selectedKeys={selectedReferent.affiliation_id ? [selectedReferent.affiliation_id.toString()] : []}
             onChange={HandleChange}
           >
             {affiliation.map((affiliation) => (
@@ -465,7 +527,7 @@ export default function ReferentPage() {
             ))}
           </Select>
           <Input
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณากรอกหน่วยงาน"
             isRequired={request}
             label="หน่วยงาน"
@@ -475,10 +537,11 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            value={selectedReferent.agency || ""}
             onChange={HandleChange}
           />
           <Select
-            className="max-w-xl"
+            className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณาเลือกประเภทการจ้างงาน"
             isRequired={request}
             label="ประเภทการจ้างงาน"
@@ -488,6 +551,7 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             variant="faded"
+            selectedKeys={selectedReferent.employee_type_id ? [selectedReferent.employee_type_id.toString()] : []}
             onChange={HandleChange}
           >
             {employeeType.map((employeeType) => (
@@ -502,95 +566,38 @@ export default function ReferentPage() {
             type="submit"
             variant="solid"
           >
-            {isLoading ? "กำลังลงทะเบียน..." : "ลงทะเบียน"}
+            {isLoading 
+              ? (mode === "register" ? "กำลังลงทะเบียน..." : "กำลังบันทึก...") 
+              : (mode === "register" ? "ลงทะเบียน" : "บันทึกข้อมูล")
+            }
           </Button>
         </div>
 
-        <div className="flex justify-center items-center gap-4 w-full font-semibold">
-          <p>ตรวจสอบข้อมูลการลงทะเบียน อสท.</p>
-          <Button
-            color="warning"
-            type="button"
-            variant="solid"
-            onPress={onOpenModal3}
-          >
-            ตรวจสอบ
-          </Button>
-        </div>
+        {mode === "register" && (
+          <div className="flex justify-center items-center gap-4 w-full font-semibold">
+            <p>ตรวจสอบข้อมูลการลงทะเบียน อสท.</p>
+            <Button
+              color="warning"
+              type="button"
+              variant="solid"
+              onPress={onOpenModal3}
+            >
+              ตรวจสอบ
+            </Button>
+          </div>
+        )}
       </Form>
 
-      <Modal
-        backdrop="blur"
-        className="whitespace-nowrap sm:whitespace-normal"
-        hideCloseButton={true}
-        id="modal-content-1"
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
+      <RegistrationInfoModal
         isOpen={isOpen}
-        placement="center"
-        size="sm"
         onClose={onClose}
-      >
-        <ModalContent>
-          <>
-            <ModalHeader className="flex flex-col items-center font-bold">
-              ข้อมูลการลงทะเบียน อสท.
-            </ModalHeader>
-            <ModalBody className="flex flex-col gap-2">
-              <Divider />
-              <div className="items-center flex justify-center box-border rounded-full bg-primary-100 font-semibold p-2 text-primary-600">
-                <span className="">รหัสอ้างอิง {selectedReferent.id}</span>
-              </div>
-              <span>
-                ชื่อ - นามสกุล : {prefix[selectedReferent.prefixId - 1]?.label}{" "}
-                {selectedReferent?.firstname} {selectedReferent?.lastname}
-              </span>
-              <span>
-                สังกัด :{" "}
-                {
-                  affiliation.find(
-                    (x) => x.id == selectedReferent.affiliation_id
-                  )?.name
-                }
-              </span>
-              <span>หน่วยงาน : {selectedReferent?.agency}</span>
-              <span>
-                ประเภทอาสาสมัคร :{" "}
-                {
-                  volunteerType.find(
-                    (x) => x.id == selectedReferent.volunteer_type_id
-                  )?.name
-                }
-              </span>
-              <Divider />
-              <h1 className="text-center text-2xl font-bold text-red-500 ">
-                กรุณาบันทึกหน้าจอนี้
-              </h1>
-              <Image
-                alt="QR-Code"
-                className="w-[200px] h-[200px] mx-auto"
-                height={200}
-                src={qrCode}
-                width={200}
-              />
-              <Divider />
-            </ModalBody>
-            <ModalFooter className="flex justify-center">
-              <Button
-                color="primary"
-                variant="solid"
-                onPress={() => {
-                  onClose();
-                  formRef.current?.reset();
-                  setIsLoading(false);
-                }}
-              >
-                ปิด
-              </Button>
-            </ModalFooter>
-          </>
-        </ModalContent>
-      </Modal>
+        selectedReferent={selectedReferent}
+        affiliation={affiliation}
+        volunteerType={volunteerType}
+        qrCode={qrCode}
+        formRef={formRef as React.RefObject<HTMLFormElement>}
+        setIsLoading={setIsLoading}
+      />
 
       <ReferentQRCodeModal
         affiliation={affiliation}
@@ -600,68 +607,14 @@ export default function ReferentPage() {
         onClose={onCloseModal4}
       />
 
-      <Modal
-        backdrop="blur"
-        id="modal-content-3"
+      <VerificationModal
         isOpen={isOpenModal3}
-        placement="center"
-        size="sm"
         onClose={onCloseModal3}
         onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {() => (
-            <>
-              <ModalHeader className="flex flex-col gap-1 text-center">
-                ตรวจสอบการลงทะเบียน
-              </ModalHeader>
-              <ModalBody>
-                <Form
-                  className="flex flex-col gap-4 w-full p-5"
-                  onSubmit={handleVerification}
-                >
-                  <Input
-                    className="max-w-xl"
-                    isRequired={request}
-                    label="เลขบัตรประชาชน"
-                    labelPlacement="inside"
-                    name="citizenId"
-                    placeholder="เลขบัตรประชาชน"
-                    radius="md"
-                    size="sm"
-                    type="number"
-                    variant="faded"
-                  />
-                  <Input
-                    className="max-w-xl"
-                    errorMessage="กรุณากรอกเบอร์โทรศัพท์"
-                    isRequired={request}
-                    label="เบอร์โทรศัพท์"
-                    labelPlacement="inside"
-                    name="tel"
-                    placeholder="เบอร์โทรศัพท์"
-                    radius="md"
-                    size="sm"
-                    type="number"
-                    variant="faded"
-                  />
-                  <Button className="w-full" color="primary" type="submit">
-                    ตรวจสอบ
-                  </Button>
-                  <Button
-                    className="w-full"
-                    color="danger"
-                    variant="light"
-                    onPress={onCloseModal3}
-                  >
-                    ปิด
-                  </Button>
-                </Form>
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+        onSubmit={handleVerification}
+        request={request}
+        mode={mode}
+      />
     </div>
   );
 }
