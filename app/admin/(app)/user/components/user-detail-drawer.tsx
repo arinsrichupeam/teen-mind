@@ -447,7 +447,6 @@ export default function UserDetailDrawer({
       </DrawerContent>
 
       <ModalEditProfile
-        mode={"edit"}
         data={{
           profile: {
             ...user,
@@ -464,6 +463,7 @@ export default function UserDetailDrawer({
           },
         }}
         isOpen={isModalOpen}
+        mode={"edit"}
         onClose={() => {
           setIsModalOpen(false);
         }}
