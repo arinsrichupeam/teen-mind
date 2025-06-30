@@ -445,17 +445,17 @@ export default function UserDetailDrawer({
           </Button>
         </DrawerFooter>
       </DrawerContent>
+
       <ModalEditProfile
+        mode={"edit"}
         data={{
           profile: {
             ...user,
-            // แปลง address เป็น array ตามที่ ModalEditProfile คาดหวัง
             address: user.address
               ? Array.isArray(user.address)
                 ? user.address
                 : [user.address]
               : [],
-            // แปลง emergency เป็น array ตามที่ ModalEditProfile คาดหวัง
             emergency: user.emergency
               ? Array.isArray(user.emergency)
                 ? user.emergency

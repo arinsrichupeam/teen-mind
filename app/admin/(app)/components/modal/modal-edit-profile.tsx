@@ -291,7 +291,6 @@ export const ModalEditProfile = ({
         (x) => x.id == data?.profile.address[0].subdistrict
       );
 
-      // แปลงวันเกิดเป็นรูปแบบ YYYY-MM-DD สำหรับ input type="date"
       let birthdayDate = "";
 
       if (data.profile.birthday) {
