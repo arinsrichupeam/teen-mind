@@ -17,6 +17,7 @@ export async function GET() {
       profile: {
         select: {
           id: true,
+          userId: true,
           prefixId: true,
           firstname: true,
           lastname: true,

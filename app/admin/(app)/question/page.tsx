@@ -27,7 +27,13 @@ import {
   addToast,
   Chip,
 } from "@heroui/react";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  DocumentTextIcon,
+  DevicePhoneMobileIcon,
+} from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -399,7 +405,12 @@ export default function QuestionPage() {
               ?.label || "";
 
           return (
-            <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              {item.profile.userId ? (
+                <DevicePhoneMobileIcon className="size-5 text-success-500" />
+              ) : (
+                <DocumentTextIcon className="size-5 text-primary-500" />
+              )}
               <p className="text-bold text-small">
                 {prefixLabel} {item.profile?.firstname || ""}{" "}
                 {item.profile?.lastname || ""}
