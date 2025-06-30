@@ -23,6 +23,7 @@ export async function GET() {
           birthday: true,
           school: {
             select: {
+              id: true,
               name: true,
             },
           },

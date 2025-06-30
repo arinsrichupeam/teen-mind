@@ -39,6 +39,7 @@ export async function GET(
           hn: true,
           school: {
             select: {
+              id: true,
               name: true,
             },
           },
