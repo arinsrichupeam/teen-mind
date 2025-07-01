@@ -63,10 +63,16 @@ export const SidebarWrapper = () => {
               {profile.roleId === 2 ? (
                 <SidebarMenu title="Referent Menu">
                   <SidebarItem
-                    href="/referent/question"
+                    href="/admin/question"
                     icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                    isActive={pathname === "/referent/question"}
+                    isActive={pathname === "/admin/question"}
                     title="แบบสอบถาม"
+                  />
+                  <SidebarItem
+                    href="/admin/user"
+                    icon={<UserGroupIcon className="size-6" />}
+                    isActive={pathname === "/admin/user"}
+                    title="ผู้ใช้งาน (User)"
                   />
                 </SidebarMenu>
               ) : (
