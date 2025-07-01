@@ -474,11 +474,13 @@ export const ModalEditProfile = ({
     <Modal
       backdrop="blur"
       closeButton={false}
+      hideCloseButton
       isOpen={isOpen}
       radius="md"
       scrollBehavior="inside"
       shadow="lg"
       size="2xl"
+      onOpenChange={onClose}
     >
       <ModalContent>
         <ModalHeader className="flex flex-row justify-center">
@@ -784,6 +786,7 @@ export const ModalEditProfile = ({
               <Input
                 isRequired={true}
                 label="โทรศัพท์"
+                maxLength={10}
                 name="tel"
                 size="sm"
                 value={editProfileData.tel}
@@ -807,6 +810,7 @@ export const ModalEditProfile = ({
             <Input
               isRequired={true}
               label="โทรศัพท์"
+              maxLength={10}
               name="emergency.tel"
               size="sm"
               value={editProfileData.emergency.tel}

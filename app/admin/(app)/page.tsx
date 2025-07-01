@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Profile_Admin } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import { CardGreen } from "./components/home/card-green";
 import { CardGreenLow } from "./components/home/card-green-low";
@@ -76,6 +77,21 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 };
 
 export default function AdminHome() {
+  const router = useRouter();
+  
+  // เพิ่มการตรวจสอบ roleId และ redirect
+  useEffect(() => {
+    const adminProfile = sessionStorage.getItem("adminProfile");
+    if (adminProfile) {
+      const profile = JSON.parse(adminProfile);
+      if (profile.roleId === 2) {
+        router.replace("/admin/user");
+      } else if (profile.roleId === 3) {
+        router.replace("/admin/question");
+      }
+    }
+  }, [router]);
+
   const { data: rawQuestions = [], isLoading: isLoadingQuestions } = useQuery({
     queryKey: ["questions"],
     queryFn: fetchQuestions,
@@ -179,6 +195,8 @@ export default function AdminHome() {
   if (isLoadingQuestions || isLoadingMembers || isLoadingUsers) {
     return <></>;
   }
+
+  
 
   return (
     <Suspense fallback={<Loading />}>
