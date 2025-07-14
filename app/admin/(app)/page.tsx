@@ -16,6 +16,7 @@ import { CardTotal } from "./components/home/card-total";
 import { CardTotalUser } from "./components/home/card-total-user";
 import { CardTotalManual } from "./components/home/card-total-manual";
 import { CardSchoolStats } from "./components/home/card-school-stats";
+import { CardScoreCriteria } from "./components/home/card-score-criteria";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
@@ -219,11 +220,11 @@ export default function AdminHome() {
               <div className="flex flex-col gap-2">
                 <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
                 <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-5 gap-2  justify-center w-full">
-                  <CardGreen data={greenQuestions} />
-                  <CardGreenLow data={greenLowQuestions} />
-                  <CardYellow data={yellowQuestions} />
-                  <CardOrange data={orangeQuestions} />
-                  <CardRed data={redQuestions} />
+                  <CardGreen data={greenQuestions} total={questions.length} />
+                  <CardGreenLow data={greenLowQuestions} total={questions.length} />
+                  <CardYellow data={yellowQuestions} total={questions.length} />
+                  <CardOrange data={orangeQuestions} total={questions.length} />
+                  <CardRed data={redQuestions} total={questions.length} />
                 </div>
               </div>
 
@@ -242,6 +243,9 @@ export default function AdminHome() {
             <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
             <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
               <CardAgents data={newMembers} />
+            </div>
+            <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
+              <CardScoreCriteria />
             </div>
           </div>
         </div>
