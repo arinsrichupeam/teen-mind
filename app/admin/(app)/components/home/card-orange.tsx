@@ -18,7 +18,8 @@ export const CardOrange = ({ data, total }: props) => {
               พบความเสี่ยงมาก
             </span>
             <span className=" text-xl font-semibold">
-              {data.length} <span className="text-xs text-orange-600">
+              {data.length}{" "}
+              <span className="text-xs text-orange-600">
                 ({total > 0 ? ((data.length / total) * 100).toFixed(1) : 0}%)
               </span>
             </span>

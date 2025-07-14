@@ -79,12 +79,14 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 
 export default function AdminHome() {
   const router = useRouter();
-  
+
   // เพิ่มการตรวจสอบ roleId และ redirect
   useEffect(() => {
     const adminProfile = sessionStorage.getItem("adminProfile");
+
     if (adminProfile) {
       const profile = JSON.parse(adminProfile);
+
       if (profile.roleId === 2) {
         router.replace("/admin/user");
       } else if (profile.roleId === 3) {
@@ -197,8 +199,6 @@ export default function AdminHome() {
     return <></>;
   }
 
-  
-
   return (
     <Suspense fallback={<Loading />}>
       <div className="h-full lg:px-6">
@@ -221,7 +221,10 @@ export default function AdminHome() {
                 <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
                 <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-5 gap-2  justify-center w-full">
                   <CardGreen data={greenQuestions} total={questions.length} />
-                  <CardGreenLow data={greenLowQuestions} total={questions.length} />
+                  <CardGreenLow
+                    data={greenLowQuestions}
+                    total={questions.length}
+                  />
                   <CardYellow data={yellowQuestions} total={questions.length} />
                   <CardOrange data={orangeQuestions} total={questions.length} />
                   <CardRed data={redQuestions} total={questions.length} />

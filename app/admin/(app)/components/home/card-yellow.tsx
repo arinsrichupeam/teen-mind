@@ -18,7 +18,8 @@ export const CardYellow = ({ data, total }: props) => {
               พบความเสี่ยงปานกลาง
             </span>
             <span className=" text-xl font-semibold">
-              {data.length} <span className="text-xs text-warning-600">
+              {data.length}{" "}
+              <span className="text-xs text-warning-600">
                 ({total > 0 ? ((data.length / total) * 100).toFixed(1) : 0}%)
               </span>
             </span>

@@ -472,9 +472,9 @@ export const ModalEditProfile = ({
 
   return (
     <Modal
+      hideCloseButton
       backdrop="blur"
       closeButton={false}
-      hideCloseButton
       isOpen={isOpen}
       radius="md"
       scrollBehavior="inside"

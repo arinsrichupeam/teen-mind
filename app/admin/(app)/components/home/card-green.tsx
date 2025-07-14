@@ -18,7 +18,8 @@ export const CardGreen = ({ data, total }: props) => {
               ไม่พบความเสี่ยง
             </span>
             <span className=" text-xl font-semibold">
-              {data.length} <span className="text-xs text-success-600">
+              {data.length}{" "}
+              <span className="text-xs text-success-600">
                 ({total > 0 ? ((data.length / total) * 100).toFixed(1) : 0}%)
               </span>
             </span>
