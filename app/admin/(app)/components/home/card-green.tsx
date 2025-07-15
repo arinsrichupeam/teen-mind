@@ -5,9 +5,10 @@ import { QuestionsData } from "@/types";
 
 type props = {
   data: QuestionsData[];
+  total: number;
 };
 
-export const CardGreen = ({ data }: props) => {
+export const CardGreen = ({ data, total }: props) => {
   return (
     <Card className="xl:max-w-sm bg-success-200 rounded-xl shadow-md px-3 w-full">
       <CardBody className="py-5 overflow-hidden">
@@ -16,7 +17,12 @@ export const CardGreen = ({ data }: props) => {
             <span className="font-semibold text-success-700 whitespace-nowrap">
               ไม่พบความเสี่ยง
             </span>
-            <span className=" text-xl font-semibold">{data.length}</span>
+            <span className=" text-xl font-semibold">
+              {data.length}{" "}
+              <span className="text-xs text-success-600">
+                ({total > 0 ? ((data.length / total) * 100).toFixed(1) : 0}%)
+              </span>
+            </span>
           </div>
           {/* <div className="flex basis-1/3 gap-2.5 py-2 items-center justify-end">
             <UsersIcon className="size-8 text-success-700" />

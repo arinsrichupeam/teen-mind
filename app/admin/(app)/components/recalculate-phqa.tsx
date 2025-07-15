@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Progress,
-  Spinner,
-  Chip,
-  Divider,
-} from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Spinner } from "@heroui/react";
 import {
   CalculatorIcon,
   CheckCircleIcon,
@@ -44,7 +35,8 @@ interface RecalculateResponse {
 
 export default function RecalculatePHQAPage() {
   const [isRecalculating, setIsRecalculating] = useState(false);
-  const [recalculateResult, setRecalculateResult] = useState<RecalculateResponse | null>(null);
+  const [recalculateResult, setRecalculateResult] =
+    useState<RecalculateResponse | null>(null);
 
   // ดึงข้อมูลสถิติ
   const {
@@ -65,6 +57,7 @@ export default function RecalculatePHQAPage() {
         method: "POST",
       });
       const result: RecalculateResponse = await response.json();
+
       setRecalculateResult(result);
 
       // รีเฟรชข้อมูลสถิติหลังจาก recalculation
@@ -74,28 +67,11 @@ export default function RecalculatePHQAPage() {
     } catch (error) {
       setRecalculateResult({
         success: false,
-        message: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        message: "เกิดข้อผิดพลาดในการเชื่อมต่อ" + error,
         summary: { total: 0, success: 0, error: 1 },
       });
     } finally {
       setIsRecalculating(false);
-    }
-  };
-
-  const getResultColor = (result: string) => {
-    switch (result) {
-      case "Green":
-        return "success";
-      case "Green-Low":
-        return "success";
-      case "Yellow":
-        return "warning";
-      case "Orange":
-        return "warning";
-      case "Red":
-        return "danger";
-      default:
-        return "default";
     }
   };
 
@@ -161,6 +137,7 @@ export default function RecalculatePHQAPage() {
               <div className="flex gap-4 w-full">
                 {sortResultStats(stats.data.resultStats).map((stat) => {
                   let bgColor = "bg-default-100";
+
                   switch (stat.result) {
                     case "Green":
                       bgColor = "bg-green-100";
@@ -178,6 +155,7 @@ export default function RecalculatePHQAPage() {
                       bgColor = "bg-red-100";
                       break;
                   }
+
                   return (
                     <div
                       key={stat.result}
@@ -218,8 +196,9 @@ export default function RecalculatePHQAPage() {
         <CardBody>
           <div className="space-y-4">
             <Button
+              className="w-full md:w-auto"
               color="warning"
-              variant="flat"
+              isDisabled={isRecalculating}
               size="lg"
               startContent={
                 isRecalculating ? (
@@ -228,9 +207,8 @@ export default function RecalculatePHQAPage() {
                   <CalculatorIcon className="size-5" />
                 )
               }
+              variant="flat"
               onPress={handleRecalculate}
-              isDisabled={isRecalculating}
-              className="w-full md:w-auto"
             >
               {isRecalculating ? "กำลังคำนวณ..." : "คำนวณคะแนนใหม่"}
             </Button>
@@ -244,10 +222,9 @@ export default function RecalculatePHQAPage() {
                     <ExclamationTriangleIcon className="size-5 text-danger" />
                   )}
                   <span
-                    className={`font-semibold ${recalculateResult.success
-                        ? "text-success"
-                        : "text-danger"
-                      }`}
+                    className={`font-semibold ${
+                      recalculateResult.success ? "text-success" : "text-danger"
+                    }`}
                   >
                     {recalculateResult.success ? "สำเร็จ" : "เกิดข้อผิดพลาด"}
                   </span>
@@ -278,20 +255,21 @@ export default function RecalculatePHQAPage() {
                   </div>
                 )}
 
-                {recalculateResult.errors && recalculateResult.errors.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-sm font-semibold text-danger mb-2">
-                      รายละเอียดข้อผิดพลาด:
-                    </p>
-                    <div className="max-h-32 overflow-y-auto">
-                      {recalculateResult.errors.map((error, index) => (
-                        <p key={index} className="text-xs text-danger mb-1">
-                          • {error}
-                        </p>
-                      ))}
+                {recalculateResult.errors &&
+                  recalculateResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm font-semibold text-danger mb-2">
+                        รายละเอียดข้อผิดพลาด:
+                      </p>
+                      <div className="max-h-32 overflow-y-auto">
+                        {recalculateResult.errors.map((error, index) => (
+                          <p key={index} className="text-xs text-danger mb-1">
+                            • {error}
+                          </p>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             )}
           </div>

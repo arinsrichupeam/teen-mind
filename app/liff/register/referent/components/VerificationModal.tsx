@@ -41,7 +41,9 @@ export default function VerificationModal({
         {() => (
           <>
             <ModalHeader className="flex flex-col gap-1 text-center">
-              {mode === "register" ? "ตรวจสอบการลงทะเบียน" : "ค้นหาข้อมูลเพื่อแก้ไข"}
+              {mode === "register"
+                ? "ตรวจสอบการลงทะเบียน"
+                : "ค้นหาข้อมูลเพื่อแก้ไข"}
             </ModalHeader>
             <ModalBody>
               <Form
@@ -91,4 +93,4 @@ export default function VerificationModal({
       </ModalContent>
     </Modal>
   );
-} 
+}

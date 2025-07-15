@@ -65,9 +65,8 @@ export default function RegistrationInfoModal({
             <span>
               สังกัด :{" "}
               {
-                affiliation.find(
-                  (x) => x.id == selectedReferent.affiliation_id
-                )?.name
+                affiliation.find((x) => x.id == selectedReferent.affiliation_id)
+                  ?.name
               }
             </span>
             <span>หน่วยงาน : {selectedReferent?.agency}</span>
@@ -109,4 +108,4 @@ export default function RegistrationInfoModal({
       </ModalContent>
     </Modal>
   );
-} 
+}

@@ -17,12 +17,14 @@ export async function GET() {
       profile: {
         select: {
           id: true,
+          userId: true,
           prefixId: true,
           firstname: true,
           lastname: true,
           birthday: true,
           school: {
             select: {
+              id: true,
               name: true,
             },
           },
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
     const location_data: LocationData = data.location;
 
     const phqa_sum = SumValue(phqa_data);
-    const { result, result_text } = calculateResult(phqa_sum, phqa_data);
+    const { result, result_text } = calculateResult(phqa_sum);
 
     // ดึงข้อมูลผู้ใช้
     const user = await prisma.profile.findUnique({
@@ -189,24 +191,7 @@ export async function PUT(req: Request) {
   try {
     const data = await req.json();
     const question: QuestionsData = data;
-    const phqaForCalculation = {
-      id: "",
-      questions_MasterId: null,
-      q1: question.phqa[0].q1,
-      q2: question.phqa[0].q2,
-      q3: question.phqa[0].q3,
-      q4: question.phqa[0].q4,
-      q5: question.phqa[0].q5,
-      q6: question.phqa[0].q6,
-      q7: question.phqa[0].q7,
-      q8: question.phqa[0].q8,
-      q9: question.phqa[0].q9,
-      sum: question.phqa[0].sum,
-    };
-    const { result, result_text } = calculateResult(
-      question.phqa[0].sum,
-      phqaForCalculation
-    );
+    const { result, result_text } = calculateResult(question.phqa[0].sum);
 
     // อัปเดตข้อมูลหลัก
     const updatedQuestion = await prisma.questions_Master.update({
@@ -427,38 +412,28 @@ function validateQuestionData(data: any) {
 }
 
 // แยกฟังก์ชันคำนวณผลลัพธ์
-function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
+function calculateResult(phqa_sum: number) {
   let result = "";
   let result_text = "";
 
-  if (phqa_data.q9 > 0) {
-    result = "Red";
-    result_text = "พบความเสี่ยง";
+  if (phqa_sum > 14) {
+    if (phqa_sum >= 15 && phqa_sum <= 19) {
+      result = "Orange";
+      result_text = "พบความเสี่ยงมาก";
+    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+      result = "Red";
+      result_text = "พบความเสี่ยงรุนแรง";
+    }
+  } else if (phqa_sum > 9) {
+    result = "Yellow";
+    result_text = "พบความเสี่ยงปานกลาง";
   } else {
-    if (phqa_sum > 14) {
-      if (phqa_sum >= 15 && phqa_sum <= 19) {
-        result = "Orange";
-        result_text = "พบความเสี่ยงมาก";
-      } else if (phqa_sum >= 20 && phqa_sum <= 27) {
-        result = "Red";
-        result_text = "พบความเสี่ยงรุนแรง";
-      }
-    } else if (phqa_sum > 9) {
-      if (phqa_data.q9 > 0) {
-        result = "Red";
-        result_text = "พบความเสี่ยง";
-      } else {
-        result = "Yellow";
-        result_text = "พบความเสี่ยงปานกลาง";
-      }
-    } else {
-      if (phqa_sum >= 0 && phqa_sum <= 4) {
-        result = "Green";
-        result_text = "ไม่พบความเสี่ยง";
-      } else if (phqa_sum >= 5 && phqa_sum <= 9) {
-        result = "Green-Low";
-        result_text = "พบความเสี่ยงเล็กน้อย";
-      }
+    if (phqa_sum >= 0 && phqa_sum <= 4) {
+      result = "Green";
+      result_text = "ไม่พบความเสี่ยง";
+    } else if (phqa_sum >= 5 && phqa_sum <= 9) {
+      result = "Green-Low";
+      result_text = "พบความเสี่ยงเล็กน้อย";
     }
   }
 

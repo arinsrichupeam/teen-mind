@@ -3,38 +3,28 @@ import { Questions_PHQA } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 
 // ฟังก์ชันคำนวณผลลัพธ์ PHQA
-function calculateResult(phqa_sum: number, phqa_data: any) {
+function calculateResult(phqa_sum: number) {
   let result = "";
   let result_text = "";
 
-  if (phqa_data.q9 > 0) {
-    result = "Red";
-    result_text = "พบความเสี่ยง";
+  if (phqa_sum > 14) {
+    if (phqa_sum >= 15 && phqa_sum <= 19) {
+      result = "Orange";
+      result_text = "พบความเสี่ยงมาก";
+    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
+      result = "Red";
+      result_text = "พบความเสี่ยงรุนแรง";
+    }
+  } else if (phqa_sum > 9) {
+    result = "Yellow";
+    result_text = "พบความเสี่ยงปานกลาง";
   } else {
-    if (phqa_sum > 14) {
-      if (phqa_sum >= 15 && phqa_sum <= 19) {
-        result = "Orange";
-        result_text = "พบความเสี่ยงมาก";
-      } else if (phqa_sum >= 20 && phqa_sum <= 27) {
-        result = "Red";
-        result_text = "พบความเสี่ยงรุนแรง";
-      }
-    } else if (phqa_sum > 9) {
-      if (phqa_data.q9 > 0) {
-        result = "Red";
-        result_text = "พบความเสี่ยง";
-      } else {
-        result = "Yellow";
-        result_text = "พบความเสี่ยงปานกลาง";
-      }
-    } else {
-      if (phqa_sum >= 0 && phqa_sum <= 4) {
-        result = "Green";
-        result_text = "ไม่พบความเสี่ยง";
-      } else if (phqa_sum >= 5 && phqa_sum <= 9) {
-        result = "Green-Low";
-        result_text = "พบความเสี่ยงเล็กน้อย";
-      }
+    if (phqa_sum >= 0 && phqa_sum <= 4) {
+      result = "Green";
+      result_text = "ไม่พบความเสี่ยง";
+    } else if (phqa_sum >= 5 && phqa_sum <= 9) {
+      result = "Green-Low";
+      result_text = "พบความเสี่ยงเล็กน้อย";
     }
   }
 
@@ -84,7 +74,7 @@ export async function POST() {
           const newSum = calculateSum(phqaData);
 
           // คำนวณผลลัพธ์ใหม่
-          const { result, result_text } = calculateResult(newSum, phqaData);
+          const { result, result_text } = calculateResult(newSum);
 
           // อัปเดตข้อมูลในฐานข้อมูล
           await prisma.$transaction([

@@ -60,11 +60,17 @@ export async function GET(
           select: {
             id: true,
             prefixId: true,
+            sex: true,
             firstname: true,
             lastname: true,
             birthday: true,
+            ethnicity: true,
+            nationality: true,
+            hn: true,
+            tel: true,
             address: true,
             citizenId: true,
+            school: true,
             questions: {
               select: {
                 createdAt: true,
@@ -124,12 +130,14 @@ export async function PUT(
         hn: body.hn,
         citizenId: body.citizenId,
         prefixId: body.prefixId,
+        sex: body.sex,
         firstname: body.firstname,
         lastname: body.lastname,
         birthday: body.birthday ? new Date(body.birthday) : undefined,
         ethnicity: body.ethnicity,
         nationality: body.nationality,
         tel: body.tel,
+        schoolId: body.schoolId || null,
       },
     });
 
@@ -190,6 +198,7 @@ export async function PUT(
       include: {
         address: true,
         emergency: true,
+        school: true,
       },
     });
 
