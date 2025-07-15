@@ -47,12 +47,6 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
       color: "text-danger-600",
       description: "Red",
     },
-    {
-      range: "ข้อที่ 9 คะแนนมากกว่า 0 คะแนน",
-      level: "พบความเสี่ยง",
-      color: "text-danger-600",
-      description: "Red",
-    },
   ];
 
   const twoQCriteria: ScoreCriteria[] = [
