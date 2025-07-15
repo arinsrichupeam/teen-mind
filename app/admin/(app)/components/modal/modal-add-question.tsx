@@ -214,34 +214,24 @@ export const ModalAddQuestion = ({
       let result = "";
       let result_text = "";
 
-      if (parseInt(formData.phqa_q9) > 0) {
-        result = "Red";
-        result_text = "พบความเสี่ยง";
+      if (phqaSum > 14) {
+        if (phqaSum >= 15 && phqaSum <= 19) {
+          result = "Orange";
+          result_text = "พบความเสี่ยงมาก";
+        } else if (phqaSum >= 20 && phqaSum <= 27) {
+          result = "Red";
+          result_text = "พบความเสี่ยงรุนแรง";
+        }
+      } else if (phqaSum > 9) {
+        result = "Yellow";
+        result_text = "พบความเสี่ยงปานกลาง";
       } else {
-        if (phqaSum > 14) {
-          if (phqaSum >= 15 && phqaSum <= 19) {
-            result = "Orange";
-            result_text = "พบความเสี่ยงมาก";
-          } else if (phqaSum >= 20 && phqaSum <= 27) {
-            result = "Red";
-            result_text = "พบความเสี่ยงรุนแรง";
-          }
-        } else if (phqaSum > 9) {
-          if (parseInt(formData.phqa_q9) > 0) {
-            result = "Red";
-            result_text = "พบความเสี่ยง";
-          } else {
-            result = "Yellow";
-            result_text = "พบความเสี่ยงปานกลาง";
-          }
-        } else {
-          if (phqaSum >= 0 && phqaSum <= 4) {
-            result = "Green";
-            result_text = "ไม่พบความเสี่ยง";
-          } else if (phqaSum >= 5 && phqaSum <= 9) {
-            result = "Green-Low";
-            result_text = "พบความเสี่ยงเล็กน้อย";
-          }
+        if (phqaSum >= 0 && phqaSum <= 4) {
+          result = "Green";
+          result_text = "ไม่พบความเสี่ยง";
+        } else if (phqaSum >= 5 && phqaSum <= 9) {
+          result = "Green-Low";
+          result_text = "พบความเสี่ยงเล็กน้อย";
         }
       }
 
