@@ -463,10 +463,10 @@ export const ModalAddQuestion = ({
                         }))
                       }
                     >
-                      <Radio value="0">ไม่เลย</Radio>
-                      <Radio value="1">หลายวัน</Radio>
-                      <Radio value="2">มากกว่า 1 สัปดาห์</Radio>
-                      <Radio value="3">เกือบทุกวัน</Radio>
+                      <Radio value="0">ไม่มีเลย</Radio>
+                      <Radio value="1">มีบางวัน</Radio>
+                      <Radio value="2">มีมากกว่า 7 วัน</Radio>
+                      <Radio value="3">มีแทบทุกวัน</Radio>
                     </RadioGroup>
                   </CardBody>
                 </Card>
