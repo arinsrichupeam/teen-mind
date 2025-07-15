@@ -246,14 +246,22 @@ export const ModalEditProfile = ({
   // ฟังก์ชันคำนวณปีไทย
   const calculateThaiYear = (dateString: string): string => {
     if (!dateString) return "";
-    
+
     try {
       const date = new Date(dateString);
+
       if (isNaN(date.getTime())) return "";
-      
+
       const thaiYear = date.getFullYear() + 543;
+
       return thaiYear.toString();
     } catch (error) {
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
+        color: "danger",
+      });
+
       return "";
     }
   };
@@ -261,17 +269,24 @@ export const ModalEditProfile = ({
   // ฟังก์ชันแปลงวันที่เป็นปี พ.ศ. สำหรับแสดงผล
   const formatDateForDisplay = (dateString: string): string => {
     if (!dateString) return "";
-    
+
     try {
       const date = new Date(dateString);
+
       if (isNaN(date.getTime())) return "";
-      
+
       const thaiYear = date.getFullYear() + 543;
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
       return `${day}/${month}/${thaiYear}`;
     } catch (error) {
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
+        color: "danger",
+      });
+
       return "";
     }
   };
@@ -279,32 +294,39 @@ export const ModalEditProfile = ({
   // ฟังก์ชันแปลงวันที่จากปี พ.ศ. เป็นปี ค.ศ. สำหรับบันทึก
   const parseThaiDateToISO = (thaiDateString: string): string => {
     if (!thaiDateString) return "";
-    
+
     try {
-      const parts = thaiDateString.split('/');
+      const parts = thaiDateString.split("/");
+
       if (parts.length !== 3) return "";
-      
+
       const day = parseInt(parts[0]);
       const month = parseInt(parts[1]);
       const thaiYear = parseInt(parts[2]);
-      
+
       // ตรวจสอบความถูกต้องของข้อมูล
       if (isNaN(day) || isNaN(month) || isNaN(thaiYear)) return "";
       if (day < 1 || day > 31 || month < 1 || month > 12) return "";
-      
+
       const christianYear = thaiYear - 543;
-      
+
       // ตรวจสอบปีที่ถูกต้อง
       if (christianYear < 1900 || christianYear > 2100) return "";
-      
+
       // สร้างวันที่โดยใช้ UTC เพื่อหลีกเลี่ยงปัญหา timezone
       const date = new Date(Date.UTC(christianYear, month - 1, day));
-      
+
       // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
       if (isNaN(date.getTime())) return "";
-      
-      return date.toISOString().split('T')[0];
+
+      return date.toISOString().split("T")[0];
     } catch (error) {
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
+        color: "danger",
+      });
+
       return "";
     }
   };
@@ -672,45 +694,50 @@ export const ModalEditProfile = ({
                 isRequired={true}
                 label="วันเกิด (พ.ศ.)"
                 name="birthday"
-                size="sm"
                 placeholder="dd/mm/yyyy (เช่น 15/01/2567)"
+                size="sm"
                 value={editProfileData.birthday}
                 variant="bordered"
                 onChange={(e) => {
                   let value = e.target.value;
-                  
+
                   // ตรวจสอบว่าผู้ใช้กำลังลบหรือเพิ่ม
                   const currentValue = editProfileData.birthday;
                   const isDeleting = value.length < currentValue.length;
-                  
+
                   // อนุญาตให้กรอกได้แค่ตัวเลขและ /
                   const allowedChars = /^[0-9\/]*$/;
+
                   if (!allowedChars.test(value)) {
                     return; // ไม่ทำอะไรถ้าไม่ใช่ตัวเลขหรือ /
                   }
-                  
+
                   if (!isDeleting) {
                     // เพิ่ม / อัตโนมัติเฉพาะเมื่อเพิ่มข้อมูล
-                    if (value.length === 2 && !value.includes('/')) {
-                      value = value + '/';
-                    } else if (value.length === 5 && value.split('/').length === 2) {
-                      value = value + '/';
+                    if (value.length === 2 && !value.includes("/")) {
+                      value = value + "/";
+                    } else if (
+                      value.length === 5 &&
+                      value.split("/").length === 2
+                    ) {
+                      value = value + "/";
                     }
                   }
-                  
+
                   // จำกัดความยาวไม่เกิน 10 ตัวอักษร (dd/mm/yyyy)
                   if (value.length <= 10) {
-                    setEditProfileData(prev => ({
+                    setEditProfileData((prev) => ({
                       ...prev,
-                      birthday: value
+                      birthday: value,
                     }));
-                    
+
                     // คำนวณปีไทยเมื่อเปลี่ยนวันเกิด
                     const isoDate = parseThaiDateToISO(value);
                     const thaiYear = calculateThaiYear(isoDate);
-                    setEditProfileData(prev => ({
+
+                    setEditProfileData((prev) => ({
                       ...prev,
-                      thaiYear: thaiYear
+                      thaiYear: thaiYear,
                     }));
                   }
                 }}
@@ -791,6 +818,7 @@ export const ModalEditProfile = ({
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
+
                   handleEditProfileSelectChange(
                     "address.province",
                     selectedKey
@@ -801,7 +829,10 @@ export const ModalEditProfile = ({
                 }}
               >
                 {(item) => (
-                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
+                  <AutocompleteItem
+                    key={item.id.toString()}
+                    textValue={item.nameInThai}
+                  >
                     {item.nameInThai}
                   </AutocompleteItem>
                 )}
@@ -822,6 +853,7 @@ export const ModalEditProfile = ({
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
+
                   handleEditProfileSelectChange(
                     "address.district",
                     selectedKey
@@ -831,7 +863,10 @@ export const ModalEditProfile = ({
                 }}
               >
                 {(item) => (
-                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
+                  <AutocompleteItem
+                    key={item.id.toString()}
+                    textValue={item.nameInThai}
+                  >
                     {item.nameInThai}
                   </AutocompleteItem>
                 )}
@@ -854,6 +889,7 @@ export const ModalEditProfile = ({
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
+
                   handleEditProfileSelectChange(
                     "address.subdistrict",
                     selectedKey
@@ -861,7 +897,10 @@ export const ModalEditProfile = ({
                 }}
               >
                 {(item) => (
-                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
+                  <AutocompleteItem
+                    key={item.id.toString()}
+                    textValue={item.nameInThai}
+                  >
                     {item.nameInThai}
                   </AutocompleteItem>
                 )}
