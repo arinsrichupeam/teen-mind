@@ -191,23 +191,7 @@ export async function PUT(req: Request) {
   try {
     const data = await req.json();
     const question: QuestionsData = data;
-    const phqaForCalculation = {
-      id: "",
-      questions_MasterId: null,
-      q1: question.phqa[0].q1,
-      q2: question.phqa[0].q2,
-      q3: question.phqa[0].q3,
-      q4: question.phqa[0].q4,
-      q5: question.phqa[0].q5,
-      q6: question.phqa[0].q6,
-      q7: question.phqa[0].q7,
-      q8: question.phqa[0].q8,
-      q9: question.phqa[0].q9,
-      sum: question.phqa[0].sum,
-    };
-    const { result, result_text } = calculateResult(
-      question.phqa[0].sum
-    );
+    const { result, result_text } = calculateResult(question.phqa[0].sum);
 
     // อัปเดตข้อมูลหลัก
     const updatedQuestion = await prisma.questions_Master.update({
