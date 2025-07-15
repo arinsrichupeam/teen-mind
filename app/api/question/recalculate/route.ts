@@ -3,7 +3,7 @@ import { Questions_PHQA } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 
 // ฟังก์ชันคำนวณผลลัพธ์ PHQA
-function calculateResult(phqa_sum: number, phqa_data: any) {
+function calculateResult(phqa_sum: number) {
   let result = "";
   let result_text = "";
 
@@ -74,7 +74,7 @@ export async function POST() {
           const newSum = calculateSum(phqaData);
 
           // คำนวณผลลัพธ์ใหม่
-          const { result, result_text } = calculateResult(newSum, phqaData);
+          const { result, result_text } = calculateResult(newSum);
 
           // อัปเดตข้อมูลในฐานข้อมูล
           await prisma.$transaction([

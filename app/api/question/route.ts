@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     const location_data: LocationData = data.location;
 
     const phqa_sum = SumValue(phqa_data);
-    const { result, result_text } = calculateResult(phqa_sum, phqa_data);
+    const { result, result_text } = calculateResult(phqa_sum);
 
     // ดึงข้อมูลผู้ใช้
     const user = await prisma.profile.findUnique({
@@ -206,8 +206,7 @@ export async function PUT(req: Request) {
       sum: question.phqa[0].sum,
     };
     const { result, result_text } = calculateResult(
-      question.phqa[0].sum,
-      phqaForCalculation
+      question.phqa[0].sum
     );
 
     // อัปเดตข้อมูลหลัก
@@ -429,7 +428,7 @@ function validateQuestionData(data: any) {
 }
 
 // แยกฟังก์ชันคำนวณผลลัพธ์
-function calculateResult(phqa_sum: number, phqa_data: Questions_PHQA) {
+function calculateResult(phqa_sum: number) {
   let result = "";
   let result_text = "";
 
