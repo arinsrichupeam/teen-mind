@@ -5,7 +5,6 @@ import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import {
   addToast,
   Button,
-  DatePicker,
   Divider,
   Input,
   Modal,
@@ -18,7 +17,6 @@ import {
   Autocomplete,
   AutocompleteItem,
 } from "@heroui/react";
-import { parseDate } from "@internationalized/date";
 
 import { prefix } from "@/utils/data";
 import { validateCitizen } from "@/utils/helper";
@@ -31,6 +29,7 @@ interface EditProfileData {
   firstname: string;
   lastname: string;
   birthday: string;
+  thaiYear: string;
   ethnicity: string;
   nationality: string;
   address: {
@@ -78,6 +77,7 @@ export const ModalEditProfile = ({
     firstname: "",
     lastname: "",
     birthday: "",
+    thaiYear: "",
     ethnicity: "",
     nationality: "",
     address: {
@@ -243,6 +243,47 @@ export const ModalEditProfile = ({
     }
   };
 
+  // ฟังก์ชันคำนวณปีไทย
+  const calculateThaiYear = (dateString: string): string => {
+    if (!dateString) return "";
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    
+    const thaiYear = date.getFullYear() + 543;
+    return thaiYear.toString();
+  };
+
+  // ฟังก์ชันแปลงวันที่เป็นปี พ.ศ. สำหรับแสดงผล
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return "";
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    
+    const thaiYear = date.getFullYear() + 543;
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${day}/${month}/${thaiYear}`;
+  };
+
+  // ฟังก์ชันแปลงวันที่จากปี พ.ศ. เป็นปี ค.ศ. สำหรับบันทึก
+  const parseThaiDateToISO = (thaiDateString: string): string => {
+    if (!thaiDateString) return "";
+    
+    const parts = thaiDateString.split('/');
+    if (parts.length !== 3) return "";
+    
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    const thaiYear = parseInt(parts[2]);
+    const christianYear = thaiYear - 543;
+    
+    const date = new Date(christianYear, month - 1, day);
+    return date.toISOString().split('T')[0];
+  };
+
   const initializeEditProfileData = () => {
     // รีเซ็ต error message
     setCitizenIdError("");
@@ -257,6 +298,7 @@ export const ModalEditProfile = ({
         firstname: "",
         lastname: "",
         birthday: "",
+        thaiYear: "",
         ethnicity: "",
         nationality: "",
         address: {
@@ -292,6 +334,7 @@ export const ModalEditProfile = ({
       );
 
       let birthdayDate = "";
+      let birthdayDisplay = "";
 
       if (data.profile.birthday) {
         try {
@@ -299,6 +342,7 @@ export const ModalEditProfile = ({
 
           if (!isNaN(date.getTime())) {
             birthdayDate = date.toISOString().split("T")[0];
+            birthdayDisplay = formatDateForDisplay(birthdayDate);
           }
         } catch (error) {
           addToast({
@@ -311,6 +355,8 @@ export const ModalEditProfile = ({
         }
       }
 
+      const thaiYear = calculateThaiYear(birthdayDate);
+
       const initialData = {
         hn: data.profile.hn || "",
         citizenId: data.profile.citizenId || "",
@@ -318,7 +364,8 @@ export const ModalEditProfile = ({
         sex: data.profile.sex?.toString() || "",
         firstname: data.profile.firstname || "",
         lastname: data.profile.lastname || "",
-        birthday: birthdayDate,
+        birthday: birthdayDisplay,
+        thaiYear: thaiYear,
         ethnicity: data.profile.ethnicity || "",
         nationality: data.profile.nationality || "",
         address: {
@@ -369,7 +416,7 @@ export const ModalEditProfile = ({
         firstname: editProfileData.firstname,
         lastname: editProfileData.lastname,
         birthday: editProfileData.birthday
-          ? new Date(editProfileData.birthday)
+          ? new Date(parseThaiDateToISO(editProfileData.birthday))
           : null,
         ethnicity: editProfileData.ethnicity,
         nationality: editProfileData.nationality,
@@ -596,24 +643,27 @@ export const ModalEditProfile = ({
               />
             </div>
             <div className="flex flex-row gap-2">
-              <DatePicker
+              <Input
                 isRequired={true}
-                label="วันเกิด"
+                label="วันเกิด (พ.ศ.)"
+                name="birthday"
                 size="sm"
-                value={
-                  editProfileData.birthday
-                    ? parseDate(editProfileData.birthday)
-                    : null
-                }
+                placeholder="dd/mm/yyyy (เช่น 15/01/2567)"
+                value={editProfileData.birthday}
                 variant="bordered"
-                onChange={(date: any) => {
-                  if (date) {
-                    const dateString = date.toString();
-
-                    handleEditProfileChange({
-                      target: { name: "birthday", value: dateString },
-                    });
-                  }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setEditProfileData(prev => ({
+                    ...prev,
+                    birthday: value
+                  }));
+                  // คำนวณปีไทยเมื่อเปลี่ยนวันเกิด
+                  const isoDate = parseThaiDateToISO(value);
+                  const thaiYear = calculateThaiYear(isoDate);
+                  setEditProfileData(prev => ({
+                    ...prev,
+                    thaiYear: thaiYear
+                  }));
                 }}
               />
               <Autocomplete
@@ -681,21 +731,17 @@ export const ModalEditProfile = ({
               />
             </div>
             <div className="flex flex-row gap-2">
-              <Select
+              <Autocomplete
+                defaultItems={province}
                 isRequired={true}
                 label="จังหวัด"
                 name="address.province"
                 placeholder="เลือกจังหวัด"
-                selectedKeys={
-                  editProfileData.address.province
-                    ? [editProfileData.address.province]
-                    : []
-                }
+                selectedKey={editProfileData.address.province || ""}
                 size="sm"
                 variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0] as string;
-
+                onSelectionChange={(key) => {
+                  const selectedKey = key as string;
                   handleEditProfileSelectChange(
                     "address.province",
                     selectedKey
@@ -705,28 +751,28 @@ export const ModalEditProfile = ({
                   handleEditProfileSelectChange("address.subdistrict", "");
                 }}
               >
-                {province.map((item) => (
-                  <SelectItem key={item.id.toString()}>
+                {(item) => (
+                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
                     {item.nameInThai}
-                  </SelectItem>
-                ))}
-              </Select>
-              <Select
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+              <Autocomplete
+                defaultItems={distrince.filter(
+                  (item) =>
+                    item.provinceId.toString() ===
+                    editProfileData.address.province
+                )}
                 isDisabled={!editProfileData.address.province}
                 isRequired={true}
                 label="อำเภอ"
                 name="address.district"
                 placeholder="เลือกอำเภอ"
-                selectedKeys={
-                  editProfileData.address.district
-                    ? [editProfileData.address.district]
-                    : []
-                }
+                selectedKey={editProfileData.address.district || ""}
                 size="sm"
                 variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0] as string;
-
+                onSelectionChange={(key) => {
+                  const selectedKey = key as string;
                   handleEditProfileSelectChange(
                     "address.district",
                     selectedKey
@@ -735,54 +781,42 @@ export const ModalEditProfile = ({
                   handleEditProfileSelectChange("address.subdistrict", "");
                 }}
               >
-                {distrince
-                  .filter(
-                    (item) =>
-                      item.provinceId.toString() ===
-                      editProfileData.address.province
-                  )
-                  .map((item) => (
-                    <SelectItem key={item.id.toString()}>
-                      {item.nameInThai}
-                    </SelectItem>
-                  ))}
-              </Select>
+                {(item) => (
+                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
+                    {item.nameInThai}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
             </div>
             <div className="flex flex-row gap-2">
-              <Select
+              <Autocomplete
+                defaultItems={subdistrince.filter(
+                  (item) =>
+                    item.districtId.toString() ===
+                    editProfileData.address.district
+                )}
                 isDisabled={!editProfileData.address.district}
                 isRequired={true}
                 label="ตำบล"
                 name="address.subdistrict"
                 placeholder="เลือกตำบล"
-                selectedKeys={
-                  editProfileData.address.subdistrict
-                    ? [editProfileData.address.subdistrict]
-                    : []
-                }
+                selectedKey={editProfileData.address.subdistrict || ""}
                 size="sm"
                 variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0] as string;
-
+                onSelectionChange={(key) => {
+                  const selectedKey = key as string;
                   handleEditProfileSelectChange(
                     "address.subdistrict",
                     selectedKey
                   );
                 }}
               >
-                {subdistrince
-                  .filter(
-                    (item) =>
-                      item.districtId.toString() ===
-                      editProfileData.address.district
-                  )
-                  .map((item) => (
-                    <SelectItem key={item.id.toString()}>
-                      {item.nameInThai}
-                    </SelectItem>
-                  ))}
-              </Select>
+                {(item) => (
+                  <AutocompleteItem key={item.id.toString()} textValue={item.nameInThai}>
+                    {item.nameInThai}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
               <Input
                 isRequired={true}
                 label="โทรศัพท์"
