@@ -21,12 +21,6 @@ type School = {
   updatedAt: Date;
 };
 
-type PieChartData = {
-  name: string;
-  value: number;
-  color: string;
-};
-
 type props = {
   data: QuestionsData[];
 };
@@ -52,7 +46,6 @@ const COLORS = {
 export const PieChartsSection = ({ data }: props) => {
   const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [schools, setSchools] = useState<School[]>([]);
-  const [isLoadingSchools, setIsLoadingSchools] = useState(true);
 
   // Fetch ข้อมูลโรงเรียน
   useEffect(() => {
@@ -68,11 +61,9 @@ export const PieChartsSection = ({ data }: props) => {
       } catch (error) {
         addToast({
           title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลโรงเรียนได้",
+          description: "ไม่สามารถดึงข้อมูลโรงเรียนได้" + error,
           color: "danger",
         });
-      } finally {
-        setIsLoadingSchools(false);
       }
     };
 

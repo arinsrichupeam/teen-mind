@@ -64,7 +64,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
     if (
       !latestQuestions[profileId] ||
       new Date(question.createdAt) >
-      new Date(latestQuestions[profileId].createdAt)
+        new Date(latestQuestions[profileId].createdAt)
     ) {
       latestQuestions[profileId] = question;
     }
@@ -110,22 +110,6 @@ export default function AdminHome() {
 
   const appUsers = allProfiles.filter((p) => p.userId);
   const manualUsers = allProfiles.filter((p) => !p.userId);
-
-  const greenQuestions = questions.filter(
-    (q: QuestionsData) => q.result === "Green"
-  );
-  const greenLowQuestions = questions.filter(
-    (q: QuestionsData) => q.result === "Green-Low"
-  );
-  const yellowQuestions = questions.filter(
-    (q: QuestionsData) => q.result === "Yellow"
-  );
-  const orangeQuestions = questions.filter(
-    (q: QuestionsData) => q.result === "Orange"
-  );
-  const redQuestions = questions.filter(
-    (q: QuestionsData) => q.result === "Red"
-  );
 
   type SchoolStat = {
     schoolName: string;
