@@ -108,13 +108,13 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
   const getLevelCount = () => {
     switch (selectedTab) {
       case "phqa":
-        return "6 เกณฑ์";
+        return "5 เกณฑ์";
       case "2q":
         return "2 เกณฑ์";
       case "addon":
         return "2 เกณฑ์";
       default:
-        return "6 เกณฑ์";
+        return "5 เกณฑ์";
     }
   };
 
