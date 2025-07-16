@@ -19,7 +19,13 @@ import {
 } from "@heroui/react";
 
 import { prefix } from "@/utils/data";
-import { validateCitizen } from "@/utils/helper";
+import {
+  validateCitizen,
+  validateBirthday,
+  parseThaiDateToISO,
+  calculateThaiYear,
+  formatDateForDisplay,
+} from "@/utils/helper";
 
 interface EditProfileData {
   hn: string;
@@ -99,6 +105,9 @@ export const ModalEditProfile = ({
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
+  const [birthdayError, setBirthdayError] = useState<string>("");
+  const [isModalInitialized, setIsModalInitialized] = useState(false);
+  const [currentData, setCurrentData] = useState<any>(null);
 
   const fetchData = async (url: string, setter: (data: any) => void) => {
     try {
@@ -168,10 +177,31 @@ export const ModalEditProfile = ({
         return newData;
       });
     } else {
+      let processedValue = value;
+
+      // จัดการการกรอกวันเกิด - ใช้ placeholder แทน auto format
+      if (name === "birthday") {
+        // จำกัดความยาวสูงสุดที่ 10 ตัวอักษร (dd/mm/yyyy)
+        if (value.length > 10) {
+          processedValue = value.slice(0, 10);
+        }
+      }
+
+      // ตรวจสอบโทรศัพท์ให้รับเฉพาะตัวเลขเท่านั้น
+      if (name === "tel" || name === "emergency.tel") {
+        // อนุญาตให้กรอกได้แค่ตัวเลขเท่านั้น
+        const onlyNumbers = /^[0-9]*$/;
+
+        if (!onlyNumbers.test(value)) {
+          return; // ไม่ทำอะไรถ้าไม่ใช่ตัวเลข
+        }
+        processedValue = value;
+      }
+
       setEditProfileData((prev) => {
         const newData = {
           ...prev,
-          [name]: value,
+          [name]: processedValue,
         };
 
         return newData;
@@ -186,6 +216,13 @@ export const ModalEditProfile = ({
         } else {
           setCitizenIdError("");
         }
+      }
+
+      // Validate birthday แบบ real-time
+      if (name === "birthday") {
+        const error = validateBirthday(processedValue);
+
+        setBirthdayError(error);
       }
     }
   };
@@ -243,97 +280,10 @@ export const ModalEditProfile = ({
     }
   };
 
-  // ฟังก์ชันคำนวณปีไทย
-  const calculateThaiYear = (dateString: string): string => {
-    if (!dateString) return "";
-
-    try {
-      const date = new Date(dateString);
-
-      if (isNaN(date.getTime())) return "";
-
-      const thaiYear = date.getFullYear() + 543;
-
-      return thaiYear.toString();
-    } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
-        color: "danger",
-      });
-
-      return "";
-    }
-  };
-
-  // ฟังก์ชันแปลงวันที่เป็นปี พ.ศ. สำหรับแสดงผล
-  const formatDateForDisplay = (dateString: string): string => {
-    if (!dateString) return "";
-
-    try {
-      const date = new Date(dateString);
-
-      if (isNaN(date.getTime())) return "";
-
-      const thaiYear = date.getFullYear() + 543;
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-
-      return `${day}/${month}/${thaiYear}`;
-    } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
-        color: "danger",
-      });
-
-      return "";
-    }
-  };
-
-  // ฟังก์ชันแปลงวันที่จากปี พ.ศ. เป็นปี ค.ศ. สำหรับบันทึก
-  const parseThaiDateToISO = (thaiDateString: string): string => {
-    if (!thaiDateString) return "";
-
-    try {
-      const parts = thaiDateString.split("/");
-
-      if (parts.length !== 3) return "";
-
-      const day = parseInt(parts[0]);
-      const month = parseInt(parts[1]);
-      const thaiYear = parseInt(parts[2]);
-
-      // ตรวจสอบความถูกต้องของข้อมูล
-      if (isNaN(day) || isNaN(month) || isNaN(thaiYear)) return "";
-      if (day < 1 || day > 31 || month < 1 || month > 12) return "";
-
-      const christianYear = thaiYear - 543;
-
-      // ตรวจสอบปีที่ถูกต้อง
-      if (christianYear < 1900 || christianYear > 2100) return "";
-
-      // สร้างวันที่โดยใช้ UTC เพื่อหลีกเลี่ยงปัญหา timezone
-      const date = new Date(Date.UTC(christianYear, month - 1, day));
-
-      // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
-      if (isNaN(date.getTime())) return "";
-
-      return date.toISOString().split("T")[0];
-    } catch (error) {
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "ไม่ระบุข้อมูล",
-        color: "danger",
-      });
-
-      return "";
-    }
-  };
-
   const initializeEditProfileData = () => {
     // รีเซ็ต error message
     setCitizenIdError("");
+    setBirthdayError("");
 
     if (mode === "create") {
       // รีเซ็ตข้อมูลสำหรับการสร้างใหม่
@@ -381,15 +331,15 @@ export const ModalEditProfile = ({
       );
 
       let birthdayDate = "";
-      let birthdayDisplay = "";
 
       if (data.profile.birthday) {
         try {
           const date = new Date(data.profile.birthday);
 
           if (!isNaN(date.getTime())) {
-            birthdayDate = date.toISOString().split("T")[0];
-            birthdayDisplay = formatDateForDisplay(birthdayDate);
+            birthdayDate = formatDateForDisplay(
+              date.toISOString().split("T")[0]
+            );
           }
         } catch (error) {
           addToast({
@@ -402,7 +352,9 @@ export const ModalEditProfile = ({
         }
       }
 
-      const thaiYear = calculateThaiYear(birthdayDate);
+      const thaiYear = birthdayDate
+        ? calculateThaiYear(parseThaiDateToISO(birthdayDate))
+        : "";
 
       const initialData = {
         hn: data.profile.hn || "",
@@ -411,7 +363,7 @@ export const ModalEditProfile = ({
         sex: data.profile.sex?.toString() || "",
         firstname: data.profile.firstname || "",
         lastname: data.profile.lastname || "",
-        birthday: birthdayDisplay,
+        birthday: birthdayDate || "",
         thaiYear: thaiYear,
         ethnicity: data.profile.ethnicity || "",
         nationality: data.profile.nationality || "",
@@ -453,6 +405,19 @@ export const ModalEditProfile = ({
       }
     }
 
+    // ตรวจสอบวันเกิด
+    const birthdayError = validateBirthday(editProfileData.birthday);
+
+    if (birthdayError) {
+      addToast({
+        title: "ข้อผิดพลาด",
+        description: birthdayError,
+        color: "danger",
+      });
+
+      return;
+    }
+
     setIsProfileSaving(true);
     try {
       const profileData = {
@@ -462,9 +427,12 @@ export const ModalEditProfile = ({
         sex: parseInt(editProfileData.sex),
         firstname: editProfileData.firstname,
         lastname: editProfileData.lastname,
-        birthday: editProfileData.birthday
-          ? new Date(parseThaiDateToISO(editProfileData.birthday))
-          : null,
+        birthday:
+          editProfileData.birthday &&
+          editProfileData.birthday !== "" &&
+          editProfileData.birthday.includes("/")
+            ? new Date(parseThaiDateToISO(editProfileData.birthday))
+            : null,
         ethnicity: editProfileData.ethnicity,
         nationality: editProfileData.nationality,
         schoolId: editProfileData.school
@@ -560,9 +528,34 @@ export const ModalEditProfile = ({
       subdistrince.length > 0 &&
       schools.length > 0
     ) {
-      initializeEditProfileData();
+      // ตรวจสอบว่า data เปลี่ยนหรือไม่
+      const dataChanged = JSON.stringify(data) !== JSON.stringify(currentData);
+
+      if (!isModalInitialized || dataChanged) {
+        setCurrentData(data);
+        initializeEditProfileData();
+        setIsModalInitialized(true);
+      }
     }
-  }, [isOpen, data, province, distrince, subdistrince, schools, mode]);
+  }, [
+    isOpen,
+    data,
+    province,
+    distrince,
+    subdistrince,
+    schools,
+    mode,
+    isModalInitialized,
+    currentData,
+  ]);
+
+  // รีเซ็ต isModalInitialized เมื่อ modal ปิด
+  useEffect(() => {
+    if (!isOpen) {
+      setIsModalInitialized(false);
+      setCurrentData(null);
+    }
+  }, [isOpen]);
 
   return (
     <Modal
@@ -574,7 +567,6 @@ export const ModalEditProfile = ({
       scrollBehavior="inside"
       shadow="lg"
       size="2xl"
-      onOpenChange={onClose}
     >
       <ModalContent>
         <ModalHeader className="flex flex-row justify-center">
@@ -691,6 +683,8 @@ export const ModalEditProfile = ({
             </div>
             <div className="flex flex-row gap-2">
               <Input
+                errorMessage={birthdayError}
+                isInvalid={!!birthdayError}
                 isRequired={true}
                 label="วันเกิด (พ.ศ.)"
                 name="birthday"
@@ -731,14 +725,44 @@ export const ModalEditProfile = ({
                       birthday: value,
                     }));
 
-                    // คำนวณปีไทยเมื่อเปลี่ยนวันเกิด
-                    const isoDate = parseThaiDateToISO(value);
-                    const thaiYear = calculateThaiYear(isoDate);
+                    // Validate วันเกิดแบบ real-time
+                    const error = validateBirthday(value);
 
-                    setEditProfileData((prev) => ({
-                      ...prev,
-                      thaiYear: thaiYear,
-                    }));
+                    setBirthdayError(error);
+
+                    // คำนวณปีไทยเมื่อกรอกครบและไม่มี error
+                    if (value.length === 10 && value.includes("/") && !error) {
+                      const parts = value.split("/");
+
+                      if (
+                        parts.length === 3 &&
+                        parts[0].length === 2 &&
+                        parts[1].length === 2 &&
+                        parts[2].length === 4
+                      ) {
+                        try {
+                          const isoDate = parseThaiDateToISO(value);
+                          const thaiYear = calculateThaiYear(isoDate);
+
+                          setEditProfileData((prev) => ({
+                            ...prev,
+                            thaiYear: thaiYear,
+                          }));
+                        } catch {
+                          // กรณีที่แปลงวันที่ไม่สำเร็จ
+                          setEditProfileData((prev) => ({
+                            ...prev,
+                            thaiYear: "",
+                          }));
+                        }
+                      }
+                    } else {
+                      // รีเซ็ตปีไทยเมื่อกรอกไม่ครบหรือมี error
+                      setEditProfileData((prev) => ({
+                        ...prev,
+                        thaiYear: "",
+                      }));
+                    }
                   }
                 }}
               />

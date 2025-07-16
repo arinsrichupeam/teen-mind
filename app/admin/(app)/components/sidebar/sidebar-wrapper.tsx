@@ -75,6 +75,33 @@ export const SidebarWrapper = () => {
                     title="ผู้ใช้งาน (User)"
                   />
                 </SidebarMenu>
+              ) : profile.roleId === 3 ? (
+                <SidebarMenu title="Consult Menu">
+                  <SidebarItem
+                    href="/admin"
+                    icon={<HomeIcon className="size-6" />}
+                    isActive={pathname === "/admin"}
+                    title="หน้าหลัก"
+                  />
+                  <SidebarItem
+                    href="/admin/question"
+                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
+                    isActive={pathname === "/admin/question"}
+                    title="แบบสอบถาม"
+                  />
+                  <SidebarItem
+                    href="/admin/mycase"
+                    icon={<UserIcon className="size-6" />}
+                    isActive={pathname === "/admin/mycase"}
+                    title="เคสที่ดูแล"
+                  />
+                  <SidebarItem
+                    href="/admin/user"
+                    icon={<UserGroupIcon className="size-6" />}
+                    isActive={pathname === "/admin/user"}
+                    title="ผู้ใช้งาน (User)"
+                  />
+                </SidebarMenu>
               ) : (
                 <SidebarMenu title="Main Menu">
                   <SidebarItem
