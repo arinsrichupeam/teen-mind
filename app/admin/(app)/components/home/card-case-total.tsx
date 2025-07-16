@@ -14,7 +14,9 @@ export const CardCaseTotal = ({ data }: props) => {
       <CardBody className="py-3 overflow-hidden">
         <div className="flex items-center gap-2 justify-start">
           <div className="flex flex-col basis-2/3">
-            <span className="text-xs font-semibold">ผู้รับบริการ (ครั้ง)</span>
+            <span className="text-xs font-semibold whitespace-nowrap">
+              ผู้รับบริการ (ครั้ง)
+            </span>
             <span className="text-lg font-semibold">{data.length}</span>
           </div>
           <div className="flex basis-1/3 gap-2 py-1 items-center justify-end">

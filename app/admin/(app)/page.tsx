@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Profile_Admin } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -75,6 +75,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 
 export default function AdminHome() {
   const router = useRouter();
+  const [showScoreModal, setShowScoreModal] = useState(false);
 
   // เพิ่มการตรวจสอบ roleId และ redirect
   useEffect(() => {
@@ -182,53 +183,71 @@ export default function AdminHome() {
   return (
     <Suspense fallback={<Loading />}>
       <div className="h-full lg:px-6">
-        <div className="flex justify-center gap-4 xl:gap-6 pt-3 px-4 lg:px-0  flex-wrap xl:flex-nowrap sm:pt-10 max-w-[90rem] mx-auto w-full">
-          <div className="mt-6 gap-6 flex flex-col w-full">
-            {/* Card Section Top */}
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
-              <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2  justify-center w-full">
-                <CardCaseTotal data={rawQuestions} />
-                <CardTotal data={allProfiles} />
-                <CardTotalUser data={appUsers} />
-                <CardTotalManual data={manualUsers} />
-              </div>
-            </div>
-
-            {/* Card Section Top */}
-            <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-6 pt-3 px-4 lg:px-0 sm:pt-10 max-w-[90rem] mx-auto w-full">
+          {/* ผู้ใช้งานใหม่ - ย้ายไปบนสุด */}
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* สถิติผู้รับบริการ */}
               <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">
-                  กราฟวงกลมแสดงผลการประเมิน
-                </h3>
-                <PieChartsSection data={rawQuestions} />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-xl font-semibold">
-                    ตารางสถิติรายโรงเรียน
-                  </h3>
-                  <CardSchoolStats
-                    data={schoolStats}
-                    summary={schoolStatsSummary}
-                  />
+                <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
+                <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2 justify-center w-full">
+                  <CardCaseTotal data={rawQuestions} />
+                  <CardTotal data={allProfiles} />
+                  <CardTotalUser data={appUsers} />
+                  <CardTotalManual data={manualUsers} />
                 </div>
+              </div>
+
+              {/* ผู้ใช้งานใหม่ */}
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
+                <CardAgents data={newMembers} />
               </div>
             </div>
           </div>
 
-          {/* Left Section */}
-          <div className="mt-4 gap-2 flex flex-col xl:max-w-sm w-full">
-            <h3 className="text-xl font-semibold">ผู้ใช้งานใหม่</h3>
-            <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
-              <CardAgents data={newMembers} />
+          {/* กราฟวงกลมแสดงผลการประเมิน */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">
+                กราฟวงกลมแสดงผลการประเมิน
+              </h3>
+              <PieChartsSection
+                data={rawQuestions}
+                onShowScoreModal={() => setShowScoreModal(true)}
+              />
             </div>
-            <div className="flex flex-col justify-center gap-4 flex-wrap md:flex-nowrap md:flex-col">
-              <CardScoreCriteria />
+          </div>
+
+          {/* ตารางสถิติรายโรงเรียน */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
+              <CardSchoolStats
+                data={schoolStats}
+                summary={schoolStatsSummary}
+              />
             </div>
           </div>
         </div>
+
+        {/* Modal สำหรับเกณฑ์คะแนน */}
+        {showScoreModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">เกณฑ์คะแนน PHQA</h2>
+                <button
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  onClick={() => setShowScoreModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <CardScoreCriteria />
+            </div>
+          </div>
+        )}
       </div>
     </Suspense>
   );

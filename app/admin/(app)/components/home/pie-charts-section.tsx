@@ -23,6 +23,7 @@ type School = {
 
 type props = {
   data: QuestionsData[];
+  onShowScoreModal?: () => void;
 };
 
 const COLORS = {
@@ -43,7 +44,7 @@ const COLORS = {
   },
 };
 
-export const PieChartsSection = ({ data }: props) => {
+export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
   const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [schools, setSchools] = useState<School[]>([]);
 
@@ -198,22 +199,33 @@ export const PieChartsSection = ({ data }: props) => {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* School Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">เลือกโรงเรียน:</span>
-        <Autocomplete
-          allowsCustomValue={false}
-          className="w-48 lg:w-64"
-          placeholder="เลือกโรงเรียน"
-          selectedKey={selectedSchool}
-          onSelectionChange={(key) => setSelectedSchool(key as string)}
-        >
-          {schools?.map((school: any) => (
-            <AutocompleteItem key={school.id} textValue={school.name}>
-              {school.name}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+      {/* School Selector and Score Criteria Button */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">เลือกโรงเรียน:</span>
+          <Autocomplete
+            allowsCustomValue={false}
+            className="w-48 lg:w-64"
+            placeholder="เลือกโรงเรียน"
+            selectedKey={selectedSchool}
+            onSelectionChange={(key) => setSelectedSchool(key as string)}
+          >
+            {schools?.map((school: any) => (
+              <AutocompleteItem key={school.id} textValue={school.name}>
+                {school.name}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
+
+        {onShowScoreModal && (
+          <button
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+            onClick={onShowScoreModal}
+          >
+            เกณฑ์คะแนน PHQA
+          </button>
+        )}
       </div>
 
       {/* Charts Grid */}

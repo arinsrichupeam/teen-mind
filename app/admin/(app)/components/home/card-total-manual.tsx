@@ -15,7 +15,9 @@ export const CardTotalManual = ({ data }: props) => {
             <span className="text-xs font-semibold whitespace-nowrap">
               ใช้บริการแบบ Manual
             </span>
-            <span className="text-lg font-semibold">{data.length}</span>
+            <span className="text-lg font-semibold whitespace-nowrap">
+              {data.length}
+            </span>
           </div>
           <div className="flex basis-1/3 gap-2 py-1 items-center justify-end">
             <UserPlusIcon className="size-6 text-primary-500" />
