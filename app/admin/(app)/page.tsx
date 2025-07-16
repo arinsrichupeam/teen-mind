@@ -5,11 +5,6 @@ import { Profile_Admin } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
-import { CardGreen } from "./components/home/card-green";
-import { CardGreenLow } from "./components/home/card-green-low";
-import { CardYellow } from "./components/home/card-yellow";
-import { CardRed } from "./components/home/card-red";
-import { CardOrange } from "./components/home/card-orange";
 import { CardAgents } from "./components/home/card-agents";
 import { CardCaseTotal } from "./components/home/card-case-total";
 import { CardTotal } from "./components/home/card-total";
@@ -17,6 +12,7 @@ import { CardTotalUser } from "./components/home/card-total-user";
 import { CardTotalManual } from "./components/home/card-total-manual";
 import { CardSchoolStats } from "./components/home/card-school-stats";
 import { CardScoreCriteria } from "./components/home/card-score-criteria";
+import { PieChartsSection } from "./components/home/pie-charts-section";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
@@ -218,21 +214,14 @@ export default function AdminHome() {
             {/* Card Section Top */}
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">ผู้รับบริการตามระดับ</h3>
-                <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-5 gap-2  justify-center w-full">
-                  <CardGreen data={greenQuestions} total={questions.length} />
-                  <CardGreenLow
-                    data={greenLowQuestions}
-                    total={questions.length}
-                  />
-                  <CardYellow data={yellowQuestions} total={questions.length} />
-                  <CardOrange data={orangeQuestions} total={questions.length} />
-                  <CardRed data={redQuestions} total={questions.length} />
-                </div>
+                <h3 className="text-xl font-semibold">
+                  กราฟวงกลมแสดงผลการประเมิน
+                </h3>
+                <PieChartsSection data={rawQuestions} />
               </div>
 
               <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">สถิติรายโรงเรียน</h3>
+                <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
                 <CardSchoolStats
                   data={schoolStats}
                   summary={schoolStatsSummary}

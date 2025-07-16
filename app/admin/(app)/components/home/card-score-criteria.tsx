@@ -119,20 +119,20 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
   };
 
   return (
-    <Card className="xl:max-w-sm bg-gradient-to-tl rounded-xl shadow-md px-3 w-full">
-      <CardBody className="py-5 overflow-hidden">
-        <div className="flex items-center gap-2.5 justify-start mb-4">
+    <Card className="bg-gradient-to-tl rounded-xl shadow-md px-3 w-full">
+      <CardBody className="py-3 overflow-hidden">
+        <div className="flex items-center gap-2 justify-start mb-3">
           <div className="flex flex-col basis-2/3">
-            <span className="text-sm font-semibold">{getTabTitle()}</span>
-            <span className="text-xl font-semibold">{getLevelCount()}</span>
+            <span className="text-xs font-semibold">{getTabTitle()}</span>
+            <span className="text-lg font-semibold">{getLevelCount()}</span>
           </div>
-          <div className="flex basis-1/3 gap-2.5 py-2 items-center justify-end">
-            <ChartBarIcon className="size-8 text-default-500" />
+          <div className="flex basis-1/3 gap-2 py-1 items-center justify-end">
+            <ChartBarIcon className="size-6 text-default-500" />
           </div>
         </div>
 
         <Tabs
-          className="mb-4"
+          className="mb-3"
           selectedKey={selectedTab}
           size="sm"
           onSelectionChange={(key) => setSelectedTab(key as string)}
@@ -142,7 +142,7 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
           <Tab key="addon" title="Add-on" />
         </Tabs>
 
-        <div className="space-y-2">
+        <div className="space-y-1">
           {getCurrentCriteria().map((criteria, index) => (
             <div
               key={index}
@@ -150,7 +150,7 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
             >
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-3 h-3 rounded-full ${
+                  className={`w-2 h-2 rounded-full ${
                     criteria.description === "Green"
                       ? "bg-success-500"
                       : criteria.description === "Green-Low"
@@ -162,9 +162,9 @@ export const CardScoreCriteria = ({ data: _data }: props) => {
                             : "bg-danger-500"
                   }`}
                 />
-                <span className="font-medium">{criteria.range}</span>
+                <span className="font-medium text-xs">{criteria.range}</span>
               </div>
-              <span className={`font-semibold ${criteria.color}`}>
+              <span className={`font-semibold text-xs ${criteria.color}`}>
                 {criteria.level}
               </span>
             </div>
