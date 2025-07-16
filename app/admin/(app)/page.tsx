@@ -64,7 +64,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
     if (
       !latestQuestions[profileId] ||
       new Date(question.createdAt) >
-        new Date(latestQuestions[profileId].createdAt)
+      new Date(latestQuestions[profileId].createdAt)
     ) {
       latestQuestions[profileId] = question;
     }
@@ -221,11 +221,15 @@ export default function AdminHome() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
-                <CardSchoolStats
-                  data={schoolStats}
-                  summary={schoolStatsSummary}
-                />
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-xl font-semibold">
+                    ตารางสถิติรายโรงเรียน
+                  </h3>
+                  <CardSchoolStats
+                    data={schoolStats}
+                    summary={schoolStatsSummary}
+                  />
+                </div>
               </div>
             </div>
           </div>
