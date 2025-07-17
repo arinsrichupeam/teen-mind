@@ -202,10 +202,12 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
       {/* School Selector and Score Criteria Button */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">เลือกโรงเรียน:</span>
+          {/* <span className="text-sm font-medium">เลือกโรงเรียน:</span> */}
           <Autocomplete
             allowsCustomValue={false}
             className="w-48 lg:w-64"
+            label="เลือกโรงเรียน"
+            labelPlacement="inside"
             placeholder="เลือกโรงเรียน"
             selectedKey={selectedSchool}
             onSelectionChange={(key) => setSelectedSchool(key as string)}
@@ -255,7 +257,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       `${((percent || 0) * 100).toFixed(0)}%`
                     }
                     labelLine={true}
-                    outerRadius={60}
+                    outerRadius={100}
                   >
                     {phqaData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -327,7 +329,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       `${((percent || 0) * 100).toFixed(0)}%`
                     }
                     labelLine={true}
-                    outerRadius={60}
+                    outerRadius={100}
                   >
                     {q2Data.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -399,7 +401,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       `${((percent || 0) * 100).toFixed(0)}%`
                     }
                     labelLine={true}
-                    outerRadius={60}
+                    outerRadius={100}
                   >
                     {addonData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />

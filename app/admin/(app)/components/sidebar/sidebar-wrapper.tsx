@@ -60,72 +60,40 @@ export const SidebarWrapper = () => {
           </div>
           <div className="flex flex-col justify-between h-full">
             <div className={Sidebar.Body()}>
-              {profile.roleId === 2 ? (
-                <SidebarMenu title="Referent Menu">
-                  <SidebarItem
-                    href="/admin/question"
-                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                    isActive={pathname === "/admin/question"}
-                    title="แบบสอบถาม"
-                  />
-                  <SidebarItem
-                    href="/admin/user"
-                    icon={<UserGroupIcon className="size-6" />}
-                    isActive={pathname === "/admin/user"}
-                    title="ผู้ใช้งาน (User)"
-                  />
-                </SidebarMenu>
-              ) : profile.roleId === 3 ? (
-                <SidebarMenu title="Consult Menu">
-                  <SidebarItem
-                    href="/admin"
-                    icon={<HomeIcon className="size-6" />}
-                    isActive={pathname === "/admin"}
-                    title="หน้าหลัก"
-                  />
-                  <SidebarItem
-                    href="/admin/question"
-                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                    isActive={pathname === "/admin/question"}
-                    title="แบบสอบถาม"
-                  />
+              {/* Main Menu - แสดงสำหรับทุก role */}
+              <SidebarMenu title="Main Menu">
+                <SidebarItem
+                  href="/admin"
+                  icon={<HomeIcon className="size-6" />}
+                  isActive={pathname === "/admin"}
+                  title="หน้าหลัก"
+                />
+                <SidebarItem
+                  href="/admin/question"
+                  icon={<ClipboardDocumentCheckIcon className="size-6" />}
+                  isActive={pathname === "/admin/question"}
+                  title="แบบสอบถาม"
+                />
+                {profile.roleId !== 2 && (
                   <SidebarItem
                     href="/admin/mycase"
                     icon={<UserIcon className="size-6" />}
                     isActive={pathname === "/admin/mycase"}
                     title="เคสที่ดูแล"
                   />
+                )}
+                {(profile.roleId === 2 || profile.roleId === 3) && (
                   <SidebarItem
                     href="/admin/user"
                     icon={<UserGroupIcon className="size-6" />}
                     isActive={pathname === "/admin/user"}
                     title="ผู้ใช้งาน (User)"
                   />
-                </SidebarMenu>
-              ) : (
-                <SidebarMenu title="Main Menu">
-                  <SidebarItem
-                    href="/admin"
-                    icon={<HomeIcon className="size-6" />}
-                    isActive={pathname === "/admin"}
-                    title="หน้าหลัก"
-                  />
-                  <SidebarItem
-                    href="/admin/question"
-                    icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                    isActive={pathname === "/admin/question"}
-                    title="แบบสอบถาม"
-                  />
-                  <SidebarItem
-                    href="/admin/mycase"
-                    icon={<UserIcon className="size-6" />}
-                    isActive={pathname === "/admin/mycase"}
-                    title="เคสที่ดูแล"
-                  />
-                </SidebarMenu>
-              )}
+                )}
+              </SidebarMenu>
 
-              {profile.roleId === 4 ? (
+              {/* Admin Menu - แสดงเฉพาะ role 4 */}
+              {profile.roleId === 4 && (
                 <SidebarMenu title="Admin Menu">
                   <SidebarItem
                     href="/admin/members"
@@ -164,8 +132,6 @@ export const SidebarWrapper = () => {
                     title="คำนวณคะแนน PHQA"
                   />
                 </SidebarMenu>
-              ) : (
-                <></>
               )}
             </div>
             <div className={Sidebar.Footer()}>

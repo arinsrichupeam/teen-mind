@@ -214,7 +214,7 @@ export default function UserPage() {
             isClearable
             className="w-full sm:max-w-[44%]"
             label="ค้นหาชื่อ-นามสกุล"
-            labelPlacement="outside"
+            labelPlacement="inside"
             placeholder="ค้นหาชื่อ-นามสกุล..."
             startContent={
               <MagnifyingGlassIcon className="size-4 text-default-400" />
@@ -227,7 +227,7 @@ export default function UserPage() {
             className="w-full sm:max-w-[44%]"
             defaultItems={schoolItems}
             label="เลือกโรงเรียน"
-            labelPlacement="outside"
+            labelPlacement="inside"
             placeholder="เลือกโรงเรียน"
             selectedKey={schoolFilter}
             onSelectionChange={(key) => {
