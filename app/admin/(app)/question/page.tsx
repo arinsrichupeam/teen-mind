@@ -99,7 +99,9 @@ export default function QuestionPage() {
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
 
   // เพิ่ม state สำหรับ profile admin
-  const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(null);
+  const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
+    null
+  );
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -109,12 +111,21 @@ export default function QuestionPage() {
     async (url) => {
       try {
         const res = await fetch(url);
+
         if (!res.ok) {
           throw new Error("Failed to fetch admin profile");
         }
+
         return await res.json();
       } catch (error) {
-        console.error("Error fetching admin profile:", error);
+        addToast({
+          title: "ผิดพลาด",
+          description:
+            "ไม่สามารถดึงข้อมูลจากระบบ" +
+            (error instanceof Error ? error.message : "ไม่ระบุข้อมูล"),
+          color: "danger",
+        });
+
         return null;
       }
     }
@@ -216,15 +227,17 @@ export default function QuestionPage() {
     let filteredData = data;
 
     // กรองข้อมูลตาม roleId = 2 (Referent)
-    if (adminProfile?.roleId === 2) { // ใช้ citizenId ของ admin เพื่อหาค่า referentId
+    if (adminProfile?.roleId === 2) {
+      // ใช้ citizenId ของ admin เพื่อหาค่า referentId
       const adminCitizenId = adminProfile.citizenId;
-      
+
       filteredData = data.filter((val: QuestionsData) => {
         // ตรวจสอบว่า referentId ของข้อมูลตรงกับ citizenId ของ admin หรือไม่
         // โดยเปรียบเทียบ citizenId ของ referent กับ citizenId ของ admin
         if (val.referent && val.referent.citizenId) {
           return val.referent.citizenId === adminCitizenId;
         }
+
         return false;
       });
     }
