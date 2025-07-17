@@ -52,7 +52,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
     if (
       !latestQuestions[profileId] ||
       new Date(question.createdAt) >
-      new Date(latestQuestions[profileId].createdAt)
+        new Date(latestQuestions[profileId].createdAt)
     ) {
       latestQuestions[profileId] = question;
     }
