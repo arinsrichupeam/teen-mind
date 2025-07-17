@@ -14,6 +14,7 @@ export async function GET() {
       result_text: true,
       status: true,
       consult: true,
+      referentId: true,
       profile: {
         select: {
           id: true,
@@ -28,6 +29,14 @@ export async function GET() {
               name: true,
             },
           },
+        },
+      },
+      referent: {
+        select: {
+          id: true,
+          citizenId: true,
+          firstname: true,
+          lastname: true,
         },
       },
       phqa: {

@@ -25,7 +25,14 @@ export type QuestionsData = {
   createdAt: string;
   status: number;
   hn: string;
+  referentId: number | null;
   profile: Profile;
+  referent: {
+    id: number;
+    citizenId: string;
+    firstname: string;
+    lastname: string;
+  } | null;
   phqa: Phqa[];
   q2: q2[];
   addon: Addon[];
