@@ -96,7 +96,7 @@ export function QuestionFilterContent({
     () => (
       <div className="flex flex-col gap-4 w-full">
         {/* Search Bar และ Filter ทั้งหมด */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-center w-full">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-center w-full bg-white rounded-md p-2 shadow-sm border border-gray-200">
           <Input
             isClearable
             classNames={{

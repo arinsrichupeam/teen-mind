@@ -101,6 +101,7 @@ export default function UserPage() {
   );
 
   const [filterValue, setFilterValue] = useState("");
+  const [citizenIdFilter, setCitizenIdFilter] = useState("");
   const [schoolFilter, setSchoolFilter] = useState<string>("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -118,6 +119,7 @@ export default function UserPage() {
   const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState(false);
 
   const hasSearchFilter = Boolean(filterValue);
+  const hasCitizenIdFilter = Boolean(citizenIdFilter);
   const hasSchoolFilter = Boolean(schoolFilter);
 
   const filteredItems = useMemo(() => {
@@ -125,11 +127,16 @@ export default function UserPage() {
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        `${prefix.find((val) => val.key == user.prefixId.toString())?.label} ${
-          user.firstname
-        } ${user.lastname}`
+        `${prefix.find((val) => val.key == user.prefixId.toString())?.label} ${user.firstname
+          } ${user.lastname}`
           .toLowerCase()
           .includes(filterValue.toLowerCase())
+      );
+    }
+
+    if (hasCitizenIdFilter) {
+      filteredUsers = filteredUsers.filter((user) =>
+        user.citizenId.toLowerCase().includes(citizenIdFilter.toLowerCase())
       );
     }
 
@@ -140,7 +147,7 @@ export default function UserPage() {
     }
 
     return filteredUsers;
-  }, [users, filterValue, schoolFilter]);
+  }, [users, filterValue, citizenIdFilter, schoolFilter]);
 
   const pages = useMemo(() => {
     return filteredItems.length
@@ -196,6 +203,7 @@ export default function UserPage() {
 
   const onClear = useCallback(() => {
     setFilterValue("");
+    setCitizenIdFilter("");
     setSchoolFilter("");
     setPage(1);
   }, []);
@@ -208,13 +216,26 @@ export default function UserPage() {
     }));
 
     return (
-      <div className="flex flex-col gap-4 bg-white p-4 rounded-lg shadow-sm border border-default-200">
-        <div className="flex flex-col sm:flex-row justify-between gap-3 items-end">
+      <div className="flex flex-col gap-4 bg-white p-2 rounded-lg shadow-sm border border-default-200">
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
           <Input
             isClearable
             className="w-full sm:max-w-[44%]"
-            label="ค้นหาชื่อ-นามสกุล"
-            labelPlacement="inside"
+            placeholder="เลขประจำตัวประชาชน"
+            startContent={
+              <MagnifyingGlassIcon className="size-4 text-default-400" />
+            }
+            value={citizenIdFilter}
+            onClear={() => setCitizenIdFilter("")}
+            onValueChange={(value) => {
+              setCitizenIdFilter(value);
+              setPage(1);
+            }}
+            variant="bordered"
+          />
+          <Input
+            isClearable
+            className="w-full sm:max-w-[44%]"
             placeholder="ค้นหาชื่อ-นามสกุล..."
             startContent={
               <MagnifyingGlassIcon className="size-4 text-default-400" />
@@ -222,18 +243,18 @@ export default function UserPage() {
             value={filterValue}
             onClear={() => onClear()}
             onValueChange={onSearchChange}
+            variant="bordered"
           />
           <Autocomplete
             className="w-full sm:max-w-[44%]"
             defaultItems={schoolItems}
-            label="เลือกโรงเรียน"
-            labelPlacement="inside"
             placeholder="เลือกโรงเรียน"
             selectedKey={schoolFilter}
             onSelectionChange={(key) => {
               setSchoolFilter(key as string);
               setPage(1);
             }}
+            variant="bordered"
           >
             {(item) => (
               <AutocompleteItem key={item.key} textValue={item.name}>
@@ -265,6 +286,7 @@ export default function UserPage() {
     );
   }, [
     filterValue,
+    citizenIdFilter,
     onSearchChange,
     onClear,
     filteredItems.length,
@@ -376,7 +398,7 @@ export default function UserPage() {
               >
                 <PencilIcon className="size-6 text-warning-400" />
               </Button>
-              <Button isIconOnly size="sm" variant="light" onClick={() => {}}>
+              <Button isIconOnly size="sm" variant="light" onClick={() => { }}>
                 <TrashIcon className="size-6 text-danger-500" />
               </Button>
             </div>
