@@ -183,7 +183,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <div className="bg-white p-3 border border-gray-200 rounded-md shadow-md">
           <p className="font-semibold">{payload[0].name}</p>
           <p className="text-sm text-gray-600">จำนวน: {payload[0].value} คน</p>
           <p className="text-sm text-gray-600">
@@ -200,9 +200,8 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
   return (
     <div className="flex flex-col gap-3">
       {/* School Selector and Score Criteria Button */}
-      <div className="flex items-center justify-between gap-2 bg-white rounded-md p-2 shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between gap-2 bg-white rounded-md p-2 shadow-md border border-gray-200">
         <div className="flex items-center gap-2">
-          {/* <span className="text-sm font-medium">เลือกโรงเรียน:</span> */}
           <Autocomplete
             allowsCustomValue={false}
             className="w-48 lg:w-64"
