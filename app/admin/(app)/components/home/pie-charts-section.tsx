@@ -281,7 +281,8 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
             <div className="space-y-2">
               <div className="text-md">
                 <p className="font-semibold text-gray-700">
-                  จำนวนผู้ประเมิน: {phqaData.reduce((acc, item) => acc + item.value, 0)} คน
+                  จำนวนผู้ประเมิน:{" "}
+                  {phqaData.reduce((acc, item) => acc + item.value, 0)} คน
                 </p>
                 <div className="text-md text-gray-600 space-y-1">
                   {phqaData.length > 0 ? (
@@ -294,7 +295,16 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                         <span className="font-medium">{item.name}:</span>
                         <span>{item.value} คน</span>
                         <span className="text-xs text-gray-500">
-                          ({((item.value / phqaData.reduce((acc, item) => acc + item.value, 0)) * 100).toFixed(1)}%)
+                          (
+                          {(
+                            (item.value /
+                              phqaData.reduce(
+                                (acc, item) => acc + item.value,
+                                0
+                              )) *
+                            100
+                          ).toFixed(1)}
+                          %)
                         </span>
                       </div>
                     ))
@@ -358,7 +368,8 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
             <div className="space-y-2">
               <div className="text-md">
                 <p className="font-semibold text-gray-700">
-                  จำนวนผู้ประเมิน: {q2Data.reduce((acc, item) => acc + item.value, 0)} คน
+                  จำนวนผู้ประเมิน:{" "}
+                  {q2Data.reduce((acc, item) => acc + item.value, 0)} คน
                 </p>
                 <div className="text-md text-gray-600 space-y-1">
                   {q2Data.length > 0 ? (
@@ -371,7 +382,16 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                         <span className="font-medium">{item.name}:</span>
                         <span>{item.value} คน</span>
                         <span className="text-xs text-gray-500">
-                          ({((item.value / q2Data.reduce((acc, item) => acc + item.value, 0)) * 100).toFixed(1)}%)
+                          (
+                          {(
+                            (item.value /
+                              q2Data.reduce(
+                                (acc, item) => acc + item.value,
+                                0
+                              )) *
+                            100
+                          ).toFixed(1)}
+                          %)
                         </span>
                       </div>
                     ))
@@ -435,7 +455,8 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
             <div className="space-y-2">
               <div className="text-md">
                 <p className="font-semibold text-gray-700">
-                  จำนวนผู้ประเมิน: {addonData.reduce((acc, item) => acc + item.value, 0)} คน
+                  จำนวนผู้ประเมิน:{" "}
+                  {addonData.reduce((acc, item) => acc + item.value, 0)} คน
                 </p>
                 <div className="text-md text-gray-600 space-y-1">
                   {addonData.length > 0 ? (
@@ -448,7 +469,16 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                         <span className="font-medium">{item.name}:</span>
                         <span>{item.value} คน</span>
                         <span className="text-xs text-gray-500">
-                          ({((item.value / addonData.reduce((acc, item) => acc + item.value, 0)) * 100).toFixed(1)}%)
+                          (
+                          {(
+                            (item.value /
+                              addonData.reduce(
+                                (acc, item) => acc + item.value,
+                                0
+                              )) *
+                            100
+                          ).toFixed(1)}
+                          %)
                         </span>
                       </div>
                     ))
