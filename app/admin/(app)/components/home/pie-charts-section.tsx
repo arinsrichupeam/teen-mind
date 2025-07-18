@@ -252,7 +252,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                     dataKey="value"
                     fill="#8884d8"
                     label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(0)}%`
+                      `${((percent || 0) * 100).toFixed(1)}%`
                     }
                     labelLine={true}
                     outerRadius={100}
@@ -339,7 +339,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                     dataKey="value"
                     fill="#8884d8"
                     label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(0)}%`
+                      `${((percent || 0) * 100).toFixed(1)}%`
                     }
                     labelLine={true}
                     outerRadius={100}
@@ -426,7 +426,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                     dataKey="value"
                     fill="#8884d8"
                     label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(0)}%`
+                      `${((percent || 0) * 100).toFixed(1)}%`
                     }
                     labelLine={true}
                     outerRadius={100}
