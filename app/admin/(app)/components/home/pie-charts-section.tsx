@@ -208,8 +208,8 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
             className="w-48 lg:w-64"
             placeholder="เลือกโรงเรียน"
             selectedKey={selectedSchool}
-            onSelectionChange={(key) => setSelectedSchool(key as string)}
             variant="bordered"
+            onSelectionChange={(key) => setSelectedSchool(key as string)}
           >
             {schools?.map((school: any) => (
               <AutocompleteItem key={school.id} textValue={school.name}>

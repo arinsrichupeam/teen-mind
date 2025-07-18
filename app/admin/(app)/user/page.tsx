@@ -127,8 +127,9 @@ export default function UserPage() {
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        `${prefix.find((val) => val.key == user.prefixId.toString())?.label} ${user.firstname
-          } ${user.lastname}`
+        `${prefix.find((val) => val.key == user.prefixId.toString())?.label} ${
+          user.firstname
+        } ${user.lastname}`
           .toLowerCase()
           .includes(filterValue.toLowerCase())
       );
@@ -226,12 +227,12 @@ export default function UserPage() {
               <MagnifyingGlassIcon className="size-4 text-default-400" />
             }
             value={citizenIdFilter}
+            variant="bordered"
             onClear={() => setCitizenIdFilter("")}
             onValueChange={(value) => {
               setCitizenIdFilter(value);
               setPage(1);
             }}
-            variant="bordered"
           />
           <Input
             isClearable
@@ -241,20 +242,20 @@ export default function UserPage() {
               <MagnifyingGlassIcon className="size-4 text-default-400" />
             }
             value={filterValue}
+            variant="bordered"
             onClear={() => onClear()}
             onValueChange={onSearchChange}
-            variant="bordered"
           />
           <Autocomplete
             className="w-full sm:max-w-[44%]"
             defaultItems={schoolItems}
             placeholder="เลือกโรงเรียน"
             selectedKey={schoolFilter}
+            variant="bordered"
             onSelectionChange={(key) => {
               setSchoolFilter(key as string);
               setPage(1);
             }}
-            variant="bordered"
           >
             {(item) => (
               <AutocompleteItem key={item.key} textValue={item.name}>
@@ -398,7 +399,7 @@ export default function UserPage() {
               >
                 <PencilIcon className="size-6 text-warning-400" />
               </Button>
-              <Button isIconOnly size="sm" variant="light" onClick={() => { }}>
+              <Button isIconOnly size="sm" variant="light" onClick={() => {}}>
                 <TrashIcon className="size-6 text-danger-500" />
               </Button>
             </div>
