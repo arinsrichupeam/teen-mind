@@ -916,7 +916,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     )
                                   : null
                               }
-                              isDisabled={data?.status !== 1}
+                              isDisabled={data?.status === 0}
                               isRequired={true}
                               label="Schedule Telemed"
                               labelPlacement="outside"
@@ -940,7 +940,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultItems={Consultant}
                               defaultSelectedKey={data?.consult}
                               errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
-                              isDisabled={data?.status !== 1}
+                              isDisabled={data?.status === 0}
                               isInvalid={isError}
                               isRequired={true}
                               label="Consultant"
