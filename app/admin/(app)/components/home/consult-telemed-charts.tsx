@@ -154,8 +154,8 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             </p>
             <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             <p className="text-xs text-gray-500">
-            รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว: {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
-               
+              รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว: {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
+
             </p>
           </div>
         </CardBody>
@@ -335,27 +335,29 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                     {resultLabels[result as keyof typeof resultLabels]}
                   </h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-xs">
                       <span>ทั้งหมด:</span>
                       <span className="font-medium">{data.total}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-xs">
                       <span>พบนักจิตวิทยา:</span>
                       <span className="font-medium text-green-600">
                         {data.consult}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>ดำเนินการเสร็จสิ้น:</span>
-                      <span className="font-medium text-blue-600">
-                        {data.completed}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>อยู่ระหว่างดำเนินการ:</span>
-                      <span className="font-medium text-orange-600">
-                        {data.inProgress}
-                      </span>
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="flex justify-between text-xs">
+                        <span>ดำเนินการเสร็จสิ้น:</span>
+                        <span className="font-medium text-blue-600">
+                          {data.completed}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>อยู่ระหว่างดำเนินการ:</span>
+                        <span className="font-medium text-orange-600">
+                          {data.inProgress}
+                        </span>
+                      </div>
                     </div>
                     {/* <div className="flex justify-between">
                       <span>Follow Up:</span>

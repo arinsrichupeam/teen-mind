@@ -42,6 +42,12 @@ const COLORS = {
     ไม่พบความเสี่ยง: "#22c55e", // green
     พบความเสี่ยง: "#ef4444", // red
   },
+  status: {
+    "รอเปิด HN": "#6b7280", // gray
+    "รอนัดวัน Tele": "#3b82f6", // blue
+    "รอผล Tele": "#f59e0b", // amber
+    "ดำเนินการเสร็จสิ้น": "#10b981", // emerald
+  },
 };
 
 export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
@@ -180,6 +186,46 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
       }));
   }, [filteredData]);
 
+  // สร้างข้อมูลสำหรับ Status Chart
+  const statusData = useMemo(() => {
+    const statusCounts: { [key: string]: number } = {
+      "รอเปิด HN": 0,
+      "รอนัดวัน Tele": 0,
+      "รอผล Tele": 0,
+      "ดำเนินการเสร็จสิ้น": 0,
+    };
+
+    filteredData.forEach((question) => {
+      const status = question.status;
+      
+      switch (status) {
+        case 0:
+          statusCounts["รอเปิด HN"]++;
+          break;
+        case 1:
+          statusCounts["รอนัดวัน Tele"]++;
+          break;
+        case 2:
+          statusCounts["รอผล Tele"]++;
+          break;
+        case 3:
+          statusCounts["ดำเนินการเสร็จสิ้น"]++;
+          break;
+        default:
+          statusCounts["รอเปิด HN"]++;
+          break;
+      }
+    });
+
+    return Object.entries(statusCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: COLORS.status[name as keyof typeof COLORS.status],
+      }));
+  }, [filteredData]);
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -229,7 +275,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* PHQA Combined Chart and Card */}
         <Card className="w-full">
           <CardBody className="p-3">
@@ -314,93 +360,6 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
           </CardBody>
         </Card>
 
-        {/* 2Q Chart */}
-        {/* <Card className="w-full">
-          <CardBody className="p-3">
-            <h3 className="text-base font-semibold mb-2 text-center">
-              ผลการประเมิน 2Q
-            </h3>
-            <p className="text-xs text-gray-600 text-center mb-2">
-              โรงเรียน:{" "}
-              {selectedSchool && selectedSchool !== ""
-                ? schools.find((s) => s.id.toString() === selectedSchool)?.name
-                : "ทั้งหมด"}
-            </p>
-            {q2Data.length > 0 ? (
-              <ResponsiveContainer height={250} width="100%">
-                <PieChart>
-                  <Pie
-                    cx="50%"
-                    cy="50%"
-                    data={q2Data}
-                    dataKey="value"
-                    fill="#8884d8"
-                    label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(1)}%`
-                    }
-                    labelLine={true}
-                    outerRadius={100}
-                  >
-                    {q2Data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-gray-500 italic">
-                ไม่พบข้อมูล
-              </div>
-            )}
-          </CardBody>
-        </Card> */}
-
-        {/* 2Q Card */}
-        {/* <Card className="w-full">
-          <CardBody className="p-3">
-            <h3 className="text-base font-semibold mb-2 text-center">
-              ผลการประเมิน 2Q
-            </h3>
-            <div className="space-y-2">
-              <div className="text-md">
-                <p className="font-semibold text-gray-700">
-                  จำนวนผู้ประเมิน:{" "}
-                  {q2Data.reduce((acc, item) => acc + item.value, 0)} คน
-                </p>
-                <div className="text-md text-gray-600 space-y-1">
-                  {q2Data.length > 0 ? (
-                    q2Data.map((item, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="font-medium">{item.name}:</span>
-                        <span>{item.value} คน</span>
-                        <span className="text-xs text-gray-500">
-                          (
-                          {(
-                            (item.value /
-                              q2Data.reduce(
-                                (acc, item) => acc + item.value,
-                                0
-                              )) *
-                            100
-                          ).toFixed(1)}
-                          %)
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 italic">ไม่พบข้อมูล</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardBody>
-        </Card> */}
-
         {/* Add-on Combined Chart and Card */}
         <Card className="w-full">
           <CardBody className="p-3">
@@ -467,6 +426,90 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                           {(
                             (item.value /
                               addonData.reduce(
+                                (acc, item) => acc + item.value,
+                                0
+                              )) *
+                            100
+                          ).toFixed(1)}
+                          %)
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Status Chart */}
+        <Card className="w-full">
+          <CardBody className="p-3">
+            <h3 className="text-base font-semibold mb-2 text-center">
+              สถานะการดำเนินการ
+            </h3>
+            <p className="text-xs text-gray-600 text-center mb-2">
+              โรงเรียน:{" "}
+              {selectedSchool && selectedSchool !== ""
+                ? schools.find((s) => s.id.toString() === selectedSchool)?.name
+                : "ทั้งหมด"}
+            </p>
+            
+            {/* Chart Section */}
+            <div className="mb-4">
+              {statusData.length > 0 ? (
+                <ResponsiveContainer height={200} width="100%">
+                  <PieChart>
+                    <Pie
+                      cx="50%"
+                      cy="50%"
+                      data={statusData}
+                      dataKey="value"
+                      fill="#8884d8"
+                      label={({ percent }) =>
+                        `${((percent || 0) * 100).toFixed(1)}%`
+                      }
+                      labelLine={true}
+                      outerRadius={60}
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[200px] text-gray-500 italic">
+                  ไม่พบข้อมูล
+                </div>
+              )}
+            </div>
+
+            {/* Summary Section */}
+            <div className="space-y-2">
+              <div className="text-md">
+                <p className="font-semibold text-gray-700 text-center mb-2">
+                  จำนวนผู้ประเมิน:{" "}
+                  {statusData.reduce((acc, item) => acc + item.value, 0)} คน
+                </p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {statusData.length > 0 ? (
+                    statusData.map((item, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="font-medium">{item.name}:</span>
+                        <span>{item.value} คน</span>
+                        <span className="text-xs text-gray-500">
+                          (
+                          {(
+                            (item.value /
+                              statusData.reduce(
                                 (acc, item) => acc + item.value,
                                 0
                               )) *
