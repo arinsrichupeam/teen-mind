@@ -789,7 +789,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 )
                               : null
                           }
-                          isDisabled={true}
+                          isDisabled={data?.status !== 2}
                           label="Follow Up"
                           labelPlacement="outside-left"
                           name="follow_up"
@@ -801,7 +801,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="gap-5">
                           <Textarea
                             defaultValue={data?.subjective}
-                            isDisabled={true}
+                            isDisabled={data?.status !== 2}
                             label="1.	Subjective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -811,7 +811,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.objective}
-                            isDisabled={true}
+                            isDisabled={data?.status !== 2}
                             label="2.	Objective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -821,7 +821,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.assessment}
-                            isDisabled={true}
+                            isDisabled={data?.status !== 2}
                             label="3.	Assessment"
                             labelPlacement="outside"
                             minRows={3}
@@ -831,7 +831,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.plan}
-                            isDisabled={true}
+                            isDisabled={data?.status !== 2}
                             label="4.	Plan"
                             labelPlacement="outside"
                             minRows={3}
@@ -857,6 +857,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <Select
                           className="max-w-xs"
                           defaultSelectedKeys={data?.status.toString()}
+                          isDisabled={true}
                           label="สถานะ"
                           labelPlacement="outside-left"
                           name="status"
@@ -948,7 +949,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 )
                               : null
                           }
-                          isDisabled={true}
+                          isDisabled={data?.status !== 2}
                           label="Follow Up"
                           labelPlacement="outside-left"
                           name="follow_up"
@@ -960,7 +961,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="gap-5">
                           <Textarea
                             isClearable
+                            isRequired
                             defaultValue={data?.subjective}
+                            isDisabled={data?.status !== 2}
                             label="1.	Subjective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -976,7 +979,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             isClearable
+                            isRequired
                             defaultValue={data?.objective}
+                            isDisabled={data?.status !== 2}
                             label="2.	Objective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -992,7 +997,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             isClearable
+                            isRequired
                             defaultValue={data?.assessment}
+                            isDisabled={data?.status !== 2}
                             label="3.	Assessment"
                             labelPlacement="outside"
                             minRows={3}
@@ -1008,7 +1015,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             isClearable
+                            isRequired
                             defaultValue={data?.plan}
+                            isDisabled={data?.status !== 2}
                             label="4.	Plan"
                             labelPlacement="outside"
                             minRows={3}
