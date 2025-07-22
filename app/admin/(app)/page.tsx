@@ -8,6 +8,8 @@ import { CardTotal } from "./components/home/card-total";
 import { CardSchoolStats } from "./components/home/card-school-stats";
 import { CardScoreCriteria } from "./components/home/card-score-criteria";
 import { PieChartsSection } from "./components/home/pie-charts-section";
+import { ConsultTelemedCharts } from "./components/home/consult-telemed-charts";
+import { ConsultTrendCharts } from "./components/home/consult-trend-charts";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
@@ -166,7 +168,7 @@ export default function AdminHome() {
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
-                กราฟวงกลมแสดงผลการประเมิน
+                กราฟแสดงผลการประเมิน
               </h3>
               <PieChartsSection
                 data={rawQuestions}
@@ -174,6 +176,22 @@ export default function AdminHome() {
               />
             </div>
           </div>
+
+          {/* กราฟแสดงผลการพบนักจิตวิทยา */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">กราฟแสดงผลการพบนักจิตวิทยา</h3>
+              <ConsultTelemedCharts questions={rawQuestions} />
+            </div>
+          </div>
+
+          {/* กราฟแนวโน้มการเข้าพบนักจิตวิทยา */}
+          {/* <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">แนวโน้มการเข้าพบนักจิตวิทยา</h3>
+              <ConsultTrendCharts questions={rawQuestions} />
+            </div>
+          </div> */}
 
           {/* ตารางสถิติรายโรงเรียน */}
           <div className="flex flex-col gap-2">
