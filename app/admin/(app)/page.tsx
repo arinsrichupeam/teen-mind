@@ -62,6 +62,32 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
   return Object.values(latestQuestions);
 };
 
+// ฟังก์ชันกรองข้อมูลตามอายุ 12-18 ปี สำหรับสถิติ
+const filterByAge = (data: any[], ageRange: { min: number; max: number } = { min: 12, max: 18 }) => {
+  return data.filter((item) => {
+    if (!item.profile?.birthday || !item.createdAt) return false;
+
+    const birthday = new Date(item.profile.birthday);
+    const assessmentDate = new Date(item.createdAt);
+    const age = assessmentDate.getFullYear() - birthday.getFullYear();
+
+    return age >= ageRange.min && age <= ageRange.max;
+  });
+};
+
+// ฟังก์ชันกรองผู้ใช้ตามอายุ 12-18 ปี สำหรับสถิติ
+const filterUsersByAge = (users: ProfileWithUserId[], ageRange: { min: number; max: number } = { min: 12, max: 18 }) => {
+  return users.filter((user) => {
+    if (!user.birthday) return false;
+
+    const birthday = new Date(user.birthday);
+    const today = new Date();
+    const age = today.getFullYear() - birthday.getFullYear();
+
+    return age >= ageRange.min && age <= ageRange.max;
+  });
+};
+
 export default function AdminHome() {
   const [showScoreModal, setShowScoreModal] = useState(false);
 
@@ -76,6 +102,11 @@ export default function AdminHome() {
   });
 
   const questions = filterLatestQuestions(rawQuestions);
+  
+  // กรองข้อมูลสำหรับสถิติตามอายุ 12-18 ปี
+  const filteredQuestions = filterByAge(rawQuestions);
+  const filteredLatestQuestions = filterLatestQuestions(filteredQuestions);
+  const filteredUsers = filterUsersByAge(allProfiles);
 
   type SchoolStat = {
     schoolName: string;
@@ -88,7 +119,7 @@ export default function AdminHome() {
   };
 
   const schoolStats = Object.values(
-    questions.reduce((acc: Record<string, SchoolStat>, q) => {
+    filteredLatestQuestions.reduce((acc: Record<string, SchoolStat>, q) => {
       let schoolName: string;
 
       if (typeof q.profile.school === "object" && q.profile.school !== null) {
@@ -158,8 +189,8 @@ export default function AdminHome() {
                   สถิติผู้รับบริการ (อายุ 12-18 ปี)
                 </h3>
                 <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2 justify-center w-full">
-                  <CardTotal data={allProfiles} />
-                  <CardCaseTotal data={rawQuestions} />
+                  <CardTotal data={filteredUsers} />
+                  <CardCaseTotal data={filteredQuestions} />
                 </div>
               </div>
             </div>
@@ -172,7 +203,7 @@ export default function AdminHome() {
                 กราฟแสดงผลการประเมิน (อายุ 12-18 ปี)
               </h3>
               <PieChartsSection
-                data={questions}
+                data={filteredLatestQuestions}
                 onShowScoreModal={() => setShowScoreModal(true)}
               />
             </div>
@@ -184,7 +215,7 @@ export default function AdminHome() {
               <h3 className="text-xl font-semibold">
                 ผลการพบนักจิตวิทยา (อายุ 12-18 ปี)
               </h3>
-              <ConsultTelemedCharts questions={questions} />
+              <ConsultTelemedCharts questions={filteredLatestQuestions} />
             </div>
           </div>
 

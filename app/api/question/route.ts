@@ -78,21 +78,6 @@ export async function GET() {
     },
   });
 
-  // กรองข้อมูลตามอายุ 12-18 ปี จากวันที่ประเมิน (นับปีอย่างเดียว)
-  const filteredQuestions = questionsList.filter((question) => {
-    if (!question.profile?.birthday || !question.createdAt) return false;
-
-    const birthday = new Date(question.profile.birthday);
-    const assessmentDate = new Date(question.createdAt);
-
-    // คำนวณอายุจากวันที่ประเมิน (นับปีอย่างเดียว)
-    const age = assessmentDate.getFullYear() - birthday.getFullYear();
-
-    return age >= 12 && age <= 18;
-  });
-
-  return Response.json({ questionsList: filteredQuestions });
-
   return Response.json({ questionsList });
 }
 

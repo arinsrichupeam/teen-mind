@@ -207,8 +207,8 @@ export const ModalEditProfile = ({
         return newData;
       });
 
-      // Validate citizenId ในโหมด create
-      if (name === "citizenId" && mode === "create") {
+      // Validate citizenId ทั้งในโหมด create และ edit
+      if (name === "citizenId") {
         if (value.length === 13) {
           validateCitizenIdAsync(value);
         } else if (value.length > 0) {
@@ -390,19 +390,17 @@ export const ModalEditProfile = ({
   };
 
   const handleSaveProfileData = async () => {
-    // ตรวจสอบ validation ในโหมด create
-    if (mode === "create") {
-      const isValid = await validateCitizenIdAsync(editProfileData.citizenId);
+    // ตรวจสอบ validation เลขบัตรประชาชนทั้งในโหมด create และ edit
+    const isValid = await validateCitizenIdAsync(editProfileData.citizenId);
 
-      if (!isValid) {
-        addToast({
-          title: "ข้อผิดพลาด",
-          description: "กรุณาตรวจสอบเลขบัตรประชาชน",
-          color: "danger",
-        });
+    if (!isValid) {
+      addToast({
+        title: "ข้อผิดพลาด",
+        description: "กรุณาตรวจสอบเลขบัตรประชาชน",
+        color: "danger",
+      });
 
-        return;
-      }
+      return;
     }
 
     // ตรวจสอบวันเกิด
@@ -589,14 +587,13 @@ export const ModalEditProfile = ({
                 onChange={handleEditProfileChange}
               />
               <Input
-                errorMessage={mode === "create" ? citizenIdError : ""}
-                isInvalid={mode === "create" && citizenIdError !== ""}
+                errorMessage={citizenIdError}
+                isInvalid={citizenIdError !== ""}
                 isRequired={true}
                 label="เลขที่บัตรประชาชน"
                 maxLength={13}
                 name="citizenId"
                 placeholder="กรอกเลขบัตรประชาชน 13 หลัก"
-                readOnly={mode === "edit"}
                 size="sm"
                 value={editProfileData.citizenId}
                 variant="bordered"
