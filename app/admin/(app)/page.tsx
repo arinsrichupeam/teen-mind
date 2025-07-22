@@ -180,7 +180,7 @@ export default function AdminHome() {
               <h3 className="text-xl font-semibold">
                 กราฟแสดงผลการพบนักจิตวิทยา
               </h3>
-              <ConsultTelemedCharts questions={rawQuestions} />
+              <ConsultTelemedCharts questions={questions} />
             </div>
           </div>
 

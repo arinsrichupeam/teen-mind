@@ -19,7 +19,7 @@ export type QuestionsData = {
   objective: string;
   assessment: string;
   plan: string;
-  schedule_telemed: Date;
+  schedule_telemed: Date | null;
   follow_up: Date;
   consult: string;
   createdAt: string;

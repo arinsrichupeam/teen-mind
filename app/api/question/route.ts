@@ -14,6 +14,7 @@ export async function GET() {
       result_text: true,
       status: true,
       consult: true,
+      schedule_telemed: true,
       referentId: true,
       profile: {
         select: {
