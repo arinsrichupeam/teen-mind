@@ -134,5 +134,23 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(users);
+  // กรองข้อมูลตามอายุ 12-18 ปี จากวันที่ประเมิน (นับปีอย่างเดียว)
+  const filteredUsers = users.filter((user) => {
+    if (!user.birthday || !user.questions || user.questions.length === 0)
+      return false;
+
+    const birthday = new Date(user.birthday);
+
+    // ตรวจสอบว่ามีการประเมินในช่วงอายุ 12-18 ปี หรือไม่
+    const hasValidAssessment = user.questions.some((question) => {
+      const assessmentDate = new Date(question.createdAt);
+      const age = assessmentDate.getFullYear() - birthday.getFullYear();
+
+      return age >= 12 && age <= 18;
+    });
+
+    return hasValidAssessment;
+  });
+
+  return NextResponse.json(filteredUsers);
 }

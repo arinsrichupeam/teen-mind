@@ -154,7 +154,9 @@ export default function AdminHome() {
             <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               {/* สถิติผู้รับบริการ */}
               <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">สถิติผู้รับบริการ</h3>
+                <h3 className="text-xl font-semibold">
+                  สถิติผู้รับบริการ (อายุ 12-18 ปี)
+                </h3>
                 <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2 justify-center w-full">
                   <CardTotal data={allProfiles} />
                   <CardCaseTotal data={rawQuestions} />
@@ -166,9 +168,11 @@ export default function AdminHome() {
           {/* กราฟวงกลมแสดงผลการประเมิน */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">กราฟแสดงผลการประเมิน</h3>
+              <h3 className="text-xl font-semibold">
+                กราฟแสดงผลการประเมิน (อายุ 12-18 ปี)
+              </h3>
               <PieChartsSection
-                data={rawQuestions}
+                data={questions}
                 onShowScoreModal={() => setShowScoreModal(true)}
               />
             </div>
@@ -178,7 +182,7 @@ export default function AdminHome() {
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
-                กราฟแสดงผลการพบนักจิตวิทยา
+                ผลการพบนักจิตวิทยา (อายุ 12-18 ปี)
               </h3>
               <ConsultTelemedCharts questions={questions} />
             </div>
