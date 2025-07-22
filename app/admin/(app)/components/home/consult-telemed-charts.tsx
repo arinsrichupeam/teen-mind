@@ -53,6 +53,12 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         telemed: filteredQuestions.filter(
           (q) => q.result === "Green" && q.schedule_telemed !== null
         ).length,
+        completed: filteredQuestions.filter(
+          (q) => q.result === "Green" && q.status === 3
+        ).length,
+        inProgress: filteredQuestions.filter(
+          (q) => q.result === "Green" && q.status !== 3
+        ).length,
       },
       greenLow: {
         total: filteredQuestions.filter((q) => q.result === "Green-Low").length,
@@ -65,6 +71,12 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         ).length,
         telemed: filteredQuestions.filter(
           (q) => q.result === "Green-Low" && q.schedule_telemed !== null
+        ).length,
+        completed: filteredQuestions.filter(
+          (q) => q.result === "Green-Low" && q.status === 3
+        ).length,
+        inProgress: filteredQuestions.filter(
+          (q) => q.result === "Green-Low" && q.status !== 3
         ).length,
       },
       yellow: {
@@ -79,6 +91,12 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         telemed: filteredQuestions.filter(
           (q) => q.result === "Yellow" && q.schedule_telemed !== null
         ).length,
+        completed: filteredQuestions.filter(
+          (q) => q.result === "Yellow" && q.status === 3
+        ).length,
+        inProgress: filteredQuestions.filter(
+          (q) => q.result === "Yellow" && q.status !== 3
+        ).length,
       },
       orange: {
         total: filteredQuestions.filter((q) => q.result === "Orange").length,
@@ -92,6 +110,12 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         telemed: filteredQuestions.filter(
           (q) => q.result === "Orange" && q.schedule_telemed !== null
         ).length,
+        completed: filteredQuestions.filter(
+          (q) => q.result === "Orange" && q.status === 3
+        ).length,
+        inProgress: filteredQuestions.filter(
+          (q) => q.result === "Orange" && q.status !== 3
+        ).length,
       },
       red: {
         total: filteredQuestions.filter((q) => q.result === "Red").length,
@@ -104,6 +128,12 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         ).length,
         telemed: filteredQuestions.filter(
           (q) => q.result === "Red" && q.schedule_telemed !== null
+        ).length,
+        completed: filteredQuestions.filter(
+          (q) => q.result === "Red" && q.status === 3
+        ).length,
+        inProgress: filteredQuestions.filter(
+          (q) => q.result === "Red" && q.status !== 3
         ).length,
       },
     },
@@ -124,8 +154,8 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             </p>
             <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             <p className="text-xs text-gray-500">
-              เข้าพบแล้ว: {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
-              | รอดำเนินการ: {stats.consult.pending}
+            รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว: {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
+               
             </p>
           </div>
         </CardBody>
@@ -133,6 +163,28 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
 
       {/* สรุปสถิติการเข้าพบนักจิตวิทยา */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">รอนักจิตวิทยาดำเนินการ</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {stats.consult.pending}{" "}
+                  <span className="text-sm">
+                    (
+                    {consultTotal > 0
+                      ? ((stats.consult.pending / consultTotal) * 100).toFixed(
+                        1
+                      )
+                      : 0}
+                    %)
+                  </span>
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
         <Card className="border-l-4 border-l-green-500">
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
@@ -172,32 +224,10 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             </div>
           </CardBody>
         </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">รอดำเนินการ</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {stats.consult.pending}{" "}
-                  <span className="text-sm">
-                    (
-                    {consultTotal > 0
-                      ? ((stats.consult.pending / consultTotal) * 100).toFixed(
-                          1
-                        )
-                      : 0}
-                    %)
-                  </span>
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
       </div>
 
       {/* สรุปสถิติการ Telemed */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-l-4 border-l-blue-500">
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
@@ -245,7 +275,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             </div>
           </CardBody>
         </Card>
-      </div>
+      </div> */}
 
       {/* สถิติแยกตามผลการประเมิน */}
       <Card>
@@ -310,17 +340,29 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                       <span className="font-medium">{data.total}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Consult:</span>
+                      <span>พบนักจิตวิทยา:</span>
                       <span className="font-medium text-green-600">
                         {data.consult}
                       </span>
                     </div>
                     <div className="flex justify-between">
+                      <span>ดำเนินการเสร็จสิ้น:</span>
+                      <span className="font-medium text-blue-600">
+                        {data.completed}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>อยู่ระหว่างดำเนินการ:</span>
+                      <span className="font-medium text-orange-600">
+                        {data.inProgress}
+                      </span>
+                    </div>
+                    {/* <div className="flex justify-between">
                       <span>Follow Up:</span>
                       <span className="font-medium text-blue-600">
                         {data.telemed}
                       </span>
-                    </div>
+                    </div> */}
                     <div className="pt-2 border-t border-gray-200">
                       <div className="flex justify-between text-xs">
                         <span>อัตราการให้คำปรึกษา:</span>

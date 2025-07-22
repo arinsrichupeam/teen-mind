@@ -218,19 +218,19 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
           </Autocomplete>
         </div>
 
-        {onShowScoreModal && (
+        {/* {onShowScoreModal && (
           <button
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
             onClick={onShowScoreModal}
           >
             เกณฑ์คะแนน PHQA
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* PHQA Chart */}
+        {/* PHQA Combined Chart and Card */}
         <Card className="w-full">
           <CardBody className="p-3">
             <h3 className="text-base font-semibold mb-2 text-center">
@@ -242,49 +242,46 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                 ? schools.find((s) => s.id.toString() === selectedSchool)?.name
                 : "ทั้งหมด"}
             </p>
-            {phqaData.length > 0 ? (
-              <ResponsiveContainer height={250} width="100%">
-                <PieChart>
-                  <Pie
-                    cx="50%"
-                    cy="50%"
-                    data={phqaData}
-                    dataKey="value"
-                    fill="#8884d8"
-                    label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(1)}%`
-                    }
-                    labelLine={true}
-                    outerRadius={100}
-                  >
-                    {phqaData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-gray-500 italic">
-                ไม่พบข้อมูล
-              </div>
-            )}
-          </CardBody>
-        </Card>
+            
+            {/* Chart Section */}
+            <div className="mb-4">
+              {phqaData.length > 0 ? (
+                <ResponsiveContainer height={200} width="100%">
+                  <PieChart>
+                    <Pie
+                      cx="50%"
+                      cy="50%"
+                      data={phqaData}
+                      dataKey="value"
+                      fill="#8884d8"
+                      label={({ percent }) =>
+                        `${((percent || 0) * 100).toFixed(1)}%`
+                      }
+                      labelLine={true}
+                      outerRadius={60}
+                    >
+                      {phqaData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[200px] text-gray-500 italic">
+                  ไม่พบข้อมูล
+                </div>
+              )}
+            </div>
 
-        {/* PHQA Card */}
-        <Card className="w-full">
-          <CardBody className="p-3">
-            <h3 className="text-base font-semibold mb-2 text-center">
-              ผลการประเมิน PHQA
-            </h3>
+            {/* Summary Section */}
             <div className="space-y-2">
               <div className="text-md">
-                <p className="font-semibold text-gray-700">
+                <p className="font-semibold text-gray-700 text-center mb-2">
                   จำนวนผู้ประเมิน:{" "}
                   {phqaData.reduce((acc, item) => acc + item.value, 0)} คน
                 </p>
-                <div className="text-md text-gray-600 space-y-1">
+                <div className="text-sm text-gray-600 space-y-1">
                   {phqaData.length > 0 ? (
                     phqaData.map((item, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -309,7 +306,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 italic">ไม่พบข้อมูล</p>
+                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
                   )}
                 </div>
               </div>
@@ -318,7 +315,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
         </Card>
 
         {/* 2Q Chart */}
-        <Card className="w-full">
+        {/* <Card className="w-full">
           <CardBody className="p-3">
             <h3 className="text-base font-semibold mb-2 text-center">
               ผลการประเมิน 2Q
@@ -357,10 +354,10 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
               </div>
             )}
           </CardBody>
-        </Card>
+        </Card> */}
 
         {/* 2Q Card */}
-        <Card className="w-full">
+        {/* <Card className="w-full">
           <CardBody className="p-3">
             <h3 className="text-base font-semibold mb-2 text-center">
               ผลการประเมิน 2Q
@@ -402,9 +399,9 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
               </div>
             </div>
           </CardBody>
-        </Card>
+        </Card> */}
 
-        {/* Add-on Chart */}
+        {/* Add-on Combined Chart and Card */}
         <Card className="w-full">
           <CardBody className="p-3">
             <h3 className="text-base font-semibold mb-2 text-center">
@@ -416,49 +413,46 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                 ? schools.find((s) => s.id.toString() === selectedSchool)?.name
                 : "ทั้งหมด"}
             </p>
-            {addonData.length > 0 ? (
-              <ResponsiveContainer height={250} width="100%">
-                <PieChart>
-                  <Pie
-                    cx="50%"
-                    cy="50%"
-                    data={addonData}
-                    dataKey="value"
-                    fill="#8884d8"
-                    label={({ percent }) =>
-                      `${((percent || 0) * 100).toFixed(1)}%`
-                    }
-                    labelLine={true}
-                    outerRadius={100}
-                  >
-                    {addonData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-gray-500 italic">
-                ไม่พบข้อมูล
-              </div>
-            )}
-          </CardBody>
-        </Card>
+            
+            {/* Chart Section */}
+            <div className="mb-4">
+              {addonData.length > 0 ? (
+                <ResponsiveContainer height={200} width="100%">
+                  <PieChart>
+                    <Pie
+                      cx="50%"
+                      cy="50%"
+                      data={addonData}
+                      dataKey="value"
+                      fill="#8884d8"
+                      label={({ percent }) =>
+                        `${((percent || 0) * 100).toFixed(1)}%`
+                      }
+                      labelLine={true}
+                      outerRadius={60}
+                    >
+                      {addonData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[200px] text-gray-500 italic">
+                  ไม่พบข้อมูล
+                </div>
+              )}
+            </div>
 
-        {/* Add-on Card */}
-        <Card className="w-full">
-          <CardBody className="p-3">
-            <h3 className="text-base font-semibold mb-2 text-center">
-              ผลการประเมิน Add-on
-            </h3>
+            {/* Summary Section */}
             <div className="space-y-2">
               <div className="text-md">
-                <p className="font-semibold text-gray-700">
+                <p className="font-semibold text-gray-700 text-center mb-2">
                   จำนวนผู้ประเมิน:{" "}
                   {addonData.reduce((acc, item) => acc + item.value, 0)} คน
                 </p>
-                <div className="text-md text-gray-600 space-y-1">
+                <div className="text-sm text-gray-600 space-y-1">
                   {addonData.length > 0 ? (
                     addonData.map((item, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -483,7 +477,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 italic">ไม่พบข้อมูล</p>
+                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
                   )}
                 </div>
               </div>

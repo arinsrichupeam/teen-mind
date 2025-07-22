@@ -53,7 +53,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
     if (
       !latestQuestions[profileId] ||
       new Date(question.createdAt) >
-        new Date(latestQuestions[profileId].createdAt)
+      new Date(latestQuestions[profileId].createdAt)
     ) {
       latestQuestions[profileId] = question;
     }
@@ -102,7 +102,7 @@ export default function AdminHome() {
   });
 
   const questions = filterLatestQuestions(rawQuestions);
-  
+
   // กรองข้อมูลสำหรับสถิติตามอายุ 12-18 ปี
   const filteredQuestions = filterByAge(rawQuestions);
   const filteredLatestQuestions = filterLatestQuestions(filteredQuestions);
@@ -180,10 +180,8 @@ export default function AdminHome() {
     <Suspense fallback={<Loading />}>
       <div className="h-full lg:px-6">
         <div className="flex flex-col gap-6 pt-3 px-4 lg:px-0 sm:pt-10 max-w-[90rem] mx-auto w-full">
-          {/* ผู้ใช้งานใหม่ - ย้ายไปบนสุด */}
-          <div className="flex flex-col gap-2">
+          {/* <div className="flex flex-col gap-2">
             <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-              {/* สถิติผู้รับบริการ */}
               <div className="flex flex-col gap-2">
                 <h3 className="text-xl font-semibold">
                   สถิติผู้รับบริการ (อายุ 12-18 ปี)
@@ -194,9 +192,17 @@ export default function AdminHome() {
                 </div>
               </div>
             </div>
+          </div> */}
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">
+                ผลการพบนักจิตวิทยา (อายุ 12-18 ปี)
+              </h3>
+              <ConsultTelemedCharts questions={filteredLatestQuestions} />
+            </div>
           </div>
 
-          {/* กราฟวงกลมแสดงผลการประเมิน */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
@@ -209,17 +215,6 @@ export default function AdminHome() {
             </div>
           </div>
 
-          {/* กราฟแสดงผลการพบนักจิตวิทยา */}
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">
-                ผลการพบนักจิตวิทยา (อายุ 12-18 ปี)
-              </h3>
-              <ConsultTelemedCharts questions={filteredLatestQuestions} />
-            </div>
-          </div>
-
-          {/* กราฟแนวโน้มการเข้าพบนักจิตวิทยา */}
           {/* <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">แนวโน้มการเข้าพบนักจิตวิทยา</h3>
@@ -227,7 +222,6 @@ export default function AdminHome() {
             </div>
           </div> */}
 
-          {/* ตารางสถิติรายโรงเรียน */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
@@ -239,8 +233,7 @@ export default function AdminHome() {
           </div>
         </div>
 
-        {/* Modal สำหรับเกณฑ์คะแนน */}
-        {showScoreModal && (
+        {/* {showScoreModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
@@ -255,7 +248,7 @@ export default function AdminHome() {
               <CardScoreCriteria />
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </Suspense>
   );
