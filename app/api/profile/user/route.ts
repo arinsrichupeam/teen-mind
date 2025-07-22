@@ -53,40 +53,37 @@ export async function POST(req: Request) {
   }
 }
 
-// Update Profile -> HN -> Update Question Status
+// Update Profile -> HN -> อัปเดต Question Status เป็น 1 เมื่อมี HN
 export async function PATCH(req: Request) {
-  const data = await req.json();
+  try {
+    const data = await req.json();
 
-  if (data.hn !== "") {
-    const profile = await prisma.profile
-      .update({
+    if (data.hn !== "") {
+      // อัปเดต profile ด้วย HN
+      await prisma.profile.update({
         where: {
           id: data.id,
         },
         data: {
           hn: data.hn,
         },
-        select: {
-          id: true,
-          userId: true,
-        },
-      })
-      .then((val) => {
-        return val;
       });
 
-    await prisma.questions_Master.updateMany({
-      where: {
-        profileId: profile.id,
-        status: 0,
-      },
-      data: {
-        status: 1,
-      },
-    });
-  }
+      // อัปเดต status เป็น 1 ในทุกๆ แบบสอบถามของ user นี้
+      await prisma.questions_Master.updateMany({
+        where: {
+          profileId: data.id,
+        },
+        data: {
+          status: 1,
+        },
+      });
+    }
 
-  return new Response("Success");
+    return new Response("Success");
+  } catch (error) {
+    return NextResponse.json({ error: error }, { status: 500 });
+  }
 }
 
 export async function GET() {

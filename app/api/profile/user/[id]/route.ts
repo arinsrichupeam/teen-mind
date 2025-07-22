@@ -190,6 +190,18 @@ export async function PUT(
       });
     }
 
+    // อัปเดต status เป็น 1 ในทุกๆ แบบสอบถามของ user นี้ เมื่อมี HN
+    if (body.hn && body.hn !== "") {
+      await prisma.questions_Master.updateMany({
+        where: {
+          profileId: userId,
+        },
+        data: {
+          status: 1,
+        },
+      });
+    }
+
     // ดึงข้อมูลที่อัปเดตแล้ว
     const finalProfile = await prisma.profile.findUnique({
       where: {
