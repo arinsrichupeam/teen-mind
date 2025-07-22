@@ -1,47 +1,20 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { CardCaseTotal } from "./components/home/card-case-total";
-import { CardTotal } from "./components/home/card-total";
 import { CardSchoolStats } from "./components/home/card-school-stats";
-import { CardScoreCriteria } from "./components/home/card-score-criteria";
 import { PieChartsSection } from "./components/home/pie-charts-section";
 import { ConsultTelemedCharts } from "./components/home/consult-telemed-charts";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 
-// Temporary Profile type with userId
-interface ProfileWithUserId {
-  id: string;
-  firstname: string;
-  lastname: string;
-  prefixId: string;
-  sex: string;
-  birthday: string;
-  ethnicity: string;
-  nationality: string;
-  citizenId: string;
-  tel: string;
-  school: any; // Keeping it simple for now
-  hn: string;
-  userId?: string | null;
-}
-
 const fetchQuestions = async () => {
   const res = await fetch("/api/question");
   const data = await res.json();
 
   return data.questionsList;
-};
-
-const fetchUsers = async () => {
-  const res = await fetch("/api/profile/user");
-  const data: ProfileWithUserId[] = await res.json();
-
-  return data;
 };
 
 const filterLatestQuestions = (questions: QuestionsData[]) => {
@@ -53,7 +26,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
     if (
       !latestQuestions[profileId] ||
       new Date(question.createdAt) >
-      new Date(latestQuestions[profileId].createdAt)
+        new Date(latestQuestions[profileId].createdAt)
     ) {
       latestQuestions[profileId] = question;
     }
@@ -63,7 +36,10 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 };
 
 // ฟังก์ชันกรองข้อมูลตามอายุ 12-18 ปี สำหรับสถิติ
-const filterByAge = (data: any[], ageRange: { min: number; max: number } = { min: 12, max: 18 }) => {
+const filterByAge = (
+  data: any[],
+  ageRange: { min: number; max: number } = { min: 12, max: 18 }
+) => {
   return data.filter((item) => {
     if (!item.profile?.birthday || !item.createdAt) return false;
 
@@ -75,38 +51,15 @@ const filterByAge = (data: any[], ageRange: { min: number; max: number } = { min
   });
 };
 
-// ฟังก์ชันกรองผู้ใช้ตามอายุ 12-18 ปี สำหรับสถิติ
-const filterUsersByAge = (users: ProfileWithUserId[], ageRange: { min: number; max: number } = { min: 12, max: 18 }) => {
-  return users.filter((user) => {
-    if (!user.birthday) return false;
-
-    const birthday = new Date(user.birthday);
-    const today = new Date();
-    const age = today.getFullYear() - birthday.getFullYear();
-
-    return age >= ageRange.min && age <= ageRange.max;
-  });
-};
-
 export default function AdminHome() {
-  const [showScoreModal, setShowScoreModal] = useState(false);
-
   const { data: rawQuestions = [], isLoading: isLoadingQuestions } = useQuery({
     queryKey: ["questions"],
     queryFn: fetchQuestions,
   });
 
-  const { data: allProfiles = [], isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-  });
-
-  const questions = filterLatestQuestions(rawQuestions);
-
   // กรองข้อมูลสำหรับสถิติตามอายุ 12-18 ปี
   const filteredQuestions = filterByAge(rawQuestions);
   const filteredLatestQuestions = filterLatestQuestions(filteredQuestions);
-  const filteredUsers = filterUsersByAge(allProfiles);
 
   type SchoolStat = {
     schoolName: string;
@@ -172,7 +125,7 @@ export default function AdminHome() {
     }
   );
 
-  if (isLoadingQuestions || isLoadingUsers) {
+  if (isLoadingQuestions) {
     return <></>;
   }
 
@@ -208,10 +161,7 @@ export default function AdminHome() {
               <h3 className="text-xl font-semibold">
                 กราฟแสดงผลการประเมิน (อายุ 12-18 ปี)
               </h3>
-              <PieChartsSection
-                data={filteredLatestQuestions}
-                onShowScoreModal={() => setShowScoreModal(true)}
-              />
+              <PieChartsSection data={filteredLatestQuestions} />
             </div>
           </div>
 

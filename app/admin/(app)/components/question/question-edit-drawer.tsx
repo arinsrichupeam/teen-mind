@@ -149,17 +149,40 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     });
 
     setHnIsloading(true);
-    await fetch("/api/profile/user", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: json,
-    }).then(() => {
-      setTimeout(() => {
-        setHnIsloading(false);
-      }, 2000);
-    });
+    try {
+      const response = await fetch("/api/profile/user", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: json,
+      });
+
+      if (response.ok) {
+        addToast({
+          title: "สำเร็จ",
+          description: "บันทึก HN สำเร็จ",
+          color: "success",
+        });
+
+        // ปิด drawer
+        onClose();
+      } else {
+        throw new Error("เกิดข้อผิดพลาดในการบันทึก HN");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก HN"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก HN",
+        color: "danger",
+      });
+    } finally {
+      setHnIsloading(false);
+    }
   };
 
   const HandleChange = (e: any) => {
@@ -789,7 +812,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 )
                               : null
                           }
-                          isDisabled={data?.status !== 2}
+                          isDisabled={true}
                           label="Follow Up"
                           labelPlacement="outside-left"
                           name="follow_up"
@@ -801,7 +824,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="gap-5">
                           <Textarea
                             defaultValue={data?.subjective}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={true}
                             label="1.	Subjective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -811,7 +834,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.objective}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={true}
                             label="2.	Objective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -821,7 +844,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.assessment}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={true}
                             label="3.	Assessment"
                             labelPlacement="outside"
                             minRows={3}
@@ -831,7 +854,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <Textarea
                             defaultValue={data?.plan}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={true}
                             label="4.	Plan"
                             labelPlacement="outside"
                             minRows={3}
@@ -853,7 +876,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <div className="flex flex-col">
                     <div>
                       <div className="flex flex-row pb-3">
-                        <h2 className={subtitle()}>Telemedicine</h2>
+                        <h2 className={subtitle()}>
+                          Consultant & Telemedicine
+                        </h2>
                         <Select
                           className="max-w-xs"
                           defaultSelectedKeys={data?.status.toString()}
@@ -891,6 +916,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     )
                                   : null
                               }
+                              isDisabled={data?.status !== 1}
                               isRequired={true}
                               label="Schedule Telemed"
                               labelPlacement="outside"
@@ -914,6 +940,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultItems={Consultant}
                               defaultSelectedKey={data?.consult}
                               errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
+                              isDisabled={data?.status !== 1}
                               isInvalid={isError}
                               isRequired={true}
                               label="Consultant"
@@ -949,7 +976,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 )
                               : null
                           }
-                          isDisabled={data?.status !== 2}
+                          isDisabled={data?.status !== 2 && data?.status !== 3}
                           label="Follow Up"
                           labelPlacement="outside-left"
                           name="follow_up"
@@ -963,7 +990,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={data?.subjective}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={
+                              data?.status !== 2 && data?.status !== 3
+                            }
                             label="1.	Subjective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -981,7 +1010,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={data?.objective}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={
+                              data?.status !== 2 && data?.status !== 3
+                            }
                             label="2.	Objective data"
                             labelPlacement="outside"
                             minRows={3}
@@ -999,7 +1030,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={data?.assessment}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={
+                              data?.status !== 2 && data?.status !== 3
+                            }
                             label="3.	Assessment"
                             labelPlacement="outside"
                             minRows={3}
@@ -1017,7 +1050,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={data?.plan}
-                            isDisabled={data?.status !== 2}
+                            isDisabled={
+                              data?.status !== 2 && data?.status !== 3
+                            }
                             label="4.	Plan"
                             labelPlacement="outside"
                             minRows={3}

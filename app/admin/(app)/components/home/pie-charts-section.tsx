@@ -23,7 +23,6 @@ type School = {
 
 type props = {
   data: QuestionsData[];
-  onShowScoreModal?: () => void;
 };
 
 const COLORS = {
@@ -45,12 +44,12 @@ const COLORS = {
   status: {
     "รอระบุ HN": "#6b7280", // gray
     "รอจัดนัด Telemed": "#3b82f6", // blue
-    "รอสรุปผลการให้คำปรึกษา": "#f59e0b", // amber
-    "เสร็จสิ้น": "#10b981", // emerald
+    รอสรุปผลการให้คำปรึกษา: "#f59e0b", // amber
+    เสร็จสิ้น: "#10b981", // emerald
   },
 };
 
-export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
+export const PieChartsSection = ({ data }: props) => {
   const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [schools, setSchools] = useState<School[]>([]);
 
@@ -128,35 +127,6 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
       }));
   }, [filteredData]);
 
-  // สร้างข้อมูลสำหรับ 2Q Chart
-  const q2Data = useMemo(() => {
-    const q2Counts: { [key: string]: number } = {
-      ไม่พบความเสี่ยง: 0,
-      พบความเสี่ยง: 0,
-    };
-
-    filteredData.forEach((question) => {
-      if (question.q2 && question.q2.length > 0) {
-        const q2Data = question.q2[0]; // ใช้ข้อมูล 2Q ล่าสุด
-        const hasRisk = q2Data.q1 === 1 || q2Data.q2 === 1; // สมมติว่า 1 = ใช่, 0 = ไม่ใช่
-
-        if (hasRisk) {
-          q2Counts["พบความเสี่ยง"]++;
-        } else {
-          q2Counts["ไม่พบความเสี่ยง"]++;
-        }
-      }
-    });
-
-    return Object.entries(q2Counts)
-      .filter(([_, count]) => count > 0)
-      .map(([name, value]) => ({
-        name,
-        value,
-        color: COLORS.q2[name as keyof typeof COLORS.q2],
-      }));
-  }, [filteredData]);
-
   // สร้างข้อมูลสำหรับ Add-on Chart
   const addonData = useMemo(() => {
     const addonCounts: { [key: string]: number } = {
@@ -191,13 +161,13 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
     const statusCounts: { [key: string]: number } = {
       "รอระบุ HN": 0,
       "รอจัดนัด Telemed": 0,
-      "รอสรุปผลการให้คำปรึกษา": 0,
-      "เสร็จสิ้น": 0,
+      รอสรุปผลการให้คำปรึกษา: 0,
+      เสร็จสิ้น: 0,
     };
 
     filteredData.forEach((question) => {
       const status = question.status;
-      
+
       switch (status) {
         case 0:
           statusCounts["รอระบุ HN"]++;
@@ -263,15 +233,6 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
             ))}
           </Autocomplete>
         </div>
-
-        {/* {onShowScoreModal && (
-          <button
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-            onClick={onShowScoreModal}
-          >
-            เกณฑ์คะแนน PHQA
-          </button>
-        )} */}
       </div>
 
       {/* Charts Grid */}
@@ -288,7 +249,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                 ? schools.find((s) => s.id.toString() === selectedSchool)?.name
                 : "ทั้งหมด"}
             </p>
-            
+
             {/* Chart Section */}
             <div className="mb-4">
               {phqaData.length > 0 ? (
@@ -352,7 +313,9 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
+                    <p className="text-gray-500 italic text-center">
+                      ไม่พบข้อมูล
+                    </p>
                   )}
                 </div>
               </div>
@@ -372,7 +335,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                 ? schools.find((s) => s.id.toString() === selectedSchool)?.name
                 : "ทั้งหมด"}
             </p>
-            
+
             {/* Chart Section */}
             <div className="mb-4">
               {addonData.length > 0 ? (
@@ -436,7 +399,9 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
+                    <p className="text-gray-500 italic text-center">
+                      ไม่พบข้อมูล
+                    </p>
                   )}
                 </div>
               </div>
@@ -456,7 +421,7 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                 ? schools.find((s) => s.id.toString() === selectedSchool)?.name
                 : "ทั้งหมด"}
             </p>
-            
+
             {/* Chart Section */}
             <div className="mb-4">
               {statusData.length > 0 ? (
@@ -520,7 +485,9 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 italic text-center">ไม่พบข้อมูล</p>
+                    <p className="text-gray-500 italic text-center">
+                      ไม่พบข้อมูล
+                    </p>
                   )}
                 </div>
               </div>

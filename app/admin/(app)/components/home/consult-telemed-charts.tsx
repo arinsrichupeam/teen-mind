@@ -141,7 +141,6 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
 
   const consultTotal =
     stats.consult.yes + stats.consult.no + stats.consult.pending;
-  const telemedTotal = stats.telemed.scheduled + stats.telemed.notScheduled;
 
   return (
     <div className="space-y-6">
@@ -154,8 +153,8 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             </p>
             <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             <p className="text-xs text-gray-500">
-              รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว: {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
-
+              รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว:{" "}
+              {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
             </p>
           </div>
         </CardBody>
@@ -174,8 +173,8 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                     (
                     {consultTotal > 0
                       ? ((stats.consult.pending / consultTotal) * 100).toFixed(
-                        1
-                      )
+                          1
+                        )
                       : 0}
                     %)
                   </span>
