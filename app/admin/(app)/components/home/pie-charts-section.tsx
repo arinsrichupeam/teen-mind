@@ -43,10 +43,10 @@ const COLORS = {
     พบความเสี่ยง: "#ef4444", // red
   },
   status: {
-    "รอเปิด HN": "#6b7280", // gray
-    "รอนัดวัน Tele": "#3b82f6", // blue
-    "รอผล Tele": "#f59e0b", // amber
-    "ดำเนินการเสร็จสิ้น": "#10b981", // emerald
+    "รอระบุ HN": "#6b7280", // gray
+    "รอจัดนัด Telemed": "#3b82f6", // blue
+    "รอสรุปผลการให้คำปรึกษา": "#f59e0b", // amber
+    "เสร็จสิ้น": "#10b981", // emerald
   },
 };
 
@@ -189,10 +189,10 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
   // สร้างข้อมูลสำหรับ Status Chart
   const statusData = useMemo(() => {
     const statusCounts: { [key: string]: number } = {
-      "รอเปิด HN": 0,
-      "รอนัดวัน Tele": 0,
-      "รอผล Tele": 0,
-      "ดำเนินการเสร็จสิ้น": 0,
+      "รอระบุ HN": 0,
+      "รอจัดนัด Telemed": 0,
+      "รอสรุปผลการให้คำปรึกษา": 0,
+      "เสร็จสิ้น": 0,
     };
 
     filteredData.forEach((question) => {
@@ -200,19 +200,19 @@ export const PieChartsSection = ({ data, onShowScoreModal }: props) => {
       
       switch (status) {
         case 0:
-          statusCounts["รอเปิด HN"]++;
+          statusCounts["รอระบุ HN"]++;
           break;
         case 1:
-          statusCounts["รอนัดวัน Tele"]++;
+          statusCounts["รอจัดนัด Telemed"]++;
           break;
         case 2:
-          statusCounts["รอผล Tele"]++;
+          statusCounts["รอสรุปผลการให้คำปรึกษา"]++;
           break;
         case 3:
-          statusCounts["ดำเนินการเสร็จสิ้น"]++;
+          statusCounts["เสร็จสิ้น"]++;
           break;
         default:
-          statusCounts["รอเปิด HN"]++;
+          statusCounts["รอระบุ HN"]++;
           break;
       }
     });

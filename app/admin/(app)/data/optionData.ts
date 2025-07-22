@@ -1,8 +1,8 @@
 export const questionStatusOptions = [
-  { name: "รอเปิด HN", uid: "0" },
-  { name: "รอนัดวัน Tele", uid: "1" },
-  { name: "รอผล Tele", uid: "2" },
-  { name: "ดำเนินการเสร็จสิ้น", uid: "3" },
+  { name: "รอระบุ HN", uid: "0" },
+  { name: "รอจัดนัด Telemed", uid: "1" },
+  { name: "รอสรุปผลการให้คำปรึกษา", uid: "2" },
+  { name: "เสร็จสิ้น", uid: "3" },
 ];
 
 export const userStatusOptions = [

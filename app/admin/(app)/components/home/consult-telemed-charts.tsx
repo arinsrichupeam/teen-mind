@@ -347,7 +347,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                     </div>
                     <div className="pt-2 border-t border-gray-200">
                       <div className="flex justify-between text-xs">
-                        <span>ดำเนินการเสร็จสิ้น:</span>
+                        <span>เสร็จสิ้น:</span>
                         <span className="font-medium text-blue-600">
                           {data.completed}
                         </span>

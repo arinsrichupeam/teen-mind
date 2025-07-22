@@ -591,12 +591,12 @@ export default function QuestionPage() {
               variant="flat"
             >
               {item.status === 0
-                ? "รอเปิด HN"
+                ? "รอระบุ HN"
                 : item.status === 1
-                  ? "รอนัดวัน Tele"
+                  ? "รอจัดนัด Telemed"
                   : item.status === 2
-                    ? "รอผล Tele"
-                    : "ดำเนินการเสร็จสิ้น"}
+                    ? "รอสรุปผลการให้คำปรึกษา"
+                    : "เสร็จสิ้น"}
             </Chip>
           );
         case "actions":
