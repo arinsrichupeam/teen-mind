@@ -21,6 +21,7 @@ import {
 import useSWR from "swr";
 
 import { questionStatusOptions as options } from "../../data/optionData";
+import { ExportButton } from "../export-button";
 
 // ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
 const riskStatusOptions = [
@@ -50,6 +51,8 @@ interface QuestionFilterContentProps {
   setQ2Filter: (filter: Selection) => void;
   addonFilter: Selection;
   setAddonFilter: (filter: Selection) => void;
+  data?: any[];
+  filteredData?: any[];
 }
 
 export function QuestionFilterContent({
@@ -65,6 +68,8 @@ export function QuestionFilterContent({
   setQ2Filter,
   addonFilter,
   setAddonFilter,
+  data,
+  filteredData,
 }: QuestionFilterContentProps) {
   // ดึงข้อมูลโรงเรียน
   const { data: schoolsData } = useSWR(
@@ -265,6 +270,14 @@ export function QuestionFilterContent({
           >
             ล้าง Filter
           </Button>
+          {/* Export Button */}
+          {data && (
+            <ExportButton
+              data={data}
+              filteredData={filteredData}
+              className="w-full sm:w-auto"
+            />
+          )}
         </div>
 
         {/* แสดง Filter ที่เลือก */}
@@ -420,6 +433,8 @@ export function QuestionFilterContent({
       setPhqaFilter,
       setQ2Filter,
       setAddonFilter,
+      data,
+      filteredData,
     ]
   );
 

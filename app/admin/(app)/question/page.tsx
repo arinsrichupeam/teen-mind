@@ -694,6 +694,8 @@ export default function QuestionPage() {
         setStatusFilter={setStatusFilter}
         statusFilter={statusFilter}
         onSearchChange={onSearchChange}
+        data={data}
+        filteredData={filteredItems}
       />
     ),
     [
@@ -709,6 +711,8 @@ export default function QuestionPage() {
       setQ2Filter,
       addonFilter,
       setAddonFilter,
+      data,
+      filteredItems,
     ]
   );
 
