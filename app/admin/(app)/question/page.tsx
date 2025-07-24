@@ -683,7 +683,9 @@ export default function QuestionPage() {
     () => (
       <QuestionFilterContent
         addonFilter={addonFilter}
+        data={data}
         filterValue={filterValue}
+        filteredData={filteredItems}
         phqaFilter={phqaFilter}
         q2Filter={q2Filter}
         schoolFilter={schoolFilter}
@@ -694,8 +696,6 @@ export default function QuestionPage() {
         setStatusFilter={setStatusFilter}
         statusFilter={statusFilter}
         onSearchChange={onSearchChange}
-        data={data}
-        filteredData={filteredItems}
       />
     ),
     [

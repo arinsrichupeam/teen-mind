@@ -129,7 +129,7 @@ export const SidebarWrapper = () => {
                     href="/admin/recalculate-phqa"
                     icon={<CalculatorIcon className="size-6" />}
                     isActive={pathname === "/admin/recalculate-phqa"}
-                    title="คำนวณคะแนน PHQA"
+                    title="Re-calculate"
                   />
                 </SidebarMenu>
               )}

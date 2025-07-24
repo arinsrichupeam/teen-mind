@@ -271,13 +271,7 @@ export function QuestionFilterContent({
             ล้าง Filter
           </Button>
           {/* Export Button */}
-          {data && (
-            <ExportButton
-              data={data}
-              filteredData={filteredData}
-              className="w-full sm:w-auto"
-            />
-          )}
+          {data && <ExportButton data={data} filteredData={filteredData} />}
         </div>
 
         {/* แสดง Filter ที่เลือก */}

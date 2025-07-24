@@ -207,6 +207,7 @@ export async function PUT(req: Request) {
   try {
     const data = await req.json();
     const question: QuestionsData = data;
+
     const { result, result_text } = calculateResult(question.phqa[0].sum);
 
     // อัปเดตข้อมูลหลัก
@@ -357,24 +358,20 @@ export async function PUT(req: Request) {
 }
 
 function CalStatus(value: QuestionsData) {
-  if (
-    value.status == 1 &&
-    value.schedule_telemed != null &&
-    value.consult != null
-  ) {
+  if (value.schedule_telemed != null && value.consult != null) {
+    if (
+      value.subjective != null &&
+      value.objective != null &&
+      value.assessment != null &&
+      value.plan != null
+    ) {
+      return 3;
+    }
+
     return 2;
-  } else if (
-    (value.status == 1 || value.status == 2) &&
-    value.consult != null &&
-    value.subjective &&
-    value.objective &&
-    value.assessment &&
-    value.plan
-  ) {
-    return 3;
-  } else {
-    return value.status;
   }
+
+  return 1;
 }
 
 function SumValue(value: any) {

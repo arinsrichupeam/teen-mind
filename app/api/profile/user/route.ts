@@ -69,13 +69,12 @@ export async function PATCH(req: Request) {
         },
       });
 
-      // อัปเดต status เป็น 1 ในทุกๆ แบบสอบถามของ user นี้
       await prisma.questions_Master.updateMany({
         where: {
           profileId: data.id,
         },
         data: {
-          status: 1,
+          status: CalStatus(data),
         },
       });
     }
@@ -135,4 +134,25 @@ export async function GET() {
   });
 
   return NextResponse.json(users);
+}
+
+function CalStatus(value: any) {
+  if (value.hn != null && value.hn !== "") {
+    if (value.schedule_telemed != null && value.consult != null) {
+      if (
+        value.subjective != null &&
+        value.objective != null &&
+        value.assessment != null &&
+        value.plan != null
+      ) {
+        return 3;
+      }
+
+      return 2;
+    }
+
+    return 1;
+  }
+
+  return 0;
 }

@@ -5,33 +5,37 @@ import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useDisclosure } from "@heroui/react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+
 import { ModalExportData } from "./modal/modal-export-data";
+
 import { ProfileAdminData } from "@/types";
 
 interface ExportButtonProps {
   data: any[];
   filteredData?: any[];
-  className?: string;
   showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
 }
 
-export const ExportButton = ({ 
-  data, 
-  filteredData, 
-  className,
-  showForAllRoles = false
+export const ExportButton = ({
+  data,
+  filteredData,
+  showForAllRoles = false,
 }: ExportButtonProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { data: session } = useSession();
-  const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(null);
+  const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
+    null
+  );
 
   // ดึงข้อมูล admin profile จาก sessionStorage หรือ API
   useEffect(() => {
     const getAdminProfile = () => {
       // ตรวจสอบจาก sessionStorage ก่อน
       const storedProfile = sessionStorage.getItem("adminProfile");
+
       if (storedProfile) {
         setAdminProfile(JSON.parse(storedProfile));
+
         return;
       }
 
@@ -39,15 +43,23 @@ export const ExportButton = ({
       const fetchAdminProfile = async () => {
         if (session?.user?.id) {
           try {
-            const response = await fetch(`/api/profile/admin/${session.user.id}`);
+            const response = await fetch(
+              `/api/profile/admin/${session.user.id}`
+            );
+
             if (response.ok) {
               const profileData = await response.json();
+
               setAdminProfile(profileData);
               // บันทึกลง sessionStorage
-              sessionStorage.setItem("adminProfile", JSON.stringify(profileData));
+              sessionStorage.setItem(
+                "adminProfile",
+                JSON.stringify(profileData)
+              );
             }
           } catch (error) {
-            console.error('Failed to fetch admin profile:', error);
+            // console.error("Failed to fetch admin profile:", error);
+            throw error;
           }
         }
       };
@@ -75,22 +87,23 @@ export const ExportButton = ({
     <>
       <Button
         color="success"
-        variant="bordered"
+        isDisabled={true}
         size="md"
         startContent={<ArrowDownTrayIcon className="w-4 h-4" />}
+        variant="bordered"
         onPress={onOpen}
-        className={className}
+        // isDisabled={!isAdmin}
       >
         Excel
       </Button>
-      
+
       <ModalExportData
-        isOpen={isOpen}
-        onClose={onClose}
         data={data}
         dataType="question"
         filteredData={filteredData}
+        isOpen={isOpen}
+        onClose={onClose}
       />
     </>
   );
-}; 
+};

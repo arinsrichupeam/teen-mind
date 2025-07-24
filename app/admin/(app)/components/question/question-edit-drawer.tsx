@@ -146,6 +146,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     const json = JSON.stringify({
       id: data?.profile.id,
       hn: questionData.hn,
+      schedule_telemed: questionData.schedule_telemed,
+      consult: questionData.consult,
+      subjective: questionData.subjective,
+      objective: questionData.objective,
+      assessment: questionData.assessment,
+      plan: questionData.plan,
     });
 
     setHnIsloading(true);
@@ -918,7 +924,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               }
                               isDisabled={data?.status === 0}
                               isRequired={true}
-                              label="Schedule Telemed"
+                              label="วันที่พบนักจิตวิทยา"
                               labelPlacement="outside"
                               name="schedule_telemed"
                               selectorButtonPlacement="start"
@@ -943,7 +949,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               isDisabled={data?.status === 0}
                               isInvalid={isError}
                               isRequired={true}
-                              label="Consultant"
+                              label="ผู้ให้คำปรึกษา"
                               labelPlacement="outside"
                               placeholder="Consultant"
                               radius="md"
@@ -977,7 +983,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               : null
                           }
                           isDisabled={data?.status !== 2 && data?.status !== 3}
-                          label="Follow Up"
+                          label="นัดพบครั้งถัดไป"
                           labelPlacement="outside-left"
                           name="follow_up"
                           selectorButtonPlacement="start"
