@@ -165,9 +165,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       });
 
       if (response.ok) {
-        // อัปเดตข้อมูลใน drawer หลังจากบันทึกสำเร็จ
         await refreshDrawerData();
-        
+
         addToast({
           title: "สำเร็จ",
           description: "บันทึก HN สำเร็จ",
@@ -191,26 +190,30 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
-  // ฟังก์ชันสำหรับดึงข้อมูลล่าสุดและอัปเดต drawer
   const refreshDrawerData = async () => {
     try {
       if (!data?.id) {
-        console.error("ไม่พบ ID ของข้อมูล");
         return;
       }
-      
+
       const response = await fetch(`/api/question/${data.id}`);
+
       if (response.ok) {
         const updatedData = await response.json();
+
         if (updatedData && updatedData.length > 0) {
-          // อัปเดตข้อมูลใน state
           setQuestionData(updatedData[0]);
-          // เรียก onClose เพื่อให้ parent component อัปเดตข้อมูล
-          // onClose();
         }
       }
     } catch (err) {
-      console.error("เกิดข้อผิดพลาดในการดึงข้อมูลล่าสุด:", err);
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "เกิดข้อผิดพลาดในการดึงข้อมูลล่าสุด",
+        color: "danger",
+      });
     }
   };
 
@@ -285,9 +288,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       });
 
       if (response.ok) {
-        // อัปเดตข้อมูลใน drawer หลังจากบันทึกสำเร็จ
         await refreshDrawerData();
-        
+
         addToast({
           title: "Success",
           description: "บันทึกข้อมูลสำเร็จ",
@@ -313,71 +315,67 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
-  const handleQuestionChange = (field: string, value: any) => {
-    setQuestionData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const validateForm = useCallback(() => {
     setError(null);
     setIsError(false);
 
-    // ตรวจสอบข้อมูลพื้นฐาน
     if (!questionData) {
       setError("ไม่พบข้อมูลที่จะตรวจสอบ");
+
       return false;
     }
 
-    // ตรวจสอบเฉพาะเมื่ออยู่ในโหมด edit-consultation
     if (mode === "edit-consultation") {
-      // ตรวจสอบสถานะและผู้ให้คำปรึกษา
       if (questionData.status === 2 && !questionData.consult) {
         setIsError(true);
         setError("กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น'");
+
         return false;
       }
 
-      // ตรวจสอบวันที่นัด Telemedicine
       if (!questionData.schedule_telemed) {
         setError("กรุณาเลือกวันนัด Telemedicine");
+
         return false;
       }
 
-      // ตรวจสอบข้อมูล Discharge Summary เมื่อสถานะเป็น 2 หรือ 3
       if (questionData.status === 2 || questionData.status === 3) {
         if (!questionData.subjective || questionData.subjective.trim() === "") {
           setError("กรุณากรอกข้อมูล Subjective data");
+
           return false;
         }
 
         if (!questionData.objective || questionData.objective.trim() === "") {
           setError("กรุณากรอกข้อมูล Objective data");
+
           return false;
         }
 
         if (!questionData.assessment || questionData.assessment.trim() === "") {
           setError("กรุณากรอกข้อมูล Assessment");
+
           return false;
         }
 
         if (!questionData.plan || questionData.plan.trim() === "") {
           setError("กรุณากรอกข้อมูล Plan");
+
           return false;
         }
       }
     }
 
-    // ตรวจสอบสำหรับโหมด edit-questionnaire
     if (mode === "edit-questionnaire") {
       if (!questionData.q2 || questionData.q2.length === 0) {
         setError("กรุณากรอกข้อมูล Q2");
+
         return false;
       }
 
       if (questionData.phqa === null || questionData.phqa === undefined) {
         setError("กรุณากรอกข้อมูล PHQA");
+
         return false;
       }
     }
@@ -398,7 +396,6 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
     if (isOpen) {
       setQuestionData(data);
-      // อัปเดตข้อมูลล่าสุดเมื่อ drawer เปิด
       refreshDrawerData();
     }
   }, [isOpen]);
@@ -420,16 +417,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <div className="pt-2">
                     <span className="font-semibold">วันที่ประเมิน:</span>{" "}
                     <span>
-                      {new Date(questionData?.createdAt || data?.createdAt as string).toLocaleDateString(
-                        "th-TH",
-                        {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )}
+                      {new Date(
+                        questionData?.createdAt || (data?.createdAt as string)
+                      ).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
                   <div className="flex flex-row gap-5">
@@ -443,11 +439,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         color={
                           (questionData?.result || data?.result) === "Green"
                             ? "success"
-                            : (questionData?.result || data?.result) === "Green-Low"
+                            : (questionData?.result || data?.result) ===
+                                "Green-Low"
                               ? "success"
-                              : (questionData?.result || data?.result) === "Yellow"
+                              : (questionData?.result || data?.result) ===
+                                  "Yellow"
                                 ? "warning"
-                                : (questionData?.result || data?.result) === "Orange"
+                                : (questionData?.result || data?.result) ===
+                                    "Orange"
                                   ? "warning"
                                   : "danger"
                         }
@@ -583,7 +582,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardFooter>
                           <div className="flex flex-row gap-4">
                             <Input
-                              defaultValue={questionData?.profile?.hn || data?.profile?.hn}
+                              defaultValue={
+                                questionData?.profile?.hn || data?.profile?.hn
+                              }
                               isDisabled={
                                 mode == "view-questionnaire" ||
                                 mode == "view-consultation"
@@ -652,15 +653,16 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <Card className="w-[400px]">
                         <CardHeader className="flex gap-3">
                           <Image
-                            key={`image-${(questionData?.profile?.id || data?.profile?.id)}-${(questionData?.id || data?.id)}`}
+                            key={`image-${questionData?.profile?.id || data?.profile?.id}-${questionData?.id || data?.id}`}
                             alt={`รูปภาพ ${questionData?.profile?.id || data?.profile?.id}`}
                             className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
                             fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
                             height={100}
                             loading="lazy"
                             src={
-                              (questionData?.profile?.user || data?.profile?.user)
-                                ? (questionData?.profile?.user?.image || data?.profile?.user?.image)
+                              questionData?.profile?.user || data?.profile?.user
+                                ? questionData?.profile?.user?.image ||
+                                  data?.profile?.user?.image
                                 : undefined
                             }
                             width={100}
@@ -669,27 +671,47 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <p className="text-md">
                               {
                                 prefix.find(
-                                  (val) => val.key == (questionData?.profile?.prefixId || data?.profile?.prefixId)
+                                  (val) =>
+                                    val.key ==
+                                    (questionData?.profile?.prefixId ||
+                                      data?.profile?.prefixId)
                                 )?.label
                               }{" "}
-                              {(questionData?.profile?.firstname || data?.profile?.firstname)} {(questionData?.profile?.lastname || data?.profile?.lastname)}
+                              {questionData?.profile?.firstname ||
+                                data?.profile?.firstname}{" "}
+                              {questionData?.profile?.lastname ||
+                                data?.profile?.lastname}
                             </p>
                             <p className="text-small">
                               เลขที่บัตรประชาชน :{" "}
-                              <b>{questionData?.profile?.citizenId || data?.profile?.citizenId}</b>
+                              <b>
+                                {questionData?.profile?.citizenId ||
+                                  data?.profile?.citizenId}
+                              </b>
                             </p>
                             <p className="text-small">
                               วัน/เดือน/ปี เกิด :{" "}
                               <b>
-                                {moment(questionData?.profile?.birthday || data?.profile?.birthday)
+                                {moment(
+                                  questionData?.profile?.birthday ||
+                                    data?.profile?.birthday
+                                )
                                   .add(543, "year")
                                   .locale("th-TH")
                                   .format("DD/MM/YYYY")}
                               </b>
                             </p>
                             <p className="text-small">
-                              เชื้อชาติ : <b>{questionData?.profile?.ethnicity || data?.profile?.ethnicity}</b>{" "}
-                              สัญชาติ : <b>{questionData?.profile?.nationality || data?.profile?.nationality}</b>
+                              เชื้อชาติ :{" "}
+                              <b>
+                                {questionData?.profile?.ethnicity ||
+                                  data?.profile?.ethnicity}
+                              </b>{" "}
+                              สัญชาติ :{" "}
+                              <b>
+                                {questionData?.profile?.nationality ||
+                                  data?.profile?.nationality}
+                              </b>
                             </p>
                           </div>
                         </CardHeader>
@@ -698,48 +720,58 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div>
                             <p className="text-small">
                               ที่อยู่ :{" "}
-                              <b>{questionData?.profile.address?.[0]?.houseNo || '-'}</b> หมู่ที่
-                              :{" "}
                               <b>
-                                {questionData?.profile.address?.[0]?.villageNo == ""
-                                  ? "-"
-                                  : questionData?.profile.address?.[0]?.villageNo || '-'}
+                                {questionData?.profile.address?.[0]?.houseNo ||
+                                  "-"}
                               </b>{" "}
-                              ซอย : <b>{questionData?.profile.address?.[0]?.soi || '-'}</b>
+                              หมู่ที่ :{" "}
+                              <b>
+                                {questionData?.profile.address?.[0]
+                                  ?.villageNo == ""
+                                  ? "-"
+                                  : questionData?.profile.address?.[0]
+                                      ?.villageNo || "-"}
+                              </b>{" "}
+                              ซอย :{" "}
+                              <b>
+                                {questionData?.profile.address?.[0]?.soi || "-"}
+                              </b>
                             </p>
                             <p className="text-small">
-                              ถนน : <b>{questionData?.profile.address?.[0]?.road || '-'}</b> ตำบล
-                              :{" "}
+                              ถนน :{" "}
                               <b>
-                                {
-                                  subdistrince?.find(
-                                    (x) =>
-                                      x.id ==
-                                      questionData?.profile.address?.[0]?.subdistrict
-                                  )?.nameInThai || '-'
-                                }
+                                {questionData?.profile.address?.[0]?.road ||
+                                  "-"}
+                              </b>{" "}
+                              ตำบล :{" "}
+                              <b>
+                                {subdistrince?.find(
+                                  (x) =>
+                                    x.id ==
+                                    questionData?.profile.address?.[0]
+                                      ?.subdistrict
+                                )?.nameInThai || "-"}
                               </b>{" "}
                               อำเภอ :{" "}
                               <b>
-                                {
-                                  distrince?.find(
-                                    (x) =>
-                                      x.id == questionData?.profile.address?.[0]?.district
-                                  )?.nameInThai || '-'
-                                }
+                                {distrince?.find(
+                                  (x) =>
+                                    x.id ==
+                                    questionData?.profile.address?.[0]?.district
+                                )?.nameInThai || "-"}
                               </b>
                             </p>
                             <p className="text-small">
                               จังหวัด :{" "}
                               <b>
-                                {
-                                  province?.find(
-                                    (x) =>
-                                      x.id == questionData?.profile.address?.[0]?.province
-                                  )?.nameInThai || '-'
-                                }
+                                {province?.find(
+                                  (x) =>
+                                    x.id ==
+                                    questionData?.profile.address?.[0]?.province
+                                )?.nameInThai || "-"}
                               </b>{" "}
-                              โทรศัพท์ : <b>{questionData?.profile.tel || '-'}</b>
+                              โทรศัพท์ :{" "}
+                              <b>{questionData?.profile.tel || "-"}</b>
                             </p>
                           </div>
                         </CardBody>
@@ -748,12 +780,22 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div>
                             <p className="text-small">
                               ชื่อผู้ติดต่อฉุกเฉิน :{" "}
-                              <b>{questionData?.profile.emergency?.[0]?.name || '-'}</b>{" "}
+                              <b>
+                                {questionData?.profile.emergency?.[0]?.name ||
+                                  "-"}
+                              </b>{" "}
                             </p>
                             <p className="text-small">
-                              โทรศัพท์ : <b>{questionData?.profile.emergency?.[0]?.tel || '-'}</b>{" "}
+                              โทรศัพท์ :{" "}
+                              <b>
+                                {questionData?.profile.emergency?.[0]?.tel ||
+                                  "-"}
+                              </b>{" "}
                               ความสัมพันธ์ :{" "}
-                              <b>{questionData?.profile.emergency?.[0]?.relation || '-'}</b>
+                              <b>
+                                {questionData?.profile.emergency?.[0]
+                                  ?.relation || "-"}
+                              </b>
                             </p>
                           </div>
                         </CardBody>
@@ -819,7 +861,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <h2 className={subtitle()}>Telemedicine</h2>
                         <Select
                           className="max-w-xs"
-                          defaultSelectedKeys={(questionData?.status || data?.status).toString()}
+                          defaultSelectedKeys={(
+                            questionData?.status || data?.status
+                          ).toString()}
                           isDisabled={true}
                           label="สถานะ"
                           labelPlacement="outside-left"
@@ -838,12 +882,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <DatePicker
                               defaultValue={
-                                (questionData?.schedule_telemed || data?.schedule_telemed)
+                                questionData?.schedule_telemed ||
+                                data?.schedule_telemed
                                   ? parseDate(
-                                    moment(questionData?.schedule_telemed || data?.schedule_telemed).format(
-                                      "YYYY-MM-DD"
+                                      moment(
+                                        questionData?.schedule_telemed ||
+                                          data?.schedule_telemed
+                                      ).format("YYYY-MM-DD")
                                     )
-                                  )
                                   : null
                               }
                               isDisabled={true}
@@ -857,7 +903,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <Autocomplete
                               defaultItems={Consultant}
-                              defaultSelectedKey={questionData?.consult || data?.consult}
+                              defaultSelectedKey={
+                                questionData?.consult || data?.consult
+                              }
                               isDisabled={true}
                               label="Consultant"
                               labelPlacement="outside"
@@ -881,10 +929,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <DatePicker
                           className="max-w-xs"
                           defaultValue={
-                            (questionData?.follow_up || data?.follow_up)
+                            questionData?.follow_up || data?.follow_up
                               ? parseDate(
-                                moment(questionData?.follow_up || data?.follow_up).format("YYYY-MM-DD")
-                              )
+                                  moment(
+                                    questionData?.follow_up || data?.follow_up
+                                  ).format("YYYY-MM-DD")
+                                )
                               : null
                           }
                           isDisabled={true}
@@ -898,7 +948,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <Card>
                         <CardBody className="gap-5">
                           <Textarea
-                            defaultValue={questionData?.subjective || data?.subjective}
+                            defaultValue={
+                              questionData?.subjective || data?.subjective
+                            }
                             isDisabled={true}
                             label="1.	Subjective data"
                             labelPlacement="outside"
@@ -908,7 +960,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             variant="bordered"
                           />
                           <Textarea
-                            defaultValue={questionData?.objective || data?.objective}
+                            defaultValue={
+                              questionData?.objective || data?.objective
+                            }
                             isDisabled={true}
                             label="2.	Objective data"
                             labelPlacement="outside"
@@ -918,7 +972,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             variant="bordered"
                           />
                           <Textarea
-                            defaultValue={questionData?.assessment || data?.assessment}
+                            defaultValue={
+                              questionData?.assessment || data?.assessment
+                            }
                             isDisabled={true}
                             label="3.	Assessment"
                             labelPlacement="outside"
@@ -950,7 +1006,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         </h2>
                         <Select
                           className="max-w-xs"
-                          defaultSelectedKeys={(questionData?.status || data?.status).toString()}
+                          defaultSelectedKeys={(
+                            questionData?.status || data?.status
+                          ).toString()}
                           isDisabled={true}
                           label="สถานะ"
                           labelPlacement="outside-left"
@@ -977,15 +1035,19 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <DatePicker
                               defaultValue={
-                                (questionData?.schedule_telemed || data?.schedule_telemed)
+                                questionData?.schedule_telemed ||
+                                data?.schedule_telemed
                                   ? parseDate(
-                                    moment(questionData?.schedule_telemed || data?.schedule_telemed).format(
-                                      "YYYY-MM-DD"
+                                      moment(
+                                        questionData?.schedule_telemed ||
+                                          data?.schedule_telemed
+                                      ).format("YYYY-MM-DD")
                                     )
-                                  )
                                   : null
                               }
-                              isDisabled={(questionData?.status || data?.status) === 0}
+                              isDisabled={
+                                (questionData?.status || data?.status) === 0
+                              }
                               isRequired={true}
                               label="วันที่พบนักจิตวิทยา"
                               labelPlacement="outside"
@@ -1007,9 +1069,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <Autocomplete
                               defaultItems={Consultant}
-                              defaultSelectedKey={questionData?.consult || data?.consult}
+                              defaultSelectedKey={
+                                questionData?.consult || data?.consult
+                              }
                               errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
-                              isDisabled={(questionData?.status || data?.status) === 0}
+                              isDisabled={
+                                (questionData?.status || data?.status) === 0
+                              }
                               isInvalid={isError}
                               isRequired={true}
                               label="ผู้ให้คำปรึกษา"
@@ -1039,14 +1105,17 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <DatePicker
                           className="max-w-xs"
                           defaultValue={
-                            (questionData?.follow_up || data?.follow_up)
+                            questionData?.follow_up || data?.follow_up
                               ? parseDate(
-                                moment(questionData?.follow_up || data?.follow_up).format("YYYY-MM-DD")
-                              )
+                                  moment(
+                                    questionData?.follow_up || data?.follow_up
+                                  ).format("YYYY-MM-DD")
+                                )
                               : null
                           }
                           isDisabled={
-                            (questionData?.status || data?.status) !== 2 && (questionData?.status || data?.status) !== 3
+                            (questionData?.status || data?.status) !== 2 &&
+                            (questionData?.status || data?.status) !== 3
                           }
                           label="นัดพบครั้งถัดไป"
                           labelPlacement="outside-left"
@@ -1060,9 +1129,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <Textarea
                             isClearable
                             isRequired
-                            defaultValue={questionData?.subjective || data?.subjective}
+                            defaultValue={
+                              questionData?.subjective || data?.subjective
+                            }
                             isDisabled={
-                              (questionData?.status || data?.status) !== 2 && (questionData?.status || data?.status) !== 3
+                              (questionData?.status || data?.status) !== 2 &&
+                              (questionData?.status || data?.status) !== 3
                             }
                             label="1.	Subjective data"
                             labelPlacement="outside"
@@ -1080,9 +1152,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <Textarea
                             isClearable
                             isRequired
-                            defaultValue={questionData?.objective || data?.objective}
+                            defaultValue={
+                              questionData?.objective || data?.objective
+                            }
                             isDisabled={
-                              (questionData?.status || data?.status) !== 2 && (questionData?.status || data?.status) !== 3
+                              (questionData?.status || data?.status) !== 2 &&
+                              (questionData?.status || data?.status) !== 3
                             }
                             label="2.	Objective data"
                             labelPlacement="outside"
@@ -1100,9 +1175,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <Textarea
                             isClearable
                             isRequired
-                            defaultValue={questionData?.assessment || data?.assessment}
+                            defaultValue={
+                              questionData?.assessment || data?.assessment
+                            }
                             isDisabled={
-                              (questionData?.status || data?.status) !== 2 && (questionData?.status || data?.status) !== 3
+                              (questionData?.status || data?.status) !== 2 &&
+                              (questionData?.status || data?.status) !== 3
                             }
                             label="3.	Assessment"
                             labelPlacement="outside"
@@ -1122,7 +1200,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isRequired
                             defaultValue={questionData?.plan || data?.plan}
                             isDisabled={
-                              (questionData?.status || data?.status) !== 2 && (questionData?.status || data?.status) !== 3
+                              (questionData?.status || data?.status) !== 2 &&
+                              (questionData?.status || data?.status) !== 3
                             }
                             label="4.	Plan"
                             labelPlacement="outside"
