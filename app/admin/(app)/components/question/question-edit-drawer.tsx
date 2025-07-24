@@ -771,10 +771,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultValue={
                                 data?.schedule_telemed
                                   ? parseDate(
-                                      moment(data?.schedule_telemed).format(
-                                        "YYYY-MM-DD"
-                                      )
+                                    moment(data?.schedule_telemed).format(
+                                      "YYYY-MM-DD"
                                     )
+                                  )
                                   : null
                               }
                               isDisabled={true}
@@ -814,8 +814,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={
                             data?.follow_up
                               ? parseDate(
-                                  moment(data?.follow_up).format("YYYY-MM-DD")
-                                )
+                                moment(data?.follow_up).format("YYYY-MM-DD")
+                              )
                               : null
                           }
                           isDisabled={true}
@@ -916,10 +916,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultValue={
                                 data?.schedule_telemed
                                   ? parseDate(
-                                      moment(data?.schedule_telemed).format(
-                                        "YYYY-MM-DD"
-                                      )
+                                    moment(data?.schedule_telemed).format(
+                                      "YYYY-MM-DD"
                                     )
+                                  )
                                   : null
                               }
                               isDisabled={data?.status === 0}
@@ -978,8 +978,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={
                             data?.follow_up
                               ? parseDate(
-                                  moment(data?.follow_up).format("YYYY-MM-DD")
-                                )
+                                moment(data?.follow_up).format("YYYY-MM-DD")
+                              )
                               : null
                           }
                           isDisabled={data?.status !== 2 && data?.status !== 3}
