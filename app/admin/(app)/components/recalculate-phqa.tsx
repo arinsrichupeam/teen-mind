@@ -413,7 +413,7 @@ export default function RecalculatePHQAPage() {
                 variant="flat"
                 onPress={handleRecalculateNew}
               >
-                {isRecalculatingNew ? "กำลังอัปเดต..." : "อัปเดตสถานะ"}
+                {isRecalculatingNew ? "กำลังคำนวณ..." : "คำนวณสถานะใหม่"}
               </Button>
             </div>
 
