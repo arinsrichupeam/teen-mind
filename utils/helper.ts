@@ -190,7 +190,8 @@ export function formatDateForDisplay(dateString: string): string {
 
 export async function validateCitizen(
   idCardNo: string,
-  source: "user" | "admin" | "referent" = "user"
+  source: "user" | "admin" | "referent" = "user",
+  excludeId?: number | null
 ): Promise<Response> {
   try {
     const response = await fetch("/api/validate/citizen", {
@@ -198,7 +199,7 @@ export async function validateCitizen(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ citizenId: idCardNo, source }),
+      body: JSON.stringify({ citizenId: idCardNo, source, excludeId }),
     });
 
     const data = await response.json();

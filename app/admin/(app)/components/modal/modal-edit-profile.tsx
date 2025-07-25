@@ -258,11 +258,14 @@ export const ModalEditProfile = ({
     citizenId: string
   ): Promise<boolean> => {
     try {
-      const response = await validateCitizen(citizenId, "user");
-      const data = await response.json();
+      // ในโหมด edit ให้ส่งข้อมูล user ID ปัจจุบันเพื่อยกเว้นการตรวจสอบซ้ำ
+      const currentUserId = mode === "edit" ? data?.profile?.id : null;
+      
+      const response = await validateCitizen(citizenId, "user", currentUserId);
+      const responseData = await response.json();
 
-      if (data.error) {
-        setCitizenIdError(data.error);
+      if (responseData.error) {
+        setCitizenIdError(responseData.error);
 
         return false;
       }
