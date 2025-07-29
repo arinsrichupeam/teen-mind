@@ -149,7 +149,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
         <CardBody className="p-4">
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              จำนวนรวมทั้งหมด (อายุ 12-18 ปี)
+              จำนวนผู้ประเมินทั้งหมด (อายุ 12-18 ปี)
             </p>
             <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             <p className="text-xs text-gray-500">
