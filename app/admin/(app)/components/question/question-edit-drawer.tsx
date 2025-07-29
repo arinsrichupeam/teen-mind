@@ -295,6 +295,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           description: "บันทึกข้อมูลสำเร็จ",
           color: "success",
         });
+
+        // ปิด drawer อัตโนมัติเมื่อบันทึกในโหมด edit-questionnaire
+        if (mode === "edit-questionnaire") {
+          onClose();
+        }
       } else {
         throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
@@ -367,15 +372,21 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
 
     if (mode === "edit-questionnaire") {
+      // ตรวจสอบ Q2
       if (!questionData.q2 || questionData.q2.length === 0) {
-        setError("กรุณากรอกข้อมูล Q2");
-
+        setError("กรุณากรอกข้อมูลแบบประเมิน 2Q");
         return false;
       }
 
-      if (questionData.phqa === null || questionData.phqa === undefined) {
-        setError("กรุณากรอกข้อมูล PHQA");
+      // ตรวจสอบ PHQA
+      if (!questionData.phqa || questionData.phqa.length === 0) {
+        setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A");
+        return false;
+      }
 
+      // ตรวจสอบ Addon (ถ้ามี)
+      if (!questionData.addon || questionData.addon.length === 0) {
+        setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A Addon");
         return false;
       }
     }
@@ -386,6 +397,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(e);
+  };
+
+  const handleQuestionChange = (field: string, value: any) => {
+    setQuestionData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   useEffect(() => {
@@ -440,13 +458,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           (questionData?.result || data?.result) === "Green"
                             ? "success"
                             : (questionData?.result || data?.result) ===
-                                "Green-Low"
+                              "Green-Low"
                               ? "success"
                               : (questionData?.result || data?.result) ===
-                                  "Yellow"
+                                "Yellow"
                                 ? "warning"
                                 : (questionData?.result || data?.result) ===
-                                    "Orange"
+                                  "Orange"
                                   ? "warning"
                                   : "danger"
                         }
@@ -677,7 +695,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             src={
                               questionData?.profile?.user || data?.profile?.user
                                 ? questionData?.profile?.user?.image ||
-                                  data?.profile?.user?.image
+                                data?.profile?.user?.image
                                 : undefined
                             }
                             width={100}
@@ -709,7 +727,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               <b>
                                 {moment(
                                   questionData?.profile?.birthday ||
-                                    data?.profile?.birthday
+                                  data?.profile?.birthday
                                 )
                                   .add(543, "year")
                                   .locale("th-TH")
@@ -745,7 +763,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                   ?.villageNo == ""
                                   ? "-"
                                   : questionData?.profile.address?.[0]
-                                      ?.villageNo || "-"}
+                                    ?.villageNo || "-"}
                               </b>{" "}
                               ซอย :{" "}
                               <b>
@@ -898,13 +916,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <DatePicker
                               defaultValue={
                                 questionData?.schedule_telemed ||
-                                data?.schedule_telemed
+                                  data?.schedule_telemed
                                   ? parseDate(
-                                      moment(
-                                        questionData?.schedule_telemed ||
-                                          data?.schedule_telemed
-                                      ).format("YYYY-MM-DD")
-                                    )
+                                    moment(
+                                      questionData?.schedule_telemed ||
+                                      data?.schedule_telemed
+                                    ).format("YYYY-MM-DD")
+                                  )
                                   : null
                               }
                               isDisabled={true}
@@ -946,10 +964,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={
                             questionData?.follow_up || data?.follow_up
                               ? parseDate(
-                                  moment(
-                                    questionData?.follow_up || data?.follow_up
-                                  ).format("YYYY-MM-DD")
-                                )
+                                moment(
+                                  questionData?.follow_up || data?.follow_up
+                                ).format("YYYY-MM-DD")
+                              )
                               : null
                           }
                           isDisabled={true}
@@ -1012,6 +1030,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       </Card>
                     </div>
                   </div>
+                ) : mode === "edit-questionnaire" ? (
+                   <QuestionDetailDrawer 
+                     data={questionData || data} 
+                     mode="edit-questionnaire" 
+                     onQuestionChange={handleQuestionChange}
+                   />  
                 ) : (
                   <div className="flex flex-col">
                     <div>
@@ -1051,13 +1075,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <DatePicker
                               defaultValue={
                                 questionData?.schedule_telemed ||
-                                data?.schedule_telemed
+                                  data?.schedule_telemed
                                   ? parseDate(
-                                      moment(
-                                        questionData?.schedule_telemed ||
-                                          data?.schedule_telemed
-                                      ).format("YYYY-MM-DD")
-                                    )
+                                    moment(
+                                      questionData?.schedule_telemed ||
+                                      data?.schedule_telemed
+                                    ).format("YYYY-MM-DD")
+                                  )
                                   : null
                               }
                               isDisabled={
@@ -1122,10 +1146,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           defaultValue={
                             questionData?.follow_up || data?.follow_up
                               ? parseDate(
-                                  moment(
-                                    questionData?.follow_up || data?.follow_up
-                                  ).format("YYYY-MM-DD")
-                                )
+                                moment(
+                                  questionData?.follow_up || data?.follow_up
+                                ).format("YYYY-MM-DD")
+                              )
                               : null
                           }
                           isDisabled={
@@ -1249,7 +1273,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     type="submit"
                     variant="flat"
                   >
-                    บันทึก
+                    บันทึกแบบประเมิน
                   </Button>
                 )}
                 {mode === "edit-consultation" && (
@@ -1259,7 +1283,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     isLoading={formIsloading}
                     type="submit"
                   >
-                    บันทึก
+                    บันทึกการให้คำปรึกษา
                   </Button>
                 )}
               </DrawerFooter>
