@@ -39,9 +39,9 @@ export async function POST(req: Request) {
     // ตรวจสอบการซ้ำซ้อนตาม source
     if (source === "user") {
       const existingUser = await prisma.profile.findFirst({
-        where: { 
+        where: {
           citizenId,
-          ...(excludeId && { id: { not: excludeId } })
+          ...(excludeId && { id: { not: excludeId } }),
         },
       });
 
@@ -53,9 +53,9 @@ export async function POST(req: Request) {
       }
     } else if (source === "admin") {
       const existingAdmin = await prisma.profile_Admin.findFirst({
-        where: { 
+        where: {
           citizenId,
-          ...(excludeId && { id: { not: excludeId } })
+          ...(excludeId && { id: { not: excludeId } }),
         },
       });
 
@@ -67,9 +67,9 @@ export async function POST(req: Request) {
       }
     } else if (source === "referent") {
       const existingReferent = await prisma.referent.findFirst({
-        where: { 
+        where: {
           citizenId,
-          ...(excludeId && { id: { not: excludeId } })
+          ...(excludeId && { id: { not: excludeId } }),
         },
       });
 

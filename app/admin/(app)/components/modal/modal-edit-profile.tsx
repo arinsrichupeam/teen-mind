@@ -260,7 +260,7 @@ export const ModalEditProfile = ({
     try {
       // ในโหมด edit ให้ส่งข้อมูล user ID ปัจจุบันเพื่อยกเว้นการตรวจสอบซ้ำ
       const currentUserId = mode === "edit" ? data?.profile?.id : null;
-      
+
       const response = await validateCitizen(citizenId, "user", currentUserId);
       const responseData = await response.json();
 
