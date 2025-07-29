@@ -488,11 +488,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <div className="flex flex-col">
                             <p className="text-md">
+                              HN: <b>{data?.profile.hn}</b>
+                            </p>
+                            <p className="text-md">
                               {
                                 prefix.find(
                                   (val) => val.key == data?.profile.prefixId
                                 )?.label
-                              }{" "}
+                              }
                               {data?.profile.firstname} {data?.profile.lastname}
                             </p>
                             <p className="text-small">
@@ -580,33 +583,45 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         </CardBody>
                         <Divider />
                         <CardFooter>
-                          <div className="flex flex-row gap-4">
-                            <Input
-                              defaultValue={
-                                questionData?.profile?.hn || data?.profile?.hn
-                              }
-                              isDisabled={
-                                mode == "view-questionnaire" ||
-                                mode == "view-consultation"
-                              }
-                              name="hn"
-                              startContent={<p> HN:</p>}
-                              variant="bordered"
-                              onChange={HandleChange}
-                            />
-                            <Button
-                              color="primary"
-                              isDisabled={
-                                mode == "view-questionnaire" ||
-                                mode == "view-consultation"
-                              }
-                              isLoading={hnIsloading}
-                              type="button"
-                              onPress={() => ChangeHN()}
-                            >
-                              บันทึก
-                            </Button>
-                          </div>
+                          {!(questionData?.profile?.hn || data?.profile?.hn) ? (
+                            <div className="flex flex-row gap-4">
+                              <Input
+                                defaultValue={
+                                  questionData?.profile?.hn || data?.profile?.hn
+                                }
+                                isDisabled={
+                                  mode == "view-questionnaire" ||
+                                  mode == "view-consultation"
+                                }
+                                name="hn"
+                                startContent={<p> HN:</p>}
+                                variant="bordered"
+                                onChange={HandleChange}
+                              />
+                              <Button
+                                color="primary"
+                                isDisabled={
+                                  mode == "view-questionnaire" ||
+                                  mode == "view-consultation"
+                                }
+                                isLoading={hnIsloading}
+                                type="button"
+                                onPress={() => ChangeHN()}
+                              >
+                                บันทึก HN
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-row gap-4 justify-center w-full">
+                              <Button
+                                color="warning"
+                                variant="flat"
+                                onPress={() => setIsModalOpen(true)}
+                              >
+                                แก้ไขข้อมูลส่วนตัว
+                              </Button>
+                            </div>
+                          )}
                         </CardFooter>
                       </Card>
                       <Card className="w-[400px]">
