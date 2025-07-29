@@ -1,3 +1,6 @@
+import moment from "moment";
+import { parseDate } from "@internationalized/date";
+
 export function CheckPHQAStatus(val: number) {
   switch (true) {
     case val >= 0 && val <= 4:
@@ -242,3 +245,21 @@ export function validateTel(tel: string): string {
 
   return "กรอกเบอร์โทรศัพท์ไม่ถูกต้อง";
 }
+
+/**
+ * Parse date safely with validation
+ * @param dateValue - The date value to parse
+ * @returns Parsed date or null if invalid
+ */
+export const safeParseDate = (dateValue: any): any => {
+  if (!dateValue) return null;
+
+  const momentDate = moment(dateValue);
+
+  // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
+  if (momentDate.isValid() && momentDate.year() > 1900) {
+    return parseDate(momentDate.format("YYYY-MM-DD"));
+  }
+
+  return null;
+};

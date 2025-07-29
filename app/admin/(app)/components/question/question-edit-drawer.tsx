@@ -36,6 +36,7 @@ import { ModalEditProfile } from "../modal/modal-edit-profile";
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 
+import { safeParseDate } from "@/utils/helper";
 import { prefix } from "@/utils/data";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
@@ -917,17 +918,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="flex flex-row gap-5">
                           <div className="w-full">
                             <DatePicker
-                              defaultValue={
+                              defaultValue={safeParseDate(
                                 questionData?.schedule_telemed ||
-                                data?.schedule_telemed
-                                  ? parseDate(
-                                      moment(
-                                        questionData?.schedule_telemed ||
-                                          data?.schedule_telemed
-                                      ).format("YYYY-MM-DD")
-                                    )
-                                  : null
-                              }
+                                  data?.schedule_telemed
+                              )}
                               isDisabled={true}
                               label="Schedule Telemed"
                               labelPlacement="outside"
@@ -964,15 +958,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <h2 className={subtitle()}>Discharge Summary</h2>
                         <DatePicker
                           className="max-w-xs"
-                          defaultValue={
+                          defaultValue={safeParseDate(
                             questionData?.follow_up || data?.follow_up
-                              ? parseDate(
-                                  moment(
-                                    questionData?.follow_up || data?.follow_up
-                                  ).format("YYYY-MM-DD")
-                                )
-                              : null
-                          }
+                          )}
                           isDisabled={true}
                           label="Follow Up"
                           labelPlacement="outside-left"
@@ -1079,12 +1067,24 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               defaultValue={
                                 questionData?.schedule_telemed ||
                                 data?.schedule_telemed
-                                  ? parseDate(
-                                      moment(
+                                  ? (() => {
+                                      const dateValue =
                                         questionData?.schedule_telemed ||
-                                          data?.schedule_telemed
-                                      ).format("YYYY-MM-DD")
-                                    )
+                                        data?.schedule_telemed;
+                                      const momentDate = moment(dateValue);
+
+                                      // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
+                                      if (
+                                        momentDate.isValid() &&
+                                        momentDate.year() > 1900
+                                      ) {
+                                        return parseDate(
+                                          momentDate.format("YYYY-MM-DD")
+                                        );
+                                      }
+
+                                      return null;
+                                    })()
                                   : null
                               }
                               isDisabled={
@@ -1158,11 +1158,23 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           className="max-w-xs"
                           defaultValue={
                             questionData?.follow_up || data?.follow_up
-                              ? parseDate(
-                                  moment(
-                                    questionData?.follow_up || data?.follow_up
-                                  ).format("YYYY-MM-DD")
-                                )
+                              ? (() => {
+                                  const dateValue =
+                                    questionData?.follow_up || data?.follow_up;
+                                  const momentDate = moment(dateValue);
+
+                                  // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
+                                  if (
+                                    momentDate.isValid() &&
+                                    momentDate.year() > 1900
+                                  ) {
+                                    return parseDate(
+                                      momentDate.format("YYYY-MM-DD")
+                                    );
+                                  }
+
+                                  return null;
+                                })()
                               : null
                           }
                           isDisabled={
