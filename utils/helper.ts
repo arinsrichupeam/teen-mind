@@ -260,7 +260,7 @@ export const safeParseDate = (dateValue: any): any => {
     // ตรวจสอบว่าวันที่ถูกต้องหรือไม่ และปีต้องมากกว่า 1900
     if (momentDate.isValid() && momentDate.year() > 1900) {
       const formattedDate = momentDate.format("YYYY-MM-DD");
-      
+
       // ตรวจสอบเพิ่มเติมว่าวันที่ที่ได้ไม่เป็นลบ
       if (momentDate.year() > 0) {
         return parseDate(formattedDate);
@@ -271,29 +271,29 @@ export const safeParseDate = (dateValue: any): any => {
     if (momentDate.isValid()) {
       const now = moment();
       const partialDate = momentDate.clone();
-      
+
       // ถ้าไม่มีปี ให้ใช้ปีปัจจุบัน
       if (partialDate.year() <= 1900) {
         partialDate.year(now.year());
       }
-      
+
       // ถ้าไม่มีเดือน ให้ใช้เดือนปัจจุบัน
       if (partialDate.month() === 0) {
         partialDate.month(now.month());
       }
-      
+
       // ถ้าไม่มีวัน ให้ใช้วันที่ 1
       if (partialDate.date() === 1 && momentDate.date() === 1) {
         partialDate.date(1);
       }
-      
+
       // ตรวจสอบอีกครั้งว่าวันที่ที่ได้ถูกต้อง
       if (partialDate.isValid() && partialDate.year() > 0) {
         return parseDate(partialDate.format("YYYY-MM-DD"));
       }
     }
   } catch (error) {
-    console.error("Error parsing date:", error);
+    return "ไม่ระบุวันที่" + error;
   }
 
   return null;
@@ -310,7 +310,8 @@ export const safeParseDateForPicker = (dateValue: any): any => {
   try {
     // ถ้าเป็น string ให้แปลงเป็น Date object ก่อน
     let dateToParse = dateValue;
-    if (typeof dateValue === 'string') {
+
+    if (typeof dateValue === "string") {
       dateToParse = new Date(dateValue);
     }
 
@@ -319,7 +320,7 @@ export const safeParseDateForPicker = (dateValue: any): any => {
     // ตรวจสอบว่าวันที่ถูกต้องหรือไม่ และปีต้องมากกว่า 1900
     if (momentDate.isValid() && momentDate.year() > 1900) {
       const formattedDate = momentDate.format("YYYY-MM-DD");
-      
+
       // ตรวจสอบเพิ่มเติมว่าวันที่ที่ได้ไม่เป็นลบ
       if (momentDate.year() > 0) {
         return parseDate(formattedDate);
@@ -329,9 +330,6 @@ export const safeParseDateForPicker = (dateValue: any): any => {
     // ถ้าวันที่ไม่สมบูรณ์หรือไม่ถูกต้อง ให้ return null
     return null;
   } catch (error) {
-    console.error("Error parsing date for picker:", error);
-    return null;
+    return "ไม่ระบุวันที่" + error;
   }
 };
-
-

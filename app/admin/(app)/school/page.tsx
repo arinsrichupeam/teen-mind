@@ -40,7 +40,7 @@ import { SchoolListColumnsName as columns } from "../data/tableColumn";
 
 import { SchoolRenderCell } from "./components/rendercell-scool";
 
-import { safeParseDate, safeParseDateForPicker } from "@/utils/helper";
+import { safeParseDateForPicker } from "@/utils/helper";
 import Loading from "@/app/loading";
 
 const schoolInitValue: School = {
@@ -75,6 +75,7 @@ export default function SchoolListPage() {
     if (!searchQuery.trim()) {
       return schoolList;
     }
+
     return schoolList.filter((school) =>
       school.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -321,13 +322,13 @@ export default function SchoolListPage() {
                   <DatePicker
                     isRequired
                     showMonthAndYearPickers
-                    label="วันที่คัดกรอง"
-                    labelPlacement="outside"
                     defaultValue={
                       selectedSchool.screeningDate
                         ? safeParseDateForPicker(selectedSchool.screeningDate)
                         : null
                     }
+                    label="วันที่คัดกรอง"
+                    labelPlacement="outside"
                     variant="bordered"
                     onChange={(date) => {
                       if (date) {
@@ -382,11 +383,6 @@ export default function SchoolListPage() {
             <Input
               className="w-full"
               placeholder="ค้นหาชื่อโรงเรียน..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
               startContent={
                 <svg
                   className="w-4 h-4 text-gray-400"
@@ -395,13 +391,18 @@ export default function SchoolListPage() {
                   viewBox="0 0 24 24"
                 >
                   <path
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
               }
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
             />
             <Button
               className="font-semibold text-md"

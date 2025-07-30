@@ -29,7 +29,6 @@ import {
   SelectItem,
   Textarea,
 } from "@heroui/react";
-import { parseDate } from "@internationalized/date";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 import { ModalEditProfile } from "../modal/modal-edit-profile";
@@ -1068,7 +1067,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <DatePicker
                               showMonthAndYearPickers
                               defaultValue={safeParseDate(
-                                questionData?.schedule_telemed || data?.schedule_telemed
+                                questionData?.schedule_telemed ||
+                                  data?.schedule_telemed
                               )}
                               isDisabled={
                                 (questionData?.status || data?.status) === 0
