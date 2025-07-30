@@ -121,7 +121,6 @@ export async function PUT(
   try {
     const body = await req.json();
 
-    // อัปเดตข้อมูล profile หลัก
     await prisma.profile.update({
       where: {
         id: userId,
@@ -141,7 +140,6 @@ export async function PUT(
       },
     });
 
-    // ดึงข้อมูล address และ emergency ที่เกี่ยวข้อง
     const profileWithRelations = await prisma.profile.findUnique({
       where: {
         id: userId,
@@ -152,7 +150,6 @@ export async function PUT(
       },
     });
 
-    // อัปเดตข้อมูล address
     if (
       profileWithRelations?.address &&
       profileWithRelations.address.length > 0
@@ -173,7 +170,6 @@ export async function PUT(
       });
     }
 
-    // อัปเดตข้อมูล emergency
     if (
       profileWithRelations?.emergency &&
       profileWithRelations.emergency.length > 0
@@ -190,11 +186,12 @@ export async function PUT(
       });
     }
 
-    // อัปเดต status เป็น 1 ในทุกๆ แบบสอบถามของ user นี้ เมื่อมี HN
     if (body.hn && body.hn !== "") {
+      // อัปเดตเฉพาะ question ที่มี status = 0 ให้เป็น 1 เมื่อมีการอัปเดต HN
       await prisma.questions_Master.updateMany({
         where: {
           profileId: userId,
+          status: 0,
         },
         data: {
           status: 1,
@@ -202,7 +199,6 @@ export async function PUT(
       });
     }
 
-    // ดึงข้อมูลที่อัปเดตแล้ว
     const finalProfile = await prisma.profile.findUnique({
       where: {
         id: userId,

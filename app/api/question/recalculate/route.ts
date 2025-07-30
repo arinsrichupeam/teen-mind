@@ -46,12 +46,38 @@ function calculateSum(phqa_data: Questions_PHQA) {
   );
 }
 
+// ฟังก์ชันคำนวณสถานะตามเงื่อนไข
+function calculateStatus(question: any) {
+  // ตรวจสอบ HN ว่าง
+  if (!question.profile?.hn) {
+    return 0; // รอระบุ HN
+  }
+
+  // ตรวจสอบ schedule_telemed และ Consultant ว่าง
+  if (!question.schedule_telemed || !question.consult) {
+    return 1; // รอจัดนัด Telemed
+  }
+
+  // ตรวจสอบ SOAP ว่าง
+  if (
+    !question.subjective ||
+    !question.objective ||
+    !question.assessment ||
+    !question.plan
+  ) {
+    return 2; // รอสรุปผลการให้คำปรึกษา
+  }
+
+  return 3; // เสร็จสิ้น
+}
+
 export async function POST() {
   try {
     // ดึงข้อมูลทั้งหมดที่มี PHQA
     const allQuestions = await prisma.questions_Master.findMany({
       include: {
         phqa: true,
+        profile: true,
       },
       where: {
         phqa: {
@@ -63,9 +89,12 @@ export async function POST() {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
+    const totalQuestions = allQuestions.length;
 
     // ประมวลผลแต่ละรายการ
-    for (const question of allQuestions) {
+    for (let i = 0; i < allQuestions.length; i++) {
+      const question = allQuestions[i];
+
       try {
         if (question.phqa && question.phqa.length > 0) {
           const phqaData = question.phqa[0];
@@ -75,6 +104,9 @@ export async function POST() {
 
           // คำนวณผลลัพธ์ใหม่
           const { result, result_text } = calculateResult(newSum);
+
+          // คำนวณสถานะใหม่
+          const newStatus = calculateStatus(question);
 
           // อัปเดตข้อมูลในฐานข้อมูล
           await prisma.$transaction([
@@ -87,7 +119,7 @@ export async function POST() {
                 sum: newSum,
               },
             }),
-            // อัปเดต result และ result_text ใน Questions_Master
+            // อัปเดต result, result_text และ status ใน Questions_Master
             prisma.questions_Master.update({
               where: {
                 id: question.id,
@@ -95,6 +127,7 @@ export async function POST() {
               data: {
                 result: result,
                 result_text: result_text,
+                status: newStatus,
               },
             }),
           ]);
@@ -113,7 +146,7 @@ export async function POST() {
       success: true,
       message: `Re-calculate completed. Success: ${successCount}, Errors: ${errorCount}`,
       summary: {
-        total: allQuestions.length,
+        total: totalQuestions,
         success: successCount,
         error: errorCount,
       },
@@ -156,6 +189,45 @@ export async function GET() {
       },
     });
 
+    // ดึงข้อมูลสถานะ re-calculate
+    const statusStats = await prisma.questions_Master.groupBy({
+      by: ["status"],
+      where: {
+        phqa: {
+          some: {},
+        },
+      },
+      _count: {
+        status: true,
+      },
+    });
+
+    // ดึงข้อมูลรายการที่มี hn ว่าง
+    const emptyHnCount = await prisma.questions_Master.count({
+      where: {
+        phqa: {
+          some: {},
+        },
+        profile: {
+          hn: null,
+        },
+      },
+    });
+
+    // ดึงข้อมูลรายการที่มี hn ไม่ว่าง
+    const filledHnCount = await prisma.questions_Master.count({
+      where: {
+        phqa: {
+          some: {},
+        },
+        profile: {
+          hn: {
+            not: null,
+          },
+        },
+      },
+    });
+
     return Response.json({
       success: true,
       data: {
@@ -164,6 +236,14 @@ export async function GET() {
           result: stat.result,
           count: stat._count.result,
         })),
+        statusStats: statusStats.map((stat) => ({
+          status: stat.status,
+          count: stat._count.status,
+        })),
+        hnStats: {
+          empty: emptyHnCount,
+          filled: filledHnCount,
+        },
       },
     });
   } catch (error) {

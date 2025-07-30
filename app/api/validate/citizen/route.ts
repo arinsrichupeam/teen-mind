@@ -2,7 +2,7 @@ import { prisma } from "@/utils/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { citizenId, source } = await req.json();
+    const { citizenId, source, excludeId } = await req.json();
 
     // ตรวจสอบรูปแบบเลขบัตรประชาชน
     if (!citizenId || citizenId.length !== 13) {
@@ -38,8 +38,11 @@ export async function POST(req: Request) {
 
     // ตรวจสอบการซ้ำซ้อนตาม source
     if (source === "user") {
-      const existingUser = await prisma.profile.findUnique({
-        where: { citizenId },
+      const existingUser = await prisma.profile.findFirst({
+        where: {
+          citizenId,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
       });
 
       if (existingUser) {
@@ -49,8 +52,11 @@ export async function POST(req: Request) {
         );
       }
     } else if (source === "admin") {
-      const existingAdmin = await prisma.profile_Admin.findUnique({
-        where: { citizenId },
+      const existingAdmin = await prisma.profile_Admin.findFirst({
+        where: {
+          citizenId,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
       });
 
       if (existingAdmin) {
@@ -60,8 +66,11 @@ export async function POST(req: Request) {
         );
       }
     } else if (source === "referent") {
-      const existingReferent = await prisma.referent.findUnique({
-        where: { citizenId },
+      const existingReferent = await prisma.referent.findFirst({
+        where: {
+          citizenId,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
       });
 
       if (existingReferent) {

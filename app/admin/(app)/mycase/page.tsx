@@ -622,7 +622,7 @@ export default function MyCasePage() {
                         key="view-questionnaire"
                         onPress={() => onRowDetailPress(item.id)}
                       >
-                        รายละเอียดแบบสอบถาม
+                        รายละเอียดแบบประเมิน
                       </DropdownItem>
                       <DropdownItem
                         key="view-consultation"
@@ -645,7 +645,7 @@ export default function MyCasePage() {
                         key="edit-questionnaire"
                         onPress={() => onRowEditQuestionnairePress(item.id)}
                       >
-                        แก้ไขแบบสอบถาม
+                        แก้ไขแบบประเมิน
                       </DropdownItem>
                       <DropdownItem
                         key="edit-consultation"

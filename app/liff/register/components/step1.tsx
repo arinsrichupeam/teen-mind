@@ -11,7 +11,7 @@ import moment from "moment";
 import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
 import { prefix, sex } from "@/utils/data";
-import { validateCitizen, validateTel } from "@/utils/helper";
+import { validateCitizen, validateTel, safeParseDate } from "@/utils/helper";
 
 interface Props {
   NextStep: (val: any) => void;
@@ -66,7 +66,11 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
 
   useEffect(() => {
     if (Result?.birthday.getDate() != new Date().getDate()) {
-      setBirthday(parseDate(moment(Result?.birthday).format("YYYY-MM-DD")));
+      const parsedDate = safeParseDate(Result?.birthday);
+
+      if (parsedDate) {
+        setBirthday(parsedDate);
+      }
     }
 
     fetch("/api/data/school")

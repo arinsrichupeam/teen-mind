@@ -22,6 +22,7 @@ import {
   ModalHeader,
   Switch,
   addToast,
+  DatePicker,
 } from "@heroui/react";
 import { School, Districts } from "@prisma/client";
 import {
@@ -39,6 +40,7 @@ import { SchoolListColumnsName as columns } from "../data/tableColumn";
 
 import { SchoolRenderCell } from "./components/rendercell-scool";
 
+import { safeParseDateForPicker } from "@/utils/helper";
 import Loading from "@/app/loading";
 
 const schoolInitValue: School = {
@@ -46,6 +48,7 @@ const schoolInitValue: School = {
   id: 0,
   districtId: 0,
   status: true,
+  screeningDate: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -66,12 +69,24 @@ export default function SchoolListPage() {
     direction: "ascending",
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredSchoolList = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return schoolList;
+    }
+
+    return schoolList.filter((school) =>
+      school.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [schoolList, searchQuery]);
+
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
 
-    return schoolList.slice(start, end);
-  }, [page, schoolList, rowsPerPage]);
+    return filteredSchoolList.slice(start, end);
+  }, [page, filteredSchoolList, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
     return [...items].sort((a: School, b: School) => {
@@ -86,10 +101,10 @@ export default function SchoolListPage() {
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
-      setPages(Math.ceil(schoolList.length / parseInt(e.target.value)));
+      setPages(Math.ceil(filteredSchoolList.length / parseInt(e.target.value)));
       setPage(1);
     },
-    [pages, items]
+    [pages, items, filteredSchoolList]
   );
 
   const onRowViewPress = useCallback((e: any) => {
@@ -130,7 +145,7 @@ export default function SchoolListPage() {
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({schoolList.length} รายการ)
+            หน้า {page}/{pages} ({filteredSchoolList.length} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -164,7 +179,8 @@ export default function SchoolListPage() {
 
     setSelectedSchool((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+        name === "screeningDate" ? (value ? new Date(value) : null) : value,
     }));
   }, []);
 
@@ -228,6 +244,7 @@ export default function SchoolListPage() {
       .then((val) => {
         setSchoolList(val);
         setPages(Math.ceil(val.length / rowsPerPage));
+        setSearchQuery(""); // รีเซ็ตการค้นหาเมื่อโหลดข้อมูลใหม่
       });
   }, [districtData, schoolList]);
 
@@ -302,6 +319,35 @@ export default function SchoolListPage() {
                       </AutocompleteItem>
                     )}
                   </Autocomplete>
+                  <DatePicker
+                    isRequired
+                    showMonthAndYearPickers
+                    defaultValue={
+                      selectedSchool.screeningDate
+                        ? safeParseDateForPicker(selectedSchool.screeningDate)
+                        : null
+                    }
+                    label="วันที่คัดกรอง"
+                    labelPlacement="outside"
+                    variant="bordered"
+                    onChange={(date) => {
+                      if (date) {
+                        schoolChange({
+                          target: {
+                            name: "screeningDate",
+                            value: new Date(date.toString()),
+                          },
+                        });
+                      } else {
+                        schoolChange({
+                          target: {
+                            name: "screeningDate",
+                            value: null,
+                          },
+                        });
+                      }
+                    }}
+                  />
                   <Switch
                     isSelected={selectedSchool.status}
                     name="status"
@@ -330,17 +376,45 @@ export default function SchoolListPage() {
         </Modal>
 
         {/* บน */}
-        <div className="flex justify-between items-end ">
+        <div className="flex flex-col items-start gap-4">
           <h3 className="text-lg font-semibold">จัดการโรงเรียน</h3>
 
-          <div className="flex gap-4">
-            <Button
-              className="font-bold text-medium"
-              color="primary"
-              onPress={CreateSchool}
-            >
-              เพิ่ม
-            </Button>
+          <div className="flex gap-4 justify-between items-center w-full">
+            <div className="flex-1 max-w-md">
+              <Input
+                className="w-full"
+                placeholder="ค้นหาชื่อโรงเรียน..."
+                startContent={
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                    />
+                  </svg>
+                }
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <Button
+                className="font-semibold text-md"
+                color="primary"
+                onPress={CreateSchool}
+              >
+                เพิ่ม
+              </Button>
+            </div>
           </div>
         </div>
 

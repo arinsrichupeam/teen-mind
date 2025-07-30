@@ -620,7 +620,7 @@ export default function QuestionPage() {
                         key="view-questionnaire"
                         onPress={() => onRowDetailPress(item.id)}
                       >
-                        รายละเอียดแบบสอบถาม
+                        รายละเอียดแบบประเมิน
                       </DropdownItem>
                       <DropdownItem
                         key="view-consultation"
@@ -643,7 +643,7 @@ export default function QuestionPage() {
                         key="edit-questionnaire"
                         onPress={() => onRowEditQuestionnairePress(item.id)}
                       >
-                        แก้ไขแบบสอบถาม
+                        แก้ไขแบบประเมิน
                       </DropdownItem>
                       <DropdownItem
                         key="edit-consultation"
@@ -683,7 +683,9 @@ export default function QuestionPage() {
     () => (
       <QuestionFilterContent
         addonFilter={addonFilter}
+        data={data}
         filterValue={filterValue}
+        filteredData={filteredItems}
         phqaFilter={phqaFilter}
         q2Filter={q2Filter}
         schoolFilter={schoolFilter}
@@ -709,6 +711,8 @@ export default function QuestionPage() {
       setQ2Filter,
       addonFilter,
       setAddonFilter,
+      data,
+      filteredItems,
     ]
   );
 

@@ -24,12 +24,14 @@ export async function POST(req: Request) {
       name: school.name,
       districtId: parseInt(school.districtId.toString()),
       status: school.status,
+      screeningDate: school.screeningDate,
       updatedAt: new Date(),
     },
     create: {
       name: school.name,
       districtId: parseInt(school.districtId.toString()),
       status: true,
+      screeningDate: school.screeningDate,
       createdAt: new Date(),
     },
   });

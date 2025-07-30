@@ -1,3 +1,6 @@
+import moment from "moment";
+import { parseDate } from "@internationalized/date";
+
 export function CheckPHQAStatus(val: number) {
   switch (true) {
     case val >= 0 && val <= 4:
@@ -190,7 +193,8 @@ export function formatDateForDisplay(dateString: string): string {
 
 export async function validateCitizen(
   idCardNo: string,
-  source: "user" | "admin" | "referent" = "user"
+  source: "user" | "admin" | "referent" = "user",
+  excludeId?: number | null
 ): Promise<Response> {
   try {
     const response = await fetch("/api/validate/citizen", {
@@ -198,7 +202,7 @@ export async function validateCitizen(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ citizenId: idCardNo, source }),
+      body: JSON.stringify({ citizenId: idCardNo, source, excludeId }),
     });
 
     const data = await response.json();
@@ -241,3 +245,91 @@ export function validateTel(tel: string): string {
 
   return "กรอกเบอร์โทรศัพท์ไม่ถูกต้อง";
 }
+
+/**
+ * Parse date safely with validation
+ * @param dateValue - The date value to parse
+ * @returns Parsed date or null if invalid
+ */
+export const safeParseDate = (dateValue: any): any => {
+  if (!dateValue) return null;
+
+  try {
+    const momentDate = moment(dateValue);
+
+    // ตรวจสอบว่าวันที่ถูกต้องหรือไม่ และปีต้องมากกว่า 1900
+    if (momentDate.isValid() && momentDate.year() > 1900) {
+      const formattedDate = momentDate.format("YYYY-MM-DD");
+
+      // ตรวจสอบเพิ่มเติมว่าวันที่ที่ได้ไม่เป็นลบ
+      if (momentDate.year() > 0) {
+        return parseDate(formattedDate);
+      }
+    }
+
+    // ถ้าวันที่ไม่สมบูรณ์ ให้ลองแปลงเป็นวันที่ปัจจุบัน
+    if (momentDate.isValid()) {
+      const now = moment();
+      const partialDate = momentDate.clone();
+
+      // ถ้าไม่มีปี ให้ใช้ปีปัจจุบัน
+      if (partialDate.year() <= 1900) {
+        partialDate.year(now.year());
+      }
+
+      // ถ้าไม่มีเดือน ให้ใช้เดือนปัจจุบัน
+      if (partialDate.month() === 0) {
+        partialDate.month(now.month());
+      }
+
+      // ถ้าไม่มีวัน ให้ใช้วันที่ 1
+      if (partialDate.date() === 1 && momentDate.date() === 1) {
+        partialDate.date(1);
+      }
+
+      // ตรวจสอบอีกครั้งว่าวันที่ที่ได้ถูกต้อง
+      if (partialDate.isValid() && partialDate.year() > 0) {
+        return parseDate(partialDate.format("YYYY-MM-DD"));
+      }
+    }
+  } catch (error) {
+    return "ไม่ระบุวันที่" + error;
+  }
+
+  return null;
+};
+
+/**
+ * Parse date for DatePicker with enhanced error handling
+ * @param dateValue - The date value to parse
+ * @returns Parsed date or null if invalid
+ */
+export const safeParseDateForPicker = (dateValue: any): any => {
+  if (!dateValue) return null;
+
+  try {
+    // ถ้าเป็น string ให้แปลงเป็น Date object ก่อน
+    let dateToParse = dateValue;
+
+    if (typeof dateValue === "string") {
+      dateToParse = new Date(dateValue);
+    }
+
+    const momentDate = moment(dateToParse);
+
+    // ตรวจสอบว่าวันที่ถูกต้องหรือไม่ และปีต้องมากกว่า 1900
+    if (momentDate.isValid() && momentDate.year() > 1900) {
+      const formattedDate = momentDate.format("YYYY-MM-DD");
+
+      // ตรวจสอบเพิ่มเติมว่าวันที่ที่ได้ไม่เป็นลบ
+      if (momentDate.year() > 0) {
+        return parseDate(formattedDate);
+      }
+    }
+
+    // ถ้าวันที่ไม่สมบูรณ์หรือไม่ถูกต้อง ให้ return null
+    return null;
+  } catch (error) {
+    return "ไม่ระบุวันที่" + error;
+  }
+};

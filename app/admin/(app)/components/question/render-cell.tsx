@@ -158,7 +158,7 @@ export const RenderCell = ({
                   key="view-questionnaire"
                   onPress={() => viewDetail(data.id, "view-questionnaire")}
                 >
-                  รายละเอียดแบบสอบถาม
+                  รายละเอียดแบบประเมิน
                 </DropdownItem>
                 <DropdownItem
                   key="view-consultation"
@@ -181,7 +181,7 @@ export const RenderCell = ({
                   key="edit-questionnaire"
                   onPress={() => editDetail(data.id, "edit-questionnaire")}
                 >
-                  แก้ไขแบบสอบถาม
+                  แก้ไขแบบประเมิน
                 </DropdownItem>
 
                 <DropdownItem

@@ -16,7 +16,15 @@ import {
   SelectItem,
   Autocomplete,
   AutocompleteItem,
+  DatePicker,
 } from "@heroui/react";
+import {
+  CalendarDate,
+  parseDate,
+  CalendarDateTime,
+  ZonedDateTime,
+} from "@internationalized/date";
+import moment from "moment";
 
 import { prefix } from "@/utils/data";
 import {
@@ -25,6 +33,7 @@ import {
   parseThaiDateToISO,
   calculateThaiYear,
   formatDateForDisplay,
+  safeParseDateForPicker,
 } from "@/utils/helper";
 
 interface EditProfileData {
@@ -75,6 +84,9 @@ export const ModalEditProfile = ({
   const [province, setProvince] = useState<Provinces[]>([]);
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
+  const [birthdayDate, setBirthdayDate] = useState<
+    CalendarDate | CalendarDateTime | ZonedDateTime | null
+  >(null);
   const [editProfileData, setEditProfileData] = useState<EditProfileData>({
     hn: "",
     citizenId: "",
@@ -106,7 +118,6 @@ export const ModalEditProfile = ({
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
   const [birthdayError, setBirthdayError] = useState<string>("");
-  const [isModalInitialized, setIsModalInitialized] = useState(false);
   const [currentData, setCurrentData] = useState<any>(null);
 
   const fetchData = async (url: string, setter: (data: any) => void) => {
@@ -258,11 +269,14 @@ export const ModalEditProfile = ({
     citizenId: string
   ): Promise<boolean> => {
     try {
-      const response = await validateCitizen(citizenId, "user");
-      const data = await response.json();
+      // ในโหมด edit ให้ส่งข้อมูล user ID ปัจจุบันเพื่อยกเว้นการตรวจสอบซ้ำ
+      const currentUserId = mode === "edit" ? data?.profile?.id : null;
 
-      if (data.error) {
-        setCitizenIdError(data.error);
+      const response = await validateCitizen(citizenId, "user", currentUserId);
+      const responseData = await response.json();
+
+      if (responseData.error) {
+        setCitizenIdError(responseData.error);
 
         return false;
       }
@@ -315,6 +329,7 @@ export const ModalEditProfile = ({
         },
         school: "",
       });
+      setBirthdayDate(null);
 
       return;
     }
@@ -331,6 +346,7 @@ export const ModalEditProfile = ({
       );
 
       let birthdayDate = "";
+      let parsedBirthdayDate = null;
 
       if (data.profile.birthday) {
         try {
@@ -340,6 +356,8 @@ export const ModalEditProfile = ({
             birthdayDate = formatDateForDisplay(
               date.toISOString().split("T")[0]
             );
+            // แปลงวันที่สำหรับ DatePicker
+            parsedBirthdayDate = safeParseDateForPicker(date);
           }
         } catch (error) {
           addToast({
@@ -386,6 +404,7 @@ export const ModalEditProfile = ({
       };
 
       setEditProfileData(initialData);
+      setBirthdayDate(parsedBirthdayDate);
     }
   };
 
@@ -489,10 +508,12 @@ export const ModalEditProfile = ({
               : "บันทึกข้อมูลผู้ประเมินสำเร็จ",
           color: "success",
         });
-        // รีเฟรชข้อมูลก่อนแล้วค่อยปิด modal
+
+        // เรียก onSuccess ก่อนปิด modal เพื่อให้ parent component อัปเดตข้อมูล
         if (onSuccess) {
-          onSuccess();
+          await onSuccess();
         }
+
         onClose();
       } else {
         throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -526,32 +547,33 @@ export const ModalEditProfile = ({
       subdistrince.length > 0 &&
       schools.length > 0
     ) {
-      // ตรวจสอบว่า data เปลี่ยนหรือไม่
-      const dataChanged = JSON.stringify(data) !== JSON.stringify(currentData);
-
-      if (!isModalInitialized || dataChanged) {
-        setCurrentData(data);
-        initializeEditProfileData();
-        setIsModalInitialized(true);
-      }
+      // อัปเดตข้อมูลทุกครั้งที่ modal เปิดและมีข้อมูลครบ
+      setCurrentData(data);
+      initializeEditProfileData();
     }
-  }, [
-    isOpen,
-    data,
-    province,
-    distrince,
-    subdistrince,
-    schools,
-    mode,
-    isModalInitialized,
-    currentData,
-  ]);
+  }, [isOpen, data, province, distrince, subdistrince, schools, mode]);
 
-  // รีเซ็ต isModalInitialized เมื่อ modal ปิด
+  // เพิ่ม useEffect เพื่ออัปเดตข้อมูลเมื่อ data เปลี่ยน
+  useEffect(() => {
+    if (
+      isOpen &&
+      data &&
+      currentData &&
+      JSON.stringify(data) !== JSON.stringify(currentData)
+    ) {
+      // อัปเดตข้อมูลเมื่อ data เปลี่ยน
+      setCurrentData(data);
+      initializeEditProfileData();
+    }
+  }, [data, isOpen, currentData]);
+
+  // รีเซ็ตข้อมูลเมื่อ modal ปิด
   useEffect(() => {
     if (!isOpen) {
-      setIsModalInitialized(false);
       setCurrentData(null);
+      // รีเซ็ต error messages เมื่อปิด modal
+      setCitizenIdError("");
+      setBirthdayError("");
     }
   }, [isOpen]);
 
@@ -679,57 +701,46 @@ export const ModalEditProfile = ({
               />
             </div>
             <div className="flex flex-row gap-2">
-              <Input
+              <DatePicker
                 errorMessage={birthdayError}
                 isInvalid={!!birthdayError}
                 isRequired={true}
                 label="วันเกิด (พ.ศ.)"
+                maxValue={parseDate(moment().format("YYYY-MM-DD"))}
+                minValue={parseDate(
+                  moment().subtract(100, "years").format("YYYY-MM-DD")
+                )}
                 name="birthday"
-                placeholder="dd/mm/yyyy (เช่น 15/01/2567)"
+                selectorButtonPlacement="start"
+                showMonthAndYearPickers={true}
                 size="sm"
-                value={editProfileData.birthday}
+                value={birthdayDate}
                 variant="bordered"
-                onChange={(e) => {
-                  let value = e.target.value;
+                onChange={(
+                  date: CalendarDate | CalendarDateTime | ZonedDateTime | null
+                ) => {
+                  if (date) {
+                    const isoDate = date.toString();
+                    const thaiDate = formatDateForDisplay(isoDate);
 
-                  // ตรวจสอบว่าผู้ใช้กำลังลบหรือเพิ่ม
-                  const currentValue = editProfileData.birthday;
-                  const isDeleting = value.length < currentValue.length;
-
-                  // อนุญาตให้กรอกได้แค่ตัวเลขและ /
-                  const allowedChars = /^[0-9\/]*$/;
-
-                  if (!allowedChars.test(value)) {
-                    return; // ไม่ทำอะไรถ้าไม่ใช่ตัวเลขหรือ /
-                  }
-
-                  if (!isDeleting) {
-                    // เพิ่ม / อัตโนมัติเฉพาะเมื่อเพิ่มข้อมูล
-                    if (value.length === 2 && !value.includes("/")) {
-                      value = value + "/";
-                    } else if (
-                      value.length === 5 &&
-                      value.split("/").length === 2
-                    ) {
-                      value = value + "/";
-                    }
-                  }
-
-                  // จำกัดความยาวไม่เกิน 10 ตัวอักษร (dd/mm/yyyy)
-                  if (value.length <= 10) {
                     setEditProfileData((prev) => ({
                       ...prev,
-                      birthday: value,
+                      birthday: thaiDate,
                     }));
+                    setBirthdayDate(date); // อัพเดท state สำหรับจัดการค่าเริ่มต้น
 
                     // Validate วันเกิดแบบ real-time
-                    const error = validateBirthday(value);
+                    const error = validateBirthday(thaiDate);
 
                     setBirthdayError(error);
 
                     // คำนวณปีไทยเมื่อกรอกครบและไม่มี error
-                    if (value.length === 10 && value.includes("/") && !error) {
-                      const parts = value.split("/");
+                    if (
+                      thaiDate.length === 10 &&
+                      thaiDate.includes("/") &&
+                      !error
+                    ) {
+                      const parts = thaiDate.split("/");
 
                       if (
                         parts.length === 3 &&
@@ -738,8 +749,8 @@ export const ModalEditProfile = ({
                         parts[2].length === 4
                       ) {
                         try {
-                          const isoDate = parseThaiDateToISO(value);
-                          const thaiYear = calculateThaiYear(isoDate);
+                          const parsedIsoDate = parseThaiDateToISO(thaiDate);
+                          const thaiYear = calculateThaiYear(parsedIsoDate);
 
                           setEditProfileData((prev) => ({
                             ...prev,
@@ -760,6 +771,15 @@ export const ModalEditProfile = ({
                         thaiYear: "",
                       }));
                     }
+                  } else {
+                    // เมื่อล้างค่า
+                    setEditProfileData((prev) => ({
+                      ...prev,
+                      birthday: "",
+                      thaiYear: "",
+                    }));
+                    setBirthdayDate(null); // ล้าง state สำหรับจัดการค่าเริ่มต้น
+                    setBirthdayError("");
                   }
                 }}
               />

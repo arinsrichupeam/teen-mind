@@ -202,10 +202,10 @@ model Questions_Master {
   result           String
   result_text      String?
   schedule_telemed DateTime?
-  subjective       String?
-  objective        String?
-  assessment       String?
-  plan             String?
+  subjective       String?                @db.Text
+  objective        String?                @db.Text
+  assessment       String?                @db.Text
+  plan             String?                @db.Text
   follow_up        DateTime?
   status           Int                    @default(0)
   createdAt        DateTime               @default(now())
@@ -264,13 +264,14 @@ model Questions_PHQA_Addon {
 }
 
 model School {
-  id         Int       @id @default(autoincrement())
-  name       String
-  districtId Int
-  status     Boolean
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  profile    Profile[]
+  id            Int       @id @default(autoincrement())
+  name          String
+  districtId    Int
+  status        Boolean
+  screeningDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  profile       Profile[]
 }
 
 model Referent {

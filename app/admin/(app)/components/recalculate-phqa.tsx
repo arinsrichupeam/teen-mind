@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, CardBody, CardHeader, Spinner } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Spinner,
+  Progress,
+} from "@heroui/react";
 import {
   CalculatorIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
@@ -20,6 +28,14 @@ interface RecalculateStats {
     result: string;
     count: number;
   }[];
+  statusStats: {
+    status: number;
+    count: number;
+  }[];
+  hnStats: {
+    empty: number;
+    filled: number;
+  };
 }
 
 interface RecalculateResponse {
@@ -35,8 +51,11 @@ interface RecalculateResponse {
 
 export default function RecalculatePHQAPage() {
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isRecalculatingNew, setIsRecalculatingNew] = useState(false);
   const [recalculateResult, setRecalculateResult] =
     useState<RecalculateResponse | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
 
   // ดึงข้อมูลสถิติ
   const {
@@ -51,18 +70,39 @@ export default function RecalculatePHQAPage() {
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     setRecalculateResult(null);
+    setProgress(0);
+    setShowSuccessNotification(false);
 
     try {
+      // จำลอง progress bar
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+
+            return prev;
+          }
+
+          return prev + 10;
+        });
+      }, 200);
+
       const response = await fetch("/api/question/recalculate", {
         method: "POST",
       });
       const result: RecalculateResponse = await response.json();
+
+      clearInterval(progressInterval);
+      setProgress(100);
 
       setRecalculateResult(result);
 
       // รีเฟรชข้อมูลสถิติหลังจาก recalculation
       if (result.success) {
         mutateStats();
+        setShowSuccessNotification(true);
+        // ซ่อนการแจ้งเตือนหลังจาก 5 วินาที
+        setTimeout(() => setShowSuccessNotification(false), 5000);
       }
     } catch (error) {
       setRecalculateResult({
@@ -72,6 +112,56 @@ export default function RecalculatePHQAPage() {
       });
     } finally {
       setIsRecalculating(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  };
+
+  const handleRecalculateNew = async () => {
+    setIsRecalculatingNew(true);
+    setRecalculateResult(null);
+    setProgress(0);
+    setShowSuccessNotification(false);
+
+    try {
+      // จำลอง progress bar
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+
+            return prev;
+          }
+
+          return prev + 10;
+        });
+      }, 200);
+
+      const response = await fetch("/api/question/recalculate/update-status", {
+        method: "POST",
+      });
+      const result: RecalculateResponse = await response.json();
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      setRecalculateResult(result);
+
+      // รีเฟรชข้อมูลสถิติหลังจากอัปเดตสถานะ
+      if (result.success) {
+        mutateStats();
+        setShowSuccessNotification(true);
+        // ซ่อนการแจ้งเตือนหลังจาก 5 วินาที
+        setTimeout(() => setShowSuccessNotification(false), 5000);
+      }
+    } catch (error) {
+      setRecalculateResult({
+        success: false,
+        message: "เกิดข้อผิดพลาดในการอัปเดตสถานะ: " + error,
+        summary: { total: 0, success: 0, error: 1 },
+      });
+    } finally {
+      setIsRecalculatingNew(false);
+      setTimeout(() => setProgress(0), 1000);
     }
   };
 
@@ -89,6 +179,36 @@ export default function RecalculatePHQAPage() {
         return "พบความเสี่ยงรุนแรง";
       default:
         return result;
+    }
+  };
+
+  const getStatusText = (status: number) => {
+    switch (status) {
+      case 0:
+        return "รอระบุ HN";
+      case 1:
+        return "รอจัดนัด Telemed";
+      case 2:
+        return "รอสรุปผลการให้คำปรึกษา";
+      case 3:
+        return "เสร็จสิ้น";
+      default:
+        return `สถานะ ${status}`;
+    }
+  };
+
+  const getStatusColor = (status: number) => {
+    switch (status) {
+      case 0:
+        return { bg: "bg-default-100", text: "text-default-700" };
+      case 1:
+        return { bg: "bg-warning-100", text: "text-warning-700" };
+      case 2:
+        return { bg: "bg-blue-100", text: "text-blue-700" };
+      case 3:
+        return { bg: "bg-success-100", text: "text-success-700" };
+      default:
+        return { bg: "bg-default-100", text: "text-default-700" };
     }
   };
 
@@ -127,51 +247,89 @@ export default function RecalculatePHQAPage() {
         </CardHeader>
         <CardBody>
           {stats?.success && stats.data ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* สถิติรวม */}
               <div className="flex items-center gap-2">
                 <span className="text-lg font-semibold">
                   รวม {stats.data.totalQuestions} รายการ
                 </span>
               </div>
 
-              <div className="flex gap-4 w-full">
-                {sortResultStats(stats.data.resultStats).map((stat) => {
-                  let bgColor = "bg-default-100";
+              {/* สถิติสถานะ Re-calculate */}
+              <div>
+                <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
+                  <ClockIcon className="size-5 text-warning" />
+                  สถานะการดำเนินการ
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                  {stats.data.statusStats
+                    .sort((a, b) => a.status - b.status)
+                    .map((stat) => {
+                      const { bg, text } = getStatusColor(stat.status);
 
-                  switch (stat.result) {
-                    case "Green":
-                      bgColor = "bg-green-100";
-                      break;
-                    case "Green-Low":
-                      bgColor = "bg-emerald-100";
-                      break;
-                    case "Yellow":
-                      bgColor = "bg-yellow-100";
-                      break;
-                    case "Orange":
-                      bgColor = "bg-orange-100";
-                      break;
-                    case "Red":
-                      bgColor = "bg-red-100";
-                      break;
-                  }
+                      return (
+                        <div
+                          key={stat.status}
+                          className={`flex flex-col items-center justify-center p-3 border rounded-lg gap-2 ${bg}`}
+                        >
+                          <span
+                            className={`text-xs font-medium text-center ${text}`}
+                          >
+                            {getStatusText(stat.status)}
+                          </span>
+                          <span className="text-lg font-semibold">
+                            {stat.count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
 
-                  return (
-                    <div
-                      key={stat.result}
-                      className={`flex-1 flex items-center justify-between p-3 border rounded-lg gap-5 ${bgColor}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-default-600 whitespace-nowrap">
-                          {getResultText(stat.result)}
+              {/* สถิติผลลัพธ์ */}
+              <div>
+                <h4 className="text-md font-semibold mb-3">
+                  ผลลัพธ์การประเมิน
+                </h4>
+                <div className="flex gap-4 w-full">
+                  {sortResultStats(stats.data.resultStats).map((stat) => {
+                    let bgColor = "bg-default-100";
+
+                    switch (stat.result) {
+                      case "Green":
+                        bgColor = "bg-green-100";
+                        break;
+                      case "Green-Low":
+                        bgColor = "bg-emerald-100";
+                        break;
+                      case "Yellow":
+                        bgColor = "bg-yellow-100";
+                        break;
+                      case "Orange":
+                        bgColor = "bg-orange-100";
+                        break;
+                      case "Red":
+                        bgColor = "bg-red-100";
+                        break;
+                    }
+
+                    return (
+                      <div
+                        key={stat.result}
+                        className={`flex-1 flex items-center justify-between p-3 border rounded-lg gap-5 ${bgColor}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-default-600 whitespace-nowrap">
+                            {getResultText(stat.result)}
+                          </span>
+                        </div>
+                        <span className="text-lg font-semibold">
+                          {stat.count}
                         </span>
                       </div>
-                      <span className="text-lg font-semibold">
-                        {stat.count}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : (
@@ -195,23 +353,69 @@ export default function RecalculatePHQAPage() {
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
-            <Button
-              className="w-full md:w-auto"
-              color="warning"
-              isDisabled={isRecalculating}
-              size="lg"
-              startContent={
-                isRecalculating ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <CalculatorIcon className="size-5" />
-                )
-              }
-              variant="flat"
-              onPress={handleRecalculate}
-            >
-              {isRecalculating ? "กำลังคำนวณ..." : "คำนวณคะแนนใหม่"}
-            </Button>
+            {/* Progress Bar */}
+            {(isRecalculating || isRecalculatingNew) && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>กำลังประมวลผล...</span>
+                  <span>{progress}%</span>
+                </div>
+                <Progress className="w-full" color="warning" value={progress} />
+              </div>
+            )}
+
+            {/* Success Notification */}
+            {showSuccessNotification && (
+              <div className="bg-success-50 border border-success-200 rounded-lg p-4 flex items-center gap-3">
+                <CheckCircleIcon className="size-5 text-success" />
+                <div>
+                  <p className="text-sm font-medium text-success-800">
+                    ดำเนินการเสร็จสิ้น!
+                  </p>
+                  <p className="text-xs text-success-600">
+                    ข้อมูลได้รับการอัปเดตเรียบร้อยแล้ว
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 flex-wrap">
+              <Button
+                className="w-full md:w-auto"
+                color="warning"
+                isDisabled={isRecalculating || isRecalculatingNew}
+                size="lg"
+                startContent={
+                  isRecalculating ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <CalculatorIcon className="size-5" />
+                  )
+                }
+                variant="flat"
+                onPress={handleRecalculate}
+              >
+                {isRecalculating ? "กำลังคำนวณ..." : "คำนวณคะแนนใหม่"}
+              </Button>
+
+              <Button
+                className="w-full md:w-auto"
+                color="secondary"
+                isDisabled={isRecalculating || isRecalculatingNew}
+                size="lg"
+                startContent={
+                  isRecalculatingNew ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <ClockIcon className="size-5" />
+                  )
+                }
+                variant="flat"
+                onPress={handleRecalculateNew}
+              >
+                {isRecalculatingNew ? "กำลังคำนวณ..." : "คำนวณสถานะใหม่"}
+              </Button>
+            </div>
 
             {recalculateResult && (
               <div className="mt-4 p-4 border rounded-lg">
