@@ -45,6 +45,16 @@ export const SchoolRenderCell = ({
           </span>
         </div>
       );
+    case "screeningDate":
+      return (
+        <div>
+          <span>
+            {data.screeningDate
+              ? new Date(data.screeningDate).toLocaleDateString("th-TH")
+              : "-"}
+          </span>
+        </div>
+      );
     case "status":
       return (
         <div>

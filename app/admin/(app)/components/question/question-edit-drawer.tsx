@@ -918,6 +918,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="flex flex-row gap-5">
                           <div className="w-full">
                             <DatePicker
+                              showMonthAndYearPickers
                               defaultValue={safeParseDate(
                                 questionData?.schedule_telemed ||
                                   data?.schedule_telemed
@@ -957,6 +958,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <div className="flex flex-row py-3">
                         <h2 className={subtitle()}>Discharge Summary</h2>
                         <DatePicker
+                          showMonthAndYearPickers
                           className="max-w-xs"
                           defaultValue={safeParseDate(
                             questionData?.follow_up || data?.follow_up
@@ -1064,29 +1066,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <CardBody className="flex flex-row gap-5">
                           <div className="w-full">
                             <DatePicker
-                              defaultValue={
-                                questionData?.schedule_telemed ||
-                                data?.schedule_telemed
-                                  ? (() => {
-                                      const dateValue =
-                                        questionData?.schedule_telemed ||
-                                        data?.schedule_telemed;
-                                      const momentDate = moment(dateValue);
-
-                                      // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
-                                      if (
-                                        momentDate.isValid() &&
-                                        momentDate.year() > 1900
-                                      ) {
-                                        return parseDate(
-                                          momentDate.format("YYYY-MM-DD")
-                                        );
-                                      }
-
-                                      return null;
-                                    })()
-                                  : null
-                              }
+                              showMonthAndYearPickers
+                              defaultValue={safeParseDate(
+                                questionData?.schedule_telemed || data?.schedule_telemed
+                              )}
                               isDisabled={
                                 (questionData?.status || data?.status) === 0
                               }
@@ -1155,28 +1138,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <div className="flex flex-row py-3">
                         <h2 className={subtitle()}>Discharge Summary</h2>
                         <DatePicker
+                          showMonthAndYearPickers
                           className="max-w-xs"
-                          defaultValue={
+                          defaultValue={safeParseDate(
                             questionData?.follow_up || data?.follow_up
-                              ? (() => {
-                                  const dateValue =
-                                    questionData?.follow_up || data?.follow_up;
-                                  const momentDate = moment(dateValue);
-
-                                  // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
-                                  if (
-                                    momentDate.isValid() &&
-                                    momentDate.year() > 1900
-                                  ) {
-                                    return parseDate(
-                                      momentDate.format("YYYY-MM-DD")
-                                    );
-                                  }
-
-                                  return null;
-                                })()
-                              : null
-                          }
+                          )}
                           isDisabled={
                             (questionData?.status || data?.status) !== 2 &&
                             (questionData?.status || data?.status) !== 3
