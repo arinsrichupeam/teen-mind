@@ -69,9 +69,20 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalKey, setModalKey] = useState(0);
 
-  const latitude = data?.latitude != null ? data?.latitude : 0;
-  const longitude = data?.longitude != null ? data?.longitude : 0;
+  const latitude =
+    questionData?.latitude != null
+      ? questionData?.latitude
+      : data?.latitude != null
+        ? data?.latitude
+        : 0;
+  const longitude =
+    questionData?.longitude != null
+      ? questionData?.longitude
+      : data?.longitude != null
+        ? data?.longitude
+        : 0;
 
   const fetchData = async (url: string, setter: (data: any) => void) => {
     try {
@@ -144,14 +155,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
   const ChangeHN = async () => {
     const json = JSON.stringify({
-      id: data?.profile.id,
+      id: questionData?.profile?.id || data?.profile?.id,
       hn: questionData.hn,
-      schedule_telemed: data?.schedule_telemed,
-      consult: data?.consult,
-      subjective: data?.subjective,
-      objective: data?.objective,
-      assessment: data?.assessment,
-      plan: data?.plan,
+      schedule_telemed:
+        questionData?.schedule_telemed || data?.schedule_telemed,
+      consult: questionData?.consult || data?.consult,
+      subjective: questionData?.subjective || data?.subjective,
+      objective: questionData?.objective || data?.objective,
+      assessment: questionData?.assessment || data?.assessment,
+      plan: questionData?.plan || data?.plan,
     });
 
     setHnIsloading(true);
@@ -204,8 +216,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         if (updatedData && updatedData.length > 0) {
           setQuestionData(updatedData[0]);
         }
+      } else {
+        // หาก API ล้มเหลว ให้ใช้ data เดิม
+        setQuestionData(data);
       }
     } catch (err) {
+      // หากเกิด error ให้ใช้ data เดิม
+      setQuestionData(data);
       addToast({
         title: "Error",
         description:
@@ -414,12 +431,19 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     GetDistrictList();
     GetSubdistrictList();
     GetConsultantList();
+  }, []);
 
-    if (isOpen) {
+  // แยก useEffect สำหรับการจัดการข้อมูล
+  useEffect(() => {
+    if (isOpen && data) {
+      // อัปเดต questionData ด้วยข้อมูลล่าสุดทุกครั้งที่เปิด drawer
       setQuestionData(data);
+      // เรียก refreshDrawerData เพื่อให้แน่ใจว่าข้อมูลเป็นปัจจุบัน
       refreshDrawerData();
+      // อัปเดต modal key เพื่อให้ modal ถูกสร้างใหม่
+      setModalKey((prev) => prev + 1);
     }
-  }, [isOpen]);
+  }, [isOpen, data]);
 
   return (
     <>
@@ -494,47 +518,71 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                       <Card className="w-[400px]">
                         <CardHeader className="flex gap-3">
                           <Image
-                            key={`image-${data.profile.id}-${data.id}`}
-                            alt={`รูปภาพ ${data.profile.id}`}
+                            key={`image-${questionData?.profile?.id || data?.profile?.id}-${questionData?.id || data?.id}`}
+                            alt={`รูปภาพ ${questionData?.profile?.id || data?.profile?.id}`}
                             className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
                             fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
                             height={100}
                             loading="lazy"
                             src={
-                              data?.profile.user
-                                ? data?.profile.user.image
+                              questionData?.profile?.user || data?.profile?.user
+                                ? questionData?.profile?.user?.image ||
+                                  data?.profile?.user?.image
                                 : undefined
                             }
                             width={100}
                           />
                           <div className="flex flex-col">
                             <p className="text-md">
-                              HN: <b>{data?.profile.hn}</b>
+                              HN:{" "}
+                              <b>
+                                {questionData?.profile?.hn || data?.profile?.hn}
+                              </b>
                             </p>
                             <p className="text-md">
                               {
                                 prefix.find(
-                                  (val) => val.key == data?.profile.prefixId
+                                  (val) =>
+                                    val.key ==
+                                    (questionData?.profile?.prefixId ||
+                                      data?.profile?.prefixId)
                                 )?.label
                               }
-                              {data?.profile.firstname} {data?.profile.lastname}
+                              {questionData?.profile?.firstname ||
+                                data?.profile?.firstname}{" "}
+                              {questionData?.profile?.lastname ||
+                                data?.profile?.lastname}
                             </p>
                             <p className="text-small">
                               เลขที่บัตรประชาชน :{" "}
-                              <b>{data?.profile.citizenId}</b>
+                              <b>
+                                {questionData?.profile?.citizenId ||
+                                  data?.profile?.citizenId}
+                              </b>
                             </p>
                             <p className="text-small">
                               วัน/เดือน/ปี เกิด :{" "}
                               <b>
-                                {moment(data?.profile.birthday)
+                                {moment(
+                                  questionData?.profile?.birthday ||
+                                    data?.profile?.birthday
+                                )
                                   .add(543, "year")
                                   .locale("th-TH")
                                   .format("DD/MM/YYYY")}
                               </b>
                             </p>
                             <p className="text-small">
-                              เชื้อชาติ : <b>{data?.profile.ethnicity}</b>{" "}
-                              สัญชาติ : <b>{data?.profile.nationality}</b>
+                              เชื้อชาติ :{" "}
+                              <b>
+                                {questionData?.profile?.ethnicity ||
+                                  data?.profile?.ethnicity}
+                              </b>{" "}
+                              สัญชาติ :{" "}
+                              <b>
+                                {questionData?.profile?.nationality ||
+                                  data?.profile?.nationality}
+                              </b>
                             </p>
                           </div>
                         </CardHeader>
@@ -543,24 +591,42 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div>
                             <p className="text-small">
                               ที่อยู่ :{" "}
-                              <b>{data?.profile.address[0].houseNo}</b> หมู่ที่
-                              :{" "}
                               <b>
-                                {data?.profile.address[0].villageNo == ""
-                                  ? "-"
-                                  : data?.profile.address[0].villageNo}
+                                {questionData?.profile?.address?.[0]?.houseNo ||
+                                  data?.profile?.address?.[0]?.houseNo}
                               </b>{" "}
-                              ซอย : <b>{data?.profile.address[0].soi}</b>
+                              หมู่ที่ :{" "}
+                              <b>
+                                {(questionData?.profile?.address?.[0]
+                                  ?.villageNo ||
+                                  data?.profile?.address?.[0]?.villageNo) == ""
+                                  ? "-"
+                                  : questionData?.profile?.address?.[0]
+                                      ?.villageNo ||
+                                    data?.profile?.address?.[0]?.villageNo}
+                              </b>{" "}
+                              ซอย :{" "}
+                              <b>
+                                {questionData?.profile?.address?.[0]?.soi ||
+                                  data?.profile?.address?.[0]?.soi}
+                              </b>
                             </p>
                             <p className="text-small">
-                              ถนน : <b>{data?.profile.address[0].road}</b> ตำบล
-                              :{" "}
+                              ถนน :{" "}
+                              <b>
+                                {questionData?.profile?.address?.[0]?.road ||
+                                  data?.profile?.address?.[0]?.road}
+                              </b>{" "}
+                              ตำบล :{" "}
                               <b>
                                 {
                                   subdistrince?.find(
                                     (x) =>
                                       x.id ==
-                                      data?.profile.address[0].subdistrict
+                                      (questionData?.profile?.address?.[0]
+                                        ?.subdistrict ||
+                                        data?.profile?.address?.[0]
+                                          ?.subdistrict)
                                   )?.nameInThai
                                 }
                               </b>{" "}
@@ -569,7 +635,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 {
                                   distrince?.find(
                                     (x) =>
-                                      x.id == data?.profile.address[0].district
+                                      x.id ==
+                                      (questionData?.profile?.address?.[0]
+                                        ?.district ||
+                                        data?.profile?.address?.[0]?.district)
                                   )?.nameInThai
                                 }
                               </b>
@@ -580,11 +649,18 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 {
                                   province?.find(
                                     (x) =>
-                                      x.id == data?.profile.address[0].province
+                                      x.id ==
+                                      (questionData?.profile?.address?.[0]
+                                        ?.province ||
+                                        data?.profile?.address?.[0]?.province)
                                   )?.nameInThai
                                 }
                               </b>{" "}
-                              โทรศัพท์ : <b>{data?.profile.tel}</b>
+                              โทรศัพท์ :{" "}
+                              <b>
+                                {questionData?.profile?.tel ||
+                                  data?.profile?.tel}
+                              </b>
                             </p>
                           </div>
                         </CardBody>
@@ -593,12 +669,23 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div>
                             <p className="text-small">
                               ชื่อผู้ติดต่อฉุกเฉิน :{" "}
-                              <b>{data?.profile.emergency[0].name}</b>{" "}
+                              <b>
+                                {questionData?.profile?.emergency?.[0]?.name ||
+                                  data?.profile?.emergency?.[0]?.name}
+                              </b>{" "}
                             </p>
                             <p className="text-small">
-                              โทรศัพท์ : <b>{data?.profile.emergency[0].tel}</b>{" "}
+                              โทรศัพท์ :{" "}
+                              <b>
+                                {questionData?.profile?.emergency?.[0]?.tel ||
+                                  data?.profile?.emergency?.[0]?.tel}
+                              </b>{" "}
                               ความสัมพันธ์ :{" "}
-                              <b>{data?.profile.emergency[0].relation}</b>
+                              <b>
+                                {questionData?.profile?.emergency?.[0]
+                                  ?.relation ||
+                                  data?.profile?.emergency?.[0]?.relation}
+                              </b>
                             </p>
                           </div>
                         </CardBody>
@@ -675,7 +762,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <Link
                             isExternal
                             showAnchorIcon
-                            href={`https://www.google.co.th/maps/place/${data?.latitude},${data?.longitude}`}
+                            href={`https://www.google.co.th/maps/place/${questionData?.latitude || data?.latitude},${questionData?.longitude || data?.longitude}`}
                           >
                             ดูบนแผนที่
                           </Link>
@@ -1284,7 +1371,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       </Drawer>
 
       <ModalEditProfile
-        data={data}
+        key={`modal-${questionData?.profile?.id || data?.profile?.id}-${modalKey}`}
+        data={questionData || data}
         isOpen={isModalOpen}
         mode="edit"
         onClose={() => setIsModalOpen(false)}
