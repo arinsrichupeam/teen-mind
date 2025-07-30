@@ -46,6 +46,7 @@ const schoolInitValue: School = {
   id: 0,
   districtId: 0,
   status: true,
+  screeningDate: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
