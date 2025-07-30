@@ -379,38 +379,42 @@ export default function SchoolListPage() {
         <div className="flex flex-col items-start gap-4">
           <h3 className="text-lg font-semibold">จัดการโรงเรียน</h3>
 
-          <div className="flex gap-4 justify-between">
-            <Input
-              className="w-full"
-              placeholder="ค้นหาชื่อโรงเรียน..."
-              startContent={
-                <svg
-                  className="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                  />
-                </svg>
-              }
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
-            />
-            <Button
-              className="font-semibold text-md"
-              color="primary"
-              onPress={CreateSchool}
-            >
-              เพิ่ม
-            </Button>
+          <div className="flex gap-4 justify-between items-center w-full">
+            <div className="flex-1 max-w-md">
+              <Input
+                className="w-full"
+                placeholder="ค้นหาชื่อโรงเรียน..."
+                startContent={
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                    />
+                  </svg>
+                }
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <Button
+                className="font-semibold text-md"
+                color="primary"
+                onPress={CreateSchool}
+              >
+                เพิ่ม
+              </Button>
+            </div>
           </div>
         </div>
 
