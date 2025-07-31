@@ -40,8 +40,9 @@ export default function ReferentQRCodeModal({
 
   const generateQR = async () => {
     try {
+      // สร้าง URL ที่จะ redirect ไปยังหน้า register พร้อม referentId
       const qrCodeUrl = await generateQRCode(
-        "https://liff.line.me/1656886344-OopvvNmA"
+        `https://liff.line.me/1656886344-OopvvNmA/liff/register?ref=${data?.id}`
       );
 
       setQrCode(qrCodeUrl);

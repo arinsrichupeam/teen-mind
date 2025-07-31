@@ -3,9 +3,10 @@
 import { Tab, Tabs } from "@heroui/tabs";
 import { Address, EmergencyContact, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Alert } from "@heroui/alert";
+import { addToast } from "@heroui/toast";
 
 import { Step1 } from "./components/step1";
 import { Step2 } from "./components/step2";
@@ -54,6 +55,8 @@ const emergencyContactInitValue: EmergencyContact = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const ref = searchParams.get("ref") || "";
   const { data: session, status } = useSession();
   const [selected, setSelected] = useState("profile");
   const [showAlert, setShowAlert] = useState(false);
@@ -183,26 +186,32 @@ export default function RegisterPage() {
         },
         body: data,
       });
-      
+
       const val = await res.json();
-      
-             if (val.ref === "") {
-         setShowAlert(true);
-         setIsSubmitted(true);
-         setTimeout(() => {
-           router.push("/liff/question");
-         }, 3000);
-       } else {
-         setShowAlert(true);
-         setIsSubmitted(true);
-         setTimeout(() => {
-           router.push(
-             `/liff/question/phqa?ref=${val.ref.id}?id=${val.profile.id}`
-           );
-         }, 3000);
-       }
+
+      if (val.ref === "") {
+        setShowAlert(true);
+        setIsSubmitted(true);
+        setTimeout(() => {
+          router.push("/liff/question");
+        }, 3000);
+      } else {
+        setShowAlert(true);
+        setIsSubmitted(true);
+        setTimeout(() => {
+          // ถ้ามี ref จาก QR code ให้ใช้ ref นั้น แทนที่จะสร้างใหม่
+          const referentId = ref || val.ref.id;
+          router.push(
+            `/liff/question/phqa?ref=${referentId}&profileId=${val.profile.id}`
+          );
+        }, 3000);
+      }
     } catch (error) {
-      console.error("Error saving to database:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง" + error,
+        color: "danger",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -245,14 +254,14 @@ export default function RegisterPage() {
                 />
               </Tab>
               <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
-                                 <Step3
-                   BackStep={BackStep}
-                   HandleChange={EmergencyHandleChange}
-                   NextStep={NextStep}
-                   Result={emergency}
-                   isLoading={isLoading}
-                   isSubmitted={isSubmitted}
-                 />
+                <Step3
+                  BackStep={BackStep}
+                  HandleChange={EmergencyHandleChange}
+                  NextStep={NextStep}
+                  Result={emergency}
+                  isLoading={isLoading}
+                  isSubmitted={isSubmitted}
+                />
               </Tab>
             </Tabs>
           </div>

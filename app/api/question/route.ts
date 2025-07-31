@@ -3,7 +3,13 @@ import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
-import { GreenFlex, RedFlex, YellowFlex, GreenLowFlex, OrangeFlex } from "@/config/site";
+import {
+  GreenFlex,
+  RedFlex,
+  YellowFlex,
+  GreenLowFlex,
+  OrangeFlex,
+} from "@/config/site";
 
 export async function GET() {
   const questionsList = await prisma.questions_Master.findMany({

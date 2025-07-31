@@ -26,12 +26,8 @@ import { q2, qPhqa, phqaAddon } from "@/app/data";
 
 export default function PHQAPage() {
   const searchParams = useSearchParams();
-  const refParam = searchParams.get("ref") || "";
-  const id = searchParams.get("profileId") || "";
-
-  // แยกค่า ref และ id จาก refParam
-  const ref = refParam.split("?")[0] || "";
-  const refId = refParam.split("id=")[1] || "";
+  const ref = searchParams.get("ref") || "";
+  const profileId = searchParams.get("profileId") || "";
 
   const qPhqa_Image = [
     { src: "/image/Q1-01.png", alt: "PHQA Image 1" },
@@ -103,7 +99,7 @@ export default function PHQAPage() {
   const [showPHQAAddon, setPHQAAddonShow] = useState(false);
   const [canProceed, setCanProceed] = useState(false);
   const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false);
-  const [profileId, setProfileId] = useState("");
+  const [profileIdState, setProfileIdState] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [referentData, setReferentData] = useState<{
     fullName: string;
@@ -144,7 +140,7 @@ export default function PHQAPage() {
         if (data?.profile.length === 0) {
           router.push("/liff/privacy");
         } else {
-          setProfileId(data?.profile[0].id);
+          setProfileIdState(data?.profile[0].id);
         }
       } catch (error) {
         setErrorMessage(
@@ -160,15 +156,16 @@ export default function PHQAPage() {
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
-      if (id || refId) {
-        setProfileId(id || refId);
+      if (profileId) {
+        setProfileIdState(profileId);
       } else {
         checkProfile(session?.user?.id as string);
       }
     } else {
-      setProfileId(id || refId);
+      setProfileIdState(profileId);
     }
 
+    // ตรวจสอบ QR code data
     if (ref) {
       setReferenceId(ref);
     } else {
@@ -185,7 +182,7 @@ export default function PHQAPage() {
 
     // เริ่มต้น progress ที่ 0%
     setProgress(0);
-  }, [session, status, id, ref, checkProfile, onOpen]);
+  }, [session, status, profileId, ref, checkProfile, onOpen]);
 
   const fetchReferentData = useCallback(async (id: string) => {
     const referentId = parseInt(id);
@@ -385,7 +382,7 @@ export default function PHQAPage() {
     setIsSaving(true);
 
     // ตรวจสอบว่ามีข้อมูลครบถ้วนหรือไม่
-    if (!profileId) {
+    if (!profileIdState) {
       setErrorMessage("ไม่พบข้อมูลผู้ใช้งาน กรุณาลงทะเบียนใหม่");
       setIsModalOpened(true);
       setIsSaving(false);
@@ -452,7 +449,7 @@ export default function PHQAPage() {
     const sum = phqaAnswers.reduce((acc: number, val: number) => acc + val, 0);
 
     const dataToSave = {
-      profileId: profileId,
+      profileId: profileIdState,
       phqa: {
         ...phqa_data,
         sum: sum,
