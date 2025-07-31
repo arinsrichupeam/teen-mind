@@ -201,6 +201,7 @@ export default function RegisterPage() {
         setTimeout(() => {
           // ถ้ามี ref จาก QR code ให้ใช้ ref นั้น แทนที่จะสร้างใหม่
           const referentId = ref || val.ref.id;
+
           router.push(
             `/liff/question/phqa?ref=${referentId}&profileId=${val.profile.id}`
           );
