@@ -65,11 +65,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     useState<Consultant[]>(ConsultantInitValue);
   const [questionData, setQuestionData] = useState<QuestionsData>(data);
   const [hnIsloading, setHnIsloading] = useState(false);
-  const [formIsloading, setformIsLoading] = useState(false);
+  const [consultantLoading, setConsultantLoading] = useState(false);
+  const [questionnaireLoading, setQuestionnaireLoading] = useState(false);
+  const [consultationLoading, setConsultationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
+  const [consultantSaved, setConsultantSaved] = useState(false);
+  const [consultationSaved, setConsultationSaved] = useState(false);
 
   const latitude =
     questionData?.latitude != null
@@ -214,6 +218,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         const updatedData = await response.json();
 
         if (updatedData && updatedData.length > 0) {
+          // อัปเดตข้อมูลใหม่
           setQuestionData(updatedData[0]);
         }
       } else {
@@ -265,7 +270,21 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    setformIsLoading(true);
+
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบหรือไม่
+    if (!questionData?.id) {
+      setError("ไม่พบข้อมูลคำถาม");
+
+      return;
+    }
+
+    // ตั้งค่า loading state ตาม mode
+    if (mode === "edit-questionnaire") {
+      setQuestionnaireLoading(true);
+    } else if (mode === "edit-consultation") {
+      setConsultationLoading(true);
+    }
+
     setError(null);
 
     try {
@@ -313,12 +332,19 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           color: "success",
         });
 
+        // ตั้งค่าสถานะการบันทึกสำเร็จตาม mode
+        if (mode === "edit-consultation") {
+          setConsultationSaved(true);
+        }
+
         // ปิด drawer อัตโนมัติเมื่อบันทึกในโหมด edit-questionnaire
         if (mode === "edit-questionnaire") {
           onClose();
         }
       } else {
-        throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        const errorData = await response.json().catch(() => ({}));
+
+        throw new Error(errorData.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
     } catch (err) {
       setError(
@@ -333,7 +359,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         color: "danger",
       });
     } finally {
-      setformIsLoading(false);
+      // ตั้งค่า loading state กลับเป็น false ตาม mode
+      if (mode === "edit-questionnaire") {
+        setQuestionnaireLoading(false);
+      } else if (mode === "edit-consultation") {
+        setConsultationLoading(false);
+      }
     }
   };
 
@@ -419,6 +450,93 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     await onSubmit(e);
   };
 
+  const handleSaveConsultant = async () => {
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบหรือไม่
+    if (!questionData?.id) {
+      setError("ไม่พบข้อมูลคำถาม");
+
+      return;
+    }
+
+    if (!questionData?.consult) {
+      setError("กรุณาเลือกผู้ให้คำปรึกษา");
+
+      return;
+    }
+
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบถ้วนหรือไม่
+    // อนุญาตให้บันทึกได้ตราบใดที่มีผู้ให้คำปรึกษา
+    if (!questionData.consult) {
+      addToast({
+        title: "แจ้งเตือน",
+        description: "กรุณาเลือกผู้ให้คำปรึกษา",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setConsultantLoading(true);
+    setError(null);
+
+    try {
+      // ส่งข้อมูลทั้งหมดที่จำเป็นสำหรับ API
+      const updateData = {
+        ...questionData,
+        consult: questionData.consult,
+        schedule_telemed: questionData.schedule_telemed,
+        // ตรวจสอบว่ามีข้อมูล phqa หรือไม่ ถ้าไม่มีให้ใช้ข้อมูลเดิม
+        phqa: questionData.phqa,
+        q2: questionData.q2,
+        addon: questionData.addon,
+      };
+
+      const response = await fetch("/api/question/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        // ไม่ต้อง refresh ข้อมูลทันทีหลังบันทึก เพื่อให้ผู้ใช้เห็นการเปลี่ยนแปลง
+        // await refreshDrawerData();
+
+        addToast({
+          title: "Success",
+          description: "บันทึกผู้ให้คำปรึกษาสำเร็จ",
+          color: "success",
+        });
+
+        // ตั้งค่าสถานะการบันทึกสำเร็จ
+        setConsultantSaved(true);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+
+        throw new Error(
+          errorData.message || "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา"
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา",
+        color: "danger",
+      });
+    } finally {
+      setConsultantLoading(false);
+    }
+  };
+
   const handleQuestionChange = (field: string, value: any) => {
     setQuestionData((prev) => ({
       ...prev,
@@ -436,18 +554,57 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   // แยก useEffect สำหรับการจัดการข้อมูล
   useEffect(() => {
     if (isOpen && data) {
-      // อัปเดต questionData ด้วยข้อมูลล่าสุดทุกครั้งที่เปิด drawer
-      setQuestionData(data);
-      // เรียก refreshDrawerData เพื่อให้แน่ใจว่าข้อมูลเป็นปัจจุบัน
-      refreshDrawerData();
       // อัปเดต modal key เพื่อให้ modal ถูกสร้างใหม่
       setModalKey((prev) => prev + 1);
     }
-  }, [isOpen, data]);
+  }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+
+  // useEffect เพิ่มเติมสำหรับ refresh ข้อมูลหลังจาก drawer เปิดแล้ว
+  useEffect(() => {
+    if (isOpen && data?.id) {
+      // เรียก refreshDrawerData หลังจาก drawer เปิดแล้ว
+      const timer = setTimeout(() => {
+        refreshDrawerData();
+      }, 200); // เพิ่มเวลารอเพื่อให้แน่ใจว่า drawer เปิดเสร็จแล้ว
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, data?.id]);
+
+  // useEffect สำหรับ reset ข้อมูลเมื่อ data เปลี่ยน
+  useEffect(() => {
+    if (data) {
+      setQuestionData(data);
+    }
+  }, [data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+
+  // useEffect สำหรับรีเซ็ตสถานะการบันทึกเมื่อ drawer เปิดใหม่
+  useEffect(() => {
+    if (isOpen && data) {
+      setConsultantSaved(false);
+      setConsultationSaved(false);
+    }
+  }, [isOpen, data?.id]);
+
+  // useEffect สำหรับ reset ข้อมูลเมื่อ drawer เปิด
+  useEffect(() => {
+    if (isOpen && data) {
+      // Reset ข้อมูลเมื่อ drawer เปิดเฉพาะเมื่อเป็นข้อมูลใหม่
+      setQuestionData(data);
+      // ล้าง error state
+      setError(null);
+      setIsError(false);
+    } else if (!isOpen) {
+      // ล้าง error state เมื่อปิด drawer
+      setError(null);
+      setIsError(false);
+    }
+  }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
 
   return (
     <>
       <Drawer
+        key={`drawer-${data?.id || "default"}-${modalKey}`}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         placement="right"
@@ -1209,12 +1366,16 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             </Autocomplete>
                             <div className="mt-2 flex justify-end">
                               <Button
-                                color="primary"
-                                isDisabled={formIsloading}
-                                isLoading={formIsloading}
-                                type="submit"
+                                color={consultantSaved ? "success" : "primary"}
+                                isDisabled={consultantLoading}
+                                isLoading={consultantLoading}
+                                type="button"
+                                variant="flat"
+                                onPress={handleSaveConsultant}
                               >
-                                บันทึกผู้ให้คำปรึกษา
+                                {consultantSaved
+                                  ? "บันทึกแล้ว"
+                                  : "บันทึกผู้ให้คำปรึกษา"}
                               </Button>
                             </div>
                           </div>
@@ -1346,8 +1507,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 {mode === "edit-questionnaire" && (
                   <Button
                     color="primary"
-                    isDisabled={formIsloading}
-                    isLoading={formIsloading}
+                    isDisabled={questionnaireLoading}
+                    isLoading={questionnaireLoading}
                     type="submit"
                     variant="flat"
                   >
@@ -1356,12 +1517,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 )}
                 {mode === "edit-consultation" && (
                   <Button
-                    color="primary"
-                    isDisabled={formIsloading || !questionData?.consult}
-                    isLoading={formIsloading}
+                    color={consultationSaved ? "success" : "primary"}
+                    isDisabled={consultationLoading || !questionData?.consult}
+                    isLoading={consultationLoading}
                     type="submit"
+                    variant="flat"
                   >
-                    บันทึกการให้คำปรึกษา
+                    {consultationSaved ? "บันทึกแล้ว" : "บันทึกการให้คำปรึกษา"}
                   </Button>
                 )}
               </DrawerFooter>
