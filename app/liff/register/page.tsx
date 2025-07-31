@@ -63,6 +63,8 @@ export default function RegisterPage() {
   const [emergency, setEmergency] = useState<EmergencyContact>(
     emergencyContactInitValue
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
@@ -83,6 +85,7 @@ export default function RegisterPage() {
           setSelected("emergency");
           break;
         case "Emergency":
+          setIsLoading(true);
           SaveToDB();
           break;
       }
@@ -172,29 +175,37 @@ export default function RegisterPage() {
       register_emergency: emergency,
     });
 
-    await fetch("/api/register/user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: data,
-    })
-      .then((res) => res.json())
-      .then((val) => {
-        if (val.ref === "") {
-          setShowAlert(true);
-          setTimeout(() => {
-            router.push("/liff/question");
-          }, 3000);
-        } else {
-          setShowAlert(true);
-          setTimeout(() => {
-            router.push(
-              `/liff/question/phqa?ref=${val.ref.id}?id=${val.profile.id}`
-            );
-          }, 3000);
-        }
+    try {
+      const res = await fetch("/api/register/user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: data,
       });
+      
+      const val = await res.json();
+      
+             if (val.ref === "") {
+         setShowAlert(true);
+         setIsSubmitted(true);
+         setTimeout(() => {
+           router.push("/liff/question");
+         }, 3000);
+       } else {
+         setShowAlert(true);
+         setIsSubmitted(true);
+         setTimeout(() => {
+           router.push(
+             `/liff/question/phqa?ref=${val.ref.id}?id=${val.profile.id}`
+           );
+         }, 3000);
+       }
+    } catch (error) {
+      console.error("Error saving to database:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -234,12 +245,14 @@ export default function RegisterPage() {
                 />
               </Tab>
               <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
-                <Step3
-                  BackStep={BackStep}
-                  HandleChange={EmergencyHandleChange}
-                  NextStep={NextStep}
-                  Result={emergency}
-                />
+                                 <Step3
+                   BackStep={BackStep}
+                   HandleChange={EmergencyHandleChange}
+                   NextStep={NextStep}
+                   Result={emergency}
+                   isLoading={isLoading}
+                   isSubmitted={isSubmitted}
+                 />
               </Tab>
             </Tabs>
           </div>

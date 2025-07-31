@@ -11,11 +11,15 @@ export const Step3 = ({
   BackStep,
   Result,
   HandleChange,
+  isLoading = false,
+  isSubmitted = false,
 }: {
   NextStep: (val: any) => void;
   BackStep: (val: any) => void;
   Result: EmergencyContact | undefined;
   HandleChange: (val: any) => void;
+  isLoading?: boolean;
+  isSubmitted?: boolean;
 }) => {
   const request = true;
 
@@ -84,16 +88,18 @@ export const Step3 = ({
         >
           ย้อนกลับ
         </Button>
-        <Button
-          className="w-full"
-          color="primary"
-          radius="full"
-          size="lg"
-          type="submit"
-          variant="solid"
-        >
-          ถัดไป
-        </Button>
+                 <Button
+           className="w-full"
+           color="primary"
+           radius="full"
+           size="lg"
+           type="submit"
+           variant="solid"
+           isLoading={isLoading}
+           isDisabled={isLoading || isSubmitted}
+         >
+           {isLoading ? "กำลังบันทึก..." : isSubmitted ? "บันทึกสำเร็จแล้ว" : "ถัดไป"}
+         </Button>
       </div>
     </Form>
   );
