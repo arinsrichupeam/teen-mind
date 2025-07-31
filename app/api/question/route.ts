@@ -3,7 +3,13 @@ import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
-import { GreenFlex, RedFlex, YellowFlex } from "@/config/site";
+import {
+  GreenFlex,
+  RedFlex,
+  YellowFlex,
+  GreenLowFlex,
+  OrangeFlex,
+} from "@/config/site";
 
 export async function GET() {
   const questionsList = await prisma.questions_Master.findMany({
@@ -179,8 +185,14 @@ export async function POST(req: Request) {
         case "Green":
           await lineSdk.pushMessage(lineUserId, GreenFlex);
           break;
+        case "Green-Low":
+          await lineSdk.pushMessage(lineUserId, GreenLowFlex);
+          break;
         case "Yellow":
           await lineSdk.pushMessage(lineUserId, YellowFlex);
+          break;
+        case "Orange":
+          await lineSdk.pushMessage(lineUserId, OrangeFlex);
           break;
         case "Red":
           await lineSdk.pushMessage(lineUserId, RedFlex);
