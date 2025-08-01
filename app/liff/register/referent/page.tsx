@@ -143,8 +143,21 @@ export default function ReferentPage() {
                 description: "พบข้อมูลการลงทะเบียน สามารถแก้ไขได้",
               });
             } else {
-              setReferent(referent);
-              onOpenModal4();
+              if (
+                referent &&
+                referent.id !== undefined &&
+                referent.id !== null
+              ) {
+                setReferent(referent);
+                onOpenModal4();
+              } else {
+                addToast({
+                  title: "เกิดข้อผิดพลาด",
+                  color: "danger",
+                  description: "ข้อมูล referent ไม่ถูกต้อง",
+                });
+                onCloseModal3();
+              }
             }
           } else {
             addToast({
