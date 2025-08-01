@@ -500,8 +500,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       });
 
       if (response.ok) {
-        // ไม่ต้อง refresh ข้อมูลทันทีหลังบันทึก เพื่อให้ผู้ใช้เห็นการเปลี่ยนแปลง
-        // await refreshDrawerData();
+        // Refresh ข้อมูลหลังจากบันทึกเพื่อให้ SOAP fields เปิดใช้งาน
+        await refreshDrawerData();
 
         addToast({
           title: "Success",
