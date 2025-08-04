@@ -35,7 +35,7 @@ import { ModalEditProfile } from "../modal/modal-edit-profile";
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 
-import { safeParseDate } from "@/utils/helper";
+import { safeParseDate, formatThaiDateTime } from "@/utils/helper";
 import { prefix } from "@/utils/data";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
@@ -619,15 +619,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   <div className="pt-2">
                     <span className="font-semibold">วันที่ประเมิน:</span>{" "}
                     <span>
-                      {new Date(
+                      {formatThaiDateTime(
                         questionData?.createdAt || (data?.createdAt as string)
-                      ).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      )}
                     </span>
                   </div>
                   <div className="flex flex-row gap-5">

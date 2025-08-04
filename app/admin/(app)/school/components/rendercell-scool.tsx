@@ -2,6 +2,7 @@ import React from "react";
 import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { Districts, School } from "@prisma/client";
 import { Chip } from "@heroui/react";
+import { formatThaiDate } from "@/utils/helper";
 
 interface Props {
   data: School;
@@ -49,9 +50,7 @@ export const SchoolRenderCell = ({
       return (
         <div>
           <span>
-            {data.screeningDate
-              ? new Date(data.screeningDate).toLocaleDateString("th-TH")
-              : "-"}
+            {data.screeningDate ? formatThaiDate(data.screeningDate) : "-"}
           </span>
         </div>
       );

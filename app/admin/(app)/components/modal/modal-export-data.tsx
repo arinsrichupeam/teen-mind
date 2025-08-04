@@ -11,11 +11,25 @@ import {
   Card,
   CardBody,
   Input,
+  DatePicker,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
 } from "@heroui/react";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 import { prefix } from "@/utils/data";
+import { parseDate } from "@internationalized/date";
+import { formatThaiDate } from "@/utils/helper";
+
+interface District {
+  id: number;
+  nameInThai: string;
+}
 
 interface ExportField {
   key: string;
@@ -31,6 +45,8 @@ interface ExportModalProps {
   filteredData?: any[];
 }
 
+
+
 export const ModalExportData = ({
   isOpen,
   onClose,
@@ -43,6 +59,7 @@ export const ModalExportData = ({
     dateFrom: "",
     dateTo: "",
   });
+  const [districts, setDistricts] = useState<District[]>([]);
 
   // กำหนดฟิลด์ที่สามารถ export ได้ตามประเภทข้อมูล
   const getAvailableFields = (): ExportField[] => {
@@ -53,10 +70,10 @@ export const ModalExportData = ({
           { key: "province", label: "จังหวัด", selected: true },
           { key: "hospitalCode", label: "รหัสหน่วยบริการ", selected: true },
           { key: "hospitalName", label: "ชื่อหน่วยบริการ", selected: true },
-          { key: "name", label: "ชื่อ-สกุล ผู้รับบริกา", selected: true },
+          { key: "name", label: "ชื่อ-สกุล ผู้รับบริการ", selected: true },
           { key: "citizenId", label: "เลขบัตรประชาชน", selected: true },
           { key: "age", label: "อายุ (นับปี)", selected: true },
-          { key: "gender", label: "เพศ", selected: true },
+          { key: "sex", label: "เพศ", selected: true },
           { key: "insurance", label: "สิทธิ์การรักษา", selected: true },
           { key: "school", label: "โรงเรียน", selected: true },
           { key: "grade", label: "ระดับชั้น", selected: true },
@@ -96,12 +113,32 @@ export const ModalExportData = ({
 
   const availableFields = useMemo(() => getAvailableFields(), [dataType]);
 
-  // ตั้งค่าเริ่มต้นสำหรับ selectedFields - เลือกฟิลด์ทั้งหมด
+  // ตั้งค่าเริ่มต้นสำหรับ selectedFields ทันทีเมื่อ availableFields มีข้อมูล
   useEffect(() => {
-    const allFields = availableFields.map((field) => field.key);
+    if (availableFields.length > 0 && selectedFields.length === 0) {
+      const allFields = availableFields.map((field) => field.key);
+      setSelectedFields(allFields);
+    }
+  }, [availableFields, selectedFields.length]);
 
-    setSelectedFields(allFields);
-  }, [dataType]);
+  // ดึงข้อมูลเขต
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      try {
+        const response = await fetch('/api/data/districts');
+        if (response.ok) {
+          const data = await response.json();
+          setDistricts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching districts:', error);
+      }
+    };
+
+    fetchDistricts();
+  }, []);
+
+
 
   const handleFilterChange = useCallback((key: string, value: any) => {
     setFilters((prev) => ({
@@ -129,9 +166,11 @@ export const ModalExportData = ({
   const getFieldValue = (item: any, field: string): any => {
     switch (field) {
       case "id":
-        return data.findIndex((x) => x.id === item.id) + 1;
+        // ใช้ index + 1 เพื่อให้เป็นลำดับ 1, 2, 3, 4
+        const dataIndex = (filteredData || data).findIndex((dataItem: any) => dataItem.id === item.id);
+        return dataIndex !== -1 ? dataIndex + 1 : "-";
       case "province":
-        return item.profile?.school?.province || "-";
+        return "กรุงเทพมหานคร";
       case "hospitalCode":
         return "141641";
       case "hospitalName":
@@ -143,15 +182,15 @@ export const ModalExportData = ({
 
         return `${prefixLabel} ${item.profile?.firstname || ""} ${item.profile?.lastname || ""}`;
       case "citizenId":
-        return item.profile?.citizenId || "-";
+        return item.profile?.citizenId;
       case "age":
         return item.profile?.birthday
           ? calculateAge(item.profile.birthday)
           : "-";
-      case "gender":
-        return item.profile?.gender === "male"
+      case "sex":
+        return item.profile?.sex === 1
           ? "ชาย"
-          : item.profile?.gender === "female"
+          : item.profile?.sex === 2
             ? "หญิง"
             : "-";
       case "insurance":
@@ -161,13 +200,17 @@ export const ModalExportData = ({
       case "grade":
         return "";
       case "district":
-        return item.profile?.school?.district || "-";
+        if (item.profile?.school?.districtId) {
+          const district = districts.find(d => d.id === item.profile.school.districtId);
+          return district ? district.nameInThai : `เขต ${item.profile.school.districtId}`;
+        }
+        return "-";
       case "serviceDate":
-        return "";
+        return formatThaiDate(item.createdAt);
       case "phqa":
         return item.phqa?.[0]?.sum || "-";
       case "assessmentDate":
-        return "";
+        return formatThaiDate(item.profile?.school?.screeningDate);
       case "result":
         return item.phqa?.[0]?.result || "-";
       case "q2":
@@ -177,7 +220,7 @@ export const ModalExportData = ({
           ? `${item.addon[0].q1},${item.addon[0].q2}`
           : "-";
       case "date":
-        return new Date(item.createdAt).toLocaleDateString("th-TH");
+        return formatThaiDate(item.createdAt);
       case "status":
         return item.status ? "เสร็จสิ้น" : "รอดำเนินการ";
       case "tel":
@@ -192,6 +235,18 @@ export const ModalExportData = ({
         return item[field] || "-";
     }
   };
+
+  const handleClose = useCallback(() => {
+    // Clear ข้อมูลทั้งหมด
+    setSelectedFields([]);
+    setFilters({
+      dateFrom: "",
+      dateTo: "",
+    });
+    
+    // เรียก onClose จาก props
+    onClose();
+  }, [onClose]);
 
   const handleExport = useCallback(() => {
     // ใช้ข้อมูลที่กรองแล้วหรือข้อมูลทั้งหมด
@@ -242,16 +297,53 @@ export const ModalExportData = ({
 
     XLSX.writeFile(wb, fileName);
 
-    onClose();
-  }, [selectedFields, filters, data, filteredData, availableFields, onClose]);
+    handleClose();
+  }, [selectedFields, filters, data, filteredData, availableFields, handleClose]);
+
+  // สร้างข้อมูลตัวอย่างสำหรับแสดงในตาราง
+  const getSampleData = useCallback(() => {
+    // ตรวจสอบว่ามีข้อมูลและ selectedFields หรือไม่
+    if (!data || data.length === 0 || selectedFields.length === 0) {
+      return [];
+    }
+
+    let exportData = filteredData || data;
+
+    // กรองข้อมูลตามวันที่ตรวจ
+    if (filters.dateFrom && filters.dateTo) {
+      exportData = exportData.filter((item: any) => {
+        const itemDate = new Date(item.createdAt);
+        const fromDate = new Date(filters.dateFrom);
+        const toDate = new Date(filters.dateTo);
+
+        return itemDate >= fromDate && itemDate <= toDate;
+      });
+    }
+
+    // ใช้ข้อมูล 5 รายการแรกเป็นตัวอย่าง
+    return exportData.slice(0, 5).map((item: any) => {
+      const row: any = {};
+
+      selectedFields.forEach((field) => {
+        const fieldLabel =
+          availableFields.find((f) => f.key === field)?.label || field;
+
+        row[fieldLabel] = getFieldValue(item, field);
+      });
+
+      return row;
+    });
+  }, [selectedFields, filters, data, filteredData, availableFields]);
+
+  const sampleData = useMemo(() => getSampleData(), [getSampleData]);
 
   return (
     <Modal
       backdrop="blur"
       isOpen={isOpen}
       placement="center"
-      size="2xl"
-      onClose={onClose}
+      size="4xl"
+      onClose={handleClose}
     >
       <ModalContent>
         <ModalHeader>
@@ -268,12 +360,10 @@ export const ModalExportData = ({
                     <label className="text-sm font-medium" htmlFor="dateFrom">
                       วันที่เริ่มต้น
                     </label>
-                    <Input
-                      id="dateFrom"
-                      type="date"
-                      value={filters.dateFrom}
-                      onChange={(e) =>
-                        handleFilterChange("dateFrom", e.target.value)
+                    <DatePicker
+                      value={filters.dateFrom ? parseDate(filters.dateFrom) : null}
+                      onChange={(date) =>
+                        handleFilterChange("dateFrom", date ? date.toString() : "")
                       }
                     />
                   </div>
@@ -281,12 +371,10 @@ export const ModalExportData = ({
                     <label className="text-sm font-medium" htmlFor="dateTo">
                       วันที่สิ้นสุด
                     </label>
-                    <Input
-                      id="dateTo"
-                      type="date"
-                      value={filters.dateTo}
-                      onChange={(e) =>
-                        handleFilterChange("dateTo", e.target.value)
+                    <DatePicker
+                      value={filters.dateTo ? parseDate(filters.dateTo) : null}
+                      onChange={(date) =>
+                        handleFilterChange("dateTo", date ? date.toString() : "")
                       }
                     />
                   </div>
@@ -294,36 +382,81 @@ export const ModalExportData = ({
               </CardBody>
             </Card>
 
-            <div className="text-center py-4">
-              <p className="text-gray-600 mb-4">ยืนยันการ Export ข้อมูล</p>
-              <div className="flex gap-2 justify-center flex-wrap">
-                <Chip color="primary" variant="flat">
-                  จำนวนฟิลด์: {selectedFields.length}
-                </Chip>
-                <Chip color="secondary" variant="flat">
-                  จำนวนข้อมูล:{" "}
-                  {(() => {
-                    let exportData = filteredData || data;
-
-                    if (filters.dateFrom && filters.dateTo) {
-                      exportData = exportData.filter((item: any) => {
-                        const itemDate = new Date(item.createdAt);
-                        const fromDate = new Date(filters.dateFrom);
-                        const toDate = new Date(filters.dateTo);
-
-                        return itemDate >= fromDate && itemDate <= toDate;
-                      });
-                    }
-
-                    return exportData.length;
-                  })()}
-                </Chip>
-              </div>
-            </div>
+            {/* ตัวอย่างตาราง */}
+            <Card>
+              <CardBody>
+                <h4 className="font-medium mb-3">ตัวอย่างข้อมูลที่จะ Export</h4>
+                                 <div className="overflow-x-auto border rounded-lg">
+                   {selectedFields.length > 0 && availableFields.length > 0 ? (
+                     <Table 
+                       aria-label="ตัวอย่างข้อมูล"
+                       classNames={{
+                         wrapper: "min-h-[200px]",
+                         table: "min-w-full",
+                       }}
+                     >
+                       <TableHeader>
+                         {selectedFields.map((field) => {
+                           const fieldLabel =
+                             availableFields.find((f) => f.key === field)?.label || field;
+                           return (
+                             <TableColumn key={field} className="text-sm font-medium bg-gray-50 px-4 py-3">
+                               {fieldLabel}
+                             </TableColumn>
+                           );
+                         })}
+                       </TableHeader>
+                       <TableBody>
+                         {sampleData.map((row, index) => (
+                           <TableRow key={index} className="hover:bg-gray-50">
+                             {selectedFields.map((field) => {
+                               const fieldLabel =
+                                 availableFields.find((f) => f.key === field)?.label || field;
+                               return (
+                                 <TableCell key={field} className="text-sm px-4 py-3 border-b">
+                                   <div className="max-w-[200px] truncate" title={row[fieldLabel] || "-"}>
+                                     {row[fieldLabel] || "-"}
+                                   </div>
+                                 </TableCell>
+                               );
+                             })}
+                           </TableRow>
+                         ))}
+                       </TableBody>
+                     </Table>
+                   ) : (
+                     <div className="text-center py-8 text-gray-500">
+                       {availableFields.length === 0 ? "ไม่พบข้อมูลสำหรับประเภทนี้" : "กำลังโหลดข้อมูล..."}
+                     </div>
+                   )}
+                 </div>
+                                 {selectedFields.length > 0 && sampleData.length === 0 && (
+                   <div className="text-center py-8 text-gray-500">
+                     ไม่มีข้อมูลตัวอย่าง
+                   </div>
+                 )}
+                {sampleData.length > 0 && (
+                  <div className="mt-3 text-xs text-gray-500 text-center">
+                    แสดงตัวอย่าง {sampleData.length} รายการแรกจากทั้งหมด {(() => {
+                      let exportData = filteredData || data;
+                      if (filters.dateFrom && filters.dateTo) {
+                        exportData = exportData.filter((item: any) => {
+                          const itemDate = new Date(item.createdAt);
+                          const fromDate = new Date(filters.dateFrom);
+                          const toDate = new Date(filters.dateTo);
+                          return itemDate >= fromDate && itemDate <= toDate;
+                        });
+                      }
+                      return exportData.length;
+                    })()} รายการ
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
+          <Button color="danger" variant="light" onPress={handleClose}>
             ยกเลิก
           </Button>
           <Button color="primary" onPress={handleExport}>

@@ -45,6 +45,7 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
+import { formatThaiDateTime } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -563,14 +564,7 @@ export default function QuestionPage() {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {new Date(item.createdAt).toLocaleDateString("th-TH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                น.
+                {formatThaiDateTime(item.createdAt)}
               </p>
             </div>
           );

@@ -87,7 +87,7 @@ export const ExportButton = ({
     <>
       <Button
         color="success"
-        isDisabled={true}
+        isDisabled={false}
         size="md"
         startContent={<ArrowDownTrayIcon className="w-4 h-4" />}
         variant="bordered"

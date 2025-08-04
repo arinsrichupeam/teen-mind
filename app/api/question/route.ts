@@ -35,11 +35,16 @@ export async function GET() {
           firstname: true,
           lastname: true,
           birthday: true,
+          citizenId: true,
+          tel: true,
           hn: true,
+          sex: true,
           school: {
             select: {
               id: true,
               name: true,
+              districtId: true,
+              screeningDate: true,
             },
           },
         },

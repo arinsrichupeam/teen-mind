@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { subtitle, title } from "@/components/primitives";
 import Loading from "@/app/loading";
+import { formatThaiDate } from "@/utils/helper";
 
 export default function QuestionListPage() {
   const router = useRouter();
@@ -68,11 +69,7 @@ export default function QuestionListPage() {
                     <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
                     <p>
                       วันที่{" "}
-                      {new Date(val.createdAt).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {formatThaiDate(val.createdAt)}
                     </p>
                     {val.result === "Green" ? (
                       <div className="flex flex-col gap-2">

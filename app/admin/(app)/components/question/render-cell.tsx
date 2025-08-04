@@ -13,6 +13,7 @@ import {
 import { questionStatusOptions as options } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
+import { formatThaiDateTime } from "@/utils/helper";
 
 interface Props {
   data: any;
@@ -125,13 +126,7 @@ export const RenderCell = ({
       return (
         <div>
           <span>
-            {new Date(data.createdAt).toLocaleDateString("th-TH", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatThaiDateTime(data.createdAt)}
           </span>
         </div>
       );

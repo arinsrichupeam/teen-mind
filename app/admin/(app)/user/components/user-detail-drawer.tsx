@@ -21,6 +21,7 @@ import { ModalEditProfile } from "../../components/modal/modal-edit-profile";
 import { ModalAddQuestion } from "../../components/modal/modal-add-question";
 
 import { prefix } from "@/utils/data";
+import { formatThaiDateTime, formatThaiDate } from "@/utils/helper";
 
 interface Provinces {
   id: number;
@@ -219,13 +220,7 @@ export default function UserDetailDrawer({
                   <div>
                     <span className="text-default-500">วัน/เดือน/ปี เกิด:</span>
                     <span className="font-medium ml-2">
-                      {user.birthday
-                        ? new Date(user.birthday).toLocaleDateString("th-TH", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                          })
-                        : "-"}
+                      {formatThaiDate(user.birthday || "")}
                     </span>
                   </div>
                   <div>
@@ -360,19 +355,7 @@ export default function UserDetailDrawer({
               <div className="flex flex-col gap-2 mt-3">
                 {user.questions.length > 0 ? (
                   user.questions.map((question) => {
-                    const assessmentDate = question.createdAt
-                      ? new Date(question.createdAt)
-                      : null;
-                    const formattedDate =
-                      assessmentDate && !isNaN(assessmentDate.getTime())
-                        ? assessmentDate.toLocaleDateString("th-TH", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-";
+                    const formattedDate = formatThaiDateTime(question.createdAt);
                     const getResultColor = (result: string) => {
                       switch (result) {
                         case "Green":
