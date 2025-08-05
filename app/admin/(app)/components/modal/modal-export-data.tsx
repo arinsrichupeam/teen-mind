@@ -79,7 +79,7 @@ export const ModalExportData = ({
       { key: "followUpDate1", label: "วันที่ติดตามครั้งที่ 1", selected: true },
       { key: "followUpDate2", label: "วันที่ติดตามครั้งที่ 2", selected: true },
       { key: "followUpDate3", label: "วันที่ติดตามครั้งที่ 3", selected: true },
-      { key: "referralUnit", label: "หน่วยบริการส่งต่อ", selected: true },
+      { key: "referralUnit", label: "หน่วยบริการส่งต่อพบแพทย์", selected: true },
     ];
   };
 
