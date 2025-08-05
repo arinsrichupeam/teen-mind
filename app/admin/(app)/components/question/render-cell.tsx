@@ -125,9 +125,7 @@ export const RenderCell = ({
     case "date":
       return (
         <div>
-          <span>
-            {formatThaiDateTime(data.createdAt)}
-          </span>
+          <span>{formatThaiDateTime(data.createdAt)}</span>
         </div>
       );
     case "status":

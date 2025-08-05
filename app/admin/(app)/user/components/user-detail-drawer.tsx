@@ -355,7 +355,9 @@ export default function UserDetailDrawer({
               <div className="flex flex-col gap-2 mt-3">
                 {user.questions.length > 0 ? (
                   user.questions.map((question) => {
-                    const formattedDate = formatThaiDateTime(question.createdAt);
+                    const formattedDate = formatThaiDateTime(
+                      question.createdAt
+                    );
                     const getResultColor = (result: string) => {
                       switch (result) {
                         case "Green":

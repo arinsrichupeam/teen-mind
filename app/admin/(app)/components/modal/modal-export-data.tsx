@@ -7,29 +7,19 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Chip,
   Card,
   CardBody,
-  Input,
   DatePicker,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
+  Select,
+  SelectItem,
+  addToast,
 } from "@heroui/react";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
+import { parseDate } from "@internationalized/date";
 
 import { prefix } from "@/utils/data";
-import { parseDate } from "@internationalized/date";
 import { formatThaiDate } from "@/utils/helper";
-
-interface District {
-  id: number;
-  nameInThai: string;
-}
 
 interface ExportField {
   key: string;
@@ -42,73 +32,55 @@ interface ExportModalProps {
   onClose: () => void;
   data: any[];
   dataType: "question" | "user" | "school" | "volunteer";
-  filteredData?: any[];
 }
-
-
 
 export const ModalExportData = ({
   isOpen,
   onClose,
   data,
   dataType,
-  filteredData,
 }: ExportModalProps) => {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     dateFrom: "",
     dateTo: "",
+    school: "",
+    phqa: "",
   });
-  const [districts, setDistricts] = useState<District[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
 
-  // กำหนดฟิลด์ที่สามารถ export ได้ตามประเภทข้อมูล
+  // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบสอบถาม
   const getAvailableFields = (): ExportField[] => {
-    switch (dataType) {
-      case "question":
-        return [
-          { key: "id", label: "ลำดับ", selected: true },
-          { key: "province", label: "จังหวัด", selected: true },
-          { key: "hospitalCode", label: "รหัสหน่วยบริการ", selected: true },
-          { key: "hospitalName", label: "ชื่อหน่วยบริการ", selected: true },
-          { key: "name", label: "ชื่อ-สกุล ผู้รับบริการ", selected: true },
-          { key: "citizenId", label: "เลขบัตรประชาชน", selected: true },
-          { key: "age", label: "อายุ (นับปี)", selected: true },
-          { key: "sex", label: "เพศ", selected: true },
-          { key: "insurance", label: "สิทธิ์การรักษา", selected: true },
-          { key: "school", label: "โรงเรียน", selected: true },
-          { key: "grade", label: "ระดับชั้น", selected: true },
-          { key: "district", label: "เขต", selected: true },
-          { key: "serviceDate", label: "วดป.ที่เข้ารับบริการ", selected: true },
-          { key: "phqa", label: "ระดับภาวะซึมเศร้า", selected: true },
-          {
-            key: "assessmentDate",
-            label: "วดป.ที่เข้ารับบริการ",
-            selected: true,
-          },
-        ];
-      case "user":
-        return [
-          { key: "id", label: "ลำดับ", selected: true },
-          { key: "name", label: "ชื่อ-นามสกุล", selected: true },
-          { key: "school", label: "โรงเรียน", selected: true },
-          { key: "questionCount", label: "จำนวนแบบสอบถาม", selected: true },
-          { key: "citizenId", label: "เลขบัตรประชาชน", selected: false },
-          { key: "tel", label: "เบอร์โทรศัพท์", selected: false },
-        ];
-      case "school":
-        return [
-          { key: "id", label: "ลำดับ", selected: true },
-          { key: "schoolName", label: "ชื่อโรงเรียน", selected: true },
-          { key: "total", label: "ผู้รับบริการ", selected: true },
-          { key: "green", label: "สีเขียว", selected: true },
-          { key: "greenLow", label: "สีเขียวอ่อน", selected: true },
-          { key: "yellow", label: "สีเหลือง", selected: true },
-          { key: "orange", label: "สีส้ม", selected: true },
-          { key: "red", label: "สีแดง", selected: true },
-        ];
-      default:
-        return [];
-    }
+    return [
+      { key: "id", label: "ลำดับ", selected: true },
+      { key: "province", label: "จังหวัด", selected: true },
+      { key: "hospitalCode", label: "รหัสหน่วยบริการ", selected: true },
+      { key: "hospitalName", label: "ชื่อหน่วยบริการ", selected: true },
+      { key: "name", label: "ชื่อ-สกุล ผู้รับบริการ", selected: true },
+      { key: "citizenId", label: "เลขบัตรประชาชน", selected: true },
+      { key: "age", label: "อายุ", selected: true },
+      { key: "sex", label: "เพศ", selected: true },
+      { key: "insurance", label: "สิทธิ์การรักษา", selected: true },
+      { key: "school", label: "โรงเรียน", selected: true },
+      { key: "grade", label: "ระดับชั้น", selected: true },
+      { key: "district", label: "เขต", selected: true },
+      {
+        key: "serviceDate",
+        label: "วันที่เข้ารับบริการคัดกรอง",
+        selected: true,
+      },
+      { key: "phqa", label: "ระดับภาวะซึมเศร้า", selected: true },
+      {
+        key: "assessmentDate",
+        label: "วันที่เข้ารับบริการพบนักจิตวิทยา",
+        selected: true,
+      },
+      { key: "followUpDate1", label: "วันที่ติดตามครั้งที่ 1", selected: true },
+      { key: "followUpDate2", label: "วันที่ติดตามครั้งที่ 2", selected: true },
+      { key: "followUpDate3", label: "วันที่ติดตามครั้งที่ 3", selected: true },
+      { key: "referralUnit", label: "หน่วยบริการส่งต่อ", selected: true },
+    ];
   };
 
   const availableFields = useMemo(() => getAvailableFields(), [dataType]);
@@ -117,28 +89,36 @@ export const ModalExportData = ({
   useEffect(() => {
     if (availableFields.length > 0 && selectedFields.length === 0) {
       const allFields = availableFields.map((field) => field.key);
+
       setSelectedFields(allFields);
     }
   }, [availableFields, selectedFields.length]);
 
-  // ดึงข้อมูลเขต
+  // ดึงข้อมูลโรงเรียน
   useEffect(() => {
-    const fetchDistricts = async () => {
+    const fetchSchools = async () => {
+      setSchoolsLoading(true);
       try {
-        const response = await fetch('/api/data/districts');
+        const response = await fetch("/api/data/school");
+
         if (response.ok) {
           const data = await response.json();
-          setDistricts(data);
+
+          setSchools(data);
         }
       } catch (error) {
-        console.error('Error fetching districts:', error);
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลโรงเรียนได้" + error,
+          color: "danger",
+        });
+      } finally {
+        setSchoolsLoading(false);
       }
     };
 
-    fetchDistricts();
+    fetchSchools();
   }, []);
-
-
 
   const handleFilterChange = useCallback((key: string, value: any) => {
     setFilters((prev) => ({
@@ -147,15 +127,88 @@ export const ModalExportData = ({
     }));
   }, []);
 
-  const calculateAge = (birthday: string): number => {
+  // ฟังก์ชันสำหรับ filter ข้อมูล
+  const getFilteredData = useCallback(() => {
+    let filteredData = [...data];
+
+    // Filter ตามวันที่
+    if (filters.dateFrom && filters.dateTo) {
+      filteredData = filteredData.filter((item: any) => {
+        const itemDate = new Date(item.createdAt);
+        const fromDate = new Date(filters.dateFrom);
+        const toDate = new Date(filters.dateTo);
+
+        return itemDate >= fromDate && itemDate <= toDate;
+      });
+    }
+
+    // Filter ตามโรงเรียน
+    if (filters.school) {
+      filteredData = filteredData.filter((item: any) => {
+        return item.profile?.school?.id?.toString() === filters.school;
+      });
+    }
+
+    // Filter ตามระดับภาวะซึมเศร้า
+    if (filters.phqa) {
+      filteredData = filteredData.filter((item: any) => {
+        return item.result_text === filters.phqa;
+      });
+    }
+
+    // Filter ตามอายุ 12-18 ปี (อัตโนมัติ)
+    filteredData = filteredData.filter((item: any) => {
+      if (!item.profile?.birthday) return false;
+
+      const birthDate = new Date(item.profile.birthday);
+      const assessmentDate = new Date(item.createdAt);
+
+      // คำนวณอายุ ณ วันที่ตรวจ
+      let age = assessmentDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = assessmentDate.getMonth() - birthDate.getMonth();
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && assessmentDate.getDate() < birthDate.getDate())
+      ) {
+        age--;
+      }
+
+      return age >= 12 && age <= 18;
+    });
+
+    // Filter ให้แสดงเฉพาะแบบประเมินล่าสุดของแต่ละคน
+    const latestAssessments = new Map();
+
+    filteredData.forEach((item: any) => {
+      const profileId = item.profile?.id;
+
+      if (profileId) {
+        const existingItem = latestAssessments.get(profileId);
+
+        if (
+          !existingItem ||
+          new Date(item.createdAt) > new Date(existingItem.createdAt)
+        ) {
+          latestAssessments.set(profileId, item);
+        }
+      }
+    });
+
+    filteredData = Array.from(latestAssessments.values());
+
+    return filteredData;
+  }, [data, filters]);
+
+  const calculateAge = (birthday: string, assessmentDate?: string): number => {
     const birthDate = new Date(birthday);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const targetDate = assessmentDate ? new Date(assessmentDate) : new Date();
+    let age = targetDate.getFullYear() - birthDate.getFullYear();
+    const monthDiff = targetDate.getMonth() - birthDate.getMonth();
 
     if (
       monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      (monthDiff === 0 && targetDate.getDate() < birthDate.getDate())
     ) {
       age--;
     }
@@ -167,8 +220,12 @@ export const ModalExportData = ({
     switch (field) {
       case "id":
         // ใช้ index + 1 เพื่อให้เป็นลำดับ 1, 2, 3, 4
-        const dataIndex = (filteredData || data).findIndex((dataItem: any) => dataItem.id === item.id);
-        return dataIndex !== -1 ? dataIndex + 1 : "-";
+        const filteredData = getFilteredData();
+        const itemIndex = filteredData.findIndex(
+          (dataItem: any) => dataItem.id === item.id
+        );
+
+        return itemIndex !== -1 ? itemIndex + 1 : "-";
       case "province":
         return "กรุงเทพมหานคร";
       case "hospitalCode":
@@ -185,7 +242,7 @@ export const ModalExportData = ({
         return item.profile?.citizenId;
       case "age":
         return item.profile?.birthday
-          ? calculateAge(item.profile.birthday)
+          ? calculateAge(item.profile.birthday, item.createdAt)
           : "-";
       case "sex":
         return item.profile?.sex === 1
@@ -201,36 +258,29 @@ export const ModalExportData = ({
         return "";
       case "district":
         if (item.profile?.school?.districtId) {
-          const district = districts.find(d => d.id === item.profile.school.districtId);
-          return district ? district.nameInThai : `เขต ${item.profile.school.districtId}`;
+          if (schoolsLoading) {
+            return "-";
+          }
+          const school = schools.find((s) => s.id === item.profile.school.id);
+
+          return school ? school.name : `โรงเรียน ${item.profile.school.id}`;
         }
+
         return "-";
       case "serviceDate":
         return formatThaiDate(item.createdAt);
       case "phqa":
-        return item.phqa?.[0]?.sum || "-";
+        return item.result_text || "-";
       case "assessmentDate":
-        return formatThaiDate(item.profile?.school?.screeningDate);
-      case "result":
-        return item.phqa?.[0]?.result || "-";
-      case "q2":
-        return item.q2?.[0] ? `${item.q2[0].q1},${item.q2[0].q2}` : "-";
-      case "addon":
-        return item.addon?.[0]
-          ? `${item.addon[0].q1},${item.addon[0].q2}`
-          : "-";
-      case "date":
         return formatThaiDate(item.createdAt);
-      case "status":
-        return item.status ? "เสร็จสิ้น" : "รอดำเนินการ";
-      case "tel":
-        return item.profile?.tel || "-";
-      case "referent":
-        return item.referent
-          ? `${item.referent.firstname} ${item.referent.lastname}`
-          : "-";
-      case "questionCount":
-        return item.questions?.length || 0;
+      case "followUpDate1":
+        return item.followUpDate1 ? formatThaiDate(item.followUpDate1) : "-";
+      case "followUpDate2":
+        return item.followUpDate2 ? formatThaiDate(item.followUpDate2) : "-";
+      case "followUpDate3":
+        return item.followUpDate3 ? formatThaiDate(item.followUpDate3) : "-";
+      case "referralUnit":
+        return item.referralUnit || "-";
       default:
         return item[field] || "-";
     }
@@ -242,29 +292,20 @@ export const ModalExportData = ({
     setFilters({
       dateFrom: "",
       dateTo: "",
+      school: "",
+      phqa: "",
     });
-    
+
     // เรียก onClose จาก props
     onClose();
   }, [onClose]);
 
   const handleExport = useCallback(() => {
-    // ใช้ข้อมูลที่กรองแล้วหรือข้อมูลทั้งหมด
-    let exportData = filteredData || data;
-
-    // กรองข้อมูลตามวันที่ตรวจ
-    if (filters.dateFrom && filters.dateTo) {
-      exportData = exportData.filter((item: any) => {
-        const itemDate = new Date(item.createdAt);
-        const fromDate = new Date(filters.dateFrom);
-        const toDate = new Date(filters.dateTo);
-
-        return itemDate >= fromDate && itemDate <= toDate;
-      });
-    }
+    // ใช้ข้อมูลที่กรองแล้ว
+    const filteredExportData = getFilteredData();
 
     // สร้างข้อมูลสำหรับ export
-    const excelData = exportData.map((item: any) => {
+    const excelData = filteredExportData.map((item: any) => {
       const row: any = {};
 
       selectedFields.forEach((field) => {
@@ -298,7 +339,7 @@ export const ModalExportData = ({
     XLSX.writeFile(wb, fileName);
 
     handleClose();
-  }, [selectedFields, filters, data, filteredData, availableFields, handleClose]);
+  }, [selectedFields, filters, availableFields, handleClose, getFilteredData]);
 
   // สร้างข้อมูลตัวอย่างสำหรับแสดงในตาราง
   const getSampleData = useCallback(() => {
@@ -307,21 +348,15 @@ export const ModalExportData = ({
       return [];
     }
 
-    let exportData = filteredData || data;
-
-    // กรองข้อมูลตามวันที่ตรวจ
-    if (filters.dateFrom && filters.dateTo) {
-      exportData = exportData.filter((item: any) => {
-        const itemDate = new Date(item.createdAt);
-        const fromDate = new Date(filters.dateFrom);
-        const toDate = new Date(filters.dateTo);
-
-        return itemDate >= fromDate && itemDate <= toDate;
-      });
+    // ถ้ายังกำลังโหลดข้อมูลโรงเรียน ให้รอก่อน
+    if (schoolsLoading) {
+      return [];
     }
 
+    const filteredSampleData = getFilteredData();
+
     // ใช้ข้อมูล 5 รายการแรกเป็นตัวอย่าง
-    return exportData.slice(0, 5).map((item: any) => {
+    return filteredSampleData.slice(0, 5).map((item: any) => {
       const row: any = {};
 
       selectedFields.forEach((field) => {
@@ -333,9 +368,18 @@ export const ModalExportData = ({
 
       return row;
     });
-  }, [selectedFields, filters, data, filteredData, availableFields]);
+  }, [selectedFields, data, availableFields, schoolsLoading, getFilteredData]);
 
   const sampleData = useMemo(() => getSampleData(), [getSampleData]);
+
+  // สร้างรายการ PHQA สำหรับ filter
+  const phqaOptions = useMemo(() => {
+    const uniquePhqa = Array.from(
+      new Set(data.map((item) => item.result_text).filter(Boolean))
+    );
+
+    return uniquePhqa.sort();
+  }, [data]);
 
   return (
     <Modal
@@ -351,22 +395,30 @@ export const ModalExportData = ({
         </ModalHeader>
         <ModalBody>
           <div className="space-y-6">
-            {/* กรองวันที่ตรวจ */}
+            {/* Filter Options */}
             <Card>
               <CardBody>
-                <h4 className="font-medium mb-3">กรองวันที่ตรวจ</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <h4 className="font-medium mb-3">ตัวกรองข้อมูล</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* วันที่เริ่มต้น */}
                   <div>
                     <label className="text-sm font-medium" htmlFor="dateFrom">
                       วันที่เริ่มต้น
                     </label>
                     <DatePicker
-                      value={filters.dateFrom ? parseDate(filters.dateFrom) : null}
+                      value={
+                        filters.dateFrom ? parseDate(filters.dateFrom) : null
+                      }
                       onChange={(date) =>
-                        handleFilterChange("dateFrom", date ? date.toString() : "")
+                        handleFilterChange(
+                          "dateFrom",
+                          date ? date.toString() : ""
+                        )
                       }
                     />
                   </div>
+
+                  {/* วันที่สิ้นสุด */}
                   <div>
                     <label className="text-sm font-medium" htmlFor="dateTo">
                       วันที่สิ้นสุด
@@ -374,9 +426,54 @@ export const ModalExportData = ({
                     <DatePicker
                       value={filters.dateTo ? parseDate(filters.dateTo) : null}
                       onChange={(date) =>
-                        handleFilterChange("dateTo", date ? date.toString() : "")
+                        handleFilterChange(
+                          "dateTo",
+                          date ? date.toString() : ""
+                        )
                       }
                     />
+                  </div>
+
+                  {/* โรงเรียน */}
+                  <div>
+                    <label className="text-sm font-medium" htmlFor="school">
+                      โรงเรียน
+                    </label>
+                    <Select
+                      placeholder="เลือกโรงเรียน"
+                      selectedKeys={filters.school ? [filters.school] : []}
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0] as string;
+
+                        handleFilterChange("school", selectedKey || "");
+                      }}
+                    >
+                      {schools.map((school) => (
+                        <SelectItem key={school.id.toString()}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+
+                  {/* ระดับภาวะซึมเศร้า */}
+                  <div>
+                    <label className="text-sm font-medium" htmlFor="phqa">
+                      ระดับภาวะซึมเศร้า
+                    </label>
+                    <Select
+                      placeholder="เลือกระดับ"
+                      selectedKeys={filters.phqa ? [filters.phqa] : []}
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0] as string;
+
+                        handleFilterChange("phqa", selectedKey || "");
+                      }}
+                    >
+                      {phqaOptions.map((phqa) => (
+                        <SelectItem key={phqa}>{phqa}</SelectItem>
+                      ))}
+                    </Select>
                   </div>
                 </div>
               </CardBody>
@@ -386,69 +483,83 @@ export const ModalExportData = ({
             <Card>
               <CardBody>
                 <h4 className="font-medium mb-3">ตัวอย่างข้อมูลที่จะ Export</h4>
-                                 <div className="overflow-x-auto border rounded-lg">
-                   {selectedFields.length > 0 && availableFields.length > 0 ? (
-                     <Table 
-                       aria-label="ตัวอย่างข้อมูล"
-                       classNames={{
-                         wrapper: "min-h-[200px]",
-                         table: "min-w-full",
-                       }}
-                     >
-                       <TableHeader>
-                         {selectedFields.map((field) => {
-                           const fieldLabel =
-                             availableFields.find((f) => f.key === field)?.label || field;
-                           return (
-                             <TableColumn key={field} className="text-sm font-medium bg-gray-50 px-4 py-3">
-                               {fieldLabel}
-                             </TableColumn>
-                           );
-                         })}
-                       </TableHeader>
-                       <TableBody>
-                         {sampleData.map((row, index) => (
-                           <TableRow key={index} className="hover:bg-gray-50">
-                             {selectedFields.map((field) => {
-                               const fieldLabel =
-                                 availableFields.find((f) => f.key === field)?.label || field;
-                               return (
-                                 <TableCell key={field} className="text-sm px-4 py-3 border-b">
-                                   <div className="max-w-[200px] truncate" title={row[fieldLabel] || "-"}>
-                                     {row[fieldLabel] || "-"}
-                                   </div>
-                                 </TableCell>
-                               );
-                             })}
-                           </TableRow>
-                         ))}
-                       </TableBody>
-                     </Table>
-                   ) : (
-                     <div className="text-center py-8 text-gray-500">
-                       {availableFields.length === 0 ? "ไม่พบข้อมูลสำหรับประเภทนี้" : "กำลังโหลดข้อมูล..."}
-                     </div>
-                   )}
-                 </div>
-                                 {selectedFields.length > 0 && sampleData.length === 0 && (
-                   <div className="text-center py-8 text-gray-500">
-                     ไม่มีข้อมูลตัวอย่าง
-                   </div>
-                 )}
-                {sampleData.length > 0 && (
+                <div className="overflow-x-auto border rounded-lg">
+                  {selectedFields.length > 0 && availableFields.length > 0 ? (
+                    schoolsLoading ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+                          <span>กำลังโหลดข้อมูลโรงเรียน...</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <table className="min-w-full border border-gray-300 text-sm">
+                        <thead>
+                          <tr>
+                            {selectedFields.map((field) => {
+                              const fieldLabel =
+                                availableFields.find((f) => f.key === field)
+                                  ?.label || field;
+                              const numberMatch =
+                                fieldLabel.match(/^\((\d+)\)\s*(.+)$/);
+                              const label = numberMatch
+                                ? numberMatch[2]
+                                : fieldLabel;
+
+                              return (
+                                <th
+                                  key={field}
+                                  className="bg-gray-50 border border-gray-300 text-center font-semibold"
+                                >
+                                  {label}
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sampleData.map((row, index) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                              {selectedFields.map((field) => {
+                                const fieldLabel =
+                                  availableFields.find((f) => f.key === field)
+                                    ?.label || field;
+
+                                // แสดงข้อมูลแยกกันสำหรับทุกคอลัมน์
+                                return (
+                                  <td
+                                    key={field}
+                                    className="px-4 py-3 border border-gray-300 text-center max-w-[200px] truncate"
+                                    title={row[fieldLabel] || "-"}
+                                  >
+                                    {row[fieldLabel] || "-"}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      {availableFields.length === 0
+                        ? "ไม่พบข้อมูลสำหรับประเภทนี้"
+                        : "กำลังโหลดข้อมูล..."}
+                    </div>
+                  )}
+                </div>
+                {selectedFields.length > 0 &&
+                  sampleData.length === 0 &&
+                  !schoolsLoading && (
+                    <div className="text-center py-8 text-gray-500">
+                      ไม่มีข้อมูลตัวอย่าง
+                    </div>
+                  )}
+                {sampleData.length > 0 && !schoolsLoading && (
                   <div className="mt-3 text-xs text-gray-500 text-center">
-                    แสดงตัวอย่าง {sampleData.length} รายการแรกจากทั้งหมด {(() => {
-                      let exportData = filteredData || data;
-                      if (filters.dateFrom && filters.dateTo) {
-                        exportData = exportData.filter((item: any) => {
-                          const itemDate = new Date(item.createdAt);
-                          const fromDate = new Date(filters.dateFrom);
-                          const toDate = new Date(filters.dateTo);
-                          return itemDate >= fromDate && itemDate <= toDate;
-                        });
-                      }
-                      return exportData.length;
-                    })()} รายการ
+                    แสดงตัวอย่าง {sampleData.length} รายการแรกจากทั้งหมด{" "}
+                    {getFilteredData().length} รายการ
                   </div>
                 )}
               </CardBody>

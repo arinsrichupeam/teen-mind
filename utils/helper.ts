@@ -337,47 +337,69 @@ export const safeParseDateForPicker = (dateValue: any): any => {
 // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย
 export const formatThaiDate = (dateString: string | Date): string => {
   if (!dateString) return "-";
-  
+
   try {
     const date = new Date(dateString);
+
     if (isNaN(date.getTime())) return "-";
-    
+
     const thaiMonths = [
-      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
     ];
-    
+
     const day = date.getDate();
     const month = thaiMonths[date.getMonth()];
     const year = date.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-    
+
     return `${day} ${month} ${year}`;
   } catch (error) {
-    return "-";
+    return "ไม่ระบุวันที่" + error;
   }
 };
 
 // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทยพร้อมเวลา
 export const formatThaiDateTime = (dateString: string | Date): string => {
   if (!dateString) return "-";
-  
+
   try {
     const date = new Date(dateString);
+
     if (isNaN(date.getTime())) return "-";
-    
+
     const thaiMonths = [
-      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
     ];
-    
+
     const day = date.getDate();
     const month = thaiMonths[date.getMonth()];
     const year = date.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+
     return `${day} ${month} ${year} ${hours}:${minutes} น.`;
   } catch (error) {
-    return "-";
+    return "ไม่ระบุวันที่" + error;
   }
 };

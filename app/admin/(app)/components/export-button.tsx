@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { addToast, Button } from "@heroui/react";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useDisclosure } from "@heroui/react";
 import { useSession } from "next-auth/react";
@@ -12,13 +12,11 @@ import { ProfileAdminData } from "@/types";
 
 interface ExportButtonProps {
   data: any[];
-  filteredData?: any[];
   showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
 }
 
 export const ExportButton = ({
   data,
-  filteredData,
   showForAllRoles = false,
 }: ExportButtonProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -58,8 +56,11 @@ export const ExportButton = ({
               );
             }
           } catch (error) {
-            // console.error("Failed to fetch admin profile:", error);
-            throw error;
+            addToast({
+              title: "เกิดข้อผิดพลาด",
+              description: "ไม่สามารถดึงข้อมูลผู้ใช้งานได้" + error,
+              color: "danger",
+            });
           }
         }
       };
@@ -100,7 +101,6 @@ export const ExportButton = ({
       <ModalExportData
         data={data}
         dataType="question"
-        filteredData={filteredData}
         isOpen={isOpen}
         onClose={onClose}
       />

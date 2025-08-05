@@ -67,10 +67,7 @@ export default function QuestionListPage() {
                 <Card key={index}>
                   <CardBody className="text-sm">
                     <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
-                    <p>
-                      วันที่{" "}
-                      {formatThaiDate(val.createdAt)}
-                    </p>
+                    <p>วันที่ {formatThaiDate(val.createdAt)}</p>
                     {val.result === "Green" ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
