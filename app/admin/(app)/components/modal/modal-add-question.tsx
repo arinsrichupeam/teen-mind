@@ -18,6 +18,7 @@ import {
 import { useState, useCallback } from "react";
 
 import { q2, qPhqa, phqaAddon } from "@/app/data";
+import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
 
 interface ModalAddQuestionProps {
   isOpen: boolean;
@@ -211,29 +212,8 @@ export const ModalAddQuestion = ({
       ].reduce((sum, val) => sum + val, 0);
 
       // คำนวณผลลัพธ์
-      let result = "";
-      let result_text = "";
-
-      if (phqaSum > 14) {
-        if (phqaSum >= 15 && phqaSum <= 19) {
-          result = "Orange";
-          result_text = "พบความเสี่ยงมาก";
-        } else if (phqaSum >= 20 && phqaSum <= 27) {
-          result = "Red";
-          result_text = "พบความเสี่ยงรุนแรง";
-        }
-      } else if (phqaSum > 9) {
-        result = "Yellow";
-        result_text = "พบความเสี่ยงปานกลาง";
-      } else {
-        if (phqaSum >= 0 && phqaSum <= 4) {
-          result = "Green";
-          result_text = "ไม่พบความเสี่ยง";
-        } else if (phqaSum >= 5 && phqaSum <= 9) {
-          result = "Green-Low";
-          result_text = "พบความเสี่ยงเล็กน้อย";
-        }
-      }
+      const result = getPhqaRiskLevel(phqaSum);
+      const result_text = getPhqaRiskText(phqaSum);
 
       const response = await fetch(`/api/question`, {
         method: "POST",

@@ -16,6 +16,39 @@ export function CheckPHQAStatus(val: number) {
   }
 }
 
+// ฟังก์ชันคำนวณระดับความเสี่ยง PHQA และ return result value
+export function getPhqaRiskLevel(sum: number): string {
+  if (sum >= 0 && sum <= 4) return "Green";
+  if (sum >= 5 && sum <= 9) return "Green-Low";
+  if (sum >= 10 && sum <= 14) return "Yellow";
+  if (sum >= 15 && sum <= 19) return "Orange";
+  if (sum >= 20 && sum <= 27) return "Red";
+
+  return ""; // default value เป็นค่าว่าง
+}
+
+// ฟังก์ชันคำนวณระดับความเสี่ยง PHQA และ return result_text
+export function getPhqaRiskText(sum: number): string {
+  if (sum >= 0 && sum <= 4) return "ไม่พบความเสี่ยง";
+  if (sum >= 5 && sum <= 9) return "พบความเสี่ยงเล็กน้อย";
+  if (sum >= 10 && sum <= 14) return "พบความเสี่ยงปานกลาง";
+  if (sum >= 15 && sum <= 19) return "พบความเสี่ยงมาก";
+  if (sum >= 20 && sum <= 27) return "พบความเสี่ยงรุนแรง";
+
+  return ""; // default value เป็นค่าว่าง
+}
+
+// ฟังก์ชันคำนวณระดับความเสี่ยง PHQA จาก item object
+export function calculatePhqaRiskLevel(item: any): string {
+  if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+    const sum = item.phqa[0].sum;
+
+    return getPhqaRiskLevel(sum);
+  }
+
+  return ""; // default value เป็นค่าว่าง
+}
+
 // ฟังก์ชันตรวจสอบจำนวนวันในแต่ละเดือน
 export function getDaysInMonth(month: number, year: number): number {
   const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];

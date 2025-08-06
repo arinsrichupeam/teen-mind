@@ -1,32 +1,12 @@
 import { Questions_PHQA } from "@prisma/client";
 
+import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
 import { prisma } from "@/utils/prisma";
 
 // ฟังก์ชันคำนวณผลลัพธ์ PHQA
 function calculateResult(phqa_sum: number) {
-  let result = "";
-  let result_text = "";
-
-  if (phqa_sum > 14) {
-    if (phqa_sum >= 15 && phqa_sum <= 19) {
-      result = "Orange";
-      result_text = "พบความเสี่ยงมาก";
-    } else if (phqa_sum >= 20 && phqa_sum <= 27) {
-      result = "Red";
-      result_text = "พบความเสี่ยงรุนแรง";
-    }
-  } else if (phqa_sum > 9) {
-    result = "Yellow";
-    result_text = "พบความเสี่ยงปานกลาง";
-  } else {
-    if (phqa_sum >= 0 && phqa_sum <= 4) {
-      result = "Green";
-      result_text = "ไม่พบความเสี่ยง";
-    } else if (phqa_sum >= 5 && phqa_sum <= 9) {
-      result = "Green-Low";
-      result_text = "พบความเสี่ยงเล็กน้อย";
-    }
-  }
+  const result = getPhqaRiskLevel(phqa_sum);
+  const result_text = getPhqaRiskText(phqa_sum);
 
   return { result, result_text };
 }

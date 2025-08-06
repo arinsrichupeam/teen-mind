@@ -22,6 +22,7 @@ import useSWR from "swr";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 import { ExportButton } from "../export-button";
+import { StatusUpdateButton } from "../status-update-button";
 
 // ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
 const riskStatusOptions = [
@@ -31,11 +32,11 @@ const riskStatusOptions = [
 
 // ตัวเลือกสำหรับ filter สถานะ PHQA 5 ระดับ
 const phqaStatusOptions = [
-  { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
-  { name: "พบความเสี่ยงเล็กน้อย", uid: "low-risk" },
-  { name: "พบความเสี่ยงปานกลาง", uid: "medium-risk" },
-  { name: "พบความเสี่ยงมาก", uid: "high-risk" },
-  { name: "พบความเสี่ยงรุนแรง", uid: "severe-risk" },
+  { name: "ไม่พบความเสี่ยง", uid: "Green" },
+  { name: "พบความเสี่ยงเล็กน้อย", uid: "Green-Low" },
+  { name: "พบความเสี่ยงปานกลาง", uid: "Yellow" },
+  { name: "พบความเสี่ยงมาก", uid: "Orange" },
+  { name: "พบความเสี่ยงรุนแรง", uid: "Red" },
 ];
 
 interface QuestionFilterContentProps {
@@ -53,6 +54,7 @@ interface QuestionFilterContentProps {
   setAddonFilter: (filter: Selection) => void;
   data?: any[];
   filteredData?: any[];
+  onDataUpdate?: () => void;
 }
 
 export function QuestionFilterContent({
@@ -70,6 +72,7 @@ export function QuestionFilterContent({
   setAddonFilter,
   data,
   filteredData,
+  onDataUpdate,
 }: QuestionFilterContentProps) {
   // ดึงข้อมูลโรงเรียน
   const { data: schoolsData } = useSWR(
@@ -270,8 +273,12 @@ export function QuestionFilterContent({
           >
             ล้าง Filter
           </Button>
+
+          {/* ปุ่มปรับสถานะ */}
+          {data && <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />}
+
           {/* Export Button */}
-          {data && <ExportButton data={data} filteredData={filteredData} />}
+          {data && <ExportButton data={data} />}
         </div>
 
         {/* แสดง Filter ที่เลือก */}

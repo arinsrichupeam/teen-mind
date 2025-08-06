@@ -46,6 +46,7 @@ import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
 import { formatThaiDateTime } from "@/utils/helper";
+import { calculatePhqaRiskLevel } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -208,18 +209,7 @@ export default function QuestionPage() {
 
   // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
   const getPhqaRiskLevel = useCallback((item: QuestionsData) => {
-    if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-      const sum = item.phqa[0].sum;
-
-      if (sum === 0) return "no-risk";
-      if (sum <= 4) return "low-risk";
-      if (sum <= 9) return "medium-risk";
-      if (sum <= 14) return "high-risk";
-
-      return "severe-risk";
-    }
-
-    return "no-risk";
+    return calculatePhqaRiskLevel(item);
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -690,6 +680,7 @@ export default function QuestionPage() {
         setStatusFilter={setStatusFilter}
         statusFilter={statusFilter}
         onSearchChange={onSearchChange}
+        onDataUpdate={mutate}
       />
     ),
     [
@@ -707,6 +698,7 @@ export default function QuestionPage() {
       setAddonFilter,
       data,
       filteredItems,
+      mutate,
     ]
   );
 
