@@ -3,12 +3,14 @@ import { prisma } from "@/utils/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received request body:", body);
-    
+
     const { selectedIds, newStatus } = body;
 
-    if (!selectedIds || !Array.isArray(selectedIds) || selectedIds.length === 0) {
-      console.log("No selectedIds or invalid format:", selectedIds);
+    if (
+      !selectedIds ||
+      !Array.isArray(selectedIds) ||
+      selectedIds.length === 0
+    ) {
       return Response.json(
         {
           success: false,
@@ -19,7 +21,6 @@ export async function POST(req: Request) {
     }
 
     if (newStatus === undefined || newStatus === null) {
-      console.log("No newStatus provided:", newStatus);
       return Response.json(
         {
           success: false,
@@ -29,8 +30,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("Processing update for:", { selectedIds, newStatus });
-
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
@@ -38,8 +37,6 @@ export async function POST(req: Request) {
     // อัปเดตสถานะสำหรับแต่ละรายการที่เลือก
     for (const id of selectedIds) {
       try {
-        console.log(`Updating question ${id} to status ${newStatus}`);
-        
         await prisma.questions_Master.update({
           where: {
             id: id,
@@ -50,11 +47,11 @@ export async function POST(req: Request) {
         });
 
         successCount++;
-        console.log(`Successfully updated question ${id}`);
       } catch (error) {
         errorCount++;
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error(`Error updating question ${id}:`, errorMessage);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+
         errors.push(
           `Error updating status for question ${id}: ${errorMessage}`
         );
@@ -71,13 +68,12 @@ export async function POST(req: Request) {
       },
       errors: errors.length > 0 ? errors : undefined,
     };
-    
-    console.log("Final response:", response);
+
     return Response.json(response);
   } catch (error) {
-    console.error("API Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการอัปเดตสถานะ";
-    
+    const errorMessage =
+      error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการอัปเดตสถานะ";
+
     return Response.json(
       {
         success: false,
@@ -86,4 +82,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

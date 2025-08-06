@@ -114,8 +114,10 @@ export const ModalStatusUpdate = ({
   );
 
   const handleStatusUpdate = async () => {
-    const hasSelection = selectedKeys === "all" || (selectedKeys instanceof Set && selectedKeys.size > 0);
-    
+    const hasSelection =
+      selectedKeys === "all" ||
+      (selectedKeys instanceof Set && selectedKeys.size > 0);
+
     if (!hasSelection) {
       addToast({
         title: "ไม่พบข้อมูลที่เลือก",
@@ -140,21 +142,19 @@ export const ModalStatusUpdate = ({
 
     try {
       // ดึงข้อมูลที่เลือก
-      const selectedItems = selectedKeys === "all" 
-        ? filteredData 
-        : filteredData.filter((item) =>
-            selectedKeys instanceof Set && selectedKeys.has(item.id.toString())
-          );
+      const selectedItems =
+        selectedKeys === "all"
+          ? filteredData
+          : filteredData.filter(
+              (item) =>
+                selectedKeys instanceof Set &&
+                selectedKeys.has(item.id.toString())
+            );
 
       // ดึง ID ของรายการที่เลือก
       const selectedIds = selectedItems.map((item) => item.id.toString());
 
       // เรียก API เพื่ออัปเดตสถานะ
-      console.log("Sending request to API:", {
-        selectedIds,
-        newStatus: parseInt(newStatus),
-      });
-
       const response = await fetch("/api/question/update-status", {
         method: "POST",
         headers: {
@@ -166,33 +166,30 @@ export const ModalStatusUpdate = ({
         }),
       });
 
-      console.log("Response status:", response.status);
       const result = await response.json();
-      console.log("API response:", result);
 
-             if (result.success) {
-         addToast({
-           title: "สำเร็จ",
-           description: result.message,
-           color: "success",
-         });
+      if (result.success) {
+        addToast({
+          title: "สำเร็จ",
+          description: result.message,
+          color: "success",
+        });
 
-         // อัปเดตข้อมูลโดยไม่ต้อง refresh หน้า
-         if (onDataUpdate) {
-           onDataUpdate();
-         } else {
-           // Fallback: mutate ข้อมูลที่เกี่ยวข้อง
-           mutate("/api/question");
-         }
+        // อัปเดตข้อมูลโดยไม่ต้อง refresh หน้า
+        if (onDataUpdate) {
+          onDataUpdate();
+        } else {
+          // Fallback: mutate ข้อมูลที่เกี่ยวข้อง
+          mutate("/api/question");
+        }
 
-         onClose();
-         setSelectedSchool("");
-         setSelectedPhqa("");
-         setDisplayedItems(20);
-         setSelectedKeys(new Set([]));
-         setNewStatus("");
-       } else {
-        console.error("API returned error:", result);
+        onClose();
+        setSelectedSchool("");
+        setSelectedPhqa("");
+        setDisplayedItems(20);
+        setSelectedKeys(new Set([]));
+        setNewStatus("");
+      } else {
         addToast({
           title: "เกิดข้อผิดพลาด",
           description: result.error || "ไม่สามารถอัปเดตสถานะได้",
@@ -200,10 +197,11 @@ export const ModalStatusUpdate = ({
         });
       }
     } catch (error) {
-      console.error("Network or other error:", error);
       addToast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอัปเดตสถานะได้: " + (error instanceof Error ? error.message : "ไม่ระบุ"),
+        description:
+          "ไม่สามารถอัปเดตสถานะได้: " +
+          (error instanceof Error ? error.message : "ไม่ระบุ"),
         color: "danger",
       });
     } finally {
@@ -211,7 +209,9 @@ export const ModalStatusUpdate = ({
     }
   };
 
-  const hasSelection = selectedKeys === "all" || (selectedKeys instanceof Set && selectedKeys.size > 0);
+  const hasSelection =
+    selectedKeys === "all" ||
+    (selectedKeys instanceof Set && selectedKeys.size > 0);
 
   const handleClose = () => {
     setSelectedSchool("");
@@ -249,7 +249,9 @@ export const ModalStatusUpdate = ({
               <div>
                 <h3 className="text-lg font-semibold">ปรับสถานะ</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  แสดงเฉพาะข้อมูลที่มีระดับความเสี่ยง "ไม่พบความเสี่ยง" และ "พบความเสี่ยงเล็กน้อย" เท่านั้น
+                  แสดงเฉพาะข้อมูลที่มีระดับความเสี่ยง
+                  &quot;ไม่พบความเสี่ยง&quot; และ
+                  &quot;พบความเสี่ยงเล็กน้อย&quot; เท่านั้น
                 </p>
               </div>
             </ModalHeader>
@@ -304,8 +306,16 @@ export const ModalStatusUpdate = ({
                     <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            className="h-5 w-5 text-yellow-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              clipRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              fillRule="evenodd"
+                            />
                           </svg>
                         </div>
                         <div className="ml-3">
@@ -314,9 +324,13 @@ export const ModalStatusUpdate = ({
                           </h3>
                           <div className="mt-2 text-sm text-yellow-700">
                             <p>
-                              ไม่พบข้อมูลที่มีระดับความเสี่ยง "ไม่พบความเสี่ยง" หรือ "พบความเสี่ยงเล็กน้อย" 
-                              {selectedSchool && ` ในโรงเรียน ${selectedSchool}`}
-                              {selectedPhqa && ` ที่มีระดับความเสี่ยง ${phqaOptions.find(opt => opt.value === selectedPhqa)?.label}`}
+                              ไม่พบข้อมูลที่มีระดับความเสี่ยง
+                              &quot;ไม่พบความเสี่ยง&quot; หรือ
+                              &quot;พบความเสี่ยงเล็กน้อย&quot;
+                              {selectedSchool &&
+                                ` ในโรงเรียน ${selectedSchool}`}
+                              {selectedPhqa &&
+                                ` ที่มีระดับความเสี่ยง ${phqaOptions.find((opt) => opt.value === selectedPhqa)?.label}`}
                             </p>
                           </div>
                         </div>
@@ -325,49 +339,59 @@ export const ModalStatusUpdate = ({
                   )}
 
                   {filteredData.length > 0 && (
-                     <div className="mt-4">
-                       <div className="flex justify-between items-center mb-3">
-                         <h5 className="font-medium text-blue-800">
-                           รายการที่มีระดับความเสี่ยงต่ำ ({filteredData.length} รายการ):
-                         </h5>
-                         {selectedKeys !== "all" && selectedKeys instanceof Set && selectedKeys.size > 0 && (
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm text-gray-600">
-                               เลือกแล้ว: {selectedKeys.size} รายการ
-                             </span>
-                             <Select
-                               className="w-48"
-                               label="สถานะใหม่"
-                               placeholder="เลือกสถานะใหม่"
-                               selectedKeys={newStatus ? [newStatus] : []}
-                               size="sm"
-                               variant="bordered"
-                               onSelectionChange={(keys) => {
-                                 const selected = Array.from(keys)[0] as string;
-                                 setNewStatus(selected || "");
-                               }}
-                             >
-                               <SelectItem key="0">รอระบุ HN</SelectItem>
-                               <SelectItem key="1">รอจัดนัด Telemed</SelectItem>
-                               <SelectItem key="2">รอสรุปผลการให้คำปรึกษา</SelectItem>
-                               <SelectItem key="3">เสร็จสิ้น</SelectItem>
-                             </Select>
-                           </div>
-                         )}
-                       </div>
+                    <div className="mt-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <h5 className="font-medium text-blue-800">
+                          รายการที่มีระดับความเสี่ยงต่ำ ({filteredData.length}{" "}
+                          รายการ):
+                        </h5>
+                        {selectedKeys !== "all" &&
+                          selectedKeys instanceof Set &&
+                          selectedKeys.size > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">
+                                เลือกแล้ว: {selectedKeys.size} รายการ
+                              </span>
+                              <Select
+                                className="w-48"
+                                label="สถานะใหม่"
+                                placeholder="เลือกสถานะใหม่"
+                                selectedKeys={newStatus ? [newStatus] : []}
+                                size="sm"
+                                variant="bordered"
+                                onSelectionChange={(keys) => {
+                                  const selected = Array.from(
+                                    keys
+                                  )[0] as string;
+
+                                  setNewStatus(selected || "");
+                                }}
+                              >
+                                <SelectItem key="0">รอระบุ HN</SelectItem>
+                                <SelectItem key="1">
+                                  รอจัดนัด Telemed
+                                </SelectItem>
+                                <SelectItem key="2">
+                                  รอสรุปผลการให้คำปรึกษา
+                                </SelectItem>
+                                <SelectItem key="3">เสร็จสิ้น</SelectItem>
+                              </Select>
+                            </div>
+                          )}
+                      </div>
 
                       <div
                         className="max-h-60 overflow-y-auto border shadow-sm rounded-lg"
                         onScroll={handleScroll}
                       >
-                                                 <Table
-                           isStriped
-                           aria-label="รายการที่เลือก"
-                           className="w-full"
-                           selectionMode="multiple"
-                           selectedKeys={selectedKeys}
-                           onSelectionChange={setSelectedKeys}
-                         >
+                        <Table
+                          isStriped
+                          aria-label="รายการที่เลือก"
+                          className="w-full"
+                          selectedKeys={selectedKeys}
+                          selectionMode="multiple"
+                          onSelectionChange={setSelectedKeys}
+                        >
                           <TableHeader>
                             <TableColumn className="text-center">
                               ลำดับ
@@ -626,14 +650,14 @@ export const ModalStatusUpdate = ({
               <Button color="danger" variant="light" onPress={handleClose}>
                 ยกเลิก
               </Button>
-                             <Button
-                 color="primary"
-                 isDisabled={!hasSelection || !newStatus}
-                 isLoading={isLoading}
-                 onPress={handleStatusUpdate}
-               >
-                 ยืนยัน
-               </Button>
+              <Button
+                color="primary"
+                isDisabled={!hasSelection || !newStatus}
+                isLoading={isLoading}
+                onPress={handleStatusUpdate}
+              >
+                ยืนยัน
+              </Button>
             </ModalFooter>
           </>
         )}

@@ -679,8 +679,8 @@ export default function QuestionPage() {
         setSchoolFilter={setSchoolFilter}
         setStatusFilter={setStatusFilter}
         statusFilter={statusFilter}
-        onSearchChange={onSearchChange}
         onDataUpdate={mutate}
+        onSearchChange={onSearchChange}
       />
     ),
     [

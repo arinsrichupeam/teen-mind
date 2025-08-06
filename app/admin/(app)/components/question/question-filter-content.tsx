@@ -275,7 +275,9 @@ export function QuestionFilterContent({
           </Button>
 
           {/* ปุ่มปรับสถานะ */}
-          {data && <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />}
+          {data && (
+            <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />
+          )}
 
           {/* Export Button */}
           {data && <ExportButton data={data} />}

@@ -100,10 +100,10 @@ export const StatusUpdateButton = ({
         ปรับสถานะ
       </Button>
 
-      <ModalStatusUpdate 
-        data={data} 
-        isOpen={isOpen} 
-        onClose={onClose} 
+      <ModalStatusUpdate
+        data={data}
+        isOpen={isOpen}
+        onClose={onClose}
         onDataUpdate={onDataUpdate}
       />
     </>
