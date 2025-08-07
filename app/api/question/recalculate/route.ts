@@ -26,31 +26,6 @@ function calculateSum(phqa_data: Questions_PHQA) {
   );
 }
 
-// ฟังก์ชันคำนวณสถานะตามเงื่อนไข
-function calculateStatus(question: any) {
-  // ตรวจสอบ HN ว่าง
-  if (!question.profile?.hn) {
-    return 0; // รอระบุ HN
-  }
-
-  // ตรวจสอบ schedule_telemed และ Consultant ว่าง
-  if (!question.schedule_telemed || !question.consult) {
-    return 1; // รอจัดนัด Telemed
-  }
-
-  // ตรวจสอบ SOAP ว่าง
-  if (
-    !question.subjective ||
-    !question.objective ||
-    !question.assessment ||
-    !question.plan
-  ) {
-    return 2; // รอสรุปผลการให้คำปรึกษา
-  }
-
-  return 3; // เสร็จสิ้น
-}
-
 export async function POST() {
   try {
     // ดึงข้อมูลทั้งหมดที่มี PHQA
@@ -85,9 +60,6 @@ export async function POST() {
           // คำนวณผลลัพธ์ใหม่
           const { result, result_text } = calculateResult(newSum);
 
-          // คำนวณสถานะใหม่
-          const newStatus = calculateStatus(question);
-
           // อัปเดตข้อมูลในฐานข้อมูล
           await prisma.$transaction([
             // อัปเดต sum ใน PHQA
@@ -99,7 +71,7 @@ export async function POST() {
                 sum: newSum,
               },
             }),
-            // อัปเดต result, result_text และ status ใน Questions_Master
+            // อัปเดต result และ result_text ใน Questions_Master (ไม่รวม status)
             prisma.questions_Master.update({
               where: {
                 id: question.id,
@@ -107,7 +79,6 @@ export async function POST() {
               data: {
                 result: result,
                 result_text: result_text,
-                status: newStatus,
               },
             }),
           ]);
@@ -124,7 +95,7 @@ export async function POST() {
 
     return Response.json({
       success: true,
-      message: `Re-calculate completed. Success: ${successCount}, Errors: ${errorCount}`,
+      message: `คำนวณคะแนน PHQA ใหม่เสร็จสิ้น สำเร็จ: ${successCount}, ผิดพลาด: ${errorCount}`,
       summary: {
         total: totalQuestions,
         success: successCount,
@@ -139,7 +110,7 @@ export async function POST() {
         error:
           error instanceof Error
             ? error.message
-            : "เกิดข้อผิดพลาดในการ re-calculate",
+            : "เกิดข้อผิดพลาดในการคำนวณคะแนน PHQA ใหม่",
       },
       { status: 500 }
     );
