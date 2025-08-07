@@ -398,31 +398,31 @@ export const ModalStatusUpdate = ({
                           <Table
                             isStriped
                             aria-label="รายการที่เลือก"
-                            className="w-full min-w-[800px]"
+                            className="w-full"
                             selectedKeys={selectedKeys}
                             selectionMode="multiple"
                             onSelectionChange={setSelectedKeys}
                           >
                             <TableHeader>
-                              <TableColumn className="text-center w-16">
+                              <TableColumn className="text-center">
                                 ลำดับ
                               </TableColumn>
-                              <TableColumn className="text-center w-48">
+                              <TableColumn className="text-center">
                                 ชื่อ-นามสกุล
                               </TableColumn>
-                              <TableColumn className="text-center w-48">
+                              <TableColumn className="text-center">
                                 โรงเรียน
                               </TableColumn>
-                              <TableColumn className="text-center w-32">
+                              <TableColumn className="text-center">
                                 PHQA
                               </TableColumn>
-                              <TableColumn className="text-center w-24">
+                              <TableColumn className="text-center">
                                 2Q
                               </TableColumn>
-                              <TableColumn className="text-center w-24">
+                              <TableColumn className="text-center">
                                 Addon
                               </TableColumn>
-                              <TableColumn className="text-center w-32">
+                              <TableColumn className="text-center">
                                 สถานะ
                               </TableColumn>
                             </TableHeader>
@@ -611,11 +611,11 @@ export const ModalStatusUpdate = ({
                                       <TableCell className="text-center whitespace-nowrap">
                                         {index + 1}
                                       </TableCell>
-                                      <TableCell className="whitespace-nowrap max-w-48 truncate">
+                                      <TableCell className="whitespace-nowrap">
                                         {item.profile?.firstname}{" "}
                                         {item.profile?.lastname}
                                       </TableCell>
-                                      <TableCell className="text-center whitespace-nowrap max-w-48 truncate">
+                                      <TableCell className="text-center whitespace-nowrap">
                                         {getSchoolName(item)}
                                       </TableCell>
                                       <TableCell className="text-center whitespace-nowrap">
