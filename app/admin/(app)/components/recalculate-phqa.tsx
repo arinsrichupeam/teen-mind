@@ -249,8 +249,8 @@ export default function RecalculatePHQAPage() {
   }
 
   return (
-    <div className="max-w-[95rem] px-4 lg:px-6 mx-auto w-full flex flex-col gap-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen py-8">
-      <div className="flex justify-between items-center mb-4">
+    <div className="max-w-[95rem] px-4 lg:px-6 mx-auto w-full flex flex-col gap-3 min-h-screen py-4">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div>
             <h3 className="text-xl font-semibold">คำนวณคะแนน PHQA ใหม่</h3>
@@ -263,7 +263,7 @@ export default function RecalculatePHQAPage() {
 
       {/* สถิติปัจจุบัน */}
       <Card className="w-full shadow-lg">
-        <CardHeader className="flex gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+        <CardHeader className="flex gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
           <div className="flex flex-col">
             <p className="text-md font-semibold text-blue-800">สถิติปัจจุบัน</p>
             <p className="text-small text-blue-600">
@@ -396,7 +396,7 @@ export default function RecalculatePHQAPage() {
 
       {/* ปุ่ม Recalculate */}
       <Card className="w-full shadow-lg">
-        <CardHeader className="flex gap-3 bg-gradient-to-r from-warning-50 to-orange-50 p-6">
+        <CardHeader className="flex gap-3 bg-gradient-to-r from-warning-50 to-orange-50 p-4">
           <div className="flex flex-col">
             <p className="text-md font-semibold text-warning-800">
               คำนวณคะแนนและสถานะใหม่
