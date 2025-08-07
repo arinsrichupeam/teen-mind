@@ -1,24 +1,26 @@
 "use client";
 
 import { addToast, Button } from "@heroui/react";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { useDisclosure } from "@heroui/react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-import { ModalExportData } from "./modal/modal-export-data";
+import { ModalStatusUpdate } from "./modal/modal-status-update";
 
 import { ProfileAdminData } from "@/types";
 
-interface ExportButtonProps {
+interface StatusUpdateButtonProps {
   data: any[];
   showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
+  onDataUpdate?: () => void;
 }
 
-export const ExportButton = ({
+export const StatusUpdateButton = ({
   data,
   showForAllRoles = false,
-}: ExportButtonProps) => {
+  onDataUpdate,
+}: StatusUpdateButtonProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { data: session } = useSession();
   const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
@@ -88,22 +90,21 @@ export const ExportButton = ({
     <>
       <Button
         className="w-full sm:w-auto"
-        color="success"
+        color="primary"
         isDisabled={false}
         size="md"
-        startContent={<ArrowDownTrayIcon className="w-4 h-4" />}
+        startContent={<Cog6ToothIcon className="w-4 h-4" />}
         variant="bordered"
         onPress={onOpen}
-        // isDisabled={!isAdmin}
       >
-        Excel
+        ปรับสถานะ
       </Button>
 
-      <ModalExportData
+      <ModalStatusUpdate
         data={data}
-        dataType="question"
         isOpen={isOpen}
         onClose={onClose}
+        onDataUpdate={onDataUpdate}
       />
     </>
   );

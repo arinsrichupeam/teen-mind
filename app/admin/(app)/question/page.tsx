@@ -45,6 +45,8 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
+import { formatThaiDateTime } from "@/utils/helper";
+import { calculatePhqaRiskLevel } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -207,18 +209,7 @@ export default function QuestionPage() {
 
   // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
   const getPhqaRiskLevel = useCallback((item: QuestionsData) => {
-    if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-      const sum = item.phqa[0].sum;
-
-      if (sum === 0) return "no-risk";
-      if (sum <= 4) return "low-risk";
-      if (sum <= 9) return "medium-risk";
-      if (sum <= 14) return "high-risk";
-
-      return "severe-risk";
-    }
-
-    return "no-risk";
+    return calculatePhqaRiskLevel(item);
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -563,14 +554,7 @@ export default function QuestionPage() {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {new Date(item.createdAt).toLocaleDateString("th-TH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                น.
+                {formatThaiDateTime(item.createdAt)}
               </p>
             </div>
           );
@@ -695,6 +679,7 @@ export default function QuestionPage() {
         setSchoolFilter={setSchoolFilter}
         setStatusFilter={setStatusFilter}
         statusFilter={statusFilter}
+        onDataUpdate={mutate}
         onSearchChange={onSearchChange}
       />
     ),
@@ -713,6 +698,7 @@ export default function QuestionPage() {
       setAddonFilter,
       data,
       filteredItems,
+      mutate,
     ]
   );
 

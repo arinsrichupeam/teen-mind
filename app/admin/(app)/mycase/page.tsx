@@ -39,6 +39,8 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
+import { formatThaiDateTime } from "@/utils/helper";
+import { calculatePhqaRiskLevel } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -126,18 +128,7 @@ export default function MyCasePage() {
 
   // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
   const getPhqaRiskLevel = useCallback((item: any) => {
-    if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-      const sum = item.phqa[0].sum;
-
-      if (sum === 0) return "no-risk";
-      if (sum <= 4) return "low-risk";
-      if (sum <= 9) return "medium-risk";
-      if (sum <= 14) return "high-risk";
-
-      return "severe-risk";
-    }
-
-    return "no-risk";
+    return calculatePhqaRiskLevel(item);
   }, []);
 
   const { data, mutate } = useSWR(
@@ -565,14 +556,7 @@ export default function MyCasePage() {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {new Date(item.createdAt).toLocaleDateString("th-TH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                น.
+                {formatThaiDateTime(item.createdAt)}
               </p>
             </div>
           );

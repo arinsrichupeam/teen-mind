@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { subtitle, title } from "@/components/primitives";
 import Loading from "@/app/loading";
+import { formatThaiDate } from "@/utils/helper";
 
 export default function QuestionListPage() {
   const router = useRouter();
@@ -66,14 +67,7 @@ export default function QuestionListPage() {
                 <Card key={index}>
                   <CardBody className="text-sm">
                     <p>แบบทดสอบ ครั้งที่ {index + 1}</p>
-                    <p>
-                      วันที่{" "}
-                      {new Date(val.createdAt).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
+                    <p>วันที่ {formatThaiDate(val.createdAt)}</p>
                     {val.result === "Green" ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
