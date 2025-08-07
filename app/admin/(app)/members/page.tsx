@@ -37,6 +37,7 @@ import { Affiliation, Profile_Admin } from "@prisma/client";
 import { ModalUserProfile } from "../components/modal/modal-user-profile";
 import { questionStatusOptions as options } from "../data/optionData";
 import { MemberColumnsName as columns } from "../data/tableColumn";
+import { AuthGuard } from "../components/auth-guard";
 
 import { RenderCell } from "./components/render-cell";
 
@@ -300,71 +301,73 @@ export default function MemberPage() {
   }, [session, isLoading]);
 
   return (
-    <Suspense fallback={<Loading />}>
-      <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
-        <div className="flex justify-between items-end ">
-          <h3 className="text-lg font-semibold">จัดการผู้ใช้งาน</h3>
-        </div>
-        <ModalUserProfile
-          Mode={mode}
-          Profile={selectedProfile}
-          isOpen={isOpen}
-          onClose={onClose}
-          onReLoad={GetProfileAdminList}
-        />
+    <AuthGuard allowedRoles={[4]} redirectTo="/admin">
+      <Suspense fallback={<Loading />}>
+        <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
+          <div className="flex justify-between items-end ">
+            <h3 className="text-lg font-semibold">จัดการผู้ใช้งาน</h3>
+          </div>
+          <ModalUserProfile
+            Mode={mode}
+            Profile={selectedProfile}
+            isOpen={isOpen}
+            onClose={onClose}
+            onReLoad={GetProfileAdminList}
+          />
 
-        <div className="w-full flex flex-col gap-4 text-nowrap">
-          <Table
-            isHeaderSticky
-            aria-label="Question List Table"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: "max-h-[calc(65vh)]",
-            }}
-            // sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            // onSortChange={setSortDescriptor}
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.align as "center" | "start" | "end"}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={"No users found"}
-              isLoading={isLoading}
-              items={sortedItems}
-              loadingContent={<Spinner label="Loading..." />}
+          <div className="w-full flex flex-col gap-4 text-nowrap">
+            <Table
+              isHeaderSticky
+              aria-label="Question List Table"
+              bottomContent={bottomContent}
+              bottomContentPlacement="outside"
+              classNames={{
+                wrapper: "max-h-[calc(65vh)]",
+              }}
+              // sortDescriptor={sortDescriptor}
+              topContent={topContent}
+              topContentPlacement="outside"
+              // onSortChange={setSortDescriptor}
             >
-              {(item) => (
-                <TableRow>
-                  {(columnKey) => (
-                    <TableCell className="text-nowrap">
-                      {RenderCell({
-                        data: item,
-                        affiliationList: affiliationList,
-                        columnKey: columnKey,
-                        index:
-                          profileAdminList.findIndex((x) => x.id == item.id) +
-                          1,
-                        viewDetail: onRowDetailPress,
-                        editDetail: onRowEditPress,
-                      })}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn
+                    key={column.uid}
+                    align={column.align as "center" | "start" | "end"}
+                  >
+                    {column.name}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent={"No users found"}
+                isLoading={isLoading}
+                items={sortedItems}
+                loadingContent={<Spinner label="Loading..." />}
+              >
+                {(item) => (
+                  <TableRow>
+                    {(columnKey) => (
+                      <TableCell className="text-nowrap">
+                        {RenderCell({
+                          data: item,
+                          affiliationList: affiliationList,
+                          columnKey: columnKey,
+                          index:
+                            profileAdminList.findIndex((x) => x.id == item.id) +
+                            1,
+                          viewDetail: onRowDetailPress,
+                          editDetail: onRowEditPress,
+                        })}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </div>
-    </Suspense>
+      </Suspense>
+    </AuthGuard>
   );
 }

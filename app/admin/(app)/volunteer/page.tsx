@@ -21,6 +21,7 @@ import {
 } from "@prisma/client";
 
 import { VolunteerRenderCell } from "../components/volunteer/render-cell";
+import { AuthGuard } from "../components/auth-guard";
 
 import { VolunteerColumnsName as columns } from "@/app/admin/(app)/data/tableColumn";
 
@@ -132,64 +133,67 @@ export default function VolunteerPage() {
   );
 
   return (
-    <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-      <div className="flex justify-between items-end">
-        <h1 className="text-2xl font-bold">รายชื่ออาสาสมัคร</h1>
-        <div className="relative w-1/3">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+    <AuthGuard allowedRoles={[4]} redirectTo="/admin">
+      <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
+        <div className="flex justify-between items-end">
+          <h1 className="text-2xl font-bold">รายชื่ออาสาสมัคร</h1>
+          <div className="relative w-1/3">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+            </div>
+            <input
+              className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="ค้นหาอาสาสมัคร..."
+              type="text"
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
           </div>
-          <input
-            className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="ค้นหาอาสาสมัคร..."
-            type="text"
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
         </div>
-      </div>
-      <div className="max-w-[95rem] mx-auto w-full">
-        <div className="w-full flex flex-col gap-4 text-nowrap">
-          <Table
-            aria-label="Referent Table"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.align as "center" | "start" | "end"}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={"ไม่พบข้อมูล"}
-              isLoading={isLoading}
-              items={items}
-              loadingContent={<Spinner label="กำลังโหลด..." />}
+        <div className="max-w-[95rem] mx-auto w-full">
+          <div className="w-full flex flex-col gap-4 text-nowrap">
+            <Table
+              aria-label="Referent Table"
+              bottomContent={bottomContent}
+              bottomContentPlacement="outside"
             >
-              {(item) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => (
-                    <TableCell>
-                      {VolunteerRenderCell({
-                        data: item,
-                        columnKey,
-                        index: referents.findIndex((x) => x.id === item.id) + 1,
-                        viewDetail: onRowDetailPress,
-                        editDetail: onRowEditPress,
-                      })}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn
+                    key={column.uid}
+                    align={column.align as "center" | "start" | "end"}
+                  >
+                    {column.name}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent={"ไม่พบข้อมูล"}
+                isLoading={isLoading}
+                items={items}
+                loadingContent={<Spinner label="กำลังโหลด..." />}
+              >
+                {(item) => (
+                  <TableRow key={item.id}>
+                    {(columnKey) => (
+                      <TableCell>
+                        {VolunteerRenderCell({
+                          data: item,
+                          columnKey,
+                          index:
+                            referents.findIndex((x) => x.id === item.id) + 1,
+                          viewDetail: onRowDetailPress,
+                          editDetail: onRowEditPress,
+                        })}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

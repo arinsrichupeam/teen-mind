@@ -21,7 +21,7 @@ import {
   Chip,
   Selection,
 } from "@heroui/react";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import useSWR, { mutate } from "swr";
 
 import { calculatePhqaRiskLevel } from "@/utils/helper";
@@ -403,235 +403,238 @@ export const ModalStatusUpdate = ({
                             selectionMode="multiple"
                             onSelectionChange={setSelectedKeys}
                           >
-                          <TableHeader>
-                            <TableColumn className="text-center w-16">
-                              ลำดับ
-                            </TableColumn>
-                            <TableColumn className="text-center w-48">
-                              ชื่อ-นามสกุล
-                            </TableColumn>
-                            <TableColumn className="text-center w-48">
-                              โรงเรียน
-                            </TableColumn>
-                            <TableColumn className="text-center w-32">
-                              PHQA
-                            </TableColumn>
-                            <TableColumn className="text-center w-24">
-                              2Q
-                            </TableColumn>
-                            <TableColumn className="text-center w-24">
-                              Addon
-                            </TableColumn>
-                            <TableColumn className="text-center w-32">
-                              สถานะ
-                            </TableColumn>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredData
-                              .slice(0, displayedItems)
-                              .map((item, index) => {
-                                // ฟังก์ชันสำหรับดึงชื่อโรงเรียน
-                                const getSchoolName = (item: any) => {
-                                  let itemSchool = null;
+                            <TableHeader>
+                              <TableColumn className="text-center w-16">
+                                ลำดับ
+                              </TableColumn>
+                              <TableColumn className="text-center w-48">
+                                ชื่อ-นามสกุล
+                              </TableColumn>
+                              <TableColumn className="text-center w-48">
+                                โรงเรียน
+                              </TableColumn>
+                              <TableColumn className="text-center w-32">
+                                PHQA
+                              </TableColumn>
+                              <TableColumn className="text-center w-24">
+                                2Q
+                              </TableColumn>
+                              <TableColumn className="text-center w-24">
+                                Addon
+                              </TableColumn>
+                              <TableColumn className="text-center w-32">
+                                สถานะ
+                              </TableColumn>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredData
+                                .slice(0, displayedItems)
+                                .map((item, index) => {
+                                  // ฟังก์ชันสำหรับดึงชื่อโรงเรียน
+                                  const getSchoolName = (item: any) => {
+                                    let itemSchool = null;
 
-                                  if (item.school) {
-                                    itemSchool = item.school;
-                                  } else if (item.profile?.school) {
-                                    itemSchool = item.profile.school;
-                                  } else if (item.user?.school) {
-                                    itemSchool = item.user.school;
-                                  }
-
-                                  if (
-                                    typeof itemSchool === "object" &&
-                                    itemSchool !== null
-                                  ) {
-                                    return itemSchool.name;
-                                  } else if (typeof itemSchool === "string") {
-                                    return itemSchool;
-                                  }
-
-                                  return "ไม่ระบุ";
-                                };
-
-                                // ฟังก์ชันสำหรับแสดงผล PHQA
-                                const renderPHQA = (item: any) => {
-                                  const phqaRiskLevel =
-                                    calculatePhqaRiskLevel(item);
-
-                                  const getPHQAColor = (level: string) => {
-                                    switch (level) {
-                                      case "Green":
-                                        return "success";
-                                      case "Green-Low":
-                                        return "success";
-                                      case "Yellow":
-                                        return "warning";
-                                      case "Orange":
-                                        return "warning";
-                                      case "Red":
-                                        return "danger";
-                                      default:
-                                        return "default";
+                                    if (item.school) {
+                                      itemSchool = item.school;
+                                    } else if (item.profile?.school) {
+                                      itemSchool = item.profile.school;
+                                    } else if (item.user?.school) {
+                                      itemSchool = item.user.school;
                                     }
+
+                                    if (
+                                      typeof itemSchool === "object" &&
+                                      itemSchool !== null
+                                    ) {
+                                      return itemSchool.name;
+                                    } else if (typeof itemSchool === "string") {
+                                      return itemSchool;
+                                    }
+
+                                    return "ไม่ระบุ";
                                   };
 
-                                  const getPHQALabel = (level: string) => {
-                                    switch (level) {
-                                      case "Green":
-                                        return "ไม่พบความเสี่ยง";
-                                      case "Green-Low":
-                                        return "พบความเสี่ยงเล็กน้อย";
-                                      case "Yellow":
-                                        return "พบความเสี่ยงปานกลาง";
-                                      case "Orange":
-                                        return "พบความเสี่ยงมาก";
-                                      case "Red":
-                                        return "พบความเสี่ยงรุนแรง";
-                                      default:
-                                        return "ไม่ระบุ";
-                                    }
-                                  };
+                                  // ฟังก์ชันสำหรับแสดงผล PHQA
+                                  const renderPHQA = (item: any) => {
+                                    const phqaRiskLevel =
+                                      calculatePhqaRiskLevel(item);
 
-                                  return (
-                                    <Chip
-                                      className="capitalize text-xs"
-                                      color={getPHQAColor(phqaRiskLevel)}
-                                      size="sm"
-                                      variant="flat"
-                                    >
-                                      {getPHQALabel(phqaRiskLevel)}
-                                    </Chip>
-                                  );
-                                };
+                                    const getPHQAColor = (level: string) => {
+                                      switch (level) {
+                                        case "Green":
+                                          return "success";
+                                        case "Green-Low":
+                                          return "success";
+                                        case "Yellow":
+                                          return "warning";
+                                        case "Orange":
+                                          return "warning";
+                                        case "Red":
+                                          return "danger";
+                                        default:
+                                          return "default";
+                                      }
+                                    };
 
-                                // ฟังก์ชันสำหรับแสดงผล 2Q
-                                const render2Q = (item: any) => {
-                                  if (
-                                    Array.isArray(item.q2) &&
-                                    item.q2.length > 0
-                                  ) {
-                                    const q2Data = item.q2[0];
-                                    const hasRisk =
-                                      q2Data.q1 === 1 || q2Data.q2 === 1;
+                                    const getPHQALabel = (level: string) => {
+                                      switch (level) {
+                                        case "Green":
+                                          return "ไม่พบความเสี่ยง";
+                                        case "Green-Low":
+                                          return "พบความเสี่ยงเล็กน้อย";
+                                        case "Yellow":
+                                          return "พบความเสี่ยงปานกลาง";
+                                        case "Orange":
+                                          return "พบความเสี่ยงมาก";
+                                        case "Red":
+                                          return "พบความเสี่ยงรุนแรง";
+                                        default:
+                                          return "ไม่ระบุ";
+                                      }
+                                    };
 
                                     return (
                                       <Chip
                                         className="capitalize text-xs"
-                                        color={hasRisk ? "danger" : "success"}
+                                        color={getPHQAColor(phqaRiskLevel)}
                                         size="sm"
                                         variant="flat"
                                       >
-                                        {hasRisk
-                                          ? "พบความเสี่ยง"
-                                          : "ไม่พบความเสี่ยง"}
+                                        {getPHQALabel(phqaRiskLevel)}
                                       </Chip>
                                     );
-                                  }
+                                  };
 
-                                  return "-";
-                                };
+                                  // ฟังก์ชันสำหรับแสดงผล 2Q
+                                  const render2Q = (item: any) => {
+                                    if (
+                                      Array.isArray(item.q2) &&
+                                      item.q2.length > 0
+                                    ) {
+                                      const q2Data = item.q2[0];
+                                      const hasRisk =
+                                        q2Data.q1 === 1 || q2Data.q2 === 1;
 
-                                // ฟังก์ชันสำหรับแสดงผล Addon
-                                const renderAddon = (item: any) => {
-                                  if (
-                                    Array.isArray(item.addon) &&
-                                    item.addon.length > 0
-                                  ) {
-                                    const addonData = item.addon[0];
-                                    const hasRisk =
-                                      addonData.q1 === 1 || addonData.q2 === 1;
+                                      return (
+                                        <Chip
+                                          className="capitalize text-xs"
+                                          color={hasRisk ? "danger" : "success"}
+                                          size="sm"
+                                          variant="flat"
+                                        >
+                                          {hasRisk
+                                            ? "พบความเสี่ยง"
+                                            : "ไม่พบความเสี่ยง"}
+                                        </Chip>
+                                      );
+                                    }
+
+                                    return "-";
+                                  };
+
+                                  // ฟังก์ชันสำหรับแสดงผล Addon
+                                  const renderAddon = (item: any) => {
+                                    if (
+                                      Array.isArray(item.addon) &&
+                                      item.addon.length > 0
+                                    ) {
+                                      const addonData = item.addon[0];
+                                      const hasRisk =
+                                        addonData.q1 === 1 ||
+                                        addonData.q2 === 1;
+
+                                      return (
+                                        <Chip
+                                          className="capitalize text-xs"
+                                          color={hasRisk ? "danger" : "success"}
+                                          size="sm"
+                                          variant="flat"
+                                        >
+                                          {hasRisk
+                                            ? "พบความเสี่ยง"
+                                            : "ไม่พบความเสี่ยง"}
+                                        </Chip>
+                                      );
+                                    }
+
+                                    return "-";
+                                  };
+
+                                  // ฟังก์ชันสำหรับแสดงผลสถานะ
+                                  const renderStatus = (status: any) => {
+                                    const getStatusLabel = (status: any) => {
+                                      switch (status) {
+                                        case 0:
+                                          return "รอระบุ HN";
+                                        case 1:
+                                          return "รอจัดนัด Telemed";
+                                        case 2:
+                                          return "รอสรุปผลการให้คำปรึกษา";
+                                        case 3:
+                                          return "เสร็จสิ้น";
+                                        default:
+                                          return (
+                                            status?.toString() || "ไม่ระบุ"
+                                          );
+                                      }
+                                    };
+
+                                    const getStatusColor = (status: any) => {
+                                      switch (status) {
+                                        case 0:
+                                          return "default";
+                                        case 1:
+                                          return "primary";
+                                        case 2:
+                                          return "warning";
+                                        case 3:
+                                          return "success";
+                                        default:
+                                          return "default";
+                                      }
+                                    };
 
                                     return (
                                       <Chip
                                         className="capitalize text-xs"
-                                        color={hasRisk ? "danger" : "success"}
+                                        color={getStatusColor(status)}
                                         size="sm"
                                         variant="flat"
                                       >
-                                        {hasRisk
-                                          ? "พบความเสี่ยง"
-                                          : "ไม่พบความเสี่ยง"}
+                                        {getStatusLabel(status)}
                                       </Chip>
                                     );
-                                  }
-
-                                  return "-";
-                                };
-
-                                // ฟังก์ชันสำหรับแสดงผลสถานะ
-                                const renderStatus = (status: any) => {
-                                  const getStatusLabel = (status: any) => {
-                                    switch (status) {
-                                      case 0:
-                                        return "รอระบุ HN";
-                                      case 1:
-                                        return "รอจัดนัด Telemed";
-                                      case 2:
-                                        return "รอสรุปผลการให้คำปรึกษา";
-                                      case 3:
-                                        return "เสร็จสิ้น";
-                                      default:
-                                        return status?.toString() || "ไม่ระบุ";
-                                    }
-                                  };
-
-                                  const getStatusColor = (status: any) => {
-                                    switch (status) {
-                                      case 0:
-                                        return "default";
-                                      case 1:
-                                        return "primary";
-                                      case 2:
-                                        return "warning";
-                                      case 3:
-                                        return "success";
-                                      default:
-                                        return "default";
-                                    }
                                   };
 
                                   return (
-                                    <Chip
-                                      className="capitalize text-xs"
-                                      color={getStatusColor(status)}
-                                      size="sm"
-                                      variant="flat"
-                                    >
-                                      {getStatusLabel(status)}
-                                    </Chip>
+                                    <TableRow key={item.id || index}>
+                                      <TableCell className="text-center whitespace-nowrap">
+                                        {index + 1}
+                                      </TableCell>
+                                      <TableCell className="whitespace-nowrap max-w-48 truncate">
+                                        {item.profile?.firstname}{" "}
+                                        {item.profile?.lastname}
+                                      </TableCell>
+                                      <TableCell className="text-center whitespace-nowrap max-w-48 truncate">
+                                        {getSchoolName(item)}
+                                      </TableCell>
+                                      <TableCell className="text-center whitespace-nowrap">
+                                        {renderPHQA(item)}
+                                      </TableCell>
+                                      <TableCell className="text-center whitespace-nowrap">
+                                        {render2Q(item)}
+                                      </TableCell>
+                                      <TableCell className="text-center whitespace-nowrap">
+                                        {renderAddon(item)}
+                                      </TableCell>
+                                      <TableCell className="text-center whitespace-nowrap">
+                                        {renderStatus(item.status)}
+                                      </TableCell>
+                                    </TableRow>
                                   );
-                                };
-
-                                return (
-                                  <TableRow key={item.id || index}>
-                                    <TableCell className="text-center whitespace-nowrap">
-                                      {index + 1}
-                                    </TableCell>
-                                    <TableCell className="whitespace-nowrap max-w-48 truncate">
-                                      {item.profile?.firstname}{" "}
-                                      {item.profile?.lastname}
-                                    </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap max-w-48 truncate">
-                                      {getSchoolName(item)}
-                                    </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap">
-                                      {renderPHQA(item)}
-                                    </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap">
-                                      {render2Q(item)}
-                                    </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap">
-                                      {renderAddon(item)}
-                                    </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap">
-                                      {renderStatus(item.status)}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
+                                })}
+                            </TableBody>
+                          </Table>
                         </div>
 
                         {/* แสดง loading indicator เมื่อกำลังโหลดข้อมูลเพิ่ม */}

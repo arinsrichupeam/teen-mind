@@ -34,6 +34,7 @@ import {
 import useSWR from "swr";
 
 import { ModalEditProfile } from "../components/modal/modal-edit-profile";
+import { AuthGuard } from "../components/auth-guard";
 
 import UserDetailDrawer from "./components/user-detail-drawer";
 
@@ -412,87 +413,89 @@ export default function UserPage() {
   );
 
   return (
-    <Suspense fallback={<Loading />}>
-      <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold">จัดการผู้ใช้งาน (User)</h3>
-        </div>
+    <AuthGuard allowedRoles={[2, 3, 4]} redirectTo="/admin">
+      <Suspense fallback={<Loading />}>
+        <div className="max-w-[95rem] my-10 px-4 lg:px-6 mx-auto w-full flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold">จัดการผู้ใช้งาน (User)</h3>
+          </div>
 
-        <div className="w-full flex flex-col gap-4 text-nowrap">
-          <Table
-            isStriped
-            aria-label="User List Table"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: "max-h-[calc(65vh)]",
-            }}
-            sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            onSortChange={setSortDescriptor}
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.align}
-                  allowsSorting={column.sortable}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={isLoading ? " " : "ไม่พบข้อมูล"}
-              isLoading={isLoading}
-              items={sortedItems}
-              loadingContent={<Spinner label="กำลังโหลด..." />}
+          <div className="w-full flex flex-col gap-4 text-nowrap">
+            <Table
+              isStriped
+              aria-label="User List Table"
+              bottomContent={bottomContent}
+              bottomContentPlacement="outside"
+              classNames={{
+                wrapper: "max-h-[calc(65vh)]",
+              }}
+              sortDescriptor={sortDescriptor}
+              topContent={topContent}
+              topContentPlacement="outside"
+              onSortChange={setSortDescriptor}
             >
-              {(item) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => (
-                    <TableCell className="text-nowrap">
-                      {renderCell(item, columnKey)}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn
+                    key={column.uid}
+                    align={column.align}
+                    allowsSorting={column.sortable}
+                  >
+                    {column.name}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent={isLoading ? " " : "ไม่พบข้อมูล"}
+                isLoading={isLoading}
+                items={sortedItems}
+                loadingContent={<Spinner label="กำลังโหลด..." />}
+              >
+                {(item) => (
+                  <TableRow key={item.id}>
+                    {(columnKey) => (
+                      <TableCell className="text-nowrap">
+                        {renderCell(item, columnKey)}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* UserDetailDrawer */}
+          <UserDetailDrawer
+            isOpen={isDrawerOpen}
+            mode={drawerMode}
+            user={selectedUser}
+            onClose={() => {
+              setIsDrawerOpen(false);
+              setSelectedUser(null);
+              setDrawerMode("view");
+            }}
+            onRefresh={() => {
+              mutate();
+              // ปิด drawer หลังจากรีเฟรชข้อมูล
+              setIsDrawerOpen(false);
+              setSelectedUser(null);
+              setDrawerMode("view");
+            }}
+          />
+
+          {/* Modal เพิ่ม Profile */}
+          <ModalEditProfile
+            data={{}}
+            isOpen={isAddProfileModalOpen}
+            mode="create"
+            onClose={() => setIsAddProfileModalOpen(false)}
+            onSuccess={() => {
+              mutate();
+              setIsAddProfileModalOpen(false);
+            }}
+          />
         </div>
-
-        {/* UserDetailDrawer */}
-        <UserDetailDrawer
-          isOpen={isDrawerOpen}
-          mode={drawerMode}
-          user={selectedUser}
-          onClose={() => {
-            setIsDrawerOpen(false);
-            setSelectedUser(null);
-            setDrawerMode("view");
-          }}
-          onRefresh={() => {
-            mutate();
-            // ปิด drawer หลังจากรีเฟรชข้อมูล
-            setIsDrawerOpen(false);
-            setSelectedUser(null);
-            setDrawerMode("view");
-          }}
-        />
-
-        {/* Modal เพิ่ม Profile */}
-        <ModalEditProfile
-          data={{}}
-          isOpen={isAddProfileModalOpen}
-          mode="create"
-          onClose={() => setIsAddProfileModalOpen(false)}
-          onSuccess={() => {
-            mutate();
-            setIsAddProfileModalOpen(false);
-          }}
-        />
-      </div>
-    </Suspense>
+      </Suspense>
+    </AuthGuard>
   );
 }
