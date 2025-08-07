@@ -397,7 +397,7 @@ export const ModalExportData = ({
     <Modal
       backdrop="blur"
       classNames={{
-        base: "h-[90vh]",
+        base: "h-[90vh] max-w-[95vw]",
         body: "h-[calc(90vh-120px)] overflow-hidden",
       }}
       isOpen={isOpen}
@@ -598,12 +598,6 @@ export const ModalExportData = ({
                       ไม่มีข้อมูลตัวอย่าง
                     </div>
                   )}
-                {filteredData.length > 0 && !schoolsLoading && (
-                  <div className="mt-3 text-xs text-gray-500 text-center">
-                    แสดงตัวอย่าง {Math.min(displayedItems, filteredData.length)}{" "}
-                    รายการแรกจากทั้งหมด {filteredData.length} รายการ
-                  </div>
-                )}
               </CardBody>
             </Card>
           </div>

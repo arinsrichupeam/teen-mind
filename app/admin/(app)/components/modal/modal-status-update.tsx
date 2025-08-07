@@ -21,7 +21,7 @@ import {
   Chip,
   Selection,
 } from "@heroui/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 
 import { calculatePhqaRiskLevel } from "@/utils/helper";
@@ -42,7 +42,7 @@ export const ModalStatusUpdate = ({
   const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [selectedPhqa, setSelectedPhqa] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [displayedItems, setDisplayedItems] = useState<number>(20);
+  const [displayedItems, setDisplayedItems] = useState<number>(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [newStatus, setNewStatus] = useState<string>("");
@@ -186,7 +186,7 @@ export const ModalStatusUpdate = ({
         onClose();
         setSelectedSchool("");
         setSelectedPhqa("");
-        setDisplayedItems(20);
+        setDisplayedItems(10);
         setSelectedKeys(new Set([]));
         setNewStatus("");
       } else {
@@ -216,7 +216,7 @@ export const ModalStatusUpdate = ({
   const handleClose = () => {
     setSelectedSchool("");
     setSelectedPhqa("");
-    setDisplayedItems(20);
+    setDisplayedItems(10);
     setSelectedKeys(new Set([]));
     setNewStatus("");
     onClose();
@@ -233,7 +233,7 @@ export const ModalStatusUpdate = ({
 
         // จำลองการโหลดข้อมูล
         setTimeout(() => {
-          setDisplayedItems((prev) => Math.min(prev + 20, filteredData.length));
+          setDisplayedItems((prev) => Math.min(prev + 10, filteredData.length));
           setIsLoadingMore(false);
         }, 500);
       }
@@ -241,7 +241,17 @@ export const ModalStatusUpdate = ({
   };
 
   return (
-    <Modal isOpen={isOpen} size="5xl" onClose={handleClose}>
+    <Modal
+      backdrop="blur"
+      classNames={{
+        base: "h-[90vh] max-w-[95vw]",
+        body: "h-[calc(90vh-120px)] overflow-hidden",
+      }}
+      isOpen={isOpen}
+      placement="center"
+      size="5xl"
+      onClose={handleClose}
+    >
       <ModalContent>
         {(_onClose) => (
           <>
@@ -381,37 +391,38 @@ export const ModalStatusUpdate = ({
                       </div>
 
                       <div
-                        className="max-h-60 overflow-y-auto border shadow-sm rounded-lg"
+                        className="max-h-96 overflow-y-auto border shadow-sm rounded-lg"
                         onScroll={handleScroll}
                       >
-                        <Table
-                          isStriped
-                          aria-label="รายการที่เลือก"
-                          className="w-full"
-                          selectedKeys={selectedKeys}
-                          selectionMode="multiple"
-                          onSelectionChange={setSelectedKeys}
-                        >
+                        <div className="overflow-x-auto">
+                          <Table
+                            isStriped
+                            aria-label="รายการที่เลือก"
+                            className="w-full min-w-[800px]"
+                            selectedKeys={selectedKeys}
+                            selectionMode="multiple"
+                            onSelectionChange={setSelectedKeys}
+                          >
                           <TableHeader>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-16">
                               ลำดับ
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-48">
                               ชื่อ-นามสกุล
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-48">
                               โรงเรียน
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-32">
                               PHQA
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-24">
                               2Q
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-24">
                               Addon
                             </TableColumn>
-                            <TableColumn className="text-center">
+                            <TableColumn className="text-center w-32">
                               สถานะ
                             </TableColumn>
                           </TableHeader>
@@ -484,7 +495,7 @@ export const ModalStatusUpdate = ({
 
                                   return (
                                     <Chip
-                                      className="capitalize"
+                                      className="capitalize text-xs"
                                       color={getPHQAColor(phqaRiskLevel)}
                                       size="sm"
                                       variant="flat"
@@ -506,7 +517,7 @@ export const ModalStatusUpdate = ({
 
                                     return (
                                       <Chip
-                                        className="capitalize"
+                                        className="capitalize text-xs"
                                         color={hasRisk ? "danger" : "success"}
                                         size="sm"
                                         variant="flat"
@@ -533,7 +544,7 @@ export const ModalStatusUpdate = ({
 
                                     return (
                                       <Chip
-                                        className="capitalize"
+                                        className="capitalize text-xs"
                                         color={hasRisk ? "danger" : "success"}
                                         size="sm"
                                         variant="flat"
@@ -582,7 +593,7 @@ export const ModalStatusUpdate = ({
 
                                   return (
                                     <Chip
-                                      className="capitalize"
+                                      className="capitalize text-xs"
                                       color={getStatusColor(status)}
                                       size="sm"
                                       variant="flat"
@@ -597,11 +608,11 @@ export const ModalStatusUpdate = ({
                                     <TableCell className="text-center whitespace-nowrap">
                                       {index + 1}
                                     </TableCell>
-                                    <TableCell className="whitespace-nowrap">
+                                    <TableCell className="whitespace-nowrap max-w-48 truncate">
                                       {item.profile?.firstname}{" "}
                                       {item.profile?.lastname}
                                     </TableCell>
-                                    <TableCell className="text-center whitespace-nowrap">
+                                    <TableCell className="text-center whitespace-nowrap max-w-48 truncate">
                                       {getSchoolName(item)}
                                     </TableCell>
                                     <TableCell className="text-center whitespace-nowrap">
@@ -621,6 +632,7 @@ export const ModalStatusUpdate = ({
                               })}
                           </TableBody>
                         </Table>
+                        </div>
 
                         {/* แสดง loading indicator เมื่อกำลังโหลดข้อมูลเพิ่ม */}
                         {isLoadingMore && (
