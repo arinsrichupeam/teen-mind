@@ -27,6 +27,7 @@ import useSWR from "swr";
 
 import { prefix } from "@/utils/data";
 import { formatThaiDate } from "@/utils/helper";
+import { calculateAge } from "@/utils/helper";
 
 interface ExportField {
   key: string;
@@ -178,19 +179,10 @@ export const ModalExportData = ({
     filteredData = filteredData.filter((item: any) => {
       if (!item.profile?.birthday) return false;
 
-      const birthDate = new Date(item.profile.birthday);
-      const assessmentDate = new Date(item.createdAt);
-
-      // คำนวณอายุ ณ วันที่ตรวจ
-      let age = assessmentDate.getFullYear() - birthDate.getFullYear();
-      const monthDiff = assessmentDate.getMonth() - birthDate.getMonth();
-
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && assessmentDate.getDate() < birthDate.getDate())
-      ) {
-        age--;
-      }
+      const age = calculateAge(
+        item.profile.birthday,
+        item.profile.school?.screeningDate
+      );
 
       return age >= 12 && age <= 18;
     });
@@ -218,22 +210,6 @@ export const ModalExportData = ({
     return filteredData;
   }, [data, filters]);
 
-  const calculateAge = (birthday: string, assessmentDate?: string): number => {
-    const birthDate = new Date(birthday);
-    const targetDate = assessmentDate ? new Date(assessmentDate) : new Date();
-    let age = targetDate.getFullYear() - birthDate.getFullYear();
-    const monthDiff = targetDate.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && targetDate.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    return age;
-  };
-
   const getFieldValue = (item: any, field: string): any => {
     switch (field) {
       case "id":
@@ -260,7 +236,10 @@ export const ModalExportData = ({
         return item.profile?.citizenId;
       case "age":
         return item.profile?.birthday
-          ? calculateAge(item.profile.birthday, item.createdAt)
+          ? calculateAge(
+              item.profile.birthday,
+              item.profile.school?.screeningDate
+            )
           : "-";
       case "sex":
         return item.profile?.sex === 1

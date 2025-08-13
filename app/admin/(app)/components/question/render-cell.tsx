@@ -1,6 +1,5 @@
 import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import moment from "moment";
 import { Chip } from "@heroui/chip";
 import {
   Button,
@@ -14,6 +13,7 @@ import { questionStatusOptions as options } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
 import { formatThaiDateTime } from "@/utils/helper";
+import { calculateAge } from "@/utils/helper";
 
 interface Props {
   data: any;
@@ -36,29 +36,6 @@ export const RenderCell = ({
   viewDetail,
   editDetail,
 }: Props) => {
-  function timeAgo(date: string) {
-    moment.updateLocale("th", {
-      relativeTime: {
-        future: "in %s",
-        past: "%s",
-        s: (number) => number + "s ago",
-        ss: "%ds ago",
-        m: "1m ago",
-        mm: "%dm ago",
-        h: "1h ago",
-        hh: "%dh ago",
-        d: "1d ago",
-        dd: "%dd ago",
-        M: "a month ago",
-        MM: "%d months ago",
-        y: "a year ago",
-        yy: "%d ปี",
-      },
-    });
-
-    return moment(date).fromNow();
-  }
-
   // @ts-ignore
   const cellValue = data[columnKey];
 
@@ -84,7 +61,13 @@ export const RenderCell = ({
     case "age":
       return (
         <div>
-          <span>{timeAgo(data.profile.birthday)}</span>
+          <span>
+            {calculateAge(
+              data.profile.birthday,
+              data.profile.school?.screeningDate
+            )}{" "}
+            ปี
+          </span>
         </div>
       );
     case "school":

@@ -154,6 +154,22 @@ export function validateBirthday(
   }
 }
 
+// ฟังก์ชันคำนวณอายุจากวันเกิดถึงวันที่กำหนด (คำนวณจากปีเท่านั้น)
+export function calculateAge(
+  birthday: string,
+  targetDate?: string | Date | null
+): number {
+  if (!birthday) return 0;
+
+  const birthDate = new Date(birthday);
+  const target = targetDate ? new Date(targetDate) : new Date();
+
+  // คำนวณอายุจากปีเท่านั้น ไม่คำนวณเดือนและวัน
+  const age = target.getFullYear() - birthDate.getFullYear();
+
+  return age;
+}
+
 // ฟังก์ชันแปลงวันที่จากปี พ.ศ. เป็นปี ค.ศ. สำหรับบันทึก
 export function parseThaiDateToISO(thaiDateString: string): string {
   if (!thaiDateString) return "";

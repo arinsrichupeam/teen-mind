@@ -39,8 +39,11 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData } from "@/types";
 import Loading from "@/app/loading";
-import { formatThaiDateTime } from "@/utils/helper";
-import { calculatePhqaRiskLevel } from "@/utils/helper";
+import {
+  formatThaiDateTime,
+  calculatePhqaRiskLevel,
+  calculateAge,
+} from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -53,22 +56,6 @@ const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   label: col.name,
   align: (col.align || "start") as "center" | "start" | "end",
 }));
-
-const calculateAge = (birthday: string) => {
-  const birthDate = new Date(birthday);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (
-    monthDiff < 0 ||
-    (monthDiff === 0 && today.getDate() < birthDate.getDate())
-  ) {
-    age--;
-  }
-
-  return age;
-};
 
 export default function MyCasePage() {
   const router = useRouter();
@@ -473,7 +460,10 @@ export default function MyCasePage() {
             <div className="flex flex-col">
               <p className="text-bold text-small">
                 {item.profile?.birthday
-                  ? calculateAge(item.profile.birthday)
+                  ? calculateAge(
+                      item.profile.birthday,
+                      item.profile.school?.screeningDate
+                    )
                   : "-"}{" "}
                 ปี
               </p>
