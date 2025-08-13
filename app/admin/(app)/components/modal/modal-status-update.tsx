@@ -25,6 +25,7 @@ import { useState } from "react";
 import useSWR, { mutate } from "swr";
 
 import { calculatePhqaRiskLevel } from "@/utils/helper";
+import { prefix } from "@/utils/data";
 
 interface ModalStatusUpdateProps {
   isOpen: boolean;
@@ -612,8 +613,31 @@ export const ModalStatusUpdate = ({
                                         {index + 1}
                                       </TableCell>
                                       <TableCell className="whitespace-nowrap">
-                                        {item.profile?.firstname}{" "}
-                                        {item.profile?.lastname}
+                                        {(() => {
+                                          const firstname =
+                                            item.profile?.firstname ||
+                                            item.user?.firstname ||
+                                            "";
+                                          const lastname =
+                                            item.profile?.lastname ||
+                                            item.user?.lastname ||
+                                            "";
+                                          const prefixId =
+                                            item.profile?.prefixId ||
+                                            item.user?.prefixId;
+
+                                          // หาคำนำหน้าจาก prefixId
+                                          const prefixLabel =
+                                            prefix.find(
+                                              (p) =>
+                                                p.key === prefixId?.toString()
+                                            )?.label || "";
+
+                                          const fullName =
+                                            `${prefixLabel} ${firstname} ${lastname}`.trim();
+
+                                          return fullName || "ไม่ระบุ";
+                                        })()}
                                       </TableCell>
                                       <TableCell className="text-center whitespace-nowrap">
                                         {getSchoolName(item)}
