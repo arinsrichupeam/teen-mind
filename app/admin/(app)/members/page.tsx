@@ -95,8 +95,13 @@ export default function MemberPage() {
     let filteredUsers = [...profileAdminList];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((val) =>
-        val.firstname.toLowerCase().includes(filterValue.toLowerCase())
+      filteredUsers = filteredUsers.filter(
+        (val) =>
+          val.firstname.toLowerCase().includes(filterValue.toLowerCase()) ||
+          val.lastname.toLowerCase().includes(filterValue.toLowerCase()) ||
+          `${val.firstname} ${val.lastname}`
+            .toLowerCase()
+            .includes(filterValue.toLowerCase())
       );
     }
     if (

@@ -159,6 +159,12 @@ export default function MyCasePage() {
         !hasSearchFilter ||
         val.profile?.firstname
           ?.toLowerCase()
+          .includes(filterValue.toLowerCase()) ||
+        val.profile?.lastname
+          ?.toLowerCase()
+          .includes(filterValue.toLowerCase()) ||
+        `${val.profile?.firstname || ""} ${val.profile?.lastname || ""}`
+          .toLowerCase()
           .includes(filterValue.toLowerCase());
 
       const matchesStatus =

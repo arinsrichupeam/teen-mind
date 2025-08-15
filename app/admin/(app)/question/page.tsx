@@ -221,10 +221,18 @@ export default function QuestionPage() {
     }
 
     return filteredData.filter((val: QuestionsData) => {
-      // Filter ชื่อ
+      // Filter ชื่อและนามสกุล
       const matchesSearch =
         !hasSearchFilter ||
-        val.profile.firstname.toLowerCase().includes(filterValue.toLowerCase());
+        val.profile.firstname
+          .toLowerCase()
+          .includes(filterValue.toLowerCase()) ||
+        val.profile.lastname
+          .toLowerCase()
+          .includes(filterValue.toLowerCase()) ||
+        `${val.profile.firstname} ${val.profile.lastname}`
+          .toLowerCase()
+          .includes(filterValue.toLowerCase());
 
       // Filter สถานะ
       const matchesStatus =
@@ -424,16 +432,6 @@ export default function QuestionPage() {
       const cellValue = item[columnKey];
 
       switch (columnKey) {
-        case "id":
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small">
-                {filteredItems.findIndex(
-                  (x: QuestionsData) => x.id === item.id
-                ) + 1}
-              </p>
-            </div>
-          );
         case "name":
           const prefixLabel =
             prefix.find((p) => p.key === item.profile?.prefixId?.toString())
