@@ -1,5 +1,4 @@
 export const QuestionColumnsName = [
-  { name: "ลำดับที่", uid: "id", align: "center" },
   { name: "ชื่อ - สกุล", uid: "name", align: "start" },
   { name: "อายุ", uid: "age", align: "center" },
   { name: "โรงเรียน", uid: "school", align: "start" },

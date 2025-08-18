@@ -89,7 +89,7 @@ export const StatusUpdateButton = ({
   return (
     <>
       <Button
-        className="w-full sm:w-auto"
+        className="w-full shadow-sm"
         color="primary"
         isDisabled={false}
         size="md"

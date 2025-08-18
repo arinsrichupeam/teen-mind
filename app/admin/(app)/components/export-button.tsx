@@ -87,7 +87,7 @@ export const ExportButton = ({
   return (
     <>
       <Button
-        className="w-full sm:w-auto"
+        className="w-full shadow-sm"
         color="success"
         isDisabled={false}
         size="md"

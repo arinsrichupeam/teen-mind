@@ -17,6 +17,7 @@ import {
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
+  BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
@@ -102,185 +103,194 @@ export function QuestionFilterContent({
 
   const topContent = useMemo(
     () => (
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex flex-col gap-3 w-full">
         {/* Search Bar และ Filter ทั้งหมด */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-center w-full bg-white rounded-md p-2 shadow-sm border border-gray-200">
-          <Input
-            isClearable
-            classNames={{
-              base: "w-full sm:w-64 flex-1",
-              inputWrapper: "border-1 bg-white",
-            }}
-            placeholder="Search by name..."
-            size="md"
-            startContent={
-              <MagnifyingGlassIcon className="size-6 text-default-400" />
-            }
-            value={filterValue}
-            variant="bordered"
-            onClear={() => onSearchChange("")}
-            onValueChange={onSearchChange}
-          />
+        <div className="flex flex-col gap-3 w-full bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+          {/* แถวที่ 1: Search และ School Filter */}
+          <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
+            <Input
+              isClearable
+              classNames={{
+                base: "w-full shadow-sm",
+              }}
+              placeholder="ค้นหาชื่อ-นามสกุล"
+              size="md"
+              startContent={
+                <MagnifyingGlassIcon className="size-5 text-default-400" />
+              }
+              value={filterValue}
+              variant="bordered"
+              onClear={() => onSearchChange("")}
+              onValueChange={onSearchChange}
+            />
 
-          {/* โรงเรียน Filter */}
-          <Autocomplete
-            classNames={{
-              base: "w-full sm:w-64 flex-1",
-            }}
-            placeholder="เลือกโรงเรียน"
-            selectedKey={schoolFilter}
-            size="md"
-            variant="bordered"
-            onSelectionChange={(key) => setSchoolFilter(key as string)}
-          >
-            {schoolsData?.map((school: any) => (
-              <AutocompleteItem key={school.name}>
-                {school.name}
-              </AutocompleteItem>
-            ))}
-          </Autocomplete>
-
-          {/* สถานะ Filter (ซ่อนใน mobile) */}
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="md"
-                variant="flat"
-              >
-                สถานะ
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              selectedKeys={statusFilter}
-              selectionMode="multiple"
-              onSelectionChange={setStatusFilter}
+            <Autocomplete
+              classNames={{
+                base: "w-full shadow-sm",
+              }}
+              placeholder="เลือกโรงเรียน"
+              selectedKey={schoolFilter}
+              size="md"
+              startContent={
+                <BuildingOfficeIcon className="size-5 text-default-400" />
+              }
+              variant="bordered"
+              onSelectionChange={(key) => setSchoolFilter(key as string)}
             >
-              {options.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
+              {schoolsData?.map((school: any) => (
+                <AutocompleteItem key={school.name}>
+                  {school.name}
+                </AutocompleteItem>
               ))}
-            </DropdownMenu>
-          </Dropdown>
-
-          {/* กลุ่มปุ่ม PHQA, 2Q, Addon ให้อยู่บรรทัดเดียวกันใน mobile */}
-          <div className="flex flex-row gap-2 w-full sm:w-auto">
-            {/* PHQA Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  className="w-full"
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                >
-                  PHQA
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="PHQA Filter"
-                closeOnSelect={false}
-                selectedKeys={phqaFilter}
-                selectionMode="multiple"
-                onSelectionChange={setPhqaFilter}
-              >
-                {phqaStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            {/* 2Q Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  className="w-full"
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                >
-                  2Q
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="2Q Filter"
-                closeOnSelect={false}
-                selectedKeys={q2Filter}
-                selectionMode="multiple"
-                onSelectionChange={setQ2Filter}
-              >
-                {riskStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            {/* Addon Filter */}
-            <Dropdown className="flex-1">
-              <DropdownTrigger>
-                <Button
-                  className="w-full"
-                  color="primary"
-                  endContent={<ChevronDownIcon className="size-6" />}
-                  size="md"
-                  variant="flat"
-                >
-                  Addon
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Addon Filter"
-                closeOnSelect={false}
-                selectedKeys={addonFilter}
-                selectionMode="multiple"
-                onSelectionChange={setAddonFilter}
-              >
-                {riskStatusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {status.name}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+            </Autocomplete>
           </div>
 
-          {/* Clear All Filters */}
-          <Button
-            className="w-full sm:w-auto"
-            color="danger"
-            size="md"
-            variant="bordered"
-            onPress={() => {
-              setSchoolFilter("");
-              setPhqaFilter(new Set([]));
-              setQ2Filter(new Set([]));
-              setAddonFilter(new Set([]));
-            }}
-          >
-            ล้าง Filter
-          </Button>
+          {/* แถวที่ 2: Status Filters */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              {/* สถานะทั่วไป */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full shadow-sm"
+                    color="primary"
+                    endContent={<ChevronDownIcon className="size-4" />}
+                    size="md"
+                    variant="flat"
+                  >
+                    สถานะ
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="Table Columns"
+                  closeOnSelect={false}
+                  selectedKeys={statusFilter}
+                  selectionMode="multiple"
+                  onSelectionChange={setStatusFilter}
+                >
+                  {options.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
 
-          {/* ปุ่มปรับสถานะ */}
-          {data && (
-            <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />
-          )}
+              {/* PHQA Filter */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full shadow-sm"
+                    color="primary"
+                    endContent={<ChevronDownIcon className="size-4" />}
+                    size="md"
+                    variant="flat"
+                  >
+                    PHQA
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="PHQA Filter"
+                  closeOnSelect={false}
+                  selectedKeys={phqaFilter}
+                  selectionMode="multiple"
+                  onSelectionChange={setPhqaFilter}
+                >
+                  {phqaStatusOptions.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
 
-          {/* Export Button */}
-          {data && <ExportButton data={data} />}
+              {/* 2Q Filter */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full shadow-sm"
+                    color="primary"
+                    endContent={<ChevronDownIcon className="size-4" />}
+                    size="md"
+                    variant="flat"
+                  >
+                    2Q
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="2Q Filter"
+                  closeOnSelect={false}
+                  selectedKeys={q2Filter}
+                  selectionMode="multiple"
+                  onSelectionChange={setQ2Filter}
+                >
+                  {riskStatusOptions.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
+              {/* Addon Filter */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full shadow-sm"
+                    color="primary"
+                    endContent={<ChevronDownIcon className="size-4" />}
+                    size="md"
+                    variant="flat"
+                  >
+                    Addon
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="Addon Filter"
+                  closeOnSelect={false}
+                  selectedKeys={addonFilter}
+                  selectionMode="multiple"
+                  onSelectionChange={setAddonFilter}
+                >
+                  {riskStatusOptions.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
+              {/* Clear All Filters */}
+              <Button
+                className="w-full shadow-sm"
+                color="danger"
+                size="md"
+                variant="bordered"
+                onPress={() => {
+                  onSearchChange("");
+                  setStatusFilter(new Set(["0", "1"]));
+                  setSchoolFilter("");
+                  setPhqaFilter(new Set([]));
+                  setQ2Filter(new Set([]));
+                  setAddonFilter(new Set([]));
+                }}
+              >
+                ล้าง Filter
+              </Button>
+
+              {/* ปุ่มปรับสถานะ */}
+              {data && (
+                <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />
+              )}
+
+              {/* Export Button */}
+              {data && <ExportButton data={data} />}
+            </div>
+          </div>
         </div>
 
         {/* แสดง Filter ที่เลือก */}
@@ -296,6 +306,7 @@ export function QuestionFilterContent({
             {/* Search Filter */}
             {filterValue && (
               <Chip
+                className="text-xs"
                 color="default"
                 size="sm"
                 variant="flat"
@@ -308,6 +319,7 @@ export function QuestionFilterContent({
             {/* School Filter */}
             {schoolFilter && (
               <Chip
+                className="text-xs"
                 color="default"
                 size="sm"
                 variant="flat"
@@ -325,6 +337,7 @@ export function QuestionFilterContent({
                 return (
                   <Chip
                     key={status}
+                    className="text-xs"
                     color="default"
                     size="sm"
                     variant="flat"
@@ -352,6 +365,7 @@ export function QuestionFilterContent({
                 return (
                   <Chip
                     key={phqa}
+                    className="text-xs"
                     color="default"
                     size="sm"
                     variant="flat"
@@ -377,6 +391,7 @@ export function QuestionFilterContent({
                 return (
                   <Chip
                     key={q2}
+                    className="text-xs"
                     color="default"
                     size="sm"
                     variant="flat"
@@ -402,6 +417,7 @@ export function QuestionFilterContent({
                 return (
                   <Chip
                     key={addon}
+                    className="text-xs"
                     color="default"
                     size="sm"
                     variant="flat"

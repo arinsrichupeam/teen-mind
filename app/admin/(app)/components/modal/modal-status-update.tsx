@@ -20,11 +20,14 @@ import {
   TableCell,
   Chip,
   Selection,
+  Card,
+  CardBody,
 } from "@heroui/react";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 
 import { calculatePhqaRiskLevel } from "@/utils/helper";
+import { prefix } from "@/utils/data";
 
 interface ModalStatusUpdateProps {
   isOpen: boolean;
@@ -228,15 +231,20 @@ export const ModalStatusUpdate = ({
 
     // เมื่อ scroll ถึง 80% ของความสูง
     if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      if (displayedItems < filteredData.length && !isLoadingMore) {
-        setIsLoadingMore(true);
+      loadMoreData();
+    }
+  };
 
-        // จำลองการโหลดข้อมูล
-        setTimeout(() => {
-          setDisplayedItems((prev) => Math.min(prev + 10, filteredData.length));
-          setIsLoadingMore(false);
-        }, 500);
-      }
+  // ฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม
+  const loadMoreData = () => {
+    if (displayedItems < filteredData.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+
+      // จำลองการโหลดข้อมูล
+      setTimeout(() => {
+        setDisplayedItems((prev) => Math.min(prev + 10, filteredData.length));
+        setIsLoadingMore(false);
+      }, 500);
     }
   };
 
@@ -244,8 +252,8 @@ export const ModalStatusUpdate = ({
     <Modal
       backdrop="blur"
       classNames={{
-        base: "h-[90vh] max-w-[95vw]",
-        body: "h-[calc(90vh-120px)] overflow-hidden",
+        base: "h-[95vh] max-w-[95vw]",
+        body: "h-[calc(95vh-180px)] overflow-hidden",
       }}
       isOpen={isOpen}
       placement="center"
@@ -255,33 +263,28 @@ export const ModalStatusUpdate = ({
       <ModalContent>
         {(_onClose) => (
           <>
-            <ModalHeader className="flex flex-col gap-1">
+            <ModalHeader className="flex flex-col">
               <div>
                 <h3 className="text-lg font-semibold">ปรับสถานะ</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  แสดงเฉพาะข้อมูลที่มีระดับความเสี่ยง
-                  &quot;ไม่พบความเสี่ยง&quot; และ
-                  &quot;พบความเสี่ยงเล็กน้อย&quot; เท่านั้น
-                </p>
               </div>
             </ModalHeader>
-            <ModalBody>
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <div className="p-4 border shadow-sm rounded-lg">
-                    <h4 className="font-medium mb-3">เลือกเงื่อนไขการค้นหา</h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <ModalBody className="h-full overflow-hidden">
+              <div className="h-full flex flex-col space-y-4">
+                <Card className="min-h-[100px]">
+                  <CardBody className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Autocomplete
                         className="w-full"
                         label="โรงเรียน"
+                        labelPlacement="outside"
                         placeholder="เลือกโรงเรียน"
                         selectedKey={selectedSchool}
                         size="md"
                         variant="bordered"
-                        onSelectionChange={(key) =>
-                          setSelectedSchool(key as string)
-                        }
+                        onSelectionChange={(key) => {
+                          setSelectedSchool(key as string);
+                          setDisplayedItems(10); // รีเซ็ตจำนวนรายการที่แสดง
+                        }}
                       >
                         {schoolsData?.map((school: any) => (
                           <AutocompleteItem key={school.name}>
@@ -293,6 +296,7 @@ export const ModalStatusUpdate = ({
                       <Select
                         className="w-full"
                         label="ระดับความเสี่ยง PHQA"
+                        labelPlacement="outside"
                         placeholder="เลือกระดับความเสี่ยง"
                         selectedKeys={selectedPhqa ? [selectedPhqa] : []}
                         size="md"
@@ -301,6 +305,7 @@ export const ModalStatusUpdate = ({
                           const selected = Array.from(keys)[0] as string;
 
                           setSelectedPhqa(selected || "");
+                          setDisplayedItems(10); // รีเซ็ตจำนวนรายการที่แสดง
                         }}
                       >
                         {phqaOptions.map((option) => (
@@ -310,91 +315,102 @@ export const ModalStatusUpdate = ({
                         ))}
                       </Select>
                     </div>
-                  </div>
-
-                  {filteredData.length === 0 && (
-                    <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <svg
-                            className="h-5 w-5 text-yellow-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              clipRule="evenodd"
-                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                              fillRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-yellow-800">
-                            ไม่พบข้อมูล
-                          </h3>
-                          <div className="mt-2 text-sm text-yellow-700">
-                            <p>
-                              ไม่พบข้อมูลที่มีระดับความเสี่ยง
-                              &quot;ไม่พบความเสี่ยง&quot; หรือ
-                              &quot;พบความเสี่ยงเล็กน้อย&quot;
-                              {selectedSchool &&
-                                ` ในโรงเรียน ${selectedSchool}`}
-                              {selectedPhqa &&
-                                ` ที่มีระดับความเสี่ยง ${phqaOptions.find((opt) => opt.value === selectedPhqa)?.label}`}
-                            </p>
-                          </div>
+                  </CardBody>
+                </Card>
+                {filteredData.length === 0 && (
+                  <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-5 w-5 text-yellow-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            clipRule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                            fillRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          ไม่พบข้อมูล
+                        </h3>
+                        <div className="mt-2 text-sm text-yellow-700">
+                          <p>
+                            ไม่พบข้อมูลที่มีระดับความเสี่ยง
+                            &quot;ไม่พบความเสี่ยง&quot; หรือ
+                            &quot;พบความเสี่ยงเล็กน้อย&quot;
+                            {selectedSchool && ` ในโรงเรียน ${selectedSchool}`}
+                            {selectedPhqa &&
+                              ` ที่มีระดับความเสี่ยง ${phqaOptions.find((opt) => opt.value === selectedPhqa)?.label}`}
+                          </p>
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {filteredData.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h5 className="font-medium text-blue-800">
-                          รายการที่มีระดับความเสี่ยงต่ำ ({filteredData.length}{" "}
-                          รายการ):
-                        </h5>
-                        {selectedKeys !== "all" &&
-                          selectedKeys instanceof Set &&
-                          selectedKeys.size > 0 && (
-                            <div className="flex items-center gap-2">
+                  </div>
+                )}
+                <Card className="flex-1">
+                  <CardBody className="h-full flex flex-col">
+                    {filteredData.length > 0 && (
+                      <div className="h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-3 shadow-sm">
+                          <div>
+                            <h5 className="font-medium text-blue-800">
+                              รายการที่มีระดับความเสี่ยงต่ำ
+                            </h5>
+                            {filteredData.length > 0 && (
                               <span className="text-sm text-gray-600">
-                                เลือกแล้ว: {selectedKeys.size} รายการ
+                                แสดง {displayedItems} จาก {filteredData.length}{" "}
+                                รายการ
                               </span>
-                              <Select
-                                className="w-48"
-                                label="สถานะใหม่"
-                                placeholder="เลือกสถานะใหม่"
-                                selectedKeys={newStatus ? [newStatus] : []}
-                                size="sm"
-                                variant="bordered"
-                                onSelectionChange={(keys) => {
-                                  const selected = Array.from(
-                                    keys
-                                  )[0] as string;
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasSelection && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">
+                                  เลือกแล้ว:{" "}
+                                  {selectedKeys === "all"
+                                    ? filteredData.length
+                                    : selectedKeys instanceof Set
+                                      ? selectedKeys.size
+                                      : 0}{" "}
+                                  รายการ
+                                </span>
+                                <Select
+                                  className="w-48"
+                                  placeholder="เลือกสถานะใหม่"
+                                  selectedKeys={newStatus ? [newStatus] : []}
+                                  size="md"
+                                  variant="bordered"
+                                  onSelectionChange={(keys) => {
+                                    const selected = Array.from(
+                                      keys
+                                    )[0] as string;
 
-                                  setNewStatus(selected || "");
-                                }}
-                              >
-                                <SelectItem key="0">รอระบุ HN</SelectItem>
-                                <SelectItem key="1">
-                                  รอจัดนัด Telemed
-                                </SelectItem>
-                                <SelectItem key="2">
-                                  รอสรุปผลการให้คำปรึกษา
-                                </SelectItem>
-                                <SelectItem key="3">เสร็จสิ้น</SelectItem>
-                              </Select>
-                            </div>
-                          )}
-                      </div>
+                                    setNewStatus(selected || "");
+                                  }}
+                                >
+                                  <SelectItem key="0">รอระบุ HN</SelectItem>
+                                  <SelectItem key="1">
+                                    รอจัดนัด Telemed
+                                  </SelectItem>
+                                  <SelectItem key="2">
+                                    รอสรุปผลการให้คำปรึกษา
+                                  </SelectItem>
+                                  <SelectItem key="3">เสร็จสิ้น</SelectItem>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                      <div
-                        className="max-h-96 overflow-y-auto border shadow-sm rounded-lg"
-                        onScroll={handleScroll}
-                      >
-                        <div className="overflow-x-auto">
+                        <div
+                          className="max-h-[400px] overflow-y-auto border rounded-2xl  scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                          onScroll={handleScroll}
+                        >
                           <Table
                             isStriped
                             aria-label="รายการที่เลือก"
@@ -612,8 +628,31 @@ export const ModalStatusUpdate = ({
                                         {index + 1}
                                       </TableCell>
                                       <TableCell className="whitespace-nowrap">
-                                        {item.profile?.firstname}{" "}
-                                        {item.profile?.lastname}
+                                        {(() => {
+                                          const firstname =
+                                            item.profile?.firstname ||
+                                            item.user?.firstname ||
+                                            "";
+                                          const lastname =
+                                            item.profile?.lastname ||
+                                            item.user?.lastname ||
+                                            "";
+                                          const prefixId =
+                                            item.profile?.prefixId ||
+                                            item.user?.prefixId;
+
+                                          // หาคำนำหน้าจาก prefixId
+                                          const prefixLabel =
+                                            prefix.find(
+                                              (p) =>
+                                                p.key === prefixId?.toString()
+                                            )?.label || "";
+
+                                          const fullName =
+                                            `${prefixLabel} ${firstname} ${lastname}`.trim();
+
+                                          return fullName || "ไม่ระบุ";
+                                        })()}
                                       </TableCell>
                                       <TableCell className="text-center whitespace-nowrap">
                                         {getSchoolName(item)}
@@ -637,6 +676,21 @@ export const ModalStatusUpdate = ({
                           </Table>
                         </div>
 
+                        {/* แสดงปุ่มโหลดข้อมูลเพิ่มเมื่อยังมีข้อมูลที่ไม่ได้แสดง */}
+                        {displayedItems < filteredData.length &&
+                          !isLoadingMore && (
+                            <div className="flex justify-center items-center py-4">
+                              <Button
+                                color="primary"
+                                variant="bordered"
+                                onPress={loadMoreData}
+                              >
+                                โหลดข้อมูลเพิ่ม ({displayedItems} /{" "}
+                                {filteredData.length})
+                              </Button>
+                            </div>
+                          )}
+
                         {/* แสดง loading indicator เมื่อกำลังโหลดข้อมูลเพิ่ม */}
                         {isLoadingMore && (
                           <div className="flex justify-center items-center py-4">
@@ -656,9 +710,9 @@ export const ModalStatusUpdate = ({
                             </div>
                           )}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </CardBody>
+                </Card>
               </div>
             </ModalBody>
             <ModalFooter>

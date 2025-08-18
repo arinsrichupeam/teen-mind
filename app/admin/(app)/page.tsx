@@ -9,6 +9,7 @@ import { ConsultTelemedCharts } from "./components/home/consult-telemed-charts";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
+import { calculateAge } from "@/utils/helper";
 
 const fetchQuestions = async () => {
   const res = await fetch("/api/question");
@@ -43,9 +44,7 @@ const filterByAge = (
   return data.filter((item) => {
     if (!item.profile?.birthday || !item.createdAt) return false;
 
-    const birthday = new Date(item.profile.birthday);
-    const assessmentDate = new Date(item.createdAt);
-    const age = assessmentDate.getFullYear() - birthday.getFullYear();
+    const age = calculateAge(item.profile.birthday, item.createdAt);
 
     return age >= ageRange.min && age <= ageRange.max;
   });

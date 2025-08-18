@@ -27,6 +27,7 @@ import useSWR from "swr";
 
 import { prefix } from "@/utils/data";
 import { formatThaiDate } from "@/utils/helper";
+import { calculateAge } from "@/utils/helper";
 
 interface ExportField {
   key: string;
@@ -178,19 +179,10 @@ export const ModalExportData = ({
     filteredData = filteredData.filter((item: any) => {
       if (!item.profile?.birthday) return false;
 
-      const birthDate = new Date(item.profile.birthday);
-      const assessmentDate = new Date(item.createdAt);
-
-      // คำนวณอายุ ณ วันที่ตรวจ
-      let age = assessmentDate.getFullYear() - birthDate.getFullYear();
-      const monthDiff = assessmentDate.getMonth() - birthDate.getMonth();
-
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && assessmentDate.getDate() < birthDate.getDate())
-      ) {
-        age--;
-      }
+      const age = calculateAge(
+        item.profile.birthday,
+        item.profile.school?.screeningDate
+      );
 
       return age >= 12 && age <= 18;
     });
@@ -218,22 +210,6 @@ export const ModalExportData = ({
     return filteredData;
   }, [data, filters]);
 
-  const calculateAge = (birthday: string, assessmentDate?: string): number => {
-    const birthDate = new Date(birthday);
-    const targetDate = assessmentDate ? new Date(assessmentDate) : new Date();
-    let age = targetDate.getFullYear() - birthDate.getFullYear();
-    const monthDiff = targetDate.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && targetDate.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    return age;
-  };
-
   const getFieldValue = (item: any, field: string): any => {
     switch (field) {
       case "id":
@@ -260,7 +236,10 @@ export const ModalExportData = ({
         return item.profile?.citizenId;
       case "age":
         return item.profile?.birthday
-          ? calculateAge(item.profile.birthday, item.createdAt)
+          ? calculateAge(
+              item.profile.birthday,
+              item.profile.school?.screeningDate
+            )
           : "-";
       case "sex":
         return item.profile?.sex === 1
@@ -312,19 +291,26 @@ export const ModalExportData = ({
 
     // เมื่อ scroll ถึง 80% ของความสูง
     if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      const filteredData = getFilteredData();
-
-      if (displayedItems < filteredData.length && !isLoadingMore) {
-        setIsLoadingMore(true);
-
-        // จำลองการโหลดข้อมูล
-        setTimeout(() => {
-          setDisplayedItems((prev) => Math.min(prev + 10, filteredData.length));
-          setIsLoadingMore(false);
-        }, 500);
-      }
+      loadMoreData();
     }
   };
+
+  // ฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม
+  const loadMoreData = useCallback(() => {
+    const currentFilteredData = getFilteredData();
+
+    if (displayedItems < currentFilteredData.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+
+      // จำลองการโหลดข้อมูล
+      setTimeout(() => {
+        setDisplayedItems((prev) =>
+          Math.min(prev + 10, currentFilteredData.length)
+        );
+        setIsLoadingMore(false);
+      }, 500);
+    }
+  }, [displayedItems, isLoadingMore, getFilteredData]);
 
   const handleClose = useCallback(() => {
     // Clear ข้อมูลทั้งหมด
@@ -397,12 +383,12 @@ export const ModalExportData = ({
     <Modal
       backdrop="blur"
       classNames={{
-        base: "h-[90vh] max-w-[95vw]",
-        body: "h-[calc(90vh-120px)] overflow-hidden",
+        base: "h-[95vh] max-w-[95vw]",
+        body: "h-[calc(95vh-180px)] overflow-hidden",
       }}
       isOpen={isOpen}
       placement="center"
-      size="4xl"
+      size="5xl"
       onClose={handleClose}
     >
       <ModalContent>
@@ -499,9 +485,16 @@ export const ModalExportData = ({
             {/* ตัวอย่างตาราง */}
             <Card className="flex-1">
               <CardBody className="h-full flex flex-col">
-                <h4 className="font-medium mb-3">ตัวอย่างข้อมูลที่จะ Export</h4>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium">ตัวอย่างข้อมูลที่จะ Export</h4>
+                  {filteredData.length > 0 && (
+                    <span className="text-sm text-gray-600">
+                      แสดง {displayedItems} จาก {filteredData.length} รายการ
+                    </span>
+                  )}
+                </div>
                 <div
-                  className="flex-1 overflow-y-auto border shadow-sm rounded-lg"
+                  className="flex-1 overflow-y-auto border shadow-sm rounded-lg max-h-[400px]"
                   onScroll={handleScroll}
                 >
                   {selectedFields.length > 0 && availableFields.length > 0 ? (
@@ -572,6 +565,19 @@ export const ModalExportData = ({
                     </div>
                   )}
                 </div>
+
+                {/* แสดงปุ่มโหลดข้อมูลเพิ่มเมื่อยังมีข้อมูลที่ไม่ได้แสดง */}
+                {displayedItems < filteredData.length && !isLoadingMore && (
+                  <div className="flex justify-center items-center py-4">
+                    <Button
+                      color="primary"
+                      variant="bordered"
+                      onPress={loadMoreData}
+                    >
+                      โหลดข้อมูลเพิ่ม ({displayedItems} / {filteredData.length})
+                    </Button>
+                  </div>
+                )}
 
                 {/* แสดง loading indicator เมื่อกำลังโหลดข้อมูลเพิ่ม */}
                 {isLoadingMore && (
