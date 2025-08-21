@@ -24,14 +24,18 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
   const stats = {
     total: filteredQuestions.length,
     consult: {
+      // ให้คำปรึกษาแล้ว: status = 3 และมี consult
       yes: filteredQuestions.filter(
         (q) => q.status === 3 && q.consult && q.consult !== ""
       ).length,
+      // รอให้คำปรึกษา: status = 2 และมี consult
       no: filteredQuestions.filter(
-        (q) => q.consult && q.consult !== "" && q.status !== 3
+        (q) => q.status === 2 && q.consult && q.consult !== ""
       ).length,
-      pending: filteredQuestions.filter((q) => !q.consult || q.consult === "")
-        .length,
+      // รอนักจิตวิทยาดำเนินการ: status = 2 และยังไม่มี consult
+      pending: filteredQuestions.filter(
+        (q) => q.status === 2 && (!q.consult || q.consult === "")
+      ).length,
       notSpecified: 0, // ไม่ใช้ notSpecified เพราะรวมใน pending แล้ว
     },
     telemed: {
@@ -154,7 +158,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
             <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             <p className="text-xs text-gray-500">
               รอดำเนินการ: {stats.consult.pending} | เข้าพบแล้ว:{" "}
-              {stats.consult.yes} | ยังไม่เข้าพบ: {stats.consult.no}{" "}
+              {stats.consult.yes} | รอให้คำปรึกษา: {stats.consult.no}{" "}
             </p>
           </div>
         </CardBody>
@@ -162,42 +166,27 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
 
       {/* สรุปสถิติการเข้าพบนักจิตวิทยา */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-yellow-500">
+
+      <Card className="border-l-4 border-l-green-500">
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">รอนักจิตวิทยาดำเนินการ</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {stats.consult.pending}{" "}
-                  <span className="text-sm">
-                    (
-                    {consultTotal > 0
-                      ? ((stats.consult.pending / consultTotal) * 100).toFixed(
-                          1
-                        )
-                      : 0}
-                    %)
-                  </span>
+                <p className="text-sm text-gray-600">ให้คำปรึกษาแล้ว</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.consult.yes} {"ราย"}
                 </p>
               </div>
             </div>
           </CardBody>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-yellow-500">
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">ให้คำปรึกษาแล้ว</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {stats.consult.yes}{" "}
-                  <span className="text-sm">
-                    (
-                    {consultTotal > 0
-                      ? ((stats.consult.yes / consultTotal) * 100).toFixed(1)
-                      : 0}
-                    %)
-                  </span>
+                <p className="text-sm text-gray-600">รอนักจิตวิทยาดำเนินการ</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {stats.consult.pending} {"ราย"}
                 </p>
               </div>
             </div>
@@ -210,14 +199,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
               <div>
                 <p className="text-sm text-gray-600">รอให้คำปรึกษา</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {stats.consult.no}{" "}
-                  <span className="text-sm">
-                    (
-                    {consultTotal > 0
-                      ? ((stats.consult.no / consultTotal) * 100).toFixed(1)
-                      : 0}
-                    %)
-                  </span>
+                  {stats.consult.no} {"ราย"}
                 </p>
               </div>
             </div>
@@ -364,17 +346,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                         {data.telemed}
                       </span>
                     </div> */}
-                    <div className="pt-2 border-t border-gray-200">
-                      <div className="flex justify-between text-xs">
-                        <span>อัตราการให้คำปรึกษา:</span>
-                        <span className="font-medium">
-                          {data.total > 0
-                            ? ((data.consult / data.total) * 100).toFixed(1)
-                            : 0}
-                          %
-                        </span>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
               );
