@@ -46,7 +46,7 @@ import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
 import {
-  formatThaiDateTime,
+  formatThaiDate,
   calculatePhqaRiskLevel,
   calculateAge,
 } from "@/utils/helper";
@@ -74,7 +74,7 @@ export default function QuestionPage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<any>({
-    column: "createdAt",
+    column: "screeningDate",
     direction: "descending",
   });
   const [mode, setMode] = useState("view-questionnaire");
@@ -538,11 +538,11 @@ export default function QuestionPage() {
           }
 
           return "-";
-        case "date":
+        case "screeningDate":
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {formatThaiDateTime(item.createdAt)}
+                {formatThaiDate(item.profile.school?.screeningDate)}
               </p>
             </div>
           );

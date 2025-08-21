@@ -19,6 +19,7 @@ import {
   TableRow,
   TableCell,
   addToast,
+  Progress,
 } from "@heroui/react";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -62,6 +63,8 @@ export const ModalExportData = ({
   });
   const [displayedItems, setDisplayedItems] = useState<number>(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
   // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบสอบถาม
   const getAvailableFields = (): ExportField[] => {
@@ -95,6 +98,16 @@ export const ModalExportData = ({
       {
         key: "referralUnit",
         label: "หน่วยบริการส่งต่อพบแพทย์",
+        selected: true,
+      },
+      {
+        key: "referentId",
+        label: "รหัส อสท.",
+        selected: true,
+      },
+      {
+        key: "consultName",
+        label: "นักจิตวิทยา",
         selected: true,
       },
     ];
@@ -137,6 +150,96 @@ export const ModalExportData = ({
     }
   );
 
+  // ดึงข้อมูลเขตด้วย SWR
+  const { data: districts, isLoading: districtsLoading } = useSWR(
+    "/api/data/districts",
+    async (url) => {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error("Failed to fetch districts");
+
+        return response.json();
+      } catch (error) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลเขตได้: " + error,
+          color: "danger",
+        });
+
+        return [];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
+
+  // ดึงข้อมูล profile_admin ด้วย SWR
+  const { data: profileAdmins, isLoading: profileAdminsLoading } = useSWR(
+    "/api/profile/admin",
+    async (url) => {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error("Failed to fetch profile admins");
+
+        return response.json();
+      } catch (error) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูล profile admin ได้: " + error,
+          color: "danger",
+        });
+
+        return [];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
+
+  // ฟังก์ชันสำหรับหาชื่อเขตจากรหัสเขต
+  const getDistrictName = useCallback(
+    (districtId: number): string => {
+      if (!districts || districtsLoading) {
+        return `เขต ${districtId}`;
+      }
+
+      const district = districts.find((d: any) => d.id === districtId);
+
+      return district ? district.nameInThai : `เขต ${districtId}`;
+    },
+    [districts, districtsLoading]
+  );
+
+  // ฟังก์ชันสำหรับหาชื่อนักจิตวิทยาจาก profile_admin
+  const getConsultName = useCallback(
+    (consultId: string): string => {
+      if (!profileAdmins || profileAdminsLoading) {
+        return `${consultId}`;
+      }
+
+      const profileAdmin = profileAdmins.find(
+        (p: any) => p.userId === consultId
+      );
+
+      if (profileAdmin) {
+        const prefixLabel =
+          prefix.find((p) => p.key === profileAdmin.prefixId?.toString())
+            ?.label || "";
+
+        return `${prefixLabel} ${profileAdmin.firstname || ""} ${profileAdmin.lastname || ""}`.trim();
+      }
+
+      return `${consultId}`;
+    },
+    [profileAdmins, profileAdminsLoading]
+  );
+
   const handleFilterChange = useCallback((key: string, value: any) => {
     setFilters((prev) => ({
       ...prev,
@@ -149,6 +252,11 @@ export const ModalExportData = ({
   // ฟังก์ชันสำหรับ filter ข้อมูล
   const getFilteredData = useCallback(() => {
     let filteredData = [...data];
+
+    // Filter เฉพาะ Status = 3 เท่านั้น
+    filteredData = filteredData.filter((item: any) => {
+      return item.status === 3;
+    });
 
     // Filter ตามวันที่
     if (filters.dateFrom && filters.dateTo) {
@@ -255,31 +363,46 @@ export const ModalExportData = ({
         return "";
       case "district":
         if (item.profile?.school?.districtId) {
-          if (schoolsLoading) {
+          if (districtsLoading) {
             return "-";
           }
+          // หาโรงเรียนเพื่อดึง districtId
           const school = schools?.find(
             (s: any) => s.id === item.profile.school.id
           );
 
-          return school ? school.name : `โรงเรียน ${item.profile.school.id}`;
+          if (school && school.districtId) {
+            // ดึงข้อมูลเขตจาก API
+            return getDistrictName(school.districtId);
+          }
+
+          return `เขต ${item.profile.school.districtId}`;
         }
 
         return "-";
       case "serviceDate":
-        return formatThaiDate(item.createdAt);
+        return formatThaiDate(item.profile.school?.screeningDate);
       case "phqa":
         return item.result_text || "-";
       case "assessmentDate":
-        return formatThaiDate(item.createdAt);
+        return formatThaiDate(item.schedule_telemed);
       case "followUpDate1":
-        return item.followUpDate1 ? formatThaiDate(item.followUpDate1) : "-";
+        return item.followUpDate1 ? formatThaiDate(item.follow_up) : "-";
       case "followUpDate2":
-        return item.followUpDate2 ? formatThaiDate(item.followUpDate2) : "-";
+        return item.followUpDate2 ? formatThaiDate(item.follow_up2) : "-";
       case "followUpDate3":
-        return item.followUpDate3 ? formatThaiDate(item.followUpDate3) : "-";
+        return item.followUpDate3 ? formatThaiDate(item.follow_up3) : "-";
       case "referralUnit":
         return item.referralUnit || "-";
+      case "referentId":
+        if (item.referentId) {
+          // แปลงเป็น string และเติม 0 ข้างหน้าให้เป็น 3 หลัก
+          return item.referentId.toString().padStart(3, "0");
+        }
+
+        return "-";
+      case "consultName":
+        return item.consult ? getConsultName(item.consult) : "-";
       default:
         return item[field] || "-";
     }
@@ -327,51 +450,127 @@ export const ModalExportData = ({
     onClose();
   }, [onClose]);
 
-  const handleExport = useCallback(() => {
-    // ใช้ข้อมูลที่กรองแล้ว
-    const filteredExportData = getFilteredData();
+  const handleExport = useCallback(async () => {
+    if (isExporting) return;
 
-    // สร้างข้อมูลสำหรับ export
-    const excelData = filteredExportData.map((item: any) => {
-      const row: any = {};
+    setIsExporting(true);
+    setExportProgress(0);
 
-      selectedFields.forEach((field) => {
+    try {
+      // ใช้ข้อมูลที่กรองแล้ว
+      const filteredExportData = getFilteredData();
+
+      if (filteredExportData.length === 0) {
+        addToast({
+          title: "ไม่พบข้อมูล",
+          description: "ไม่มีข้อมูลสำหรับ export",
+          color: "warning",
+        });
+
+        return;
+      }
+
+      // แสดง toast เริ่มต้น export
+      addToast({
+        title: "เริ่มต้น Export",
+        description: `กำลังประมวลผลข้อมูล ${filteredExportData.length} รายการ...`,
+        color: "primary",
+      });
+
+      // จำลองการประมวลผลแบบ batch เพื่อไม่ให้ UI freeze
+      const batchSize = 100;
+      const totalBatches = Math.ceil(filteredExportData.length / batchSize);
+      let processedData: any[] = [];
+
+      for (let i = 0; i < totalBatches; i++) {
+        const start = i * batchSize;
+        const end = Math.min(start + batchSize, filteredExportData.length);
+        const batch = filteredExportData.slice(start, end);
+
+        // ประมวลผลข้อมูลในแต่ละ batch
+        const processedBatch = batch.map((item: any) => {
+          const row: any = {};
+
+          selectedFields.forEach((field) => {
+            const fieldLabel =
+              availableFields.find((f) => f.key === field)?.label || field;
+
+            row[fieldLabel] = getFieldValue(item, field);
+          });
+
+          return row;
+        });
+
+        processedData.push(...processedBatch);
+
+        // อัปเดต progress
+        const progress = Math.round(((i + 1) / totalBatches) * 100);
+
+        setExportProgress(progress);
+
+        // ให้ UI มีโอกาสอัปเดต
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      // สร้าง Excel file
+      setExportProgress(90);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(processedData);
+
+      // ตั้งค่าความกว้างคอลัมน์
+      const colWidths = selectedFields.map((field) => {
         const fieldLabel =
           availableFields.find((f) => f.key === field)?.label || field;
 
-        row[fieldLabel] = getFieldValue(item, field);
+        return { wch: Math.max(fieldLabel.length, 15) };
       });
 
-      return row;
-    });
+      ws["!cols"] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, `${dataType}_data`);
 
-    // สร้าง Excel file
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
+      setExportProgress(95);
 
-    // ตั้งค่าความกว้างคอลัมน์
-    const colWidths = selectedFields.map((field) => {
-      const fieldLabel =
-        availableFields.find((f) => f.key === field)?.label || field;
+      const fileName = `${dataType}_export_${new Date().toISOString().split("T")[0]}.xlsx`;
 
-      return { wch: Math.max(fieldLabel.length, 15) };
-    });
+      XLSX.writeFile(wb, fileName);
 
-    ws["!cols"] = colWidths;
+      setExportProgress(100);
 
-    XLSX.utils.book_append_sheet(wb, ws, `${dataType}_data`);
+      // แสดง toast สำเร็จ
+      addToast({
+        title: "Export สำเร็จ",
+        description: `ส่งออกข้อมูล ${processedData.length} รายการเรียบร้อยแล้ว`,
+        color: "success",
+      });
 
-    const fileName = `${dataType}_export_${new Date().toISOString().split("T")[0]}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
-
-    handleClose();
-  }, [selectedFields, filters, availableFields, handleClose, getFilteredData]);
+      // ปิด modal หลังจาก delay เล็กน้อย
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
+    } catch (error) {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถ export ข้อมูลได้: " + error,
+        color: "danger",
+      });
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  }, [
+    selectedFields,
+    filters,
+    availableFields,
+    handleClose,
+    getFilteredData,
+    isExporting,
+  ]);
 
   // สร้างรายการ PHQA สำหรับ filter
   const phqaOptions = useMemo(() => {
     const uniquePhqa = Array.from(
-      new Set(data.map((item) => item.result_text).filter(Boolean))
+      new Set(data.map((item: any) => item.result_text).filter(Boolean))
     );
 
     return uniquePhqa.sort();
@@ -381,6 +580,7 @@ export const ModalExportData = ({
 
   return (
     <Modal
+      hideCloseButton
       backdrop="blur"
       classNames={{
         base: "h-[95vh] max-w-[95vw]",
@@ -498,11 +698,13 @@ export const ModalExportData = ({
                   onScroll={handleScroll}
                 >
                   {selectedFields.length > 0 && availableFields.length > 0 ? (
-                    schoolsLoading ? (
+                    schoolsLoading ||
+                    districtsLoading ||
+                    profileAdminsLoading ? (
                       <div className="text-center py-8 text-gray-500">
                         <div className="flex items-center justify-center space-x-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-                          <span>กำลังโหลดข้อมูลโรงเรียน...</span>
+                          <span>กำลังโหลดข้อมูล...</span>
                         </div>
                       </div>
                     ) : (
@@ -606,14 +808,48 @@ export const ModalExportData = ({
                   )}
               </CardBody>
             </Card>
+
+            {/* Export Progress */}
+            {isExporting && (
+              <Card>
+                <CardBody>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">กำลัง Export ข้อมูล...</h4>
+                      <span className="text-sm text-gray-600">
+                        {exportProgress}%
+                      </span>
+                    </div>
+                    <Progress
+                      className="w-full"
+                      color="primary"
+                      value={exportProgress}
+                    />
+                    <p className="text-sm text-gray-600">
+                      กรุณารอสักครู่ อย่าปิดหน้าต่างนี้
+                    </p>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={handleClose}>
+          <Button
+            color="danger"
+            isDisabled={isExporting}
+            variant="light"
+            onPress={handleClose}
+          >
             ยกเลิก
           </Button>
-          <Button color="primary" onPress={handleExport}>
-            Export Excel
+          <Button
+            color="primary"
+            isDisabled={isExporting}
+            isLoading={isExporting}
+            onPress={handleExport}
+          >
+            {isExporting ? "กำลัง Export..." : "Export Excel"}
           </Button>
         </ModalFooter>
       </ModalContent>

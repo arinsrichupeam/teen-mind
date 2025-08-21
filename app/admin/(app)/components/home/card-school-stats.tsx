@@ -84,7 +84,7 @@ export const CardSchoolStats = ({ data, summary }: props) => {
   const tableRows = sortedData.map((school, index) => (
     <TableRow key={school.schoolName}>
       <TableCell>{index + 1}</TableCell>
-      <TableCell>{school.schoolName}</TableCell>
+      <TableCell className="text-nowrap">{school.schoolName}</TableCell>
       <TableCell>{school.total}</TableCell>
       <TableCell>{school.green}</TableCell>
       <TableCell>{school.greenLow}</TableCell>

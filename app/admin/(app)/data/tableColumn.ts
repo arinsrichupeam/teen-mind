@@ -7,7 +7,7 @@ export const QuestionColumnsName = [
   { name: "2Q", uid: "2q", align: "center" },
   // { name: "PHQA-9", uid: "phqa-9", align: "center" },
   { name: "Addon", uid: "addon", align: "center" },
-  { name: "วันที่ประเมิน", uid: "date", align: "center" },
+  { name: "วันที่ประเมิน", uid: "screeningDate", align: "center" },
   { name: "สถานะ", uid: "status", align: "center" },
   { name: "", uid: "actions", align: "center" },
 ];

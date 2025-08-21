@@ -42,9 +42,12 @@ const filterByAge = (
   ageRange: { min: number; max: number } = { min: 12, max: 18 }
 ) => {
   return data.filter((item) => {
-    if (!item.profile?.birthday || !item.createdAt) return false;
+    if (!item.profile?.birthday) return false;
 
-    const age = calculateAge(item.profile.birthday, item.createdAt);
+    const age = calculateAge(
+      item.profile.birthday,
+      item.profile.school?.screeningDate
+    );
 
     return age >= ageRange.min && age <= ageRange.max;
   });
@@ -132,20 +135,6 @@ export default function AdminHome() {
     <Suspense fallback={<Loading />}>
       <div className="h-full lg:px-6">
         <div className="flex flex-col gap-6 pt-3 px-4 lg:px-0 sm:pt-10 max-w-[90rem] mx-auto w-full">
-          {/* <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-semibold">
-                  สถิติผู้รับบริการ (อายุ 12-18 ปี)
-                </h3>
-                <div className="grid md:grid-cols-2 grid-cols-1 2xl:grid-cols-4 gap-2 justify-center w-full">
-                  <CardTotal data={filteredUsers} />
-                  <CardCaseTotal data={filteredQuestions} />
-                </div>
-              </div>
-            </div>
-          </div> */}
-
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
@@ -164,14 +153,7 @@ export default function AdminHome() {
             </div>
           </div>
 
-          {/* <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">แนวโน้มการเข้าพบนักจิตวิทยา</h3>
-              <ConsultTrendCharts questions={rawQuestions} />
-            </div>
-          </div> */}
-
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mb-8">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
               <CardSchoolStats
@@ -181,23 +163,6 @@ export default function AdminHome() {
             </div>
           </div>
         </div>
-
-        {/* {showScoreModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">เกณฑ์คะแนน PHQA</h2>
-                <button
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                  onClick={() => setShowScoreModal(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <CardScoreCriteria />
-            </div>
-          </div>
-        )} */}
       </div>
     </Suspense>
   );
