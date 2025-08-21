@@ -143,8 +143,8 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
     },
   };
 
-  const consultTotal =
-    stats.consult.yes + stats.consult.no + stats.consult.pending;
+  // const consultTotal =
+  //   stats.consult.yes + stats.consult.no + stats.consult.pending;
 
   return (
     <div className="space-y-6">
@@ -166,8 +166,7 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
 
       {/* สรุปสถิติการเข้าพบนักจิตวิทยา */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-
-      <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -346,7 +345,6 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
                         {data.telemed}
                       </span>
                     </div> */}
-
                   </div>
                 </div>
               );
