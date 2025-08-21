@@ -478,6 +478,7 @@ export function calculateGradeLevel(age: number): string {
 // ฟังก์ชันคำนวณระดับชั้นจากวันเกิด
 export function calculateGradeLevelFromBirthday(birthday: string): string {
   const age = calculateAge(birthday);
+
   return calculateGradeLevel(age);
 }
 
@@ -485,5 +486,6 @@ export function calculateGradeLevelFromBirthday(birthday: string): string {
 export function calculateGradeLevelFromThaiYear(thaiYear: number): string {
   const currentYear = new Date().getFullYear() + 543; // ปีปัจจุบันใน พ.ศ.
   const age = currentYear - thaiYear;
+
   return calculateGradeLevel(age);
 }
