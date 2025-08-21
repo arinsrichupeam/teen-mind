@@ -27,7 +27,7 @@ import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
 
 import { prefix } from "@/utils/data";
-import { formatThaiDate } from "@/utils/helper";
+import { calculateGradeLevelFromBirthday, formatThaiDate } from "@/utils/helper";
 import { calculateAge } from "@/utils/helper";
 
 interface ExportField {
@@ -360,7 +360,7 @@ export const ModalExportData = ({
       case "school":
         return item.profile?.school?.name || "-";
       case "grade":
-        return "";
+        return calculateGradeLevelFromBirthday(item.profile?.birthday);
       case "district":
         if (item.profile?.school?.districtId) {
           if (districtsLoading) {

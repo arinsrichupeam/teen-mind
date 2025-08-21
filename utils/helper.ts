@@ -452,3 +452,38 @@ export const formatThaiDateTime = (dateString: string | Date): string => {
     return "ไม่ระบุวันที่" + error;
   }
 };
+
+// ฟังก์ชันคำนวณระดับชั้นตามอายุ
+export function calculateGradeLevel(age: number): string {
+  switch (age) {
+    case 12:
+      return "ป.6";
+    case 13:
+      return "ม.1";
+    case 14:
+      return "ม.2";
+    case 15:
+      return "ม.3";
+    case 16:
+      return "ม.4";
+    case 17:
+      return "ม.5";
+    case 18:
+      return "ม.6";
+    default:
+      return "ไม่ระบุระดับชั้น";
+  }
+}
+
+// ฟังก์ชันคำนวณระดับชั้นจากวันเกิด
+export function calculateGradeLevelFromBirthday(birthday: string): string {
+  const age = calculateAge(birthday);
+  return calculateGradeLevel(age);
+}
+
+// ฟังก์ชันคำนวณระดับชั้นจากปีเกิด (ปี พ.ศ.)
+export function calculateGradeLevelFromThaiYear(thaiYear: number): string {
+  const currentYear = new Date().getFullYear() + 543; // ปีปัจจุบันใน พ.ศ.
+  const age = currentYear - thaiYear;
+  return calculateGradeLevel(age);
+}
