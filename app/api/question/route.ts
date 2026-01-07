@@ -48,6 +48,14 @@ export async function GET() {
               screeningDate: true,
             },
           },
+          emergency: {
+            select: {
+              id: true,
+              name: true,
+              tel: true,
+              relation: true,
+            },
+          },
         },
       },
       referent: {

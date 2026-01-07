@@ -113,6 +113,16 @@ export const ModalExportData = ({
         label: "นักจิตวิทยา",
         selected: true,
       },
+      {
+        key: "studentPhone",
+        label: "เบอร์โทรนักเรียน",
+        selected: true,
+      },
+      {
+        key: "emergencyContact",
+        label: "ข้อมูลผู้ติดต่อฉุกเฉิน",
+        selected: true,
+      },
     ];
   };
 
@@ -406,6 +416,23 @@ export const ModalExportData = ({
         return "-";
       case "consultName":
         return item.consult ? getConsultName(item.consult) : "-";
+      case "studentPhone":
+        return item.profile?.tel || "-";
+      case "emergencyContact":
+        const emergency = item.profile?.emergency?.[0];
+
+        if (emergency) {
+          const name = emergency.name || "";
+          const relation = emergency.relation || "";
+          const tel = emergency.tel || "";
+
+          return (
+            `${name} - ${relation ? `${relation}` : ""} - ${tel ? `${tel}` : ""}`.trim() ||
+            "-"
+          );
+        }
+
+        return "-";
       default:
         return item[field] || "-";
     }
