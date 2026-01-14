@@ -21,7 +21,7 @@ interface Props {
 
 export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   const request = true;
-  const [birthday, setBirthday] = useState<CalendarDate>();
+  const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
 
@@ -30,9 +30,13 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
     NextStep("Profile");
   }, []);
 
-  const DateChange = useCallback((val: any) => {
-    HandleChange({ target: { name: "birthday", value: new Date(val) } });
-  }, []);
+  const DateChange = useCallback(
+    (val: any) => {
+      setBirthday(val);
+      HandleChange({ target: { name: "birthday", value: new Date(val) } });
+    },
+    [HandleChange]
+  );
 
   const validateCitizenId = async (value: string) => {
     const result = await validateCitizen(value, "user");
@@ -65,8 +69,8 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
   };
 
   useEffect(() => {
-    if (Result?.birthday.getDate() != new Date().getDate()) {
-      const parsedDate = safeParseDate(Result?.birthday);
+    if (Result?.birthday) {
+      const parsedDate = safeParseDate(Result.birthday);
 
       if (parsedDate) {
         setBirthday(parsedDate);
@@ -78,7 +82,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       .then((val) => {
         setSchool(val);
       });
-  }, []);
+  }, [Result]);
 
   return (
     <Form
@@ -207,7 +211,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         selectorButtonPlacement="start"
         showMonthAndYearPickers={true}
         size="sm"
-        value={birthday}
+        value={birthday ?? undefined}
         variant="faded"
         onChange={DateChange}
       />

@@ -19,14 +19,10 @@ export default function LiffHome() {
           // send to register
           router.push("/liff/privacy");
         } else {
-          if (!!val.referent) {
-            router.push("/liff/referent");
+          if (val.questions?.length === 0) {
+            router.push("/liff/question");
           } else {
-            if (val.questions?.length === 0) {
-              router.push("/liff/question");
-            } else {
-              router.push("/liff/question/list");
-            }
+            router.push("/liff/question/list");
           }
         }
       })

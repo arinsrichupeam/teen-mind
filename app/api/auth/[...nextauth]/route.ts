@@ -31,9 +31,15 @@ const authOptions = NextAuth({
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (new URL(url).pathname.startsWith("/liff")) {
+      // ถ้า url เป็น relative path ให้แปลงเป็น absolute URL ก่อน
+      const urlObj =
+        url.startsWith("http://") || url.startsWith("https://")
+          ? new URL(url)
+          : new URL(url, baseUrl);
+
+      if (urlObj.pathname.startsWith("/liff")) {
         return `${baseUrl}/liff`;
-      } else if (new URL(url).pathname.startsWith("/admin")) {
+      } else if (urlObj.pathname.startsWith("/admin")) {
         return `${baseUrl}/admin`;
       } else {
         return baseUrl;

@@ -3,32 +3,16 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
-import { Suspense, useCallback, useState } from "react";
-import { useDisclosure } from "@heroui/react";
-import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
-import { useSession } from "next-auth/react";
-
-import { ReferentQRCodeModal } from "../register/referent/components";
+import { Suspense, useState } from "react";
 
 import Loading from "@/app/loading";
-import { referentInitValue } from "@/types/initData";
 
 export default function QuestionPage() {
   const router = useRouter();
-  const [referent, setReferent] = useState<Referent>(referentInitValue);
-  const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
-  const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isLoading, setIsLoading] = useState({
     privacy: false,
-    qrcode: false,
     list: false,
   });
-  const { data: session } = useSession();
-  const {
-    isOpen: isOpenModal4,
-    onOpen: onOpenModal4,
-    onClose: onCloseModal4,
-  } = useDisclosure();
 
   const GotoList = async () => {
     setIsLoading((prev) => ({ ...prev, list: true }));
@@ -45,38 +29,6 @@ export default function QuestionPage() {
       await router.push("/liff/privacy");
     } finally {
       setIsLoading((prev) => ({ ...prev, privacy: false }));
-    }
-  };
-
-  const GetvolunteerType = useCallback(async () => {
-    await fetch("/api/data/volunteer")
-      .then((res) => res.json())
-      .then((data) => {
-        setvolunteerType(data);
-      });
-  }, [volunteerType]);
-
-  const GetAffiliation = useCallback(async () => {
-    await fetch("/api/data/affiliation")
-      .then((res) => res.json())
-      .then((data) => {
-        setAffiliation(data);
-      });
-  }, [affiliation]);
-
-  const GetReferentQRCode = async () => {
-    setIsLoading((prev) => ({ ...prev, qrcode: true }));
-    try {
-      const data = await fetch("/api/profile/user/" + session?.user?.id).then(
-        (res) => res.json()
-      );
-
-      setReferent(data.referent);
-      await GetAffiliation();
-      await GetvolunteerType();
-      onOpenModal4();
-    } finally {
-      setIsLoading((prev) => ({ ...prev, qrcode: false }));
     }
   };
 
@@ -101,27 +53,12 @@ export default function QuestionPage() {
           <Button
             className="w-40"
             color="primary"
-            isLoading={isLoading.qrcode}
-            onPress={GetReferentQRCode}
-          >
-            แสดง QR Code
-          </Button>
-          <Button
-            className="w-40"
-            color="primary"
             isLoading={isLoading.list}
             onPress={GotoList}
           >
             แบบทดสอบของฉัน
           </Button>
         </div>
-        <ReferentQRCodeModal
-          affiliation={affiliation}
-          data={referent}
-          isOpen={isOpenModal4}
-          volunteerType={volunteerType}
-          onClose={onCloseModal4}
-        />
       </Suspense>
     </section>
   );

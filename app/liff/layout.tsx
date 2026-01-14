@@ -1,5 +1,7 @@
 import { Link } from "@heroui/link";
 
+import ProfileAvatar from "./components/ProfileAvatar";
+
 import { siteConfig } from "@/config/site";
 
 export default function AboutLayout({
@@ -8,14 +10,11 @@ export default function AboutLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative flex flex-col h-screen ">
-      <main className="container mx-auto flex-grow">
-        <section className="flex flex-col items-center justify-center gap-4">
-          <div className="inline-block text-center justify-center">
-            {children}
-          </div>
-        </section>
-      </main>
+    <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden">
+      <header className="absolute top-0 left-0 right-0 w-full flex justify-end px-4 py-3 !bg-transparent z-10">
+        <ProfileAvatar />
+      </header>
+      <main className="w-full flex-grow">{children}</main>
       <footer className="w-full max-h-[48px] text-xs flex items-center justify-center py-3">
         <Link
           isExternal
