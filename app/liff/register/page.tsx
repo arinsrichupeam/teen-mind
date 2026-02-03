@@ -15,7 +15,7 @@ import { Step3 } from "./components/step3";
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
 
-const profileInitValue: Profile = {
+const profileInitValue: Profile & { gradeYear?: number | null } = {
   id: "",
   userId: "",
   citizenId: "",
@@ -28,6 +28,7 @@ const profileInitValue: Profile = {
   nationality: "",
   tel: "",
   schoolId: 0,
+  gradeYear: null,
   hn: "",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -61,7 +62,9 @@ export default function RegisterPage() {
   const [selected, setSelected] = useState("profile");
   const [showAlert, setShowAlert] = useState(false);
 
-  const [profile, setProfile] = useState<Profile>(profileInitValue);
+  const [profile, setProfile] = useState<
+    Profile & { gradeYear?: number | null }
+  >(profileInitValue);
   const [address, setAddress] = useState<Address>(addressInitValue);
   const [emergency, setEmergency] = useState<EmergencyContact>(
     emergencyContactInitValue
@@ -137,9 +140,21 @@ export default function RegisterPage() {
           }));
         }
       } else if (e.target.name === "school") {
+        const schoolId = parseInt(e.target.value, 10) || 0;
+
         setProfile((prev: any) => ({
           ...prev,
-          schoolId: parseInt(e.target.value),
+          schoolId,
+          ...(schoolId === 0 ? { gradeYear: null } : {}),
+        }));
+      } else if (e.target.name === "gradeYear") {
+        const raw = e.target.value;
+        const gradeYear =
+          raw !== "" && raw != null ? parseInt(String(raw), 10) : null;
+
+        setProfile((prev: any) => ({
+          ...prev,
+          gradeYear,
         }));
       } else {
         setProfile((prev: any) => ({

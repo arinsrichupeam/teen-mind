@@ -14,7 +14,7 @@ import { Step3 } from "../register/components/step3";
 
 import { title } from "@/components/primitives";
 
-const profileInitValue: Profile = {
+const profileInitValue: Profile & { gradeYear?: number | null } = {
   id: "",
   userId: "",
   citizenId: "",
@@ -27,6 +27,7 @@ const profileInitValue: Profile = {
   nationality: "",
   tel: "",
   schoolId: 0,
+  gradeYear: null,
   hn: "",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -59,7 +60,9 @@ export default function ProfilePage() {
   const [showAlert, setShowAlert] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [profile, setProfile] = useState<Profile>(profileInitValue);
+  const [profile, setProfile] = useState<
+    Profile & { gradeYear?: number | null }
+  >(profileInitValue);
   const [address, setAddress] = useState<Address>(addressInitValue);
   const [emergency, setEmergency] = useState<EmergencyContact>(
     emergencyContactInitValue
@@ -67,28 +70,32 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  useEffect(() => {
-    if (
-      status !== "loading" &&
-      status === "authenticated" &&
-      session?.user?.id
-    ) {
-      fetchProfileData();
-    }
-  }, [session, status]);
+  const fetchProfileData = useCallback(async () => {
+    const userId = session?.user?.id;
 
-  const fetchProfileData = async () => {
+    if (!userId) return;
     try {
       setIsLoadingData(true);
-      const response = await fetch(`/api/profile/user/${session?.user?.id}`);
+      const response = await fetch(`/api/profile/user/${userId}`);
       const data = await response.json();
 
       if (data?.profile && data.profile.length > 0) {
         const profileData = data.profile[0];
+        const schoolId =
+          profileData.schoolId ??
+          (profileData.school?.id != null
+            ? Number(profileData.school.id)
+            : null);
 
         setProfile({
           ...profileData,
           birthday: new Date(profileData.birthday),
+          schoolId: schoolId ?? 0,
+          gradeYear:
+            profileData.gradeYear !== null &&
+            profileData.gradeYear !== undefined
+              ? Number(profileData.gradeYear)
+              : null,
         });
 
         if (data.profile[0].address && data.profile[0].address.length > 0) {
@@ -115,7 +122,17 @@ export default function ProfilePage() {
     } finally {
       setIsLoadingData(false);
     }
-  };
+  }, [session?.user?.id, router]);
+
+  useEffect(() => {
+    if (
+      status !== "loading" &&
+      status === "authenticated" &&
+      session?.user?.id
+    ) {
+      fetchProfileData();
+    }
+  }, [session?.user?.id, status, fetchProfileData]);
 
   const NextStep = useCallback(
     (name: any) => {
@@ -146,65 +163,68 @@ export default function ProfilePage() {
     }
   }, []);
 
+  // ใช้ [] เพื่อให้ callback เสถียร — ภายในใช้แค่ setState แบบ functional (prev => ...)
   const ProfileHandleChange = useCallback(
-    (e: any) => {
-      if (e.target.name === "birthday") {
-        setProfile((prev: any) => ({
+    (e: { target: { name: string; value: string | number | Date } }) => {
+      const { name, value } = e.target;
+
+      if (name === "birthday") {
+        setProfile((prev) => ({
           ...prev,
-          birthday: e.target.value,
+          birthday: value instanceof Date ? value : new Date(String(value)),
         }));
-      } else if (e.target.name === "prefix") {
-        setProfile((prev: any) => ({
-          ...prev,
-          prefixId: parseInt(e.target.value),
-        }));
-      } else if (e.target.name === "sex") {
-        setProfile((prev: any) => ({
-          ...prev,
-          sex: parseInt(e.target.value),
-        }));
-      } else if (e.target.name === "citizenId") {
-        const val = e.target.value;
+      } else if (name === "prefix") {
+        setProfile((prev) => ({ ...prev, prefixId: Number(value) }));
+      } else if (name === "sex") {
+        setProfile((prev) => ({ ...prev, sex: Number(value) }));
+      } else if (name === "citizenId") {
+        const val = String(value);
 
         if (val.length <= 13) {
-          setProfile((prev: any) => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-          }));
+          setProfile((prev) => ({ ...prev, [name]: val }));
         }
-      } else if (e.target.name === "school") {
-        setProfile((prev: any) => ({
+      } else if (name === "school") {
+        const schoolId = Number(value) || 0;
+
+        setProfile((prev) => ({
           ...prev,
-          schoolId: parseInt(e.target.value),
+          schoolId,
+          ...(schoolId === 0 ? { gradeYear: null } : {}),
+        }));
+      } else if (name === "gradeYear") {
+        const raw = value;
+        const gradeYear =
+          raw !== "" && raw != null ? Number(raw) : (null as number | null);
+
+        setProfile((prev) => ({
+          ...prev,
+          gradeYear,
         }));
       } else {
-        setProfile((prev: any) => ({
-          ...prev,
-          [e.target.name]: e.target.value,
-        }));
+        setProfile((prev) => ({ ...prev, [name]: value }));
       }
     },
-    [profile]
+    []
   );
 
   const AddressHandleChange = useCallback(
-    (e: any) => {
+    (e: { target: { name: string; value: string } }) => {
       setAddress((prev) => ({
         ...prev,
         [e.target.name]: e.target.value,
       }));
     },
-    [address]
+    []
   );
 
   const EmergencyHandleChange = useCallback(
-    (e: any) => {
+    (e: { target: { name: string; value: string } }) => {
       setEmergency((prev) => ({
         ...prev,
         [e.target.name]: e.target.value,
       }));
     },
-    [emergency]
+    []
   );
 
   const SaveToDB = async () => {
@@ -220,6 +240,10 @@ export default function ProfilePage() {
       nationality: profile.nationality,
       tel: profile.tel,
       schoolId: profile.schoolId || null,
+      gradeYear:
+        profile.gradeYear !== null && profile.gradeYear !== undefined
+          ? profile.gradeYear
+          : null,
       address: {
         houseNo: address.houseNo,
         villageNo: address.villageNo,
@@ -298,10 +322,12 @@ export default function ProfilePage() {
             variant="faded"
           />
         </div>
-        <div className="flex flex-col gap-5 items-center">
-          <h1 className={`${title({ fullWidth: true })} text-center`}>
-            แก้ไขข้อมูลส่วนตัว
-          </h1>
+        <div className="flex flex-col gap-5 items-center w-full max-w-2xl">
+          <div className="flex flex-row items-center justify-center w-full gap-4">
+            <h1 className={`${title({ fullWidth: true })} text-center flex-1`}>
+              แก้ไขข้อมูลส่วนตัว
+            </h1>
+          </div>
           <div className="flex flex-col w-full min-h-[calc(100vh_-_350px)]">
             <Tabs
               aria-label="Options"
@@ -315,6 +341,7 @@ export default function ProfilePage() {
                   HandleChange={ProfileHandleChange}
                   NextStep={NextStep}
                   Result={profile}
+                  onCancel={() => router.push("/liff")}
                 />
               </Tab>
               <Tab key="address" title="ที่อยู่อาศัย">

@@ -10,16 +10,20 @@ import { useCallback, useEffect, useState } from "react";
 import moment from "moment";
 import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
-import { prefix, sex } from "@/utils/data";
+import { prefix, sex, gradeYearLevels } from "@/utils/data";
 import { validateCitizen, validateTel, safeParseDate } from "@/utils/helper";
+
+/** Profile ที่มีฟิลด์ชั้นปี (gradeYear) สำหรับฟอร์มลงทะเบียน */
+type ProfileWithGradeYear = Profile & { gradeYear?: number | null };
 
 interface Props {
   NextStep: (val: any) => void;
-  Result: Profile | undefined;
+  Result: ProfileWithGradeYear | undefined;
   HandleChange: (val: any) => void;
+  onCancel?: () => void;
 }
 
-export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
+export const Step1 = ({ NextStep, Result, HandleChange, onCancel }: Props) => {
   const request = true;
   const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
@@ -93,7 +97,7 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       <Autocomplete
         defaultItems={school}
         errorMessage="กรุณากรอกสถานศึกษา"
-        isRequired={request}
+        isRequired={false}
         label="สถานศึกษา"
         labelPlacement="inside"
         menuTrigger="input"
@@ -103,18 +107,50 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
         scrollShadowProps={{
           isEnabled: false,
         }}
-        selectedKey={Result?.schoolId?.toString()}
+        selectedKey={Result?.schoolId?.toString() ?? null}
         size="sm"
-        value={Result?.schoolId as number}
         variant="faded"
-        onSelectionChange={(val) =>
-          HandleChange({ target: { name: "school", value: val } })
-        }
+        onSelectionChange={(val) => {
+          const schoolId = val != null ? Number(val) : 0;
+
+          HandleChange({ target: { name: "school", value: schoolId } });
+          if (schoolId === 0) {
+            HandleChange({ target: { name: "gradeYear", value: null } });
+          }
+        }}
       >
         {(item) => (
           <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
         )}
       </Autocomplete>
+      {Result?.schoolId != null && Result.schoolId > 0 && (
+        <Select
+          errorMessage="กรุณาเลือกชั้นปี"
+          isRequired={false}
+          label="ชั้นปี"
+          labelPlacement="inside"
+          name="gradeYear"
+          placeholder="เลือกชั้นปี"
+          radius="md"
+          selectedKeys={
+            Result?.gradeYear != null ? [Result.gradeYear.toString()] : []
+          }
+          size="sm"
+          variant="faded"
+          onChange={(e) =>
+            HandleChange({
+              target: {
+                name: "gradeYear",
+                value: e.target.value ? parseInt(e.target.value, 10) : null,
+              },
+            })
+          }
+        >
+          {gradeYearLevels.map((level) => (
+            <SelectItem key={level.key}>{level.label}</SelectItem>
+          ))}
+        </Select>
+      )}
       <Input
         errorMessage={error}
         isInvalid={!!error}
@@ -269,6 +305,18 @@ export const Step1 = ({ NextStep, Result, HandleChange }: Props) => {
       >
         ถัดไป
       </Button>
+      {onCancel && (
+        <Button
+          className="w-full"
+          color="default"
+          radius="full"
+          size="lg"
+          variant="solid"
+          onPress={onCancel}
+        >
+          ยกเลิก
+        </Button>
+      )}
     </Form>
   );
 };

@@ -26,7 +26,7 @@ import {
 } from "@internationalized/date";
 import moment from "moment";
 
-import { prefix } from "@/utils/data";
+import { gradeYearLevels, prefix } from "@/utils/data";
 import {
   validateCitizen,
   validateBirthday,
@@ -63,6 +63,7 @@ interface EditProfileData {
     relation: string;
   };
   school: string;
+  gradeYear: string;
 }
 
 interface Props {
@@ -114,6 +115,7 @@ export const ModalEditProfile = ({
       relation: "",
     },
     school: "",
+    gradeYear: "",
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
@@ -255,10 +257,15 @@ export const ModalEditProfile = ({
       });
     } else {
       setEditProfileData((prev) => {
-        const newData = {
+        const newData: EditProfileData = {
           ...prev,
           [name]: value,
         };
+
+        // เมื่อล้างสถานศึกษา ให้ล้างชั้นปีด้วย
+        if (name === "school" && !value) {
+          newData.gradeYear = "";
+        }
 
         return newData;
       });
@@ -328,6 +335,7 @@ export const ModalEditProfile = ({
           relation: "",
         },
         school: "",
+        gradeYear: "",
       });
       setBirthdayDate(null);
 
@@ -401,6 +409,9 @@ export const ModalEditProfile = ({
           relation: data.profile.emergency[0]?.relation || "",
         },
         school: data.profile.school?.id?.toString() || "",
+        gradeYear: data.profile.gradeYear
+          ? data.profile.gradeYear.toString()
+          : "",
       };
 
       setEditProfileData(initialData);
@@ -454,6 +465,9 @@ export const ModalEditProfile = ({
         nationality: editProfileData.nationality,
         schoolId: editProfileData.school
           ? parseInt(editProfileData.school)
+          : null,
+        gradeYear: editProfileData.gradeYear
+          ? parseInt(editProfileData.gradeYear)
           : null,
         address: {
           houseNo: editProfileData.address.houseNo,
@@ -804,6 +818,30 @@ export const ModalEditProfile = ({
                   </AutocompleteItem>
                 )}
               </Autocomplete>
+              {editProfileData.school && (
+                <Select
+                  isRequired={false}
+                  label="ชั้นปี"
+                  name="gradeYear"
+                  placeholder="เลือกชั้นปี"
+                  selectedKeys={
+                    editProfileData.gradeYear ? [editProfileData.gradeYear] : []
+                  }
+                  size="sm"
+                  variant="bordered"
+                  onSelectionChange={(keys) => {
+                    const selectedKey = Array.from(keys)[0] as string;
+
+                    handleEditProfileSelectChange("gradeYear", selectedKey);
+                  }}
+                >
+                  {gradeYearLevels.map((level) => (
+                    <SelectItem key={level.key.toString()}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+              )}
             </div>
           </div>
           <Divider className="my-1" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { CardSchoolStats } from "./components/home/card-school-stats";
@@ -59,10 +59,6 @@ export default function AdminHome() {
     queryFn: fetchQuestions,
   });
 
-  // กรองข้อมูลสำหรับสถิติตามอายุ 12-18 ปี
-  const filteredQuestions = filterByAge(rawQuestions);
-  const filteredLatestQuestions = filterLatestQuestions(filteredQuestions);
-
   type SchoolStat = {
     schoolName: string;
     total: number;
@@ -73,58 +69,81 @@ export default function AdminHome() {
     red: number;
   };
 
-  const schoolStats = Object.values(
-    filteredLatestQuestions.reduce((acc: Record<string, SchoolStat>, q) => {
-      let schoolName: string;
+  // useMemo ลดการคำนวณซ้ำเมื่อ rawQuestions ไม่เปลี่ยน (rerender-memo)
+  const filteredQuestions = useMemo(
+    () => filterByAge(rawQuestions),
+    [rawQuestions]
+  );
 
-      if (typeof q.profile.school === "object" && q.profile.school !== null) {
-        schoolName = (q.profile.school as any).name || "ไม่ระบุโรงเรียน";
-      } else {
-        schoolName = q.profile.school || "ไม่ระบุโรงเรียน";
-      }
+  const filteredLatestQuestions = useMemo(
+    () => filterLatestQuestions(filteredQuestions),
+    [filteredQuestions]
+  );
 
-      if (!acc[schoolName]) {
-        acc[schoolName] = {
-          schoolName,
+  const schoolStats = useMemo(
+    () =>
+      Object.values(
+        filteredLatestQuestions.reduce((acc: Record<string, SchoolStat>, q) => {
+          let schoolName: string;
+
+          if (
+            typeof q.profile.school === "object" &&
+            q.profile.school !== null
+          ) {
+            schoolName =
+              (q.profile.school as { name?: string }).name || "ไม่ระบุโรงเรียน";
+          } else {
+            schoolName = (q.profile.school as string) || "ไม่ระบุโรงเรียน";
+          }
+
+          if (!acc[schoolName]) {
+            acc[schoolName] = {
+              schoolName,
+              total: 0,
+              green: 0,
+              greenLow: 0,
+              yellow: 0,
+              orange: 0,
+              red: 0,
+            };
+          }
+          acc[schoolName].total++;
+          if (q.result === "Green") acc[schoolName].green++;
+          if (q.result === "Green-Low") acc[schoolName].greenLow++;
+          if (q.result === "Yellow") acc[schoolName].yellow++;
+          if (q.result === "Orange") acc[schoolName].orange++;
+          if (q.result === "Red") acc[schoolName].red++;
+
+          return acc;
+        }, {})
+      ),
+    [filteredLatestQuestions]
+  );
+
+  const schoolStatsSummary = useMemo(
+    () =>
+      schoolStats.reduce(
+        (acc, school) => {
+          acc.total += school.total;
+          acc.green += school.green;
+          acc.greenLow += school.greenLow;
+          acc.yellow += school.yellow;
+          acc.orange += school.orange;
+          acc.red += school.red;
+
+          return acc;
+        },
+        {
+          schoolName: "Total",
           total: 0,
           green: 0,
           greenLow: 0,
           yellow: 0,
           orange: 0,
           red: 0,
-        };
-      }
-      acc[schoolName].total++;
-      if (q.result === "Green") acc[schoolName].green++;
-      if (q.result === "Green-Low") acc[schoolName].greenLow++;
-      if (q.result === "Yellow") acc[schoolName].yellow++;
-      if (q.result === "Orange") acc[schoolName].orange++;
-      if (q.result === "Red") acc[schoolName].red++;
-
-      return acc;
-    }, {})
-  );
-
-  const schoolStatsSummary = schoolStats.reduce(
-    (acc, school) => {
-      acc.total += school.total;
-      acc.green += school.green;
-      acc.greenLow += school.greenLow;
-      acc.yellow += school.yellow;
-      acc.orange += school.orange;
-      acc.red += school.red;
-
-      return acc;
-    },
-    {
-      schoolName: "Total",
-      total: 0,
-      green: 0,
-      greenLow: 0,
-      yellow: 0,
-      orange: 0,
-      red: 0,
-    }
+        } as SchoolStat
+      ),
+    [schoolStats]
   );
 
   if (isLoadingQuestions) {

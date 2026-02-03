@@ -97,7 +97,8 @@ model Profile {
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   school School? @relation(fields: [schoolId], references: [id])
 
-  schoolId Int?
+  schoolId  Int?
+  gradeYear Int?   // ชั้นปี (แสดงเมื่อเลือกสถานศึกษา) 1-6 ป.1-ป.6, 7-12 ม.1-ม.6
 
   @@index([userId])
 }

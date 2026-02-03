@@ -28,7 +28,8 @@ const ProfileAvatar = () => {
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isQRCodeLoading, setIsQRCodeLoading] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [displayName, setDisplayName] = useState<string>("ผู้ใช้");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [isDisplayNameLoading, setIsDisplayNameLoading] = useState(true);
 
   const {
     isOpen: isOpenQRCodeModal,
@@ -36,65 +37,69 @@ const ProfileAvatar = () => {
     onClose: onCloseQRCodeModal,
   } = useDisclosure();
 
-  // ตรวจสอบว่าผู้ใช้เป็น referent หรือไม่ และโหลดชื่อจาก profile
+  // ตรวจสอบ referent + admin และโหลดชื่อจาก profile ในครั้งเดียว (Promise.all ลด waterfall)
   useEffect(() => {
-    const checkReferentStatus = async () => {
-      if (!session?.user?.id || status !== "authenticated") return;
+    if (!session?.user?.id || status !== "authenticated") {
+      setDisplayName(session?.user?.name ?? "");
+      setIsDisplayNameLoading(false);
 
-      try {
-        const response = await fetch(`/api/profile/user/${session.user.id}`);
-        const data = await response.json();
+      return;
+    }
 
-        setIsReferent(!!data?.referent);
+    let cancelled = false;
 
-        const userProfile = data?.profile?.[0];
+    setIsDisplayNameLoading(true);
+
+    const profileUrl = `/api/profile/user/${session.user.id}`;
+    const adminUrl = `/api/profile/admin/${session.user.id}`;
+
+    Promise.all([fetch(profileUrl), fetch(adminUrl)])
+      .then(async ([profileRes, adminRes]) => {
+        if (cancelled) return;
+        const [profileData, adminData] = await Promise.all([
+          profileRes.json(),
+          adminRes.json(),
+        ]);
+
+        if (cancelled) return;
+        setIsReferent(!!profileData?.referent);
+        setIsAdmin(adminData !== null);
+
+        const userProfile = profileData?.profile?.[0];
 
         if (userProfile?.firstname || userProfile?.lastname) {
           const fullName = `${userProfile.firstname ?? ""} ${
             userProfile.lastname ?? ""
           }`.trim();
 
-          if (fullName) {
-            setDisplayName(fullName);
-          }
+          setDisplayName(fullName || (session?.user?.name ?? ""));
         } else if (session?.user?.name) {
           setDisplayName(session.user.name);
+        } else {
+          setDisplayName("");
         }
-      } catch (error) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาลองใหม่อีกครั้ง" + error,
-          color: "danger",
-        });
-        setIsReferent(false);
-      }
-    };
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description:
+              "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาลองใหม่อีกครั้ง" + error,
+            color: "danger",
+          });
+          setIsReferent(false);
+          setIsAdmin(false);
+          setDisplayName(session?.user?.name ?? "");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsDisplayNameLoading(false);
+      });
 
-    checkReferentStatus();
+    return () => {
+      cancelled = true;
+    };
   }, [session?.user?.id, session?.user?.name, status]);
-
-  // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!session?.user?.id || status !== "authenticated") return;
-
-      try {
-        const response = await fetch(`/api/profile/admin/${session.user.id}`);
-        const data = await response.json();
-
-        setIsAdmin(data !== null);
-      } catch (error) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถตรวจสอบสิทธิ์ได้ กรุณาลองใหม่อีกครั้ง" + error,
-          color: "danger",
-        });
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [session?.user?.id, status]);
 
   const loadVolunteerType = useCallback(async () => {
     const res = await fetch("/api/data/volunteer");
@@ -168,14 +173,15 @@ const ProfileAvatar = () => {
 
   const image = (session?.user as { image?: string } | undefined)?.image;
 
-  const initials =
-    displayName
-      .split(" ")
-      .filter((part) => part.length > 0)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "TM";
+  const initials = isDisplayNameLoading
+    ? "…"
+    : displayName
+        .split(" ")
+        .filter((part) => part.length > 0)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "TM";
 
   return (
     <>
@@ -196,7 +202,7 @@ const ProfileAvatar = () => {
               src={image}
             />
             <span className="text-xs text-default-700 max-w-[140px] truncate">
-              {displayName}
+              {isDisplayNameLoading ? "กำลังโหลด..." : displayName}
             </span>
           </button>
         </DropdownTrigger>

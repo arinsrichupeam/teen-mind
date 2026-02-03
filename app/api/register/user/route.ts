@@ -44,6 +44,7 @@ export async function POST(req: Request) {
               nationality: profile.nationality,
               tel: profile.tel,
               schoolId: profile.schoolId,
+              gradeYear: profile.gradeYear,
               address: {
                 create: [
                   {
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
         nationality: profile.nationality,
         tel: profile.tel,
         schoolId: profile.schoolId,
+        gradeYear: profile.gradeYear ?? undefined,
         address: {
           create: [
             {

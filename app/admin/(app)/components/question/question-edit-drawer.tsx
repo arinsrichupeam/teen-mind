@@ -544,12 +544,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }));
   };
 
+  // โหลด list APIs พร้อมกันเพื่อลดเวลาเปิด drawer (async-parallel)
   useEffect(() => {
-    GetProvinceList();
-    GetDistrictList();
-    GetSubdistrictList();
-    GetConsultantList();
-  }, []);
+    void Promise.all([
+      GetProvinceList(),
+      GetDistrictList(),
+      GetSubdistrictList(),
+      GetConsultantList(),
+    ]);
+  }, [GetProvinceList, GetDistrictList, GetSubdistrictList, GetConsultantList]);
 
   // แยก useEffect สำหรับการจัดการข้อมูล
   useEffect(() => {

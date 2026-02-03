@@ -21,8 +21,7 @@ export async function POST(req: Request) {
   });
 
   if (user?.profile_admin.length) {
-    // Update Profile
-    // console.log("Update Profile");
+    // Update Profile — ไม่มีการอัปเดตใน branch นี้
   } else {
     await prisma.user.update({
       where: {

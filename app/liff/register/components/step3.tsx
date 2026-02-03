@@ -13,6 +13,7 @@ export const Step3 = ({
   HandleChange,
   isLoading = false,
   isSubmitted = false,
+  onCancel,
 }: {
   NextStep: (val: any) => void;
   BackStep: (val: any) => void;
@@ -20,6 +21,7 @@ export const Step3 = ({
   HandleChange: (val: any) => void;
   isLoading?: boolean;
   isSubmitted?: boolean;
+  onCancel?: () => void;
 }) => {
   const request = true;
 
@@ -104,6 +106,18 @@ export const Step3 = ({
               ? "บันทึกสำเร็จแล้ว"
               : "ถัดไป"}
         </Button>
+        {onCancel && (
+          <Button
+            className="w-full"
+            color="default"
+            radius="full"
+            size="lg"
+            variant="bordered"
+            onPress={onCancel}
+          >
+            ยกเลิก
+          </Button>
+        )}
       </div>
     </Form>
   );

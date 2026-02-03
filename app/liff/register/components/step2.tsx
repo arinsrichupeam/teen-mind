@@ -11,11 +11,13 @@ export const Step2 = ({
   BackStep,
   Result,
   HandleChange,
+  onCancel,
 }: {
   NextStep: (val: any) => void;
   BackStep: (val: any) => void;
   Result: Address | undefined;
   HandleChange: (val: any) => void;
+  onCancel?: () => void;
 }) => {
   const request = true;
   const [province, setProvince] = useState<Provinces[]>([]);
@@ -202,6 +204,18 @@ export const Step2 = ({
         >
           ถัดไป
         </Button>
+        {onCancel && (
+          <Button
+            className="w-full"
+            color="default"
+            radius="full"
+            size="lg"
+            variant="bordered"
+            onPress={onCancel}
+          >
+            ยกเลิก
+          </Button>
+        )}
       </div>
     </Form>
   );

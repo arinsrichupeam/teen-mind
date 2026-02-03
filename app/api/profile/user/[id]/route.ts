@@ -38,6 +38,7 @@ export async function GET(
             address: true,
             citizenId: true,
             schoolId: true,
+            gradeYear: true,
             school: true,
             emergency: true,
             questions: {
@@ -60,6 +61,7 @@ export async function GET(
     // อัปเดตชื่อ/รูปจาก LINE (ถ้าเป็นบัญชี LINE) — ต้องรอ lineProfile ก่อน update
     if (account?.provider === "line") {
       const lineProfile = await lineSdk.getProfile(account.providerAccountId);
+
       await prisma.user.update({
         where: { id: account.userId },
         data: {
@@ -77,8 +79,10 @@ export async function GET(
       const referent = await prisma.referent.findFirst({
         where: { citizenId: profile.profile[0].citizenId },
       });
+
       return Response.json({ ...profile, referent });
     }
+
     return Response.json(profile);
   } catch (err) {
     return Response.json({
@@ -112,6 +116,7 @@ export async function PUT(
         nationality: body.nationality,
         tel: body.tel,
         schoolId: body.schoolId || null,
+        gradeYear: body.gradeYear ?? null,
       },
     });
 
