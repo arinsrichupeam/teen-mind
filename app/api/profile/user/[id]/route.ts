@@ -9,50 +9,17 @@ export async function GET(
   const userId = (await params).id;
 
   try {
-    // Get User From DB
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        accounts: {
-          select: {
-            userId: true,
-            provider: true,
-            providerAccountId: true,
-          },
-        },
-      },
-    });
-
-    // Update User LineName and image
-    if (user?.accounts[0].provider == "line") {
-      const lineProfile = await lineSdk.getProfile(
-        user.accounts[0].providerAccountId
-      );
-
-      await prisma.user.update({
-        where: {
-          id: user.accounts[0].userId,
-        },
-        data: {
-          name: lineProfile.displayName,
-          image: lineProfile.pictureUrl,
-        },
-      });
-    }
-
-    // Get UserProfile
+    // ดึง User + Profile ใน query เดียวเพื่อลด round trip (async-parallel / ลด waterfall)
     const profile = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
       select: {
         id: true,
         image: true,
         name: true,
         accounts: {
           select: {
+            userId: true,
+            provider: true,
             providerAccountId: true,
           },
         },
@@ -70,16 +37,16 @@ export async function GET(
             tel: true,
             address: true,
             citizenId: true,
+            schoolId: true,
             school: true,
+            emergency: true,
             questions: {
               select: {
                 createdAt: true,
                 result: true,
                 result_text: true,
                 phqa: {
-                  select: {
-                    sum: true,
-                  },
+                  select: { sum: true },
                 },
               },
             },
@@ -88,22 +55,30 @@ export async function GET(
       },
     });
 
-    // Check if user is a referent
-    // let isReferent = false;
+    const account = profile?.accounts?.[0];
 
-    if (profile?.profile[0]?.citizenId) {
-      const referent = await prisma.referent.findFirst({
-        where: {
-          citizenId: profile.profile[0].citizenId,
+    // อัปเดตชื่อ/รูปจาก LINE (ถ้าเป็นบัญชี LINE) — ต้องรอ lineProfile ก่อน update
+    if (account?.provider === "line") {
+      const lineProfile = await lineSdk.getProfile(account.providerAccountId);
+      await prisma.user.update({
+        where: { id: account.userId },
+        data: {
+          name: lineProfile.displayName ?? null,
+          image: lineProfile.pictureUrl ?? null,
         },
       });
-
-      return Response.json({
-        ...profile,
-        referent,
-      });
+      if (profile) {
+        profile.name = lineProfile.displayName ?? null;
+        profile.image = lineProfile.pictureUrl ?? null;
+      }
     }
 
+    if (profile?.profile?.[0]?.citizenId) {
+      const referent = await prisma.referent.findFirst({
+        where: { citizenId: profile.profile[0].citizenId },
+      });
+      return Response.json({ ...profile, referent });
+    }
     return Response.json(profile);
   } catch (err) {
     return Response.json({
