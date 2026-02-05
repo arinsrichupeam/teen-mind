@@ -39,10 +39,21 @@ import { useSession } from "next-auth/react";
 import { SchoolListColumnsName as columns } from "../data/tableColumn";
 import { AuthGuard } from "../components/auth-guard";
 
-import { SchoolRenderCell } from "./components/rendercell-scool";
+import { SchoolRenderCell } from "./components/render-cell-school";
 
+import { TableSortDescriptor } from "@/types";
 import { safeParseDateForPicker } from "@/utils/helper";
 import Loading from "@/app/loading";
+
+function toDatePickerValue(
+  val: Date | string | null | undefined
+): import("@internationalized/date").CalendarDate | null | undefined {
+  const p = safeParseDateForPicker(val);
+
+  return p != null && typeof p !== "string"
+    ? (p as import("@internationalized/date").CalendarDate)
+    : undefined;
+}
 
 const schoolInitValue: School = {
   name: "",
@@ -65,7 +76,7 @@ export default function SchoolListPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const { data: session, status } = useSession();
 
-  const [sortDescriptor, setSortDescriptor] = useState<any>({
+  const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
     column: "id",
     direction: "ascending",
   });
@@ -108,8 +119,8 @@ export default function SchoolListPage() {
     [pages, items, filteredSchoolList]
   );
 
-  const onRowViewPress = useCallback((e: any) => {
-    fetch("/api/data/school/" + e)
+  const onRowViewPress = useCallback((schoolId: string | number) => {
+    fetch("/api/data/school/" + schoolId)
       .then((res) => res.json())
       .then((val) => {
         setSelectedSchool(val[0]);
@@ -118,8 +129,8 @@ export default function SchoolListPage() {
       });
   }, []);
 
-  const onRowEditPress = useCallback((e: any) => {
-    fetch("/api/data/school/" + e)
+  const onRowEditPress = useCallback((schoolId: string | number) => {
+    fetch("/api/data/school/" + schoolId)
       .then((res) => res.json())
       .then((val) => {
         setSelectedSchool(val[0]);
@@ -174,19 +185,39 @@ export default function SchoolListPage() {
     onOpen();
   };
 
-  const schoolChange = useCallback((e: any) => {
-    const name = e.target.name;
-    const value = e.target.value;
+  const schoolChange = useCallback(
+    (
+      e:
+        | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+        | {
+            target: {
+              name: string;
+              value: string | number | boolean | Date | null;
+            };
+          }
+    ) => {
+      const name = e.target.name;
+      const value = e.target.value;
 
-    setSelectedSchool((prev) => ({
-      ...prev,
-      [name]:
-        name === "screeningDate" ? (value ? new Date(value) : null) : value,
-    }));
-  }, []);
+      setSelectedSchool((prev) => ({
+        ...prev,
+        [name]:
+          name === "screeningDate"
+            ? value instanceof Date
+              ? value
+              : value
+                ? new Date(String(value))
+                : null
+            : name === "status"
+              ? Boolean(value)
+              : value,
+      }));
+    },
+    []
+  );
 
   const onSubmit = useCallback(
-    async (e: any) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
       const data = JSON.stringify({ school_data: selectedSchool });
@@ -324,11 +355,9 @@ export default function SchoolListPage() {
                     <DatePicker
                       isRequired
                       showMonthAndYearPickers
-                      defaultValue={
-                        selectedSchool.screeningDate
-                          ? safeParseDateForPicker(selectedSchool.screeningDate)
-                          : null
-                      }
+                      defaultValue={toDatePickerValue(
+                        selectedSchool.screeningDate ?? undefined
+                      )}
                       label="วันที่คัดกรอง"
                       labelPlacement="outside"
                       variant="bordered"

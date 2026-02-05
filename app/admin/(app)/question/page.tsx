@@ -43,7 +43,7 @@ import { QuestionColumnsName } from "../data/tableColumn";
 import { QuestionFilterContent } from "../components/question/question-filter-content";
 
 import { prefix } from "@/utils/data";
-import { QuestionsData, ProfileAdminData } from "@/types";
+import { QuestionsData, ProfileAdminData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
 import { formatThaiDate, calculateAge } from "@/utils/helper";
 
@@ -52,6 +52,8 @@ interface Column {
   label: string;
   align?: "center" | "start" | "end";
 }
+
+type QuestionRow = QuestionsData & { rowIndex?: number };
 
 const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   key: col.uid,
@@ -69,7 +71,7 @@ export default function QuestionPage() {
   );
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortDescriptor, setSortDescriptor] = useState<any>({
+  const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
     column: "screeningDate",
     direction: "descending",
   });
@@ -390,8 +392,8 @@ export default function QuestionPage() {
   }, [error]);
 
   const renderCell = useCallback(
-    (item: any, columnKey: any) => {
-      const cellValue = item[columnKey];
+    (item: QuestionRow, columnKey: string) => {
+      const cellValue = item[columnKey as keyof QuestionRow];
 
       switch (columnKey) {
         case "name":
@@ -411,28 +413,39 @@ export default function QuestionPage() {
               </p>
             </div>
           );
-        case "age":
+        case "age": {
+          const school = item.profile?.school;
+          const screeningDate =
+            typeof school === "object" && school !== null
+              ? school.screeningDate
+              : undefined;
+
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {item.profile.birthday
-                  ? calculateAge(
-                      item.profile.birthday,
-                      item.profile.school?.screeningDate
-                    )
+                {item.profile?.birthday
+                  ? calculateAge(item.profile.birthday, screeningDate)
                   : "-"}{" "}
                 ปี
               </p>
             </div>
           );
-        case "school":
+        }
+        case "school": {
+          const school = item.profile?.school;
+          const schoolName =
+            typeof school === "object" && school !== null
+              ? school.name
+              : typeof school === "string"
+                ? school
+                : "-";
+
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small">
-                {item.profile.school?.name || "-"}
-              </p>
+              <p className="text-bold text-small">{schoolName}</p>
             </div>
           );
+        }
         case "result":
           let resultText = item.result_text;
 
@@ -457,8 +470,8 @@ export default function QuestionPage() {
             </Chip>
           );
         case "phqa":
-          if (Array.isArray(cellValue) && cellValue.length > 0) {
-            return cellValue[0].sum;
+          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+            return item.phqa[0].sum;
           }
 
           return "-";
@@ -499,14 +512,29 @@ export default function QuestionPage() {
           }
 
           return "-";
-        case "screeningDate":
+        case "screeningDate": {
+          const school = item.profile?.school;
+          const screeningDate =
+            typeof school === "object" && school !== null
+              ? school.screeningDate
+              : undefined;
+
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {formatThaiDate(item.profile.school?.screeningDate)}
+                {screeningDate
+                  ? formatThaiDate(
+                      typeof screeningDate === "string"
+                        ? screeningDate
+                        : screeningDate instanceof Date
+                          ? screeningDate.toISOString()
+                          : ""
+                    )
+                  : "-"}
               </p>
             </div>
           );
+        }
         case "status":
           return (
             <Chip
@@ -732,11 +760,11 @@ export default function QuestionPage() {
                 items={sortedItems}
                 loadingContent={<Spinner label="Loading..." />}
               >
-                {(item: QuestionsData) => (
+                {(item: QuestionRow) => (
                   <TableRow key={item.id}>
                     {(columnKey) => (
                       <TableCell className="text-nowrap">
-                        {renderCell(item, columnKey)}
+                        {renderCell(item, String(columnKey))}
                       </TableCell>
                     )}
                   </TableRow>

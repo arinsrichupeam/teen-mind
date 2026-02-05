@@ -8,7 +8,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { Alert } from "@heroui/alert";
 import { addToast } from "@heroui/toast";
 
-import { Step1 } from "../register/components/step1";
+import { Step1, type ChangeEventLike } from "../register/components/step1";
 import { Step2 } from "../register/components/step2";
 import { Step3 } from "../register/components/step3";
 
@@ -134,8 +134,10 @@ export default function ProfilePage() {
     }
   }, [session?.user?.id, status, fetchProfileData]);
 
+  type StepName = "Profile" | "Address" | "Emergency";
+
   const NextStep = useCallback(
-    (name: any) => {
+    (name: StepName) => {
       switch (name) {
         case "Profile":
           setSelected("address");
@@ -152,7 +154,7 @@ export default function ProfilePage() {
     [profile, address, emergency]
   );
 
-  const BackStep = useCallback((name: any) => {
+  const BackStep = useCallback((name: StepName) => {
     switch (name) {
       case "Address":
         setSelected("profile");
@@ -163,15 +165,20 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // ใช้ [] เพื่อให้ callback เสถียร — ภายในใช้แค่ setState แบบ functional (prev => ...)
   const ProfileHandleChange = useCallback(
-    (e: { target: { name: string; value: string | number | Date } }) => {
+    (
+      e:
+        | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+        | ChangeEventLike
+    ) => {
       const { name, value } = e.target;
+
+      if (value === null) return;
 
       if (name === "birthday") {
         setProfile((prev) => ({
           ...prev,
-          birthday: value instanceof Date ? value : new Date(String(value)),
+          birthday: new Date(String(value)),
         }));
       } else if (name === "prefix") {
         setProfile((prev) => ({ ...prev, prefixId: Number(value) }));
@@ -192,14 +199,9 @@ export default function ProfilePage() {
           ...(schoolId === 0 ? { gradeYear: null } : {}),
         }));
       } else if (name === "gradeYear") {
-        const raw = value;
-        const gradeYear =
-          raw !== "" && raw != null ? Number(raw) : (null as number | null);
+        const gradeYear = value !== "" && value != null ? Number(value) : null;
 
-        setProfile((prev) => ({
-          ...prev,
-          gradeYear,
-        }));
+        setProfile((prev) => ({ ...prev, gradeYear }));
       } else {
         setProfile((prev) => ({ ...prev, [name]: value }));
       }

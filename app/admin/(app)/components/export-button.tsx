@@ -8,10 +8,10 @@ import { useEffect, useState } from "react";
 
 import { ModalExportData } from "./modal/modal-export-data";
 
-import { ProfileAdminData } from "@/types";
+import { ProfileAdminData, QuestionsData } from "@/types";
 
 interface ExportButtonProps {
-  data: any[];
+  data: QuestionsData[];
   showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
 }
 

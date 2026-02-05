@@ -16,10 +16,19 @@ import { validateCitizen, validateTel, safeParseDate } from "@/utils/helper";
 /** Profile ที่มีฟิลด์ชั้นปี (gradeYear) สำหรับฟอร์มลงทะเบียน */
 type ProfileWithGradeYear = Profile & { gradeYear?: number | null };
 
+type StepName = "Profile" | "Address" | "Emergency";
+
+/** เหตุการณ์เปลี่ยนค่า (รองรับทั้ง event จริงและ synthetic object จาก DatePicker/Autocomplete) */
+export type ChangeEventLike = {
+  target: { name: string; value: string | number | null };
+};
+
 interface Props {
-  NextStep: (val: any) => void;
+  NextStep: (val: StepName) => void;
   Result: ProfileWithGradeYear | undefined;
-  HandleChange: (val: any) => void;
+  HandleChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | ChangeEventLike
+  ) => void;
   onCancel?: () => void;
   /** กำหนดลำดับปุ่มหลัก: "next" = ปุ่มถัดไปอยู่บน, "cancel" = ปุ่มยกเลิกอยู่บน */
   primaryAction?: "next" | "cancel";
@@ -37,15 +46,20 @@ export const Step1 = ({
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
 
-  const onSubmit = useCallback((e: any) => {
-    e.preventDefault();
-    NextStep("Profile");
-  }, []);
+  const onSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      NextStep("Profile");
+    },
+    [NextStep]
+  );
 
   const DateChange = useCallback(
-    (val: any) => {
+    (val: CalendarDate | null) => {
       setBirthday(val);
-      HandleChange({ target: { name: "birthday", value: new Date(val) } });
+      if (val) {
+        HandleChange({ target: { name: "birthday", value: val.toString() } });
+      }
     },
     [HandleChange]
   );
@@ -84,7 +98,7 @@ export const Step1 = ({
     if (Result?.birthday) {
       const parsedDate = safeParseDate(Result.birthday);
 
-      if (parsedDate) {
+      if (parsedDate && typeof parsedDate !== "string") {
         setBirthday(parsedDate);
       }
     }
@@ -125,7 +139,7 @@ export const Step1 = ({
 
           HandleChange({ target: { name: "school", value: schoolId } });
           if (schoolId === 0) {
-            HandleChange({ target: { name: "gradeYear", value: null } });
+            HandleChange({ target: { name: "gradeYear", value: "" } });
           }
         }}
       >
@@ -151,9 +165,9 @@ export const Step1 = ({
             HandleChange({
               target: {
                 name: "gradeYear",
-                value: e.target.value ? parseInt(e.target.value, 10) : null,
+                value: e.target.value ? parseInt(e.target.value, 10) : "",
               },
-            })
+            } as React.ChangeEvent<HTMLSelectElement>)
           }
         >
           {gradeYearLevels.map((level) => (

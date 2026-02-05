@@ -2,8 +2,20 @@ import React from "react";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@heroui/react";
 
+interface VolunteerRow {
+  id: string | number;
+  prefix: string;
+  firstname: string;
+  lastname: string;
+  affiliation?: { name: string };
+  agency: string;
+  question_count: number;
+  status: boolean;
+  [key: string]: unknown;
+}
+
 interface Props {
-  data: any;
+  data: VolunteerRow;
   columnKey: string | React.Key;
   index: number;
   viewDetail(id: string): void;
@@ -16,13 +28,13 @@ export const VolunteerRenderCell = ({
   viewDetail,
   editDetail,
 }: Props) => {
-  const cellValue = data[columnKey as keyof typeof data];
+  const cellValue = data[columnKey as keyof VolunteerRow] as unknown;
 
   switch (columnKey) {
     case "id":
       return (
         <div className="text-center">
-          {cellValue.toString().padStart(3, "0")}
+          {String(cellValue ?? "").padStart(3, "0")}
         </div>
       );
     case "name":
@@ -30,9 +42,13 @@ export const VolunteerRenderCell = ({
     case "affiliation":
       return <div>{data.affiliation?.name}</div>;
     case "agency":
-      return <div>{cellValue}</div>;
+      return <div>{cellValue != null ? String(cellValue) : ""}</div>;
     case "question_count":
-      return <div className="text-center">{cellValue || 0}</div>;
+      return (
+        <div className="text-center">
+          {typeof cellValue === "number" ? cellValue : Number(cellValue) || 0}
+        </div>
+      );
     case "status":
       return (
         <div className="text-center">
@@ -56,7 +72,7 @@ export const VolunteerRenderCell = ({
               name="Detail"
               size="sm"
               variant="light"
-              onPress={() => viewDetail(data.id)}
+              onPress={() => viewDetail(String(data.id))}
             >
               <EyeIcon className="size-6 text-primary-400" />
             </Button>
@@ -67,7 +83,7 @@ export const VolunteerRenderCell = ({
               name="Edit"
               size="sm"
               variant="light"
-              onPress={() => editDetail(data.id)}
+              onPress={() => editDetail(String(data.id))}
             >
               <PencilIcon className="size-6 text-warning-400" />
             </Button>
@@ -80,6 +96,6 @@ export const VolunteerRenderCell = ({
         </div>
       );
     default:
-      return cellValue;
+      return cellValue != null ? String(cellValue) : null;
   }
 };

@@ -1,29 +1,33 @@
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
-// ฟังก์ชันคำนวณสถานะตามเงื่อนไข
-function calculateStatus(question: any) {
-  // ตรวจสอบ HN ว่าง
+interface QuestionForStatus {
+  profile?: { hn?: string | null } | null;
+  schedule_telemed?: unknown;
+  consult?: string | null;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+}
+
+function calculateStatus(question: QuestionForStatus) {
   if (!question.profile?.hn) {
-    return 0; // รอระบุ HN
+    return 0;
   }
-
-  // ตรวจสอบ schedule_telemed และ Consultant ว่าง
   if (!question.schedule_telemed || !question.consult) {
-    return 1; // รอจัดนัด Telemed
+    return 1;
   }
-
-  // ตรวจสอบ SOAP ว่าง
   if (
     !question.subjective ||
     !question.objective ||
     !question.assessment ||
     !question.plan
   ) {
-    return 2; // รอสรุปผลการให้คำปรึกษา
+    return 2;
   }
 
-  return 3; // เสร็จสิ้น
+  return 3;
 }
 
 export async function POST() {

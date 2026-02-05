@@ -213,11 +213,19 @@ export default function PHQAPage() {
   }, []);
 
   const ReferChange = useCallback(
-    (e: any) => {
-      setReferenceId(e.target.value);
-      setIsOtpEmpty(e.target.value.length < 3);
-      if (e.target.value.length == 3) {
-        fetchReferentData(e.target.value);
+    (e: React.FormEvent<HTMLDivElement> | string) => {
+      const value =
+        typeof e === "string"
+          ? e
+          : ((
+              e as React.FormEvent<HTMLDivElement>
+            ).currentTarget?.querySelector?.<HTMLInputElement>("input")
+              ?.value ?? "");
+
+      setReferenceId(value);
+      setIsOtpEmpty(value.length < 3);
+      if (value.length === 3) {
+        fetchReferentData(value);
       }
     },
     [fetchReferentData]
@@ -235,8 +243,8 @@ export default function PHQAPage() {
   }, []);
 
   const phqaChange = useCallback(
-    (e: any) => {
-      const Question = parseInt(e.target.name);
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const Question = parseInt(e.target.name, 10);
       const name = "q" + e.target.name;
       const value = e.target.value;
 
@@ -251,26 +259,22 @@ export default function PHQAPage() {
         return newAnswers;
       });
 
-      setPHQA((prev: any) => {
+      setPHQA((prev) => {
         const newData = {
           ...prev,
-          [name]: parseInt(value),
+          [name]: parseInt(value, 10),
         };
 
         // คำนวณผลรวมของคำตอบ PHQ-A
         const sum = Object.keys(newData)
           .filter((key) => key.startsWith("q") && key !== "questions_MasterId")
           .reduce(
-            (acc: number, key: string) => acc + (Number(newData[key]) || 0),
+            (acc: number, key: string) =>
+              acc + (Number(newData[key as keyof Questions_PHQA]) || 0),
             0
           );
 
-        const finalData = {
-          ...newData,
-          sum: sum,
-        };
-
-        return finalData;
+        return { ...newData, sum };
       });
 
       if (Question === 9) {
@@ -280,8 +284,8 @@ export default function PHQAPage() {
     [currentQuestionAnswers]
   );
 
-  const Q2Change = useCallback((e: any) => {
-    const Question = parseInt(e.target.name);
+  const Q2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const Question = parseInt(e.target.name, 10);
     const name = "q" + Question;
     const value = parseInt(e.target.value);
 
@@ -292,7 +296,7 @@ export default function PHQAPage() {
       [Question]: value.toString(),
     }));
 
-    setQ2((prev: any) => ({
+    setQ2((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -302,10 +306,10 @@ export default function PHQAPage() {
     }
   }, []);
 
-  const phqaAddonChange = (e: any) => {
-    const Question = parseInt(e.target.name);
+  const phqaAddonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const Question = parseInt(e.target.name, 10);
     const name = "q" + (Question - 11); // แปลงจาก q12, q13 เป็น q1, q2
-    const value = parseInt(e.target.value);
+    const value = parseInt(e.target.value, 10);
 
     setCurrentAnswer(value.toString());
     setCanProceed(true);
@@ -314,14 +318,10 @@ export default function PHQAPage() {
       [Question]: value.toString(),
     }));
 
-    setPHQAAddon((prev: any) => {
-      const newData = {
-        ...prev,
-        [name]: value,
-      };
-
-      return newData;
-    });
+    setPHQAAddon((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
     if (Question === 13) {
       setLastQuestionAnswered(true);

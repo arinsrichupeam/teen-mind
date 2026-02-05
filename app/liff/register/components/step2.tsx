@@ -6,19 +6,25 @@ import { Input } from "@heroui/input";
 import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
 import { Button } from "@heroui/button";
 
+type StepName = "Profile" | "Address" | "Emergency";
+
+interface Step2Props {
+  NextStep: (val: StepName) => void;
+  BackStep: (val: StepName) => void;
+  Result: Address | undefined;
+  HandleChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void;
+  onCancel?: () => void;
+}
+
 export const Step2 = ({
   NextStep,
   BackStep,
   Result,
   HandleChange,
   onCancel,
-}: {
-  NextStep: (val: any) => void;
-  BackStep: (val: any) => void;
-  Result: Address | undefined;
-  HandleChange: (val: any) => void;
-  onCancel?: () => void;
-}) => {
+}: Step2Props) => {
   const request = true;
   const [province, setProvince] = useState<Provinces[]>([]);
   const [district, setDistrict] = useState<Districts[]>([]);
@@ -53,50 +59,60 @@ export const Step2 = ({
     fetchInitialData();
   }, []);
 
-  const onProvinceChange = async (e: any) => {
+  const onProvinceChange = async (e: number | string | null) => {
     setDistrict([]);
     setSubDistrict([]);
 
-    if (e !== null) {
+    if (e !== null && e !== undefined) {
+      const id = typeof e === "string" ? parseInt(e, 10) : e;
+
       setIsDistrictLoading(true);
       try {
-        await fetch(`/api/data/districts/${e}`)
-          .then((res) => res.json())
-          .then((val) => {
-            setDistrict(val);
-          });
+        const res = await fetch(`/api/data/districts/${id}`);
+        const val = await res.json();
+
+        setDistrict(val);
       } finally {
         setIsDistrictLoading(false);
       }
-
-      HandleChange({ target: { name: "province", value: parseInt(e) } });
+      HandleChange({
+        target: { name: "province", value: String(id) },
+      } as React.ChangeEvent<HTMLInputElement>);
     }
   };
 
-  const onDistrictChange = async (e: any) => {
+  const onDistrictChange = async (e: number | string | null) => {
     setSubDistrict([]);
 
-    if (e !== null) {
+    if (e !== null && e !== undefined) {
+      const id = typeof e === "string" ? parseInt(e, 10) : e;
+
       setIsSubDistrictLoading(true);
       try {
-        await fetch(`/api/data/subdistricts/${e}`)
-          .then((res) => res.json())
-          .then((val) => {
-            setSubDistrict(val);
-          });
+        const res = await fetch(`/api/data/subdistricts/${id}`);
+        const val = await res.json();
+
+        setSubDistrict(val);
       } finally {
         setIsSubDistrictLoading(false);
       }
-
-      HandleChange({ target: { name: "district", value: parseInt(e) } });
+      HandleChange({
+        target: { name: "district", value: String(id) },
+      } as React.ChangeEvent<HTMLInputElement>);
     }
   };
 
-  const onSubDistrictChange = (e: any) => {
-    HandleChange({ target: { name: "subdistrict", value: parseInt(e) } });
+  const onSubDistrictChange = (e: number | string | null) => {
+    if (e !== null && e !== undefined) {
+      const id = typeof e === "string" ? parseInt(e, 10) : e;
+
+      HandleChange({
+        target: { name: "subdistrict", value: String(id) },
+      } as React.ChangeEvent<HTMLInputElement>);
+    }
   };
 
-  const onSubmit = (e: any) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     NextStep("Address");
   };

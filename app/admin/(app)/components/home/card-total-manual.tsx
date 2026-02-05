@@ -2,11 +2,13 @@ import React from "react";
 import { Card, CardBody } from "@heroui/react";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 
-type props = {
-  data: any[];
+import { QuestionsData } from "@/types";
+
+type Props = {
+  data: QuestionsData[];
 };
 
-export const CardTotalManual = ({ data }: props) => {
+export const CardTotalManual = ({ data }: Props) => {
   return (
     <Card className="bg-gradient-to-tl from-zinc-400 to-zinc-200 rounded-xl shadow-md px-3 w-full">
       <CardBody className="py-3 overflow-hidden">

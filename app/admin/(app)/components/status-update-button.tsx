@@ -8,10 +8,10 @@ import { useEffect, useState } from "react";
 
 import { ModalStatusUpdate } from "./modal/modal-status-update";
 
-import { ProfileAdminData } from "@/types";
+import { ProfileAdminData, QuestionsData } from "@/types";
 
 interface StatusUpdateButtonProps {
-  data: any[];
+  data: QuestionsData[];
   showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
   onDataUpdate?: () => void;
 }

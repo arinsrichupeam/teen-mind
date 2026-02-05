@@ -25,7 +25,7 @@ export default function PrivacyPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const handleCheckboxChange = useCallback(
-    (e: any) => {
+    (e: React.ChangeEvent<HTMLInputElement> | React.MouseEvent) => {
       e.preventDefault();
       setAgree(!agree);
     },

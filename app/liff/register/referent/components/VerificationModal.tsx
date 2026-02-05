@@ -14,7 +14,7 @@ interface VerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenChange: () => void;
-  onSubmit: (e: any) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   request: boolean;
   mode?: "register" | "edit";
 }

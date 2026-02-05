@@ -2,7 +2,7 @@ import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 
 import { getSession, requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
-import { LocationData, QuestionsData } from "@/types";
+import { LocationData, QuestionPayload, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import {
   GreenFlex,
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
   const limit =
     Number.isNaN(Number(limitParam)) || !limitParam
       ? 200
-      : Math.min(Math.max(Number(limitParam), 10), 300);
+      : Math.min(Math.max(Number(limitParam), 10), 2000);
 
   const skip = (page - 1) * limit;
   const where = buildWhereFromQuery(url);
@@ -608,22 +608,20 @@ function SumValue(value: Questions_PHQA) {
   return PHQA_SUM;
 }
 
-// เพิ่มฟังก์ชันสำหรับตรวจสอบความถูกต้องของข้อมูล
-function validateQuestionData(data: any) {
+function validateQuestionData(data: QuestionPayload) {
   if (!data.profileId || !data.phqa || !data.Q2 || !data.phqaAddon) {
     throw new Error("ข้อมูลไม่ครบถ้วน");
   }
 
-  // ตรวจสอบค่า PHQA ต้องอยู่ระหว่าง 0-3
   for (let i = 1; i <= 9; i++) {
-    const value = data.phqa[`q${i}`];
+    const key = `q${i}` as keyof QuestionPayload["phqa"];
+    const value = data.phqa[key];
 
-    if (value < 0 || value > 3) {
+    if (value == null || value < 0 || value > 3) {
       throw new Error(`ค่า PHQA q${i} ไม่ถูกต้อง`);
     }
   }
 
-  // ตรวจสอบค่า 2q ต้องเป็น 0 หรือ 1
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
     throw new Error("ค่า 2Q q1 ไม่ถูกต้อง");
   }
@@ -631,7 +629,6 @@ function validateQuestionData(data: any) {
     throw new Error("ค่า 2Q q2 ไม่ถูกต้อง");
   }
 
-  // ตรวจสอบค่า PHQA Addon ต้องเป็น 0 หรือ 1
   if (data.phqaAddon.q1 !== 0 && data.phqaAddon.q1 !== 1) {
     throw new Error("ค่า PHQA Addon q1 ไม่ถูกต้อง");
   }

@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { Navbar, NavbarContent } from "@heroui/navbar";
 
-import { BurguerButton } from "./burguer-button";
+import { BurguerButton } from "./burger-button";
 import { UserDropdown } from "./user-dropdown";
 
 interface Props {

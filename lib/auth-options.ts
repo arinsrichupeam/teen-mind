@@ -1,6 +1,12 @@
+import type { JWT, JWTDecodeParams } from "next-auth/jwt";
+
 import { type NextAuthOptions } from "next-auth";
 import LineProvider from "next-auth/providers/line";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import {
+  encode as defaultJwtEncode,
+  decode as defaultJwtDecode,
+} from "next-auth/jwt";
 
 import { prisma } from "@/utils/prisma";
 
@@ -30,17 +36,22 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     jwt: async ({ token }) => {
-      return token != null ? token : {};
+      // NextAuth/JWT ต้องได้ object เสมอ ห้ามส่ง null หรือ undefined
+      if (token != null && typeof token === "object") {
+        return token;
+      }
+
+      return {};
     },
     session: async ({ session, token }) => {
-      if (token == null) {
-        return session;
+      if (token == null || typeof token !== "object") {
+        return session ?? { user: {}, expires: "" };
       }
       session = {
         ...session,
         user: {
           id: (token.sub as string) ?? "",
-          ...session.user,
+          ...session?.user,
         },
       };
 
@@ -70,6 +81,31 @@ export const authOptions: NextAuthOptions = {
   jwt: {
     maxAge: 1 * 24 * 60 * 60, // 1 days
     secret: process.env.NEXTAUTH_SECRET,
+    // ป้องกัน jose รับ payload เป็น null (ERR_INVALID_ARG_TYPE)
+    encode: async (params) => {
+      const token =
+        params.token != null && typeof params.token === "object"
+          ? params.token
+          : {};
+
+      return defaultJwtEncode({ ...params, token });
+    },
+    // ป้องกัน token ไม่ถูกต้อง (HTML/เสีย) ส่งเข้า jose แล้วได้ payload null -> ERR_INVALID_ARG_TYPE
+    decode: async (params: JWTDecodeParams): Promise<JWT | null> => {
+      const { token } = params;
+
+      if (typeof token !== "string" || token.trim() === "") return null;
+      if (token.trimStart().startsWith("<")) return null;
+      try {
+        const decoded = await defaultJwtDecode(params);
+
+        if (decoded != null && typeof decoded === "object") return decoded;
+
+        return null;
+      } catch {
+        return null;
+      }
+    },
   },
   pages: {
     signIn: "/liff/auth/",

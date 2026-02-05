@@ -37,7 +37,7 @@ import { QuestionColumnsName } from "../data/tableColumn";
 import { QuestionFilterContent } from "../components/question/question-filter-content";
 
 import { prefix } from "@/utils/data";
-import { QuestionsData } from "@/types";
+import { QuestionsData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
 import { formatThaiDate, calculateAge } from "@/utils/helper";
 
@@ -46,6 +46,8 @@ interface Column {
   label: string;
   align?: "center" | "start" | "end";
 }
+
+type MyCaseRow = QuestionsData & { rowIndex?: number };
 
 const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   key: col.uid,
@@ -63,7 +65,7 @@ export default function MyCasePage() {
   );
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortDescriptor, setSortDescriptor] = useState<any>({
+  const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
     column: "screeningDate",
     direction: "descending",
   });
@@ -204,9 +206,9 @@ export default function MyCasePage() {
 
     const { column, direction } = sortDescriptor;
 
-    const sorted = [...items].sort((a: any, b: any) => {
-      const first = a[column as keyof any];
-      const second = b[column as keyof any];
+    const sorted = [...items].sort((a: MyCaseRow, b: MyCaseRow) => {
+      const first = a[column as keyof MyCaseRow];
+      const second = b[column as keyof MyCaseRow];
 
       if (typeof first === "string" && typeof second === "string") {
         return direction === "descending"
@@ -428,8 +430,8 @@ export default function MyCasePage() {
   }, [error]);
 
   const renderCell = useCallback(
-    (item: any, columnKey: any) => {
-      const cellValue = item[columnKey];
+    (item: MyCaseRow, columnKey: string) => {
+      const cellValue = item[columnKey as keyof MyCaseRow];
 
       switch (columnKey) {
         case "id":
@@ -450,30 +452,41 @@ export default function MyCasePage() {
               </p>
             </div>
           );
-        case "age":
+        case "age": {
+          const school = item.profile?.school;
+          const screeningDate =
+            typeof school === "object" && school !== null
+              ? school.screeningDate
+              : undefined;
+
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
                 {item.profile?.birthday
-                  ? calculateAge(
-                      item.profile.birthday,
-                      item.profile.school?.screeningDate
-                    )
+                  ? calculateAge(item.profile.birthday, screeningDate)
                   : "-"}{" "}
                 ปี
               </p>
             </div>
           );
-        case "school":
+        }
+        case "school": {
+          const school = item.profile?.school;
+          const schoolName =
+            typeof school === "object" && school !== null
+              ? school.name
+              : typeof school === "string"
+                ? school
+                : "-";
+
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small">
-                {item.profile?.school?.name || "-"}
-              </p>
+              <p className="text-bold text-small">{schoolName}</p>
             </div>
           );
-        case "result":
-          let resultText = item.result_text;
+        }
+        case "result": {
+          const resultText = item.result_text;
 
           return (
             <Chip
@@ -495,6 +508,7 @@ export default function MyCasePage() {
               {resultText}
             </Chip>
           );
+        }
         case "phqa":
           if (Array.isArray(item.phqa) && item.phqa.length > 0) {
             return item.phqa[0].sum;
@@ -537,14 +551,29 @@ export default function MyCasePage() {
           }
 
           return "-";
-        case "screeningDate":
+        case "screeningDate": {
+          const school = item.profile?.school;
+          const screeningDate =
+            typeof school === "object" && school !== null
+              ? school.screeningDate
+              : undefined;
+
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {formatThaiDate(item.profile.school?.screeningDate)}
+                {screeningDate
+                  ? formatThaiDate(
+                      typeof screeningDate === "string"
+                        ? screeningDate
+                        : screeningDate instanceof Date
+                          ? screeningDate.toISOString()
+                          : ""
+                    )
+                  : "-"}
               </p>
             </div>
           );
+        }
         case "status":
           return (
             <Chip
@@ -704,11 +733,11 @@ export default function MyCasePage() {
                 items={sortedItems}
                 loadingContent={<Spinner label="กำลังโหลด..." />}
               >
-                {(item: any) => (
+                {(item: MyCaseRow) => (
                   <TableRow key={item.id}>
                     {(columnKey) => (
                       <TableCell className="text-nowrap">
-                        {renderCell(item, columnKey)}
+                        {renderCell(item, String(columnKey))}
                       </TableCell>
                     )}
                   </TableRow>

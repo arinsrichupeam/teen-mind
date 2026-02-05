@@ -9,11 +9,13 @@ type ScoreCriteria = {
   description: string;
 };
 
-type props = {
-  data?: any[];
+import { QuestionsData } from "@/types";
+
+type Props = {
+  data?: QuestionsData[];
 };
 
-export const CardScoreCriteria = ({ data: _data }: props) => {
+export const CardScoreCriteria = ({ data: _data }: Props) => {
   const [selectedTab, setSelectedTab] = useState("phqa");
 
   const phqaCriteria: ScoreCriteria[] = [

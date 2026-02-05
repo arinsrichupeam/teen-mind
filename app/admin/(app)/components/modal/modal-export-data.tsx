@@ -26,12 +26,23 @@ import * as XLSX from "xlsx";
 import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
 
+import { ProfileSchool, QuestionsData } from "@/types";
 import { prefix } from "@/utils/data";
 import {
   calculateGradeLevelFromBirthday,
   formatThaiDate,
+  calculateAge,
 } from "@/utils/helper";
-import { calculateAge } from "@/utils/helper";
+
+function getSchoolScreeningDate(
+  school: ProfileSchool | undefined
+): Date | string | null | undefined {
+  return typeof school === "object" &&
+    school !== null &&
+    "screeningDate" in school
+    ? school.screeningDate
+    : undefined;
+}
 
 interface ExportField {
   key: string;
@@ -42,7 +53,7 @@ interface ExportField {
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any[];
+  data: QuestionsData[];
   dataType: "question" | "user" | "school" | "volunteer";
 }
 
@@ -222,7 +233,9 @@ export const ModalExportData = ({
         return `เขต ${districtId}`;
       }
 
-      const district = districts.find((d: any) => d.id === districtId);
+      const district = districts.find(
+        (d: { id: number; nameInThai?: string }) => d.id === districtId
+      );
 
       return district ? district.nameInThai : `เขต ${districtId}`;
     },
@@ -237,7 +250,12 @@ export const ModalExportData = ({
       }
 
       const profileAdmin = profileAdmins.find(
-        (p: any) => p.userId === consultId
+        (p: {
+          userId: string;
+          prefixId?: number;
+          firstname?: string;
+          lastname?: string;
+        }) => p.userId === consultId
       );
 
       if (profileAdmin) {
@@ -253,27 +271,28 @@ export const ModalExportData = ({
     [profileAdmins, profileAdminsLoading]
   );
 
-  const handleFilterChange = useCallback((key: string, value: any) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    // รีเซ็ต displayedItems เมื่อมีการเปลี่ยน filter
-    setDisplayedItems(10);
-  }, []);
+  const handleFilterChange = useCallback(
+    (key: string, value: string | string[]) => {
+      setFilters((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+      setDisplayedItems(10);
+    },
+    []
+  );
 
   // ฟังก์ชันสำหรับ filter ข้อมูล
   const getFilteredData = useCallback(() => {
     let filteredData = [...data];
 
     // Filter เฉพาะ Status = 3 เท่านั้น
-    filteredData = filteredData.filter((item: any) => {
+    filteredData = filteredData.filter((item: QuestionsData) => {
       return item.status === 3;
     });
 
-    // Filter ตามวันที่
     if (filters.dateFrom && filters.dateTo) {
-      filteredData = filteredData.filter((item: any) => {
+      filteredData = filteredData.filter((item: QuestionsData) => {
         const itemDate = new Date(item.createdAt);
         const fromDate = new Date(filters.dateFrom);
         const toDate = new Date(filters.dateTo);
@@ -282,27 +301,30 @@ export const ModalExportData = ({
       });
     }
 
-    // Filter ตามโรงเรียน
     if (filters.school) {
-      filteredData = filteredData.filter((item: any) => {
-        return item.profile?.school?.id?.toString() === filters.school;
+      filteredData = filteredData.filter((item: QuestionsData) => {
+        const school = item.profile?.school;
+        const schoolId =
+          typeof school === "object" && school !== null
+            ? school.id?.toString()
+            : undefined;
+
+        return schoolId === filters.school;
       });
     }
 
-    // Filter ตามระดับภาวะซึมเศร้า
     if (filters.phqa && filters.phqa.length > 0) {
-      filteredData = filteredData.filter((item: any) => {
+      filteredData = filteredData.filter((item: QuestionsData) => {
         return filters.phqa.includes(item.result_text);
       });
     }
 
-    // Filter ตามอายุ 12-18 ปี (อัตโนมัติ)
-    filteredData = filteredData.filter((item: any) => {
+    filteredData = filteredData.filter((item: QuestionsData) => {
       if (!item.profile?.birthday) return false;
 
       const age = calculateAge(
         item.profile.birthday,
-        item.profile.school?.screeningDate
+        getSchoolScreeningDate(item.profile.school)
       );
 
       return age >= 12 && age <= 18;
@@ -311,7 +333,7 @@ export const ModalExportData = ({
     // Filter ให้แสดงเฉพาะแบบประเมินล่าสุดของแต่ละคน
     const latestAssessments = new Map();
 
-    filteredData.forEach((item: any) => {
+    filteredData.forEach((item: QuestionsData) => {
       const profileId = item.profile?.id;
 
       if (profileId) {
@@ -331,16 +353,19 @@ export const ModalExportData = ({
     return filteredData;
   }, [data, filters]);
 
-  const getFieldValue = (item: any, field: string): any => {
+  const getFieldValue = (
+    item: QuestionsData,
+    field: string
+  ): string | number => {
     switch (field) {
-      case "id":
-        // ใช้ index + 1 เพื่อให้เป็นลำดับ 1, 2, 3, 4
+      case "id": {
         const filteredData = getFilteredData();
         const itemIndex = filteredData.findIndex(
-          (dataItem: any) => dataItem.id === item.id
+          (dataItem: QuestionsData) => dataItem.id === item.id
         );
 
         return itemIndex !== -1 ? itemIndex + 1 : "-";
+      }
       case "province":
         return "กรุงเทพมหานคร";
       case "hospitalCode":
@@ -355,58 +380,100 @@ export const ModalExportData = ({
         return `${prefixLabel} ${item.profile?.firstname || ""} ${item.profile?.lastname || ""}`;
       case "citizenId":
         return item.profile?.citizenId;
-      case "age":
+      case "age": {
+        const school = item.profile?.school;
+        const screeningDate =
+          typeof school === "object" && school !== null
+            ? school.screeningDate
+            : undefined;
+
         return item.profile?.birthday
-          ? calculateAge(
-              item.profile.birthday,
-              item.profile.school?.screeningDate
-            )
+          ? calculateAge(item.profile.birthday, screeningDate)
           : "-";
-      case "sex":
-        return item.profile?.sex === 1
-          ? "ชาย"
-          : item.profile?.sex === 2
-            ? "หญิง"
-            : "-";
+      }
+      case "sex": {
+        const sex = String(item.profile?.sex ?? "");
+
+        return sex === "1" ? "ชาย" : sex === "2" ? "หญิง" : "-";
+      }
       case "insurance":
         return "";
-      case "school":
-        return item.profile?.school?.name || "-";
+      case "school": {
+        const school = item.profile?.school;
+
+        return typeof school === "object" && school !== null
+          ? school.name || "-"
+          : typeof school === "string"
+            ? school
+            : "-";
+      }
       case "grade":
         return calculateGradeLevelFromBirthday(item.profile?.birthday);
       case "district":
-        if (item.profile?.school?.districtId) {
+        if (item.profile?.school) {
+          const profileSchool = item.profile.school;
+
+          if (
+            typeof profileSchool !== "object" ||
+            profileSchool === null ||
+            !("id" in profileSchool)
+          ) {
+            return "-";
+          }
           if (districtsLoading) {
             return "-";
           }
-          // หาโรงเรียนเพื่อดึง districtId
           const school = schools?.find(
-            (s: any) => s.id === item.profile.school.id
+            (s: { id: number; districtId?: number }) =>
+              s.id === profileSchool.id
           );
 
           if (school && school.districtId) {
-            // ดึงข้อมูลเขตจาก API
             return getDistrictName(school.districtId);
           }
 
-          return `เขต ${item.profile.school.districtId}`;
+          const schoolWithDistrict = profileSchool as { districtId?: number };
+
+          return schoolWithDistrict.districtId != null
+            ? `เขต ${schoolWithDistrict.districtId}`
+            : "-";
         }
 
         return "-";
-      case "serviceDate":
-        return formatThaiDate(item.profile.school?.screeningDate);
+      case "serviceDate": {
+        const screeningDate = getSchoolScreeningDate(item.profile?.school);
+
+        return screeningDate != null ? formatThaiDate(screeningDate) : "-";
+      }
       case "phqa":
         return item.result_text || "-";
       case "assessmentDate":
-        return formatThaiDate(item.schedule_telemed);
-      case "followUpDate1":
-        return item.followUpDate1 ? formatThaiDate(item.follow_up) : "-";
-      case "followUpDate2":
-        return item.followUpDate2 ? formatThaiDate(item.follow_up2) : "-";
-      case "followUpDate3":
-        return item.followUpDate3 ? formatThaiDate(item.follow_up3) : "-";
+        return item.schedule_telemed != null
+          ? formatThaiDate(item.schedule_telemed)
+          : "-";
+      case "followUpDate1": {
+        const row = item as Record<string, unknown>;
+
+        return row.followUpDate1 ? formatThaiDate(item.follow_up) : "-";
+      }
+      case "followUpDate2": {
+        const row = item as Record<string, unknown>;
+
+        return row.followUpDate2 && row.follow_up2
+          ? formatThaiDate(row.follow_up2 as Date)
+          : "-";
+      }
+      case "followUpDate3": {
+        const row = item as Record<string, unknown>;
+
+        return row.followUpDate3 && row.follow_up3
+          ? formatThaiDate(row.follow_up3 as Date)
+          : "-";
+      }
       case "referralUnit":
-        return item.referralUnit || "-";
+        return (item as Record<string, unknown>).referralUnit != null
+          ? String((item as Record<string, unknown>).referralUnit)
+          : "-";
       case "referentId":
         if (item.referentId) {
           // แปลงเป็น string และเติม 0 ข้างหน้าให้เป็น 3 หลัก
@@ -434,7 +501,9 @@ export const ModalExportData = ({
 
         return "-";
       default:
-        return item[field] || "-";
+        return (item as Record<string, unknown>)[field] != null
+          ? String((item as Record<string, unknown>)[field])
+          : "-";
     }
   };
 
@@ -510,16 +579,15 @@ export const ModalExportData = ({
       // จำลองการประมวลผลแบบ batch เพื่อไม่ให้ UI freeze
       const batchSize = 100;
       const totalBatches = Math.ceil(filteredExportData.length / batchSize);
-      let processedData: any[] = [];
+      let processedData: Record<string, string | number>[] = [];
 
       for (let i = 0; i < totalBatches; i++) {
         const start = i * batchSize;
         const end = Math.min(start + batchSize, filteredExportData.length);
         const batch = filteredExportData.slice(start, end);
 
-        // ประมวลผลข้อมูลในแต่ละ batch
-        const processedBatch = batch.map((item: any) => {
-          const row: any = {};
+        const processedBatch = batch.map((item: QuestionsData) => {
+          const row: Record<string, string | number> = {};
 
           selectedFields.forEach((field) => {
             const fieldLabel =
@@ -600,7 +668,9 @@ export const ModalExportData = ({
   // สร้างรายการ PHQA สำหรับ filter
   const phqaOptions = useMemo(() => {
     const uniquePhqa = Array.from(
-      new Set(data.map((item: any) => item.result_text).filter(Boolean))
+      new Set(
+        data.map((item: QuestionsData) => item.result_text).filter(Boolean)
+      )
     );
 
     return uniquePhqa.sort();
@@ -680,7 +750,7 @@ export const ModalExportData = ({
                         handleFilterChange("school", selectedKey || "");
                       }}
                     >
-                      {schools?.map((school: any) => (
+                      {schools?.map((school: { id: number; name: string }) => (
                         <SelectItem key={school.id.toString()}>
                           {school.name}
                         </SelectItem>
@@ -777,9 +847,11 @@ export const ModalExportData = ({
                                     >
                                       <div
                                         className="truncate"
-                                        title={value || "-"}
+                                        title={
+                                          value != null ? String(value) : "-"
+                                        }
                                       >
-                                        {value || "-"}
+                                        {value != null ? String(value) : "-"}
                                       </div>
                                     </TableCell>
                                   );

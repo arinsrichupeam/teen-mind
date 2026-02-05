@@ -75,15 +75,15 @@ interface UserData {
     villageNo?: string;
     soi?: string;
     road?: string;
-    subdistrict?: string;
-    district?: string;
-    province?: string;
-  };
+    subdistrict?: number;
+    district?: number;
+    province?: number;
+  }[];
   emergency?: {
     name?: string;
     tel?: string;
     relation?: string;
-  };
+  }[];
 }
 
 interface UserDetailDrawerProps {
@@ -435,16 +435,8 @@ export default function UserDetailDrawer({
         data={{
           profile: {
             ...user,
-            address: user.address
-              ? Array.isArray(user.address)
-                ? user.address
-                : [user.address]
-              : [],
-            emergency: user.emergency
-              ? Array.isArray(user.emergency)
-                ? user.emergency
-                : [user.emergency]
-              : [],
+            address: user.address ?? [],
+            emergency: user.emergency ?? [],
           },
         }}
         isOpen={isModalOpen}

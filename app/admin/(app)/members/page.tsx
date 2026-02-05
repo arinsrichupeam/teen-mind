@@ -41,6 +41,7 @@ import { AuthGuard } from "../components/auth-guard";
 
 import { RenderCell } from "./components/render-cell";
 
+import { SortDescriptor } from "@/types";
 import { ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
 
@@ -81,7 +82,7 @@ export default function MemberPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortDescriptor] = useState<any>({
+  const [sortDescriptor] = useState<SortDescriptor>({
     column: "id",
     direction: "ascending",
   });
@@ -251,8 +252,8 @@ export default function MemberPage() {
   }, [selectedProfile, items.length, page, pages, hasSearchFilter]);
 
   const onRowDetailPress = useCallback(
-    async (e: any) => {
-      await fetch("/api/profile/admin/" + e)
+    async (userId: string) => {
+      await fetch("/api/profile/admin/" + userId)
         .then((res) => res.json())
         .then((val) => {
           setSelectedProfile(val);
@@ -264,8 +265,8 @@ export default function MemberPage() {
   );
 
   const onRowEditPress = useCallback(
-    (e: any) => {
-      fetch("/api/profile/admin/" + e)
+    (userId: string) => {
+      fetch("/api/profile/admin/" + userId)
         .then((res) => res.json())
         .then((val) => {
           setSelectedProfile(val);

@@ -1,11 +1,13 @@
 import { Card, CardBody, AvatarGroup, Avatar } from "@heroui/react";
 import React from "react";
 
-type props = {
-  data: any[];
+import { ProfileAdminData } from "@/types";
+
+type Props = {
+  data: ProfileAdminData[];
 };
 
-export const CardAgents = ({ data }: props) => {
+export const CardAgents = ({ data }: Props) => {
   return (
     <Card className="bg-default-50 rounded-xl shadow-md px-3 py-4 w-full">
       <CardBody className="py-3 gap-4">
@@ -24,7 +26,7 @@ export const CardAgents = ({ data }: props) => {
           </span>
           <AvatarGroup isBordered size="sm">
             {data.map((val, index) => (
-              <Avatar key={index} size="sm" src={val.user.image} />
+              <Avatar key={index} size="sm" src={val.image} />
             ))}
           </AvatarGroup>
         </div>

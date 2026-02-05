@@ -11,12 +11,28 @@ import {
 
 import { questionStatusOptions as options } from "../../data/optionData";
 
+import { ProfileSchool, QuestionsData } from "@/types";
 import { prefix } from "@/utils/data";
-import { formatThaiDateTime } from "@/utils/helper";
-import { calculateAge } from "@/utils/helper";
+import { formatThaiDateTime, calculateAge } from "@/utils/helper";
+
+function getSchoolScreeningDate(
+  school: ProfileSchool
+): Date | string | null | undefined {
+  return typeof school === "object" &&
+    school !== null &&
+    "screeningDate" in school
+    ? school.screeningDate
+    : undefined;
+}
+
+function getSchoolName(school: ProfileSchool): string {
+  if (typeof school === "string") return school;
+
+  return typeof school === "object" && school !== null ? school.name : "";
+}
 
 interface Props {
-  data: any;
+  data: QuestionsData;
   columnKey: string | React.Key;
   index: number;
   viewDetail(
@@ -64,7 +80,7 @@ export const RenderCell = ({
           <span>
             {calculateAge(
               data.profile.birthday,
-              data.profile.school?.screeningDate
+              getSchoolScreeningDate(data.profile.school)
             )}{" "}
             ปี
           </span>
@@ -73,7 +89,7 @@ export const RenderCell = ({
     case "school":
       return (
         <div>
-          <span>{data.profile.school?.name.toString()}</span>
+          <span>{getSchoolName(data.profile.school)}</span>
         </div>
       );
     case "result":

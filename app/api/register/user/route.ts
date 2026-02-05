@@ -8,24 +8,124 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getSession();
+  let session: Awaited<ReturnType<typeof getSession>> = null;
+
+  try {
+    session = await getSession();
+  } catch {
+    // จับทุก error (รวม ERR_INVALID_ARG_TYPE จาก jose เมื่อ token/ payload ไม่ถูกต้อง)
+    // ตอบ 401 JSON เสมอ เพื่อให้ client ไม่ได้รับ HTML หน้า error
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const data = await req.json();
+  let data: {
+    register_profile?: Profile;
+    register_address?: Address;
+    register_emergency?: EmergencyContact;
+  };
 
-  const profile: Profile = data.register_profile;
+  try {
+    data = (await req.json()) as typeof data;
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  if (profile.userId && profile.userId !== session.user.id) {
+  if (
+    !data?.register_profile ||
+    !data?.register_address ||
+    !data?.register_emergency
+  ) {
+    return Response.json(
+      {
+        error:
+          "Missing register_profile, register_address or register_emergency",
+      },
+      { status: 400 }
+    );
+  }
+
+  const profileRaw = data.register_profile;
+  const userId = (profileRaw.userId?.trim() || session.user.id) as string;
+
+  if (userId !== session.user.id) {
     return Response.json(
       { error: "Forbidden: ไม่สามารถลงทะเบียนแทนผู้ใช้อื่นได้" },
       { status: 403 }
     );
   }
-  const address: Address = data.register_address;
-  const emergency: EmergencyContact = data.register_emergency;
+
+  const birthdayValue = profileRaw.birthday;
+  const birthday =
+    birthdayValue instanceof Date
+      ? birthdayValue
+      : typeof birthdayValue === "string"
+        ? new Date(birthdayValue)
+        : new Date();
+
+  const profile: Profile = {
+    ...profileRaw,
+    userId,
+    birthday,
+  } as Profile;
+
+  const rawAddress = data.register_address;
+  const rawEmergency = data.register_emergency;
+
+  const provinceNum = Number(rawAddress?.province);
+  const districtNum = Number(rawAddress?.district);
+  const subdistrictNum = Number(rawAddress?.subdistrict);
+
+  if (
+    typeof rawAddress?.houseNo !== "string" ||
+    typeof rawAddress?.villageNo !== "string" ||
+    typeof rawAddress?.soi !== "string" ||
+    typeof rawAddress?.road !== "string" ||
+    Number.isNaN(provinceNum) ||
+    Number.isNaN(districtNum) ||
+    Number.isNaN(subdistrictNum)
+  ) {
+    return Response.json(
+      {
+        error:
+          "ข้อมูลที่อยู่ไม่ครบหรือรูปแบบไม่ถูกต้อง (houseNo, villageNo, soi, road, province, district, subdistrict)",
+      },
+      { status: 400 }
+    );
+  }
+
+  const addressForCreate = {
+    houseNo: String(rawAddress.houseNo).trim() || "",
+    villageNo: String(rawAddress.villageNo).trim() || "",
+    soi: String(rawAddress.soi).trim() || "",
+    road: String(rawAddress.road).trim() || "",
+    province: provinceNum,
+    district: districtNum,
+    subdistrict: subdistrictNum,
+  };
+
+  const emergencyName =
+    rawEmergency?.name != null ? String(rawEmergency.name).trim() : "";
+  const emergencyTel =
+    rawEmergency?.tel != null ? String(rawEmergency.tel).trim() : "";
+  const emergencyRelation =
+    rawEmergency?.relation != null ? String(rawEmergency.relation).trim() : "";
+
+  if (!emergencyName || !emergencyTel || !emergencyRelation) {
+    return Response.json(
+      { error: "ข้อมูลผู้ติดต่อฉุกเฉินไม่ครบ (name, tel, relation)" },
+      { status: 400 }
+    );
+  }
+
+  const emergencyForCreate = {
+    name: emergencyName,
+    tel: emergencyTel,
+    relation: emergencyRelation,
+  };
 
   const schoolId =
     profile.schoolId == null || Number(profile.schoolId) === 0
@@ -42,7 +142,7 @@ export async function POST(req: Request) {
   // CheckProfile
   const checkProfile = await prisma.profile.findUnique({
     where: {
-      userId: profile.userId as string,
+      userId,
     },
     select: {
       citizenId: true,
@@ -54,7 +154,7 @@ export async function POST(req: Request) {
 
     const profileData = await prisma.user.update({
       where: {
-        id: profile.userId as string,
+        id: userId,
       },
       data: {
         profile: {
@@ -74,21 +174,21 @@ export async function POST(req: Request) {
               address: {
                 create: [
                   {
-                    houseNo: address.houseNo,
-                    villageNo: address.villageNo,
-                    soi: address.soi,
-                    road: address.road,
-                    province: address.province,
-                    district: address.district,
-                    subdistrict: address.subdistrict,
+                    houseNo: addressForCreate.houseNo,
+                    villageNo: addressForCreate.villageNo,
+                    soi: addressForCreate.soi,
+                    road: addressForCreate.road,
+                    province: addressForCreate.province,
+                    district: addressForCreate.district,
+                    subdistrict: addressForCreate.subdistrict,
                   },
                 ],
               },
               emergency: {
                 create: {
-                  name: emergency.name as string,
-                  tel: emergency.tel as string,
-                  relation: emergency.relation as string,
+                  name: emergencyForCreate.name,
+                  tel: emergencyForCreate.tel,
+                  relation: emergencyForCreate.relation,
                 },
               },
             },
@@ -126,21 +226,21 @@ export async function POST(req: Request) {
         address: {
           create: [
             {
-              houseNo: address.houseNo,
-              villageNo: address.villageNo,
-              soi: address.soi,
-              road: address.road,
-              province: address.province,
-              district: address.district,
-              subdistrict: address.subdistrict,
+              houseNo: addressForCreate.houseNo,
+              villageNo: addressForCreate.villageNo,
+              soi: addressForCreate.soi,
+              road: addressForCreate.road,
+              province: addressForCreate.province,
+              district: addressForCreate.district,
+              subdistrict: addressForCreate.subdistrict,
             },
           ],
         },
         emergency: {
           create: {
-            name: emergency.name as string,
-            tel: emergency.tel as string,
-            relation: emergency.relation as string,
+            name: emergencyForCreate.name,
+            tel: emergencyForCreate.tel,
+            relation: emergencyForCreate.relation,
           },
         },
       },

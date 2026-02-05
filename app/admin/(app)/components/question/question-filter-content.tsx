@@ -25,6 +25,8 @@ import { questionStatusOptions as options } from "../../data/optionData";
 import { ExportButton } from "../export-button";
 import { StatusUpdateButton } from "../status-update-button";
 
+import { QuestionsData } from "@/types";
+
 // ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
 const riskStatusOptions = [
   { name: "พบความเสี่ยง", uid: "risk" },
@@ -53,8 +55,8 @@ interface QuestionFilterContentProps {
   setQ2Filter: (filter: Selection) => void;
   addonFilter: Selection;
   setAddonFilter: (filter: Selection) => void;
-  data?: any[];
-  filteredData?: any[];
+  data?: QuestionsData[];
+  filteredData?: QuestionsData[];
   onDataUpdate?: () => void;
 }
 
@@ -137,7 +139,7 @@ export function QuestionFilterContent({
               variant="bordered"
               onSelectionChange={(key) => setSchoolFilter(key as string)}
             >
-              {schoolsData?.map((school: any) => (
+              {schoolsData?.map((school: { id: number; name: string }) => (
                 <AutocompleteItem key={school.name}>
                   {school.name}
                 </AutocompleteItem>

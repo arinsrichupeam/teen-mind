@@ -15,17 +15,19 @@ export const Step3 = ({
   isSubmitted = false,
   onCancel,
 }: {
-  NextStep: (val: any) => void;
-  BackStep: (val: any) => void;
+  NextStep: (val: "Profile" | "Address" | "Emergency") => void;
+  BackStep: (val: "Profile" | "Address" | "Emergency") => void;
   Result: EmergencyContact | undefined;
-  HandleChange: (val: any) => void;
+  HandleChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void;
   isLoading?: boolean;
   isSubmitted?: boolean;
   onCancel?: () => void;
 }) => {
   const request = true;
 
-  const onSubmit = (e: any) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     NextStep("Emergency");
   };

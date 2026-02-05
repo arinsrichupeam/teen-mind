@@ -83,14 +83,13 @@ export const PieChartsSection = ({ data }: props) => {
     const selectedSchoolId = parseInt(selectedSchool);
 
     return data.filter((question) => {
-      if (
-        typeof question.profile.school === "object" &&
-        question.profile.school !== null
-      ) {
-        return (question.profile.school as any).id === selectedSchoolId;
-      }
+      const school = question.profile?.school;
 
-      return false; // ถ้าไม่มีข้อมูลโรงเรียนที่เป็น object ให้กรองออก
+      return (
+        typeof school === "object" &&
+        school !== null &&
+        school.id === selectedSchoolId
+      );
     });
   }, [data, selectedSchool]);
 
@@ -196,7 +195,19 @@ export const PieChartsSection = ({ data }: props) => {
       }));
   }, [filteredData]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayloadItem {
+    name: string;
+    value: number;
+    color?: string;
+  }
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: TooltipPayloadItem[];
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-md shadow-md">
@@ -226,7 +237,7 @@ export const PieChartsSection = ({ data }: props) => {
             variant="bordered"
             onSelectionChange={(key) => setSelectedSchool(key as string)}
           >
-            {schools?.map((school: any) => (
+            {schools?.map((school: { id: number; name: string }) => (
               <AutocompleteItem key={school.id} textValue={school.name}>
                 {school.name}
               </AutocompleteItem>

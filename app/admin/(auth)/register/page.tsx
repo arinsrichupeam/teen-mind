@@ -49,7 +49,7 @@ export default function RegisterPage() {
   const { data: session, status } = useSession();
 
   const onSubmit = useCallback(
-    async (e: any) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const data = JSON.stringify({ profile_admin: admin });
 
@@ -139,7 +139,7 @@ export default function RegisterPage() {
   };
 
   const HandleChange = useCallback(
-    async (e: any) => {
+    async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       if (e.target.name === "citizenId") {
         const value = e.target.value;
 

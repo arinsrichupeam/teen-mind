@@ -8,7 +8,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "@heroui/alert";
 import { addToast } from "@heroui/toast";
 
-import { Step1 } from "./components/step1";
+import { Step1, type ChangeEventLike } from "./components/step1";
 import { Step2 } from "./components/step2";
 import { Step3 } from "./components/step3";
 
@@ -93,24 +93,48 @@ export default function RegisterPage() {
     const currentProfile = profileRef.current;
     const currentAddress = addressRef.current;
     const currentEmergency = emergencyRef.current;
-    const data = JSON.stringify({
-      register_profile: currentProfile,
+    const userId = session?.user?.id ?? currentProfile.userId;
+
+    if (!userId) {
+      addToast({
+        title: "กรุณารอสักครู่",
+        description: "กำลังโหลดข้อมูลการเข้าสู่ระบบ กรุณากดส่งอีกครั้ง",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    const payload = {
+      register_profile: { ...currentProfile, userId },
       register_address: currentAddress,
       register_emergency: currentEmergency,
-    });
+    };
 
     try {
+      setIsLoading(true);
       const res = await fetch("/api/register/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: data,
+        body: JSON.stringify(payload),
+        credentials: "include",
       });
 
       const val = await res.json();
 
-      if (val.ref === "") {
+      if (!res.ok) {
+        addToast({
+          title: "ลงทะเบียนไม่สำเร็จ",
+          description: val?.error ?? `เกิดข้อผิดพลาด (${res.status})`,
+          color: "danger",
+        });
+
+        return;
+      }
+
+      if (val.ref === "" || !val.ref) {
         setShowAlert(true);
         setIsSubmitted(true);
         setTimeout(() => {
@@ -120,26 +144,33 @@ export default function RegisterPage() {
         setShowAlert(true);
         setIsSubmitted(true);
         setTimeout(() => {
-          const referentId = ref || val.ref.id;
+          const refId =
+            val.ref && typeof val.ref === "object" ? val.ref.id : val.ref;
+          const referentId = ref || refId;
 
           router.push(
-            `/liff/question/phqa?ref=${referentId}&profileId=${val.profile.id}`
+            `/liff/question/phqa?ref=${referentId}&profileId=${val.profile?.id ?? ""}`
           );
         }, 3000);
       }
     } catch (error) {
       addToast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง" + error,
+        description:
+          "ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง " +
+          (error instanceof Error ? error.message : String(error)),
         color: "danger",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [router, ref]);
+  }, [router, ref, session?.user?.id]);
+
+  type StepName = "Profile" | "Address" | "Emergency";
+  type RegisterProfileState = Profile & { gradeYear?: number | null };
 
   const NextStep = useCallback(
-    (name: any) => {
+    (name: StepName) => {
       switch (name) {
         case "Profile":
           setSelected("address");
@@ -156,7 +187,7 @@ export default function RegisterPage() {
     [SaveToDB]
   );
 
-  const BackStep = useCallback((name: any) => {
+  const BackStep = useCallback((name: StepName) => {
     switch (name) {
       case "Address":
         setSelected("profile");
@@ -167,69 +198,81 @@ export default function RegisterPage() {
     }
   }, []);
 
-  const ProfileHandleChange = useCallback((e: any) => {
-    if (e.target.name === "birthday") {
-      setProfile((prev: any) => ({
-        ...prev,
-        birthday: e.target.value,
-      }));
-    } else if (e.target.name === "prefix") {
-      setProfile((prev: any) => ({
-        ...prev,
-        prefixId: parseInt(e.target.value, 10),
-      }));
-    } else if (e.target.name === "sex") {
-      setProfile((prev: any) => ({
-        ...prev,
-        sex: parseInt(e.target.value, 10),
-      }));
-    } else if (e.target.name === "citizenId") {
-      const val = e.target.value;
+  const ProfileHandleChange = useCallback(
+    (
+      e:
+        | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+        | ChangeEventLike
+    ) => {
+      const { name, value } = e.target;
 
-      if (val.length <= 13) {
-        setProfile((prev: any) => ({
+      if (name === "birthday") {
+        setProfile((prev: RegisterProfileState) => ({
           ...prev,
-          [e.target.name]: e.target.value,
+          birthday:
+            value === null || value === ""
+              ? prev.birthday
+              : new Date(String(value)),
+        }));
+      } else if (name === "prefix") {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          prefixId: parseInt(String(value), 10),
+        }));
+      } else if (name === "sex") {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          sex: parseInt(String(value), 10),
+        }));
+      } else if (name === "citizenId") {
+        const val = String(value);
+
+        if (val.length <= 13) {
+          setProfile((prev: RegisterProfileState) => ({
+            ...prev,
+            [name]: val,
+          }));
+        }
+      } else if (name === "school") {
+        const schoolId = parseInt(String(value), 10) || 0;
+
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          schoolId,
+          ...(schoolId === 0 ? { gradeYear: null } : {}),
+        }));
+      } else if (name === "gradeYear") {
+        const gradeYear =
+          value !== "" && value != null ? parseInt(String(value), 10) : null;
+
+        setProfile((prev: RegisterProfileState) => ({ ...prev, gradeYear }));
+      } else {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          [name]: String(value),
         }));
       }
-    } else if (e.target.name === "school") {
-      const schoolId = parseInt(e.target.value, 10) || 0;
+    },
+    []
+  );
 
-      setProfile((prev: any) => ({
-        ...prev,
-        schoolId,
-        ...(schoolId === 0 ? { gradeYear: null } : {}),
-      }));
-    } else if (e.target.name === "gradeYear") {
-      const raw = e.target.value;
-      const gradeYear =
-        raw !== "" && raw != null ? parseInt(String(raw), 10) : null;
+  const AddressHandleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
 
-      setProfile((prev: any) => ({
-        ...prev,
-        gradeYear,
-      }));
-    } else {
-      setProfile((prev: any) => ({
-        ...prev,
-        [e.target.name]: e.target.value,
-      }));
-    }
-  }, []);
+      setAddress((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
 
-  const AddressHandleChange = useCallback((e: any) => {
-    setAddress((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  }, []);
+  const EmergencyHandleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
 
-  const EmergencyHandleChange = useCallback((e: any) => {
-    setEmergency((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  }, []);
+      setEmergency((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
 
   return (
     <section className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">

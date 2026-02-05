@@ -74,9 +74,7 @@ export async function GET(
 
     // ดึง referent (ที่จำเป็นต้องใช้ใน response) แยกจาก LINE sync
     let referent = null;
-    const profileRecord = Array.isArray(profile.profile)
-      ? profile.profile[0]
-      : (profile.profile as any);
+    const profileRecord = profile.profile?.[0];
 
     if (profileRecord?.citizenId) {
       referent = await prisma.referent.findFirst({
@@ -162,51 +160,71 @@ export async function PUT(
     await prisma.profile.update({
       where: { id: profileId },
       data: {
-        hn: body.hn,
+        hn: body.hn ?? undefined,
         citizenId: body.citizenId,
-        prefixId: body.prefixId,
-        sex: body.sex,
+        prefixId: Number(body.prefixId),
+        sex: Number(body.sex),
         firstname: body.firstname,
         lastname: body.lastname,
         birthday: body.birthday ? new Date(body.birthday) : undefined,
         ethnicity: body.ethnicity,
         nationality: body.nationality,
         tel: body.tel,
-        schoolId: body.schoolId || null,
-        gradeYear: body.gradeYear ?? null,
+        schoolId: body.schoolId != null ? Number(body.schoolId) : null,
+        gradeYear: body.gradeYear != null ? Number(body.gradeYear) : null,
       },
     });
 
+    const addressPayload = body.address;
     const addressUpdate =
-      existingProfile.address && existingProfile.address.length > 0
-        ? prisma.address.update({
-            where: {
-              id: existingProfile.address[0].id,
-            },
-            data: {
-              houseNo: body.address.houseNo,
-              villageNo: body.address.villageNo,
-              soi: body.address.soi,
-              road: body.address.road,
-              subdistrict: body.address.subdistrict,
-              district: body.address.district,
-              province: body.address.province,
-            },
-          })
+      addressPayload != null
+        ? existingProfile.address.length > 0
+          ? prisma.address.update({
+              where: { id: existingProfile.address[0].id },
+              data: {
+                houseNo: String(addressPayload.houseNo ?? ""),
+                villageNo: String(addressPayload.villageNo ?? ""),
+                soi: String(addressPayload.soi ?? ""),
+                road: String(addressPayload.road ?? ""),
+                subdistrict: Number(addressPayload.subdistrict) || 0,
+                district: Number(addressPayload.district) || 0,
+                province: Number(addressPayload.province) || 0,
+              },
+            })
+          : prisma.address.create({
+              data: {
+                profileId,
+                houseNo: String(addressPayload.houseNo ?? ""),
+                villageNo: String(addressPayload.villageNo ?? ""),
+                soi: String(addressPayload.soi ?? ""),
+                road: String(addressPayload.road ?? ""),
+                subdistrict: Number(addressPayload.subdistrict) || 0,
+                district: Number(addressPayload.district) || 0,
+                province: Number(addressPayload.province) || 0,
+              },
+            })
         : Promise.resolve();
 
+    const emergencyPayload = body.emergency;
     const emergencyUpdate =
-      existingProfile.emergency && existingProfile.emergency.length > 0
-        ? prisma.emergencyContact.update({
-            where: {
-              id: existingProfile.emergency[0].id,
-            },
-            data: {
-              name: body.emergency.name,
-              tel: body.emergency.tel,
-              relation: body.emergency.relation,
-            },
-          })
+      emergencyPayload != null
+        ? existingProfile.emergency.length > 0
+          ? prisma.emergencyContact.update({
+              where: { id: existingProfile.emergency[0].id },
+              data: {
+                name: String(emergencyPayload.name ?? ""),
+                tel: String(emergencyPayload.tel ?? ""),
+                relation: String(emergencyPayload.relation ?? ""),
+              },
+            })
+          : prisma.emergencyContact.create({
+              data: {
+                profileId,
+                name: String(emergencyPayload.name ?? ""),
+                tel: String(emergencyPayload.tel ?? ""),
+                relation: String(emergencyPayload.relation ?? ""),
+              },
+            })
         : Promise.resolve();
 
     await Promise.all([addressUpdate, emergencyUpdate]);

@@ -11,12 +11,15 @@ import {
 
 import { subtitle } from "@/components/primitives";
 import { q2, qPhqa, phqaAddon } from "@/app/data";
-import { QuestionsData } from "@/types";
+import { Addon, Phqa, Questions2Q, QuestionsData } from "@/types";
 
 interface Props {
   data: QuestionsData | undefined;
   mode?: string;
-  onQuestionChange?: (field: string, value: any) => void;
+  onQuestionChange?: (
+    field: string,
+    value: string | number | Questions2Q[] | Phqa[] | Addon[]
+  ) => void;
 }
 
 export const QuestionDetailDrawer = ({
@@ -29,9 +32,11 @@ export const QuestionDetailDrawer = ({
       const updatedQ2 = [...(data?.q2 || [])];
 
       if (!updatedQ2[0]) {
-        updatedQ2[0] = { q1: 0, q2: 0 } as any;
+        updatedQ2[0] = { q1: 0, q2: 0 };
       }
-      (updatedQ2[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+      (updatedQ2[0] as unknown as Record<string, number>)[
+        `q${questionIndex + 1}`
+      ] = parseInt(value, 10);
       onQuestionChange("q2", updatedQ2);
     }
   };
@@ -52,9 +57,11 @@ export const QuestionDetailDrawer = ({
           q8: 0,
           q9: 0,
           sum: 0,
-        } as any;
+        };
       }
-      (updatedPhqa[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+      (updatedPhqa[0] as unknown as Record<string, number>)[
+        `q${questionIndex + 1}`
+      ] = parseInt(value, 10);
 
       // คำนวณ sum จากข้อมูล phqa
       const phqaData = updatedPhqa[0];
@@ -70,7 +77,7 @@ export const QuestionDetailDrawer = ({
         phqaData.q9;
 
       // อัปเดต sum
-      (updatedPhqa[0] as any).sum = sum;
+      (updatedPhqa[0] as unknown as Record<string, number>).sum = sum;
 
       onQuestionChange("phqa", updatedPhqa);
     }
@@ -81,9 +88,11 @@ export const QuestionDetailDrawer = ({
       const updatedAddon = [...(data?.addon || [])];
 
       if (!updatedAddon[0]) {
-        updatedAddon[0] = { q1: 0, q2: 0 } as any;
+        updatedAddon[0] = { q1: 0, q2: 0 };
       }
-      (updatedAddon[0] as any)[`q${questionIndex + 1}`] = parseInt(value);
+      (updatedAddon[0] as unknown as Record<string, number>)[
+        `q${questionIndex + 1}`
+      ] = parseInt(value, 10);
       onQuestionChange("addon", updatedAddon);
     }
   };

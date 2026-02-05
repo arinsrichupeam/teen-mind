@@ -28,9 +28,9 @@ import {
 interface Props {
   Profile: ProfileAdminData;
   Mode: string;
-  isOpen: any;
-  onClose: any;
-  onReLoad: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onReLoad: () => void;
 }
 
 export const ModalUserProfile = ({
@@ -65,26 +65,28 @@ export const ModalUserProfile = ({
   }, [employeeTypes]);
 
   const HandleChange = useCallback(
-    (e: any) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       if (mode === "edit") {
-        if (e.target.name === "alert") {
+        const { name, value } = e.target;
+
+        if (name === "alert") {
           setSelectedProfile((prev) => ({
             ...prev,
-            [e.target.name]: e.target.value === "1" ? true : false,
+            [name]: value === "1",
           }));
         } else {
           setSelectedProfile((prev) => ({
             ...prev,
-            [e.target.name]: e.target.value,
+            [name]: value,
           }));
         }
       }
     },
-    [selectedProfile]
+    [mode]
   );
 
   const ModalSubmit = useCallback(
-    async (e: any) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const data = JSON.stringify({ profile_data: selectedProfile });
 

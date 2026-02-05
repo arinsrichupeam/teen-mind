@@ -33,8 +33,8 @@ export const UserDropdown = () => {
   }, [router]);
 
   const EditProfile = useCallback(
-    async (e: any) => {
-      await fetch("/api/profile/admin/" + e)
+    async (userId: string) => {
+      await fetch("/api/profile/admin/" + userId)
         .then((res) => res.json())
         .then((val) => {
           setProfile(val);
@@ -53,8 +53,8 @@ export const UserDropdown = () => {
   };
 
   const handleUserAction = useCallback(
-    async (e: any) => {
-      switch (e) {
+    async (action: "logout" | "profile") => {
+      switch (action) {
         case "logout":
           handleLogout();
           break;
@@ -77,7 +77,9 @@ export const UserDropdown = () => {
         Profile={profile}
         isOpen={isOpen}
         onClose={onClose}
-        onReLoad={null}
+        onReLoad={() => {
+          void GetProfile();
+        }}
       />
       <Dropdown>
         <NavbarItem>
@@ -104,7 +106,9 @@ export const UserDropdown = () => {
         </NavbarItem>
         <DropdownMenu
           aria-label="User menu actions"
-          onAction={(actionKey) => handleUserAction(actionKey)}
+          onAction={(actionKey) =>
+            handleUserAction(actionKey as "logout" | "profile")
+          }
         >
           <DropdownItem key="profile">ข้อมูลส่วนตัว</DropdownItem>
           <DropdownItem key="logout" className="text-danger" color="danger">

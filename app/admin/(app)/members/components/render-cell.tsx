@@ -15,8 +15,24 @@ import { userStatusOptions as statusOptions } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
 
+/** แถวสมาชิกที่แสดงในตาราง (Profile_Admin + user, role จาก API) */
+interface MemberRow extends Record<string, unknown> {
+  id: string;
+  userId?: string;
+  prefixId: number;
+  firstname: string;
+  lastname: string;
+  professional?: string | null;
+  affiliationId: number;
+  agency: string;
+  status: number;
+  alert: boolean;
+  user?: { image: string };
+  role?: { name: string };
+}
+
 interface Props {
-  data: any;
+  data: MemberRow;
   affiliationList: Affiliation[];
   columnKey: string | React.Key;
   index: number;
@@ -48,7 +64,7 @@ export const RenderCell = ({
         <div>
           <User
             avatarProps={{
-              src: data.user.image as string,
+              src: (data.user?.image as string) ?? "",
             }}
             name={
               prefix.find((val) => val.key == data.prefixId.toString())?.label +
@@ -63,7 +79,7 @@ export const RenderCell = ({
     case "professional":
       return (
         <div>
-          <span>{data.professional}</span>
+          <span>{data.professional ?? ""}</span>
         </div>
       );
     case "affiliation":
@@ -83,7 +99,7 @@ export const RenderCell = ({
     case "role":
       return (
         <div>
-          <span>{data.role.name}</span>
+          <span>{data.role?.name ?? ""}</span>
         </div>
       );
     case "status":
@@ -130,7 +146,7 @@ export const RenderCell = ({
               name="Detail"
               size="sm"
               variant="light"
-              onPress={() => viewDetail(data.userId)}
+              onPress={() => viewDetail(String(data.userId ?? data.id))}
             >
               <EyeIcon className="size-6 text-primary-400" />
             </Button>
@@ -141,7 +157,7 @@ export const RenderCell = ({
               name="Edit"
               size="sm"
               variant="light"
-              onPress={() => editDetail(data.userId)}
+              onPress={() => editDetail(String(data.userId ?? data.id))}
             >
               <PencilIcon className="size-6 text-warning-400" />
             </Button>
@@ -154,6 +170,6 @@ export const RenderCell = ({
         </div>
       );
     default:
-      return cellValue;
+      return cellValue != null ? String(cellValue) : null;
   }
 };

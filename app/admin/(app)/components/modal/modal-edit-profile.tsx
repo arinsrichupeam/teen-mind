@@ -66,10 +66,33 @@ interface EditProfileData {
   gradeYear: string;
 }
 
+/** ข้อมูลสำหรับ modal แก้ไข profile (จาก user list หรือ question) */
+export interface ModalEditProfileData {
+  profile?: {
+    id: string;
+    userId?: string;
+    citizenId?: string;
+    prefixId?: number;
+    firstname?: string;
+    lastname?: string;
+    address?: Array<{
+      houseNo?: string;
+      villageNo?: string;
+      soi?: string;
+      road?: string;
+      province?: number;
+      district?: number;
+      subdistrict?: number;
+    }>;
+    emergency?: Array<{ name?: string; tel?: string; relation?: string }>;
+    [key: string]: unknown;
+  };
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  data: any;
+  data: ModalEditProfileData;
   mode?: "create" | "edit";
   onSuccess?: () => void;
 }
@@ -84,7 +107,7 @@ export const ModalEditProfile = ({
   const [distrince, setDistrince] = useState<Districts[]>([]);
   const [province, setProvince] = useState<Provinces[]>([]);
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
-  const [schools, setSchools] = useState<any[]>([]);
+  const [schools, setSchools] = useState<{ id: number; name: string }[]>([]);
   const [birthdayDate, setBirthdayDate] = useState<
     CalendarDate | CalendarDateTime | ZonedDateTime | null
   >(null);
@@ -120,9 +143,14 @@ export const ModalEditProfile = ({
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
   const [birthdayError, setBirthdayError] = useState<string>("");
-  const [currentData, setCurrentData] = useState<any>(null);
+  const [currentData, setCurrentData] = useState<ModalEditProfileData | null>(
+    null
+  );
 
-  const fetchData = async (url: string, setter: (data: any) => void) => {
+  const fetchData = async <T,>(
+    url: string,
+    setter: React.Dispatch<React.SetStateAction<T>>
+  ) => {
     try {
       const res = await fetch(url);
 
@@ -131,7 +159,7 @@ export const ModalEditProfile = ({
       }
       const data = await res.json();
 
-      setter(data);
+      setter(data as T);
     } catch (err) {
       addToast({
         title: "Error",
@@ -158,7 +186,9 @@ export const ModalEditProfile = ({
     await fetchData("/api/data/school", setSchools);
   };
 
-  const handleEditProfileChange = (e: any) => {
+  const handleEditProfileChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
 
     if (name.startsWith("address.")) {
@@ -343,28 +373,34 @@ export const ModalEditProfile = ({
     }
 
     if (data?.profile) {
-      const currentProvince = province.find(
-        (x) => x.id == data?.profile.address[0].province
-      );
-      const currentDistrict = distrince.find(
-        (x) => x.id == data?.profile.address[0].district
-      );
-      const currentSubdistrict = subdistrince.find(
-        (x) => x.id == data?.profile.address[0].subdistrict
-      );
+      const profile = data.profile;
+      const addr = profile.address?.[0];
+      const currentProvince = addr
+        ? province.find((x) => x.id == addr.province)
+        : undefined;
+      const currentDistrict = addr
+        ? distrince.find((x) => x.id == addr.district)
+        : undefined;
+      const currentSubdistrict = addr
+        ? subdistrince.find((x) => x.id == addr.subdistrict)
+        : undefined;
 
       let birthdayDate = "";
-      let parsedBirthdayDate = null;
+      let parsedBirthdayDate: ReturnType<typeof safeParseDateForPicker> = null;
 
-      if (data.profile.birthday) {
+      const birthdayRaw = profile.birthday;
+
+      if (birthdayRaw) {
         try {
-          const date = new Date(data.profile.birthday);
+          const date =
+            birthdayRaw instanceof Date
+              ? birthdayRaw
+              : new Date(birthdayRaw as string | number);
 
           if (!isNaN(date.getTime())) {
             birthdayDate = formatDateForDisplay(
               date.toISOString().split("T")[0]
             );
-            // แปลงวันที่สำหรับ DatePicker
             parsedBirthdayDate = safeParseDateForPicker(date);
           }
         } catch (error) {
@@ -382,40 +418,45 @@ export const ModalEditProfile = ({
         ? calculateThaiYear(parseThaiDateToISO(birthdayDate))
         : "";
 
-      const initialData = {
-        hn: data.profile.hn || "",
-        citizenId: data.profile.citizenId || "",
-        prefixId: data.profile.prefixId?.toString() || "",
-        sex: data.profile.sex?.toString() || "",
-        firstname: data.profile.firstname || "",
-        lastname: data.profile.lastname || "",
+      const schoolObj = profile.school as { id?: number } | undefined;
+      const emergencyFirst = profile.emergency?.[0];
+
+      const initialData: EditProfileData = {
+        hn: String(profile.hn ?? ""),
+        citizenId: String(profile.citizenId ?? ""),
+        prefixId: profile.prefixId != null ? String(profile.prefixId) : "",
+        sex: profile.sex != null ? String(profile.sex) : "",
+        firstname: String(profile.firstname ?? ""),
+        lastname: String(profile.lastname ?? ""),
         birthday: birthdayDate || "",
         thaiYear: thaiYear,
-        ethnicity: data.profile.ethnicity || "",
-        nationality: data.profile.nationality || "",
+        ethnicity: String(profile.ethnicity ?? ""),
+        nationality: String(profile.nationality ?? ""),
         address: {
-          houseNo: data.profile.address[0]?.houseNo || "",
-          villageNo: data.profile.address[0]?.villageNo || "",
-          soi: data.profile.address[0]?.soi || "",
-          road: data.profile.address[0]?.road || "",
-          subdistrict: currentSubdistrict?.id?.toString() || "",
-          district: currentDistrict?.id?.toString() || "",
-          province: currentProvince?.id?.toString() || "",
+          houseNo: String(addr?.houseNo ?? ""),
+          villageNo: String(addr?.villageNo ?? ""),
+          soi: String(addr?.soi ?? ""),
+          road: String(addr?.road ?? ""),
+          subdistrict: currentSubdistrict?.id?.toString() ?? "",
+          district: currentDistrict?.id?.toString() ?? "",
+          province: currentProvince?.id?.toString() ?? "",
         },
-        tel: data.profile.tel || "",
+        tel: String(profile.tel ?? ""),
         emergency: {
-          name: data.profile.emergency[0]?.name || "",
-          tel: data.profile.emergency[0]?.tel || "",
-          relation: data.profile.emergency[0]?.relation || "",
+          name: String(emergencyFirst?.name ?? ""),
+          tel: String(emergencyFirst?.tel ?? ""),
+          relation: String(emergencyFirst?.relation ?? ""),
         },
-        school: data.profile.school?.id?.toString() || "",
-        gradeYear: data.profile.gradeYear
-          ? data.profile.gradeYear.toString()
-          : "",
+        school: schoolObj?.id != null ? String(schoolObj.id) : "",
+        gradeYear: profile.gradeYear != null ? String(profile.gradeYear) : "",
       };
 
       setEditProfileData(initialData);
-      setBirthdayDate(parsedBirthdayDate);
+      setBirthdayDate(
+        parsedBirthdayDate && typeof parsedBirthdayDate !== "string"
+          ? parsedBirthdayDate
+          : null
+      );
     }
   };
 
@@ -499,9 +540,9 @@ export const ModalEditProfile = ({
         });
       } else {
         // แก้ไข profile ที่มีอยู่ (ส่ง user id ตาม semantics ของ API)
-        const userId = data?.profile?.userId;
+        const profile = data?.profile;
 
-        if (!userId) {
+        if (!profile?.userId) {
           addToast({
             title: "เกิดข้อผิดพลาด",
             description: "ไม่พบข้อมูล user id",
@@ -512,11 +553,11 @@ export const ModalEditProfile = ({
           return;
         }
         const updateData = {
-          id: data?.profile.id,
+          id: profile.id,
           ...profileData,
         };
 
-        response = await fetch(`/api/profile/user/${userId}`, {
+        response = await fetch(`/api/profile/user/${profile.userId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

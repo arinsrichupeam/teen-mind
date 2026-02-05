@@ -31,21 +31,53 @@ import {
 } from "@heroui/react";
 
 import { questionStatusOptions as options } from "../../data/optionData";
-import { ModalEditProfile } from "../modal/modal-edit-profile";
+import {
+  ModalEditProfile,
+  type ModalEditProfileData,
+} from "../modal/modal-edit-profile";
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 
 import { safeParseDate, formatThaiDateTime } from "@/utils/helper";
+// eslint-disable-next-line import/order -- ไม่มีบรรทัดว่างภายในกลุ่ม import
 import { prefix } from "@/utils/data";
+
+/** คืนค่าเฉพาะ CalendarDate สำหรับ DatePicker (กรอง string ออก) */
+function parseDateForPicker(
+  val: Date | string | null | undefined
+): import("@internationalized/date").CalendarDate | null | undefined {
+  const p = safeParseDate(val);
+
+  return p != null && typeof p !== "string" ? p : undefined;
+}
+
+/** แปลง QuestionsData เป็น ModalEditProfileData (profile.prefixId เป็น number) */
+function toModalEditProfileData(
+  row: QuestionsData | undefined | null
+): ModalEditProfileData {
+  const profile = row?.profile;
+
+  return {
+    profile: profile
+      ? {
+          ...profile,
+          prefixId:
+            typeof profile.prefixId === "string"
+              ? parseInt(profile.prefixId, 10) || undefined
+              : profile.prefixId,
+        }
+      : undefined,
+  };
+}
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
-import { Consultant, QuestionsData } from "@/types";
+import { Addon, Consultant, Phqa, Questions2Q, QuestionsData } from "@/types";
 import { subtitle } from "@/components/primitives";
 
 interface Props {
-  isOpen: any;
-  onClose: any;
+  isOpen: boolean;
+  onClose: () => void;
   data: QuestionsData;
   mode: string;
 }
@@ -88,16 +120,19 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         ? data?.longitude
         : 0;
 
-  const fetchData = async (url: string, setter: (data: any) => void) => {
+  const fetchData = async <T,>(
+    url: string,
+    setter: React.Dispatch<React.SetStateAction<T>>
+  ) => {
     try {
       const res = await fetch(url);
 
       if (!res.ok) {
         throw new Error(`Failed to fetch data from ${url}`);
       }
-      const data = await res.json();
+      const json = await res.json();
 
-      setter(data);
+      setter(json as T);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล"
@@ -130,14 +165,25 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       if (!res.ok) throw new Error("Failed to fetch consultant list");
 
       const val = await res.json();
-      const consult = val.filter((x: any) => x.status === 1 && x.role.id == 3);
+      const consult = val.filter(
+        (x: { status: number; role: { id: number } }) =>
+          x.status === 1 && x.role.id === 3
+      );
 
       if (consult.length > 0) {
         setConsultant(
-          consult.map((item: any) => ({
-            id: item.userId,
-            name: item.firstname + " " + item.lastname,
-          }))
+          consult.map(
+            (item: {
+              id: string;
+              userId?: string;
+              firstname?: string;
+              lastname?: string;
+            }) => ({
+              id: item.userId ?? item.id,
+              name:
+                [item.firstname, item.lastname].filter(Boolean).join(" ") || "",
+            })
+          )
         );
       }
     } catch (err) {
@@ -239,12 +285,17 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
-  const HandleChange = (e: any) => {
+  type ChangeEventLike =
+    | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    | { target: { name: string; value: string | number | null } };
+
+  const HandleChange = (e: ChangeEventLike) => {
     const { name, value } = e.target;
+    const valueStr = value != null ? String(value) : "";
 
     if (
-      (name === "consult" && value !== "") ||
-      (name === "status" && value !== 2)
+      (name === "consult" && valueStr !== "") ||
+      (name === "status" && valueStr !== "2")
     ) {
       setIsError(false);
     }
@@ -252,17 +303,22 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     if (name === "schedule_telemed") {
       setQuestionData((prev) => ({
         ...prev,
-        schedule_telemed: new Date(value),
+        schedule_telemed: valueStr ? new Date(valueStr) : null,
       }));
     } else if (name === "follow_up") {
       setQuestionData((prev) => ({
         ...prev,
-        follow_up: new Date(value),
+        follow_up: valueStr ? new Date(valueStr) : new Date(0),
+      }));
+    } else if (name === "status") {
+      setQuestionData((prev) => ({
+        ...prev,
+        status: valueStr ? parseInt(valueStr, 10) : 0,
       }));
     } else {
       setQuestionData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: valueStr,
       }));
     }
   };
@@ -537,7 +593,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
-  const handleQuestionChange = (field: string, value: any) => {
+  const handleQuestionChange = (
+    field: string,
+    value: string | number | null | Questions2Q[] | Phqa[] | Addon[]
+  ) => {
     setQuestionData((prev) => ({
       ...prev,
       [field]: value,
@@ -1159,8 +1218,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <DatePicker
                               showMonthAndYearPickers
-                              defaultValue={safeParseDate(
-                                questionData?.schedule_telemed ||
+                              defaultValue={parseDateForPicker(
+                                questionData?.schedule_telemed ??
                                   data?.schedule_telemed
                               )}
                               isDisabled={true}
@@ -1200,8 +1259,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <DatePicker
                           showMonthAndYearPickers
                           className="max-w-xs"
-                          defaultValue={safeParseDate(
-                            questionData?.follow_up || data?.follow_up
+                          defaultValue={parseDateForPicker(
+                            questionData?.follow_up ?? data?.follow_up
                           )}
                           isDisabled={true}
                           label="Follow Up"
@@ -1292,7 +1351,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             HandleChange({
                               target: {
                                 name: "status",
-                                value: parseInt(val.target.value),
+                                value: val.target.value,
                               },
                             });
                           }}
@@ -1307,12 +1366,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           <div className="w-full">
                             <DatePicker
                               showMonthAndYearPickers
-                              defaultValue={safeParseDate(
-                                questionData?.schedule_telemed ||
+                              defaultValue={parseDateForPicker(
+                                questionData?.schedule_telemed ??
                                   data?.schedule_telemed
                               )}
                               isDisabled={
-                                (questionData?.status || data?.status) === 0
+                                (questionData?.status ?? data?.status) === 0
                               }
                               isRequired={true}
                               label="วันที่พบนักจิตวิทยา"
@@ -1336,7 +1395,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <Autocomplete
                               defaultItems={Consultant}
                               defaultSelectedKey={
-                                questionData?.consult || data?.consult
+                                questionData?.consult ??
+                                data?.consult ??
+                                undefined
                               }
                               errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
                               isDisabled={
@@ -1351,7 +1412,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               variant="bordered"
                               onSelectionChange={(val) =>
                                 HandleChange({
-                                  target: { name: "consult", value: val },
+                                  target: {
+                                    name: "consult",
+                                    value: val != null ? String(val) : null,
+                                  },
                                 })
                               }
                             >
@@ -1385,12 +1449,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <DatePicker
                           showMonthAndYearPickers
                           className="max-w-xs"
-                          defaultValue={safeParseDate(
-                            questionData?.follow_up || data?.follow_up
+                          defaultValue={parseDateForPicker(
+                            questionData?.follow_up ?? data?.follow_up
                           )}
                           isDisabled={
-                            (questionData?.status || data?.status) !== 2 &&
-                            (questionData?.status || data?.status) !== 3
+                            (questionData?.status ?? data?.status) !== 2 &&
+                            (questionData?.status ?? data?.status) !== 3
                           }
                           label="นัดพบครั้งถัดไป"
                           labelPlacement="outside-left"
@@ -1405,11 +1469,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={
-                              questionData?.subjective || data?.subjective
+                              questionData?.subjective ?? data?.subjective
                             }
                             isDisabled={
-                              (questionData?.status || data?.status) !== 2 &&
-                              (questionData?.status || data?.status) !== 3
+                              (questionData?.status ?? data?.status) !== 2 &&
+                              (questionData?.status ?? data?.status) !== 3
                             }
                             label="1.	Subjective data"
                             labelPlacement="outside"
@@ -1420,7 +1484,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             onChange={HandleChange}
                             onClear={() =>
                               HandleChange({
-                                target: { name: "subjective", value: null },
+                                target: { name: "subjective", value: "" },
                               })
                             }
                           />
@@ -1443,7 +1507,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             onChange={HandleChange}
                             onClear={() =>
                               HandleChange({
-                                target: { name: "objective", value: null },
+                                target: { name: "objective", value: "" },
                               })
                             }
                           />
@@ -1451,7 +1515,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             isClearable
                             isRequired
                             defaultValue={
-                              questionData?.assessment || data?.assessment
+                              questionData?.assessment ?? data?.assessment
                             }
                             isDisabled={
                               (questionData?.status || data?.status) !== 2 &&
@@ -1466,14 +1530,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             onChange={HandleChange}
                             onClear={() =>
                               HandleChange({
-                                target: { name: "assessment", value: null },
+                                target: { name: "assessment", value: "" },
                               })
                             }
                           />
                           <Textarea
                             isClearable
                             isRequired
-                            defaultValue={questionData?.plan || data?.plan}
+                            defaultValue={questionData?.plan ?? data?.plan}
                             isDisabled={
                               (questionData?.status || data?.status) !== 2 &&
                               (questionData?.status || data?.status) !== 3
@@ -1487,7 +1551,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             onChange={HandleChange}
                             onClear={() =>
                               HandleChange({
-                                target: { name: "plan", value: null },
+                                target: { name: "plan", value: "" },
                               })
                             }
                           />
@@ -1530,8 +1594,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       </Drawer>
 
       <ModalEditProfile
-        key={`modal-${questionData?.profile?.id || data?.profile?.id}-${modalKey}`}
-        data={questionData || data}
+        key={`modal-${questionData?.profile?.id ?? data?.profile?.id}-${modalKey}`}
+        data={toModalEditProfileData(questionData ?? data)}
         isOpen={isModalOpen}
         mode="edit"
         onClose={() => setIsModalOpen(false)}

@@ -11,18 +11,58 @@ import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 import { calculateAge } from "@/utils/helper";
 
-const fetchQuestions = async (): Promise<QuestionsData[]> => {
-  const res = await fetch("/api/question", { credentials: "include" });
+const QUESTIONS_PAGE_LIMIT = 2000;
+const CONCURRENT_PAGES = 5;
+
+const fetchPage = async (page: number): Promise<QuestionsData[]> => {
+  const res = await fetch(
+    `/api/question?page=${page}&limit=${QUESTIONS_PAGE_LIMIT}`,
+    { credentials: "include" }
+  );
 
   if (!res.ok) {
     throw new Error(
-      res.status === 401 ? "Unauthorized" : "Failed to fetch questions"
+      res.status === 401 ? "Unauthorized" : `Failed to fetch page ${page}`
     );
   }
-
   const data = await res.json();
 
   return data.questionsList ?? [];
+};
+
+const fetchQuestions = async (): Promise<QuestionsData[]> => {
+  const firstRes = await fetch(
+    `/api/question?page=1&limit=${QUESTIONS_PAGE_LIMIT}`,
+    { credentials: "include" }
+  );
+
+  if (!firstRes.ok) {
+    throw new Error(
+      firstRes.status === 401 ? "Unauthorized" : "Failed to fetch questions"
+    );
+  }
+
+  const firstData = await firstRes.json();
+  const allQuestions: QuestionsData[] = [...(firstData.questionsList ?? [])];
+  const pagination = firstData.pagination ?? { totalPages: 1 };
+
+  if (pagination.totalPages <= 1) {
+    return allQuestions;
+  }
+
+  const remainingPages = Array.from(
+    { length: pagination.totalPages - 1 },
+    (_, i) => i + 2
+  );
+
+  for (let i = 0; i < remainingPages.length; i += CONCURRENT_PAGES) {
+    const batch = remainingPages.slice(i, i + CONCURRENT_PAGES);
+    const batchResults = await Promise.all(batch.map(fetchPage));
+
+    batchResults.forEach((list) => allQuestions.push(...list));
+  }
+
+  return allQuestions;
 };
 
 const filterLatestQuestions = (questions: QuestionsData[]) => {
@@ -45,16 +85,17 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 
 // ฟังก์ชันกรองข้อมูลตามอายุ 12-18 ปี สำหรับสถิติ
 const filterByAge = (
-  data: any[],
+  data: QuestionsData[],
   ageRange: { min: number; max: number } = { min: 12, max: 18 }
 ) => {
   return data.filter((item) => {
     if (!item.profile?.birthday) return false;
-
-    const age = calculateAge(
-      item.profile.birthday,
-      item.profile.school?.screeningDate
-    );
+    const school = item.profile.school;
+    const screeningDate =
+      typeof school === "object" && school !== null
+        ? school.screeningDate
+        : undefined;
+    const age = calculateAge(item.profile.birthday, screeningDate);
 
     return age >= ageRange.min && age <= ageRange.max;
   });

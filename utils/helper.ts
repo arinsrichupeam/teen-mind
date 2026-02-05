@@ -38,15 +38,19 @@ export function getPhqaRiskText(sum: number): string {
   return ""; // default value เป็นค่าว่าง
 }
 
-// ฟังก์ชันคำนวณระดับความเสี่ยง PHQA จาก item object
-export function calculatePhqaRiskLevel(item: any): string {
+/** Item ที่มี phqa array (ใช้กับ calculatePhqaRiskLevel) */
+export interface ItemWithPhqa {
+  phqa?: Array<{ sum: number }>;
+}
+
+export function calculatePhqaRiskLevel(item: ItemWithPhqa): string {
   if (Array.isArray(item.phqa) && item.phqa.length > 0) {
     const sum = item.phqa[0].sum;
 
     return getPhqaRiskLevel(sum);
   }
 
-  return ""; // default value เป็นค่าว่าง
+  return "";
 }
 
 // ฟังก์ชันตรวจสอบจำนวนวันในแต่ละเดือน
@@ -243,7 +247,7 @@ export function formatDateForDisplay(dateString: string): string {
 export async function validateCitizen(
   idCardNo: string,
   source: "user" | "admin" | "referent" = "user",
-  excludeId?: number | null
+  excludeId?: string | number | null
 ): Promise<Response> {
   try {
     const response = await fetch("/api/validate/citizen", {
@@ -300,7 +304,9 @@ export function validateTel(tel: string): string {
  * @param dateValue - The date value to parse
  * @returns Parsed date or null if invalid
  */
-export const safeParseDate = (dateValue: any): any => {
+export const safeParseDate = (
+  dateValue: unknown
+): ReturnType<typeof parseDate> | string | null => {
   if (!dateValue) return null;
 
   try {
@@ -353,12 +359,13 @@ export const safeParseDate = (dateValue: any): any => {
  * @param dateValue - The date value to parse
  * @returns Parsed date or null if invalid
  */
-export const safeParseDateForPicker = (dateValue: any): any => {
+export const safeParseDateForPicker = (
+  dateValue: unknown
+): ReturnType<typeof parseDate> | string | null => {
   if (!dateValue) return null;
 
   try {
-    // ถ้าเป็น string ให้แปลงเป็น Date object ก่อน
-    let dateToParse = dateValue;
+    let dateToParse: Date | string = dateValue as Date | string;
 
     if (typeof dateValue === "string") {
       dateToParse = new Date(dateValue);
@@ -366,17 +373,14 @@ export const safeParseDateForPicker = (dateValue: any): any => {
 
     const momentDate = moment(dateToParse);
 
-    // ตรวจสอบว่าวันที่ถูกต้องหรือไม่ และปีต้องมากกว่า 1900
     if (momentDate.isValid() && momentDate.year() > 1900) {
       const formattedDate = momentDate.format("YYYY-MM-DD");
 
-      // ตรวจสอบเพิ่มเติมว่าวันที่ที่ได้ไม่เป็นลบ
       if (momentDate.year() > 0) {
         return parseDate(formattedDate);
       }
     }
 
-    // ถ้าวันที่ไม่สมบูรณ์หรือไม่ถูกต้อง ให้ return null
     return null;
   } catch (error) {
     return "ไม่ระบุวันที่" + error;

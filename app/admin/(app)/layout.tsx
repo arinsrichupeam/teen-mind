@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { SidebarContext } from "./layout-context";
-import { NavbarWrapper } from "./components/navbar_admin";
-import { ModalUserStatus } from "./components/modal/modal-User-status";
+import { NavbarWrapper } from "./components/navbar-admin";
+import { ModalUserStatus } from "./components/modal/modal-user-status";
 import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 
 const Layout = ({ children }: { children: ReactNode }) => {

@@ -26,13 +26,14 @@ import {
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 
+import { QuestionsData } from "@/types";
 import { calculatePhqaRiskLevel } from "@/utils/helper";
 import { prefix } from "@/utils/data";
 
 interface ModalStatusUpdateProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any[];
+  data: QuestionsData[];
   onDataUpdate?: () => void;
 }
 
@@ -58,16 +59,8 @@ export const ModalStatusUpdate = ({
 
   // กรองข้อมูลตามโรงเรียนและ PHQA ที่เลือก
   const filteredData = data.filter((item) => {
-    // ตรวจสอบโรงเรียน
-    let itemSchool = null;
-
-    if (item.school) {
-      itemSchool = item.school;
-    } else if (item.profile?.school) {
-      itemSchool = item.profile.school;
-    } else if (item.user?.school) {
-      itemSchool = item.user.school;
-    }
+    // ตรวจสอบโรงเรียน (จาก profile)
+    const itemSchool = item.profile?.school ?? null;
 
     let schoolName = null;
 
@@ -286,11 +279,13 @@ export const ModalStatusUpdate = ({
                           setDisplayedItems(10); // รีเซ็ตจำนวนรายการที่แสดง
                         }}
                       >
-                        {schoolsData?.map((school: any) => (
-                          <AutocompleteItem key={school.name}>
-                            {school.name}
-                          </AutocompleteItem>
-                        ))}
+                        {schoolsData?.map(
+                          (school: { id: number; name: string }) => (
+                            <AutocompleteItem key={school.name}>
+                              {school.name}
+                            </AutocompleteItem>
+                          )
+                        )}
                       </Autocomplete>
 
                       <Select
@@ -446,24 +441,19 @@ export const ModalStatusUpdate = ({
                               {filteredData
                                 .slice(0, displayedItems)
                                 .map((item, index) => {
-                                  // ฟังก์ชันสำหรับดึงชื่อโรงเรียน
-                                  const getSchoolName = (item: any) => {
-                                    let itemSchool = null;
-
-                                    if (item.school) {
-                                      itemSchool = item.school;
-                                    } else if (item.profile?.school) {
-                                      itemSchool = item.profile.school;
-                                    } else if (item.user?.school) {
-                                      itemSchool = item.user.school;
-                                    }
+                                  // ฟังก์ชันสำหรับดึงชื่อโรงเรียน (จาก profile)
+                                  const getSchoolName = (
+                                    row: QuestionsData
+                                  ) => {
+                                    const itemSchool = row.profile?.school;
 
                                     if (
                                       typeof itemSchool === "object" &&
                                       itemSchool !== null
                                     ) {
                                       return itemSchool.name;
-                                    } else if (typeof itemSchool === "string") {
+                                    }
+                                    if (typeof itemSchool === "string") {
                                       return itemSchool;
                                     }
 
@@ -471,7 +461,7 @@ export const ModalStatusUpdate = ({
                                   };
 
                                   // ฟังก์ชันสำหรับแสดงผล PHQA
-                                  const renderPHQA = (item: any) => {
+                                  const renderPHQA = (item: QuestionsData) => {
                                     const phqaRiskLevel =
                                       calculatePhqaRiskLevel(item);
 
@@ -522,7 +512,7 @@ export const ModalStatusUpdate = ({
                                   };
 
                                   // ฟังก์ชันสำหรับแสดงผล 2Q
-                                  const render2Q = (item: any) => {
+                                  const render2Q = (item: QuestionsData) => {
                                     if (
                                       Array.isArray(item.q2) &&
                                       item.q2.length > 0
@@ -549,7 +539,7 @@ export const ModalStatusUpdate = ({
                                   };
 
                                   // ฟังก์ชันสำหรับแสดงผล Addon
-                                  const renderAddon = (item: any) => {
+                                  const renderAddon = (item: QuestionsData) => {
                                     if (
                                       Array.isArray(item.addon) &&
                                       item.addon.length > 0
@@ -577,8 +567,8 @@ export const ModalStatusUpdate = ({
                                   };
 
                                   // ฟังก์ชันสำหรับแสดงผลสถานะ
-                                  const renderStatus = (status: any) => {
-                                    const getStatusLabel = (status: any) => {
+                                  const renderStatus = (status: number) => {
+                                    const getStatusLabel = (status: number) => {
                                       switch (status) {
                                         case 0:
                                           return "รอระบุ HN";
@@ -595,7 +585,7 @@ export const ModalStatusUpdate = ({
                                       }
                                     };
 
-                                    const getStatusColor = (status: any) => {
+                                    const getStatusColor = (status: number) => {
                                       switch (status) {
                                         case 0:
                                           return "default";
@@ -630,16 +620,11 @@ export const ModalStatusUpdate = ({
                                       <TableCell className="whitespace-nowrap">
                                         {(() => {
                                           const firstname =
-                                            item.profile?.firstname ||
-                                            item.user?.firstname ||
-                                            "";
+                                            item.profile?.firstname ?? "";
                                           const lastname =
-                                            item.profile?.lastname ||
-                                            item.user?.lastname ||
-                                            "";
+                                            item.profile?.lastname ?? "";
                                           const prefixId =
-                                            item.profile?.prefixId ||
-                                            item.user?.prefixId;
+                                            item.profile?.prefixId;
 
                                           // หาคำนำหน้าจาก prefixId
                                           const prefixLabel =

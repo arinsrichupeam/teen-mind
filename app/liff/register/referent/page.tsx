@@ -92,9 +92,9 @@ export default function ReferentPage() {
   }, [affiliation]);
 
   const handleVerification = useCallback(
-    async (e: any) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      const formData = new FormData(e.target);
+      const formData = new FormData(e.currentTarget);
       const data = {
         citizenId: formData.get("citizenId"),
         tel: formData.get("tel"),
@@ -223,8 +223,12 @@ export default function ReferentPage() {
     return true;
   };
 
+  type ChangeEventLike =
+    | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    | { target: { name: string; value: string } };
+
   const HandleChange = useCallback(
-    async (e: any) => {
+    async (e: ChangeEventLike) => {
       if (e.target.name === "citizenId") {
         const value = e.target.value;
 
@@ -253,7 +257,7 @@ export default function ReferentPage() {
   );
 
   const onSubmit = useCallback(
-    async (e: any) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const data = JSON.stringify({ referent_data: selectedReferent });
 
@@ -279,7 +283,7 @@ export default function ReferentPage() {
               });
               setIsLoading(false);
             } else {
-              HandleChange({ target: { name: "id", value: data } });
+              HandleChange({ target: { name: "id", value: String(data) } });
               onOpen();
             }
           });

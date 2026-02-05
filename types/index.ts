@@ -1,3 +1,5 @@
+import type { Key } from "@react-types/shared";
+
 import { SVGProps } from "react";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
@@ -13,6 +15,7 @@ export type LocationData = {
 export type QuestionsData = {
   id: string;
   result: string;
+  result_text: string;
   latitude: number;
   longitude: number;
   subjective: string;
@@ -34,7 +37,7 @@ export type QuestionsData = {
     lastname: string;
   } | null;
   phqa: Phqa[];
-  q2: q2[];
+  q2: Questions2Q[];
   addon: Addon[];
 };
 
@@ -43,8 +46,14 @@ export interface User {
   profile: Profile[];
 }
 
+/** รูป school จาก API (object) หรือ string */
+export type ProfileSchool =
+  | string
+  | { id: number; name: string; screeningDate?: Date | string | null };
+
 export interface Profile {
   id: string;
+  userId?: string;
   firstname: string;
   lastname: string;
   prefixId: string;
@@ -54,7 +63,7 @@ export interface Profile {
   nationality: string;
   citizenId: string;
   tel: string;
-  school: string;
+  school: ProfileSchool;
   hn: string;
   address: Address[];
   emergency: Emergency[];
@@ -90,14 +99,41 @@ export interface Phqa {
   sum: number;
 }
 
-export interface q2 {
+/** คะแนน 2Q (สองข้อ) */
+export interface Questions2Q {
   q1: number;
   q2: number;
 }
 
+/** @deprecated ใช้ Questions2Q แทน */
+export type q2 = Questions2Q;
+
 export interface Addon {
   q1: number;
   q2: number;
+}
+
+/** PHQA คะแนน 9 ข้อ (สำหรับ payload ยังไม่มี sum) */
+export interface PhqaPayload {
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  q5: number;
+  q6: number;
+  q7: number;
+  q8: number;
+  q9: number;
+}
+
+/** Payload สำหรับสร้าง/อัปเดตแบบประเมิน (POST/PUT question API) */
+export interface QuestionPayload {
+  profileId: string;
+  reference?: number | null;
+  phqa: PhqaPayload;
+  Q2: Questions2Q;
+  phqaAddon: Addon;
+  location?: LocationData | null;
 }
 
 export interface ProfileAdminData {
@@ -126,4 +162,16 @@ export interface ProfileAdminData {
 export interface Consultant {
   id: string;
   name: string;
+}
+
+/** ใช้กับ Table sort (column + direction) */
+export interface SortDescriptor {
+  column?: string;
+  direction?: "ascending" | "descending";
+}
+
+/** สำหรับ HeroUI Table ที่ต้องการ column และ direction เป็น required (ตรงกับ @react-aria) */
+export interface TableSortDescriptor {
+  column: Key;
+  direction: "ascending" | "descending";
 }
