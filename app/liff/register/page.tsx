@@ -4,7 +4,7 @@ import { Tab, Tabs } from "@heroui/tabs";
 import { Address, EmergencyContact, Profile } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "@heroui/alert";
 import { addToast } from "@heroui/toast";
 
@@ -72,6 +72,14 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const profileRef = useRef(profile);
+  const addressRef = useRef(address);
+  const emergencyRef = useRef(emergency);
+
+  profileRef.current = profile;
+  addressRef.current = address;
+  emergencyRef.current = emergency;
+
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
       setProfile((prev) => ({
@@ -81,116 +89,14 @@ export default function RegisterPage() {
     }
   }, [session]);
 
-  const NextStep = useCallback(
-    (name: any) => {
-      switch (name) {
-        case "Profile":
-          setSelected("address");
-          break;
-        case "Address":
-          setSelected("emergency");
-          break;
-        case "Emergency":
-          setIsLoading(true);
-          SaveToDB();
-          break;
-      }
-    },
-    [selected, profile, address, emergency]
-  );
-
-  const BackStep = useCallback(
-    (name: any) => {
-      switch (name) {
-        case "Address":
-          setSelected("profile");
-          break;
-        case "Emergency":
-          setSelected("address");
-          break;
-      }
-    },
-    [selected, profile, address, emergency]
-  );
-
-  const ProfileHandleChange = useCallback(
-    (e: any) => {
-      if (e.target.name === "birthday") {
-        setProfile((prev: any) => ({
-          ...prev,
-          birthday: e.target.value,
-        }));
-      } else if (e.target.name === "prefix") {
-        setProfile((prev: any) => ({
-          ...prev,
-          prefixId: parseInt(e.target.value),
-        }));
-      } else if (e.target.name === "sex") {
-        setProfile((prev: any) => ({
-          ...prev,
-          sex: parseInt(e.target.value),
-        }));
-      } else if (e.target.name === "citizenId") {
-        const val = e.target.value;
-
-        if (val.length <= 13) {
-          setProfile((prev: any) => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-          }));
-        }
-      } else if (e.target.name === "school") {
-        const schoolId = parseInt(e.target.value, 10) || 0;
-
-        setProfile((prev: any) => ({
-          ...prev,
-          schoolId,
-          ...(schoolId === 0 ? { gradeYear: null } : {}),
-        }));
-      } else if (e.target.name === "gradeYear") {
-        const raw = e.target.value;
-        const gradeYear =
-          raw !== "" && raw != null ? parseInt(String(raw), 10) : null;
-
-        setProfile((prev: any) => ({
-          ...prev,
-          gradeYear,
-        }));
-      } else {
-        setProfile((prev: any) => ({
-          ...prev,
-          [e.target.name]: e.target.value,
-        }));
-      }
-    },
-    [profile]
-  );
-
-  const AddressHandleChange = useCallback(
-    (e: any) => {
-      setAddress((prev) => ({
-        ...prev,
-        [e.target.name]: e.target.value,
-      }));
-    },
-    [address]
-  );
-
-  const EmergencyHandleChange = useCallback(
-    (e: any) => {
-      setEmergency((prev) => ({
-        ...prev,
-        [e.target.name]: e.target.value,
-      }));
-    },
-    [emergency]
-  );
-
-  const SaveToDB = async () => {
+  const SaveToDB = useCallback(async () => {
+    const currentProfile = profileRef.current;
+    const currentAddress = addressRef.current;
+    const currentEmergency = emergencyRef.current;
     const data = JSON.stringify({
-      register_profile: profile,
-      register_address: address,
-      register_emergency: emergency,
+      register_profile: currentProfile,
+      register_address: currentAddress,
+      register_emergency: currentEmergency,
     });
 
     try {
@@ -214,7 +120,6 @@ export default function RegisterPage() {
         setShowAlert(true);
         setIsSubmitted(true);
         setTimeout(() => {
-          // ถ้ามี ref จาก QR code ให้ใช้ ref นั้น แทนที่จะสร้างใหม่
           const referentId = ref || val.ref.id;
 
           router.push(
@@ -231,7 +136,100 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, ref]);
+
+  const NextStep = useCallback(
+    (name: any) => {
+      switch (name) {
+        case "Profile":
+          setSelected("address");
+          break;
+        case "Address":
+          setSelected("emergency");
+          break;
+        case "Emergency":
+          setIsLoading(true);
+          SaveToDB();
+          break;
+      }
+    },
+    [SaveToDB]
+  );
+
+  const BackStep = useCallback((name: any) => {
+    switch (name) {
+      case "Address":
+        setSelected("profile");
+        break;
+      case "Emergency":
+        setSelected("address");
+        break;
+    }
+  }, []);
+
+  const ProfileHandleChange = useCallback((e: any) => {
+    if (e.target.name === "birthday") {
+      setProfile((prev: any) => ({
+        ...prev,
+        birthday: e.target.value,
+      }));
+    } else if (e.target.name === "prefix") {
+      setProfile((prev: any) => ({
+        ...prev,
+        prefixId: parseInt(e.target.value, 10),
+      }));
+    } else if (e.target.name === "sex") {
+      setProfile((prev: any) => ({
+        ...prev,
+        sex: parseInt(e.target.value, 10),
+      }));
+    } else if (e.target.name === "citizenId") {
+      const val = e.target.value;
+
+      if (val.length <= 13) {
+        setProfile((prev: any) => ({
+          ...prev,
+          [e.target.name]: e.target.value,
+        }));
+      }
+    } else if (e.target.name === "school") {
+      const schoolId = parseInt(e.target.value, 10) || 0;
+
+      setProfile((prev: any) => ({
+        ...prev,
+        schoolId,
+        ...(schoolId === 0 ? { gradeYear: null } : {}),
+      }));
+    } else if (e.target.name === "gradeYear") {
+      const raw = e.target.value;
+      const gradeYear =
+        raw !== "" && raw != null ? parseInt(String(raw), 10) : null;
+
+      setProfile((prev: any) => ({
+        ...prev,
+        gradeYear,
+      }));
+    } else {
+      setProfile((prev: any) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    }
+  }, []);
+
+  const AddressHandleChange = useCallback((e: any) => {
+    setAddress((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  }, []);
+
+  const EmergencyHandleChange = useCallback((e: any) => {
+    setEmergency((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  }, []);
 
   return (
     <section className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">

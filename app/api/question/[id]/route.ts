@@ -1,18 +1,24 @@
 import { prisma } from "@/utils/prisma";
+import { getSession, requireAdmin } from "@/lib/get-session";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const questionId = (await params).id;
 
-  const question = await prisma.questions_Master.findMany({
-    where: {
-      id: questionId,
-    },
+  const question = await prisma.questions_Master.findUnique({
+    where: { id: questionId },
     select: {
       id: true,
       result: true,
+      result_text: true,
       latitude: true,
       longitude: true,
       createdAt: true,
@@ -27,6 +33,7 @@ export async function GET(
       profile: {
         select: {
           id: true,
+          userId: true,
           firstname: true,
           lastname: true,
           prefixId: true,
@@ -73,6 +80,18 @@ export async function GET(
       addon: true,
     },
   });
+
+  if (!question) {
+    return Response.json(null, { status: 404 });
+  }
+
+  const profileUserId = question.profile?.userId ?? null;
+  const isOwner = profileUserId === session.user.id;
+  const isAdmin = (await requireAdmin()) !== null;
+
+  if (!isOwner && !isAdmin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   return Response.json(question);
 }

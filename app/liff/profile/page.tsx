@@ -272,7 +272,19 @@ export default function ProfilePage() {
     }
 
     try {
-      const res = await fetch(`/api/profile/user/${profile.id}`, {
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่พบ session กรุณาล็อกอินใหม่",
+          color: "danger",
+        });
+        setIsLoading(false);
+
+        return;
+      }
+      const res = await fetch(`/api/profile/user/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -341,6 +353,7 @@ export default function ProfilePage() {
                   HandleChange={ProfileHandleChange}
                   NextStep={NextStep}
                   Result={profile}
+                  primaryAction="cancel"
                   onCancel={() => router.push("/liff")}
                 />
               </Tab>

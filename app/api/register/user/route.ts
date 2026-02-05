@@ -1,5 +1,6 @@
 import { Address, Profile, EmergencyContact } from "@prisma/client";
 
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
@@ -7,11 +8,36 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await req.json();
 
   const profile: Profile = data.register_profile;
+
+  if (profile.userId && profile.userId !== session.user.id) {
+    return Response.json(
+      { error: "Forbidden: ไม่สามารถลงทะเบียนแทนผู้ใช้อื่นได้" },
+      { status: 403 }
+    );
+  }
   const address: Address = data.register_address;
   const emergency: EmergencyContact = data.register_emergency;
+
+  const schoolId =
+    profile.schoolId == null || Number(profile.schoolId) === 0
+      ? null
+      : Number(profile.schoolId);
+  const rawGradeYear = (profile as { gradeYear?: number | null }).gradeYear;
+  const gradeYear =
+    schoolId == null
+      ? null
+      : rawGradeYear != null && String(rawGradeYear).trim() !== ""
+        ? Number(rawGradeYear)
+        : null;
 
   // CheckProfile
   const checkProfile = await prisma.profile.findUnique({
@@ -43,8 +69,8 @@ export async function POST(req: Request) {
               ethnicity: profile.ethnicity,
               nationality: profile.nationality,
               tel: profile.tel,
-              schoolId: profile.schoolId,
-              gradeYear: profile.gradeYear,
+              schoolId,
+              gradeYear,
               address: {
                 create: [
                   {
@@ -95,8 +121,8 @@ export async function POST(req: Request) {
         ethnicity: profile.ethnicity,
         nationality: profile.nationality,
         tel: profile.tel,
-        schoolId: profile.schoolId,
-        gradeYear: profile.gradeYear ?? undefined,
+        schoolId,
+        gradeYear: gradeYear ?? undefined,
         address: {
           create: [
             {

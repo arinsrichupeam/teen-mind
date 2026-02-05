@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const users = await prisma.profile.findMany({
     select: {
       id: true,
@@ -54,6 +61,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const data = await req.json();
 
@@ -103,6 +116,12 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const data = await req.json();
 

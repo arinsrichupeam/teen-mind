@@ -1,5 +1,6 @@
 import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
 
+import { getSession, requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
@@ -9,99 +10,230 @@ import {
   YellowFlex,
   GreenLowFlex,
   OrangeFlex,
-} from "@/config/site";
+  getEmergencyAlertFlex,
+} from "@/config/line-flex";
 import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
 
-export async function GET() {
-  const questionsList = await prisma.questions_Master.findMany({
-    select: {
-      id: true,
-      createdAt: true,
-      result: true,
-      result_text: true,
-      status: true,
-      consult: true,
-      schedule_telemed: true,
-      referentId: true,
-      subjective: true,
-      objective: true,
-      assessment: true,
-      plan: true,
-      follow_up: true,
-      profile: {
-        select: {
-          id: true,
-          userId: true,
-          prefixId: true,
-          firstname: true,
-          lastname: true,
-          birthday: true,
-          citizenId: true,
-          tel: true,
-          hn: true,
-          sex: true,
-          school: {
-            select: {
-              id: true,
-              name: true,
-              districtId: true,
-              screeningDate: true,
+function buildWhereFromQuery(url: URL) {
+  const search = url.searchParams.get("search")?.trim() || "";
+  const statusParam = url.searchParams.get("status");
+  const school = url.searchParams.get("school")?.trim() || "";
+  const referentCitizenId =
+    url.searchParams.get("referentCitizenId")?.trim() || "";
+  const consultUserId = url.searchParams.get("consult")?.trim() || "";
+  const resultParam = url.searchParams.get("result");
+  const q2Risk = url.searchParams.get("q2Risk");
+  const addonRisk = url.searchParams.get("addonRisk");
+
+  const statusArray =
+    statusParam && statusParam !== "all"
+      ? statusParam
+          .split(",")
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !Number.isNaN(n))
+      : [];
+  const resultArray = resultParam
+    ? resultParam
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean)
+    : [];
+
+  const whereConditions: Record<string, unknown>[] = [];
+
+  const profileConditions: Record<string, unknown>[] = [];
+
+  if (search) {
+    profileConditions.push({
+      OR: [
+        { firstname: { contains: search } },
+        { lastname: { contains: search } },
+      ],
+    });
+  }
+  if (school) {
+    profileConditions.push({ school: { name: school } });
+  }
+  if (profileConditions.length === 1) {
+    whereConditions.push({ profile: profileConditions[0] });
+  } else if (profileConditions.length > 1) {
+    whereConditions.push({ profile: { AND: profileConditions } });
+  }
+
+  if (statusArray.length > 0) {
+    whereConditions.push({ status: { in: statusArray } });
+  }
+
+  if (referentCitizenId) {
+    whereConditions.push({
+      referent: { citizenId: referentCitizenId },
+    });
+  }
+
+  if (consultUserId) {
+    whereConditions.push({ consult: consultUserId });
+  }
+
+  if (resultArray.length > 0) {
+    whereConditions.push({ result: { in: resultArray } });
+  }
+
+  if (q2Risk === "risk") {
+    whereConditions.push({
+      q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
+    });
+  } else if (q2Risk === "no-risk") {
+    whereConditions.push({
+      NOT: { q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
+    });
+  }
+
+  if (addonRisk === "risk") {
+    whereConditions.push({
+      addon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
+    });
+  } else if (addonRisk === "no-risk") {
+    whereConditions.push({
+      NOT: { addon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
+    });
+  }
+
+  if (whereConditions.length === 0) return undefined;
+  if (whereConditions.length === 1) return whereConditions[0];
+
+  return { AND: whereConditions };
+}
+
+export async function GET(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const pageParam = url.searchParams.get("page");
+  const limitParam = url.searchParams.get("limit");
+
+  const page =
+    Number.isNaN(Number(pageParam)) || !pageParam ? 1 : Number(pageParam);
+  const limit =
+    Number.isNaN(Number(limitParam)) || !limitParam
+      ? 200
+      : Math.min(Math.max(Number(limitParam), 10), 300);
+
+  const skip = (page - 1) * limit;
+  const where = buildWhereFromQuery(url);
+
+  const [questionsList, total] = await Promise.all([
+    prisma.questions_Master.findMany({
+      skip,
+      take: limit,
+      ...(where && { where }),
+      select: {
+        id: true,
+        createdAt: true,
+        result: true,
+        result_text: true,
+        status: true,
+        consult: true,
+        schedule_telemed: true,
+        referentId: true,
+        subjective: true,
+        objective: true,
+        assessment: true,
+        plan: true,
+        follow_up: true,
+        profile: {
+          select: {
+            id: true,
+            userId: true,
+            prefixId: true,
+            firstname: true,
+            lastname: true,
+            birthday: true,
+            citizenId: true,
+            tel: true,
+            hn: true,
+            sex: true,
+            school: {
+              select: {
+                id: true,
+                name: true,
+                districtId: true,
+                screeningDate: true,
+              },
+            },
+            emergency: {
+              select: {
+                id: true,
+                name: true,
+                tel: true,
+                relation: true,
+              },
             },
           },
-          emergency: {
-            select: {
-              id: true,
-              name: true,
-              tel: true,
-              relation: true,
-            },
+        },
+        referent: {
+          select: {
+            id: true,
+            citizenId: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+        phqa: {
+          select: {
+            q1: true,
+            q2: true,
+            q3: true,
+            q4: true,
+            q5: true,
+            q6: true,
+            q7: true,
+            q8: true,
+            q9: true,
+            sum: true,
+          },
+        },
+        q2: {
+          select: {
+            q1: true,
+            q2: true,
+          },
+        },
+        addon: {
+          select: {
+            q1: true,
+            q2: true,
           },
         },
       },
-      referent: {
-        select: {
-          id: true,
-          citizenId: true,
-          firstname: true,
-          lastname: true,
-        },
+      orderBy: {
+        createdAt: "desc",
       },
-      phqa: {
-        select: {
-          q1: true,
-          q2: true,
-          q3: true,
-          q4: true,
-          q5: true,
-          q6: true,
-          q7: true,
-          q8: true,
-          q9: true,
-          sum: true,
-        },
-      },
-      q2: {
-        select: {
-          q1: true,
-          q2: true,
-        },
-      },
-      addon: {
-        select: {
-          q1: true,
-          q2: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
+    }),
+    prisma.questions_Master.count(where ? { where } : undefined),
+  ]);
+
+  return Response.json({
+    questionsList,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
   });
-
-  return Response.json({ questionsList });
 }
 
 export async function POST(req: Request) {
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const data = await req.json();
 
@@ -118,24 +250,34 @@ export async function POST(req: Request) {
     const phqa_sum = SumValue(phqa_data);
     const { result, result_text } = calculateResult(phqa_sum);
 
-    // ดึงข้อมูลผู้ใช้
-    const user = await prisma.profile.findUnique({
+    // ดึงข้อมูลผู้ใช้ (รวมชื่อ-เบอร์ สำหรับแจ้งเตือน admin เมื่อ Red)
+    const profile = await prisma.profile.findUnique({
       where: { id: profileId },
       select: {
         userId: true,
         hn: true,
+        firstname: true,
+        lastname: true,
+        tel: true,
       },
     });
 
-    if (!user) {
+    if (!profile) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
+    }
+
+    if (profile.userId && profile.userId !== session.user.id) {
+      return Response.json(
+        { error: "Forbidden: ไม่สามารถสร้างแบบประเมินแทนผู้ใช้อื่นได้" },
+        { status: 403 }
+      );
     }
 
     let lineUserId: string | undefined;
 
-    if (user.userId) {
+    if (profile.userId) {
       const UUID = await prisma.user.findUnique({
-        where: { id: user.userId as string },
+        where: { id: profile.userId as string },
         select: {
           accounts: {
             select: {
@@ -152,7 +294,7 @@ export async function POST(req: Request) {
       lineUserId = UUID?.accounts?.[0]?.providerAccountId;
     }
 
-    const status = user.hn ? 1 : 0;
+    const status = profile.hn ? 1 : 0;
 
     // บันทึกข้อมูลลงฐานข้อมูล
     const savedQuestion = await prisma.questions_Master.create({
@@ -214,6 +356,47 @@ export async function POST(req: Request) {
       }
     }
 
+    // เมื่อผลประเมินเป็น Red: แจ้งเตือนไปยัง Line ของ admin ที่เปิดรับแจ้งเตือน (alert = true)
+    if (result === "Red") {
+      const adminsWithAlert = await prisma.profile_Admin.findMany({
+        where: { alert: true },
+        select: {
+          userId: true,
+        },
+      });
+
+      if (adminsWithAlert.length > 0) {
+        const adminUserIds = adminsWithAlert.map((a) => a.userId);
+        const adminLineAccounts = await prisma.account.findMany({
+          where: {
+            userId: { in: adminUserIds },
+            provider: "line",
+          },
+          select: { providerAccountId: true },
+        });
+
+        const profileDisplayName =
+          `${profile.firstname ?? ""} ${profile.lastname ?? ""}`.trim() ||
+          "ไม่ระบุชื่อ";
+        const profileTel = profile.tel ?? "ไม่ระบุเบอร์";
+        const baseUrl = (process.env.NEXTAUTH_URL ?? "").replace(/\/$/, "");
+        const alertCaseUrl = baseUrl
+          ? `${baseUrl}/admin/alert/${savedQuestion.id}`
+          : undefined;
+        const adminAlertMessage = getEmergencyAlertFlex(
+          profileDisplayName,
+          profileTel,
+          alertCaseUrl
+        );
+
+        await Promise.allSettled(
+          adminLineAccounts.map((account) =>
+            lineSdk.pushMessage(account.providerAccountId, adminAlertMessage)
+          )
+        );
+      }
+    }
+
     return Response.json({ success: true, data: savedQuestion });
   } catch (error) {
     return Response.json(
@@ -230,6 +413,12 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const data = await req.json();
     const question: QuestionsData = data;
@@ -255,114 +444,116 @@ export async function PUT(req: Request) {
       },
     });
 
-    // อัปเดตข้อมูล q2 ถ้ามี
-    if (question.q2 && question.q2.length > 0) {
-      const existingQ2 = await prisma.questions_2Q.findFirst({
-        where: {
-          questions_MasterId: question.id,
-        },
-      });
+    const q2Promise =
+      question.q2 && question.q2.length > 0
+        ? (async () => {
+            const existingQ2 = await prisma.questions_2Q.findFirst({
+              where: {
+                questions_MasterId: question.id,
+              },
+            });
 
-      if (existingQ2) {
-        // อัปเดตข้อมูลที่มีอยู่
-        await prisma.questions_2Q.updateMany({
-          where: {
-            questions_MasterId: question.id,
-          },
-          data: {
-            q1: question.q2[0].q1,
-            q2: question.q2[0].q2,
-          },
-        });
-      } else {
-        // สร้างข้อมูลใหม่
-        await prisma.questions_2Q.create({
-          data: {
-            questions_MasterId: question.id,
-            q1: question.q2[0].q1,
-            q2: question.q2[0].q2,
-          },
-        });
-      }
-    }
+            if (existingQ2) {
+              await prisma.questions_2Q.updateMany({
+                where: {
+                  questions_MasterId: question.id,
+                },
+                data: {
+                  q1: question.q2[0].q1,
+                  q2: question.q2[0].q2,
+                },
+              });
+            } else {
+              await prisma.questions_2Q.create({
+                data: {
+                  questions_MasterId: question.id,
+                  q1: question.q2[0].q1,
+                  q2: question.q2[0].q2,
+                },
+              });
+            }
+          })()
+        : Promise.resolve();
 
-    // อัปเดตข้อมูล phqa ถ้ามี
-    if (question.phqa && question.phqa.length > 0) {
-      const existingPhqa = await prisma.questions_PHQA.findFirst({
-        where: {
-          questions_MasterId: question.id,
-        },
-      });
+    const phqaPromise =
+      question.phqa && question.phqa.length > 0
+        ? (async () => {
+            const existingPhqa = await prisma.questions_PHQA.findFirst({
+              where: {
+                questions_MasterId: question.id,
+              },
+            });
 
-      if (existingPhqa) {
-        // อัปเดตข้อมูลที่มีอยู่
-        await prisma.questions_PHQA.updateMany({
-          where: {
-            questions_MasterId: question.id,
-          },
-          data: {
-            q1: question.phqa[0].q1,
-            q2: question.phqa[0].q2,
-            q3: question.phqa[0].q3,
-            q4: question.phqa[0].q4,
-            q5: question.phqa[0].q5,
-            q6: question.phqa[0].q6,
-            q7: question.phqa[0].q7,
-            q8: question.phqa[0].q8,
-            q9: question.phqa[0].q9,
-            sum: question.phqa[0].sum,
-          },
-        });
-      } else {
-        // สร้างข้อมูลใหม่
-        await prisma.questions_PHQA.create({
-          data: {
-            questions_MasterId: question.id,
-            q1: question.phqa[0].q1,
-            q2: question.phqa[0].q2,
-            q3: question.phqa[0].q3,
-            q4: question.phqa[0].q4,
-            q5: question.phqa[0].q5,
-            q6: question.phqa[0].q6,
-            q7: question.phqa[0].q7,
-            q8: question.phqa[0].q8,
-            q9: question.phqa[0].q9,
-            sum: question.phqa[0].sum,
-          },
-        });
-      }
-    }
+            if (existingPhqa) {
+              await prisma.questions_PHQA.updateMany({
+                where: {
+                  questions_MasterId: question.id,
+                },
+                data: {
+                  q1: question.phqa[0].q1,
+                  q2: question.phqa[0].q2,
+                  q3: question.phqa[0].q3,
+                  q4: question.phqa[0].q4,
+                  q5: question.phqa[0].q5,
+                  q6: question.phqa[0].q6,
+                  q7: question.phqa[0].q7,
+                  q8: question.phqa[0].q8,
+                  q9: question.phqa[0].q9,
+                  sum: question.phqa[0].sum,
+                },
+              });
+            } else {
+              await prisma.questions_PHQA.create({
+                data: {
+                  questions_MasterId: question.id,
+                  q1: question.phqa[0].q1,
+                  q2: question.phqa[0].q2,
+                  q3: question.phqa[0].q3,
+                  q4: question.phqa[0].q4,
+                  q5: question.phqa[0].q5,
+                  q6: question.phqa[0].q6,
+                  q7: question.phqa[0].q7,
+                  q8: question.phqa[0].q8,
+                  q9: question.phqa[0].q9,
+                  sum: question.phqa[0].sum,
+                },
+              });
+            }
+          })()
+        : Promise.resolve();
 
-    // อัปเดตข้อมูล addon ถ้ามี
-    if (question.addon && question.addon.length > 0) {
-      const existingAddon = await prisma.questions_PHQA_Addon.findFirst({
-        where: {
-          questions_MasterId: question.id,
-        },
-      });
+    const addonPromise =
+      question.addon && question.addon.length > 0
+        ? (async () => {
+            const existingAddon = await prisma.questions_PHQA_Addon.findFirst({
+              where: {
+                questions_MasterId: question.id,
+              },
+            });
 
-      if (existingAddon) {
-        // อัปเดตข้อมูลที่มีอยู่
-        await prisma.questions_PHQA_Addon.updateMany({
-          where: {
-            questions_MasterId: question.id,
-          },
-          data: {
-            q1: question.addon[0].q1,
-            q2: question.addon[0].q2,
-          },
-        });
-      } else {
-        // สร้างข้อมูลใหม่
-        await prisma.questions_PHQA_Addon.create({
-          data: {
-            questions_MasterId: question.id,
-            q1: question.addon[0].q1,
-            q2: question.addon[0].q2,
-          },
-        });
-      }
-    }
+            if (existingAddon) {
+              await prisma.questions_PHQA_Addon.updateMany({
+                where: {
+                  questions_MasterId: question.id,
+                },
+                data: {
+                  q1: question.addon[0].q1,
+                  q2: question.addon[0].q2,
+                },
+              });
+            } else {
+              await prisma.questions_PHQA_Addon.create({
+                data: {
+                  questions_MasterId: question.id,
+                  q1: question.addon[0].q1,
+                  q2: question.addon[0].q2,
+                },
+              });
+            }
+          })()
+        : Promise.resolve();
+
+    await Promise.all([q2Promise, phqaPromise, addonPromise]);
 
     return Response.json({
       success: true,
@@ -400,20 +591,19 @@ function CalStatus(value: QuestionsData) {
   return 1;
 }
 
-function SumValue(value: any) {
-  const cal = [];
+function SumValue(value: Questions_PHQA) {
+  const { q1, q2, q3, q4, q5, q6, q7, q8, q9 } = value;
 
-  for (const key in value) {
-    if (key.startsWith("q")) {
-      const val = Number(`${(value as any)[key]}`);
-
-      cal.push(val);
-    }
-  }
-
-  const PHQA_SUM = cal.reduce((prev, cur) => {
-    return prev + cur;
-  }, 0);
+  const PHQA_SUM =
+    Number(q1 ?? 0) +
+    Number(q2 ?? 0) +
+    Number(q3 ?? 0) +
+    Number(q4 ?? 0) +
+    Number(q5 ?? 0) +
+    Number(q6 ?? 0) +
+    Number(q7 ?? 0) +
+    Number(q8 ?? 0) +
+    Number(q9 ?? 0);
 
   return PHQA_SUM;
 }

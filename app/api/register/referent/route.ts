@@ -1,8 +1,15 @@
 import { Referent } from "@prisma/client";
 
+import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await prisma.referent.findMany({
     where: {
       status: true,
@@ -13,6 +20,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await req.json();
 
   let userId = "";

@@ -11,11 +11,18 @@ import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
 import { calculateAge } from "@/utils/helper";
 
-const fetchQuestions = async () => {
-  const res = await fetch("/api/question");
+const fetchQuestions = async (): Promise<QuestionsData[]> => {
+  const res = await fetch("/api/question", { credentials: "include" });
+
+  if (!res.ok) {
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch questions"
+    );
+  }
+
   const data = await res.json();
 
-  return data.questionsList;
+  return data.questionsList ?? [];
 };
 
 const filterLatestQuestions = (questions: QuestionsData[]) => {

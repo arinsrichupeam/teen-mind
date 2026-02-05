@@ -1,7 +1,14 @@
 import { ProfileAdminData } from "@/types";
 import { prisma } from "@/utils/prisma";
+import { requireAdmin } from "@/lib/get-session";
 
 export async function GET() {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await prisma.profile_Admin.findMany({
     include: {
       user: {
@@ -22,6 +29,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await req.json();
   const profile_data: ProfileAdminData = data.profile_data;
 

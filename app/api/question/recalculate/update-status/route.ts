@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 // ฟังก์ชันคำนวณสถานะตามเงื่อนไข
@@ -26,6 +27,12 @@ function calculateStatus(question: any) {
 }
 
 export async function POST() {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // ดึงข้อมูลทั้งหมดที่มี PHQA
     const allQuestions = await prisma.questions_Master.findMany({

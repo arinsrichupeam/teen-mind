@@ -45,11 +45,7 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
-import {
-  formatThaiDate,
-  calculatePhqaRiskLevel,
-  calculateAge,
-} from "@/utils/helper";
+import { formatThaiDate, calculateAge } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -92,7 +88,10 @@ export default function QuestionPage() {
     null
   );
 
-  const hasSearchFilter = Boolean(filterValue);
+  const prefixMap = useMemo(
+    () => new Map(prefix.map((p) => [String(p.key), p.label])),
+    []
+  );
 
   // ดึงข้อมูล profile admin
   const { data: adminData } = useSWR(
@@ -127,20 +126,88 @@ export default function QuestionPage() {
     }
   }, [adminData]);
 
+  const referentCitizenId =
+    adminProfile?.roleId === 2 ? (adminProfile?.citizenId ?? "") : "";
+
+  const filterKey = useMemo(() => {
+    const statusKey =
+      statusFilter === "all"
+        ? "all"
+        : Array.from(statusFilter as Set<string>)
+            .sort()
+            .join(",");
+    const phqaKey = Array.from(phqaFilter as Set<string>)
+      .sort()
+      .join(",");
+    const q2Set = q2Filter as Set<string>;
+    const q2Risk = q2Set.has("risk")
+      ? "risk"
+      : q2Set.has("no-risk")
+        ? "no-risk"
+        : "";
+    const addonSet = addonFilter as Set<string>;
+    const addonRisk = addonSet.has("risk")
+      ? "risk"
+      : addonSet.has("no-risk")
+        ? "no-risk"
+        : "";
+
+    return {
+      search: filterValue,
+      status: statusKey,
+      school: schoolFilter,
+      phqa: phqaKey,
+      q2Risk,
+      addonRisk,
+      referentCitizenId,
+    };
+  }, [
+    filterValue,
+    statusFilter,
+    schoolFilter,
+    phqaFilter,
+    q2Filter,
+    addonFilter,
+    referentCitizenId,
+  ]);
+
   const { data, mutate } = useSWR(
-    "/api/question",
-    async (url) => {
+    ["/api/question", page, rowsPerPage, filterKey],
+    async ([url, apiPage, apiLimit, key]) => {
       try {
-        const res = await fetch(url, {
+        const params = new URLSearchParams({
+          page: String(apiPage),
+          limit: String(apiLimit),
+        });
+
+        if (key.search) params.set("search", key.search);
+        if (key.status && key.status !== "all")
+          params.set("status", key.status);
+        if (key.school) params.set("school", key.school);
+        if (key.phqa) params.set("result", key.phqa);
+        if (key.q2Risk) params.set("q2Risk", key.q2Risk);
+        if (key.addonRisk) params.set("addonRisk", key.addonRisk);
+        if (key.referentCitizenId)
+          params.set("referentCitizenId", key.referentCitizenId);
+
+        const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },
         });
 
         if (!res.ok) {
           throw new Error("Failed to fetch questions");
         }
-        const data = await res.json();
+        const json = await res.json();
 
-        return data.questionsList;
+        return {
+          questionsList: json.questionsList ?? [],
+          pagination: json.pagination ?? {
+            page: apiPage,
+            limit: apiLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
       } catch (error) {
         addToast({
           title: "ผิดพลาด",
@@ -150,7 +217,15 @@ export default function QuestionPage() {
           color: "danger",
         });
 
-        return [];
+        return {
+          questionsList: [],
+          pagination: {
+            page: 1,
+            limit: Number(apiLimit),
+            total: 0,
+            totalPages: 0,
+          },
+        };
       }
     },
     {
@@ -161,149 +236,36 @@ export default function QuestionPage() {
     }
   );
 
-  // ฟังก์ชันตรวจสอบสถานะความเสี่ยง
-  const hasRisk = useCallback(
-    (item: QuestionsData, type: "phqa" | "q2" | "addon") => {
-      switch (type) {
-        case "phqa":
-          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-            return item.phqa[0].sum > 0;
-          }
-
-          return false;
-        case "q2":
-          if (Array.isArray(item.q2) && item.q2.length > 0) {
-            const q2Data = item.q2[0];
-
-            return q2Data.q1 === 1 || q2Data.q2 === 1;
-          }
-
-          return false;
-        case "addon":
-          if (Array.isArray(item.addon) && item.addon.length > 0) {
-            const addonData = item.addon[0];
-
-            return addonData.q1 === 1 || addonData.q2 === 1;
-          }
-
-          return false;
-        default:
-          return false;
-      }
-    },
-    []
-  );
-
-  // ฟังก์ชันตรวจสอบระดับความเสี่ยง PHQA
-  const getPhqaRiskLevel = useCallback((item: QuestionsData) => {
-    return calculatePhqaRiskLevel(item);
-  }, []);
-
-  const filteredItems = useMemo(() => {
-    if (!data) return [];
-
-    let filteredData = data;
-
-    // กรองข้อมูลตาม roleId = 2 (Referent)
-    if (adminProfile?.roleId === 2) {
-      // ใช้ citizenId ของ admin เพื่อหาค่า referentId
-      const adminCitizenId = adminProfile.citizenId;
-
-      filteredData = data.filter((val: QuestionsData) => {
-        // ตรวจสอบว่า referentId ของข้อมูลตรงกับ citizenId ของ admin หรือไม่
-        // โดยเปรียบเทียบ citizenId ของ referent กับ citizenId ของ admin
-        if (val.referent && val.referent.citizenId) {
-          return val.referent.citizenId === adminCitizenId;
-        }
-
-        return false;
-      });
-    }
-
-    return filteredData.filter((val: QuestionsData) => {
-      // Filter ชื่อและนามสกุล
-      const matchesSearch =
-        !hasSearchFilter ||
-        val.profile.firstname
-          .toLowerCase()
-          .includes(filterValue.toLowerCase()) ||
-        val.profile.lastname
-          .toLowerCase()
-          .includes(filterValue.toLowerCase()) ||
-        `${val.profile.firstname} ${val.profile.lastname}`
-          .toLowerCase()
-          .includes(filterValue.toLowerCase());
-
-      // Filter สถานะ
-      const matchesStatus =
-        statusFilter === "all" ||
-        Array.from(statusFilter).includes(val.status.toString());
-
-      // Filter โรงเรียน
-      const matchesSchool =
-        !schoolFilter ||
-        (val.profile.school &&
-          typeof val.profile.school === "object" &&
-          "name" in val.profile.school &&
-          (val.profile.school as any).name === schoolFilter);
-
-      // Filter PHQA
-      const phqaRiskLevel = getPhqaRiskLevel(val);
-      const matchesPhqa =
-        (phqaFilter as Set<string>).size === 0 ||
-        Array.from(phqaFilter as Set<string>).includes(phqaRiskLevel);
-
-      // Filter 2Q
-      const matchesQ2 =
-        (q2Filter as Set<string>).size === 0 ||
-        (Array.from(q2Filter as Set<string>).includes("risk") &&
-          hasRisk(val, "q2")) ||
-        (Array.from(q2Filter as Set<string>).includes("no-risk") &&
-          !hasRisk(val, "q2"));
-
-      // Filter Addon
-      const matchesAddon =
-        (addonFilter as Set<string>).size === 0 ||
-        (Array.from(addonFilter as Set<string>).includes("risk") &&
-          hasRisk(val, "addon")) ||
-        (Array.from(addonFilter as Set<string>).includes("no-risk") &&
-          !hasRisk(val, "addon"));
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesSchool &&
-        matchesPhqa &&
-        matchesQ2 &&
-        matchesAddon
-      );
-    });
-  }, [
-    data,
-    adminProfile,
-    filterValue,
-    statusFilter,
-    hasSearchFilter,
-    schoolFilter,
-    phqaFilter,
-    q2Filter,
-    addonFilter,
-    hasRisk,
-    getPhqaRiskLevel,
-  ]);
+  const questionsList = data?.questionsList ?? [];
+  const serverPagination = data?.pagination;
 
   const pages = useMemo(() => {
-    return filteredItems.length
-      ? Math.ceil(filteredItems.length / rowsPerPage)
-      : 0;
-  }, [filteredItems.length, rowsPerPage]);
+    return serverPagination?.totalPages ?? 1;
+  }, [serverPagination?.totalPages]);
 
-  const items = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
+  // API กรองแล้ว (search, status, school, result, q2, addon, referent) — ใช้แสดงในตารางตรงๆ
+  const items = useMemo(() => questionsList, [questionsList]);
 
-    return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
+  const setStatusFilterAndResetPage = useCallback((s: Selection) => {
+    setStatusFilter(s);
+    setPage(1);
+  }, []);
+  const setSchoolFilterAndResetPage = useCallback((s: string) => {
+    setSchoolFilter(s);
+    setPage(1);
+  }, []);
+  const setPhqaFilterAndResetPage = useCallback((s: Selection) => {
+    setPhqaFilter(s);
+    setPage(1);
+  }, []);
+  const setQ2FilterAndResetPage = useCallback((s: Selection) => {
+    setQ2Filter(s);
+    setPage(1);
+  }, []);
+  const setAddonFilterAndResetPage = useCallback((s: Selection) => {
+    setAddonFilter(s);
+    setPage(1);
+  }, []);
 
   const sortedItems = useMemo(() => {
     if (!items.length) return [];
@@ -333,74 +295,74 @@ export default function QuestionPage() {
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(parseInt(e.target.value));
+      setRowsPerPage(Number(e.target.value));
       setPage(1);
     },
-    [pages, items]
+    []
   );
 
-  const onSearchChange = useCallback(
-    (value?: string) => {
-      if (value) {
-        setFilterValue(value);
-        setPage(1);
-      } else {
-        setFilterValue("");
-      }
+  const onSearchChange = useCallback((value?: string) => {
+    setFilterValue(value ?? "");
+    setPage(1);
+  }, []);
+
+  const setSelectedQuestion = useCallback(
+    (val: QuestionsData | QuestionsData[]) => {
+      setSelectedKeys(Array.isArray(val) ? val[0] : val);
     },
-    [filterValue]
+    []
   );
 
   const onRowDetailPress = useCallback(
-    (e: any) => {
+    (e: string) => {
       fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val: QuestionsData[]) => {
-          setSelectedKeys(val[0]);
+        .then((val: QuestionsData | QuestionsData[]) => {
+          setSelectedQuestion(val);
           setMode("view-questionnaire");
           onOpen();
         });
     },
-    [selectedKeys]
+    [onOpen, setSelectedQuestion]
   );
 
   const onRowConsultationPress = useCallback(
-    (e: any) => {
+    (e: string) => {
       fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val: QuestionsData[]) => {
-          setSelectedKeys(val[0]);
+        .then((val: QuestionsData | QuestionsData[]) => {
+          setSelectedQuestion(val);
           setMode("view-consultation");
           onOpen();
         });
     },
-    [selectedKeys]
+    [onOpen, setSelectedQuestion]
   );
 
   const onRowEditQuestionnairePress = useCallback(
-    (e: any) => {
+    (e: string) => {
       fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val: QuestionsData[]) => {
-          setSelectedKeys(val[0]);
+        .then((val: QuestionsData | QuestionsData[]) => {
+          setSelectedQuestion(val);
           setMode("edit-questionnaire");
           onOpen();
         });
     },
-    [selectedKeys]
+    [onOpen, setSelectedQuestion]
   );
 
   const onRowEditConsultationPress = useCallback(
-    (e: any) => {
+    (e: string) => {
       fetch("/api/question/" + e)
         .then((res) => res.json())
-        .then((val: QuestionsData[]) => {
-          setSelectedKeys(val[0]);
+        .then((val: QuestionsData | QuestionsData[]) => {
+          setSelectedQuestion(val);
           setMode("edit-consultation");
           onOpen();
         });
     },
-    [selectedKeys]
+    [onOpen, setSelectedQuestion]
   );
 
   const onDrawerClose = useCallback(() => {
@@ -434,8 +396,7 @@ export default function QuestionPage() {
       switch (columnKey) {
         case "name":
           const prefixLabel =
-            prefix.find((p) => p.key === item.profile?.prefixId?.toString())
-              ?.label || "";
+            prefixMap.get(item.profile?.prefixId?.toString() ?? "") || "";
 
           return (
             <div className="flex items-center gap-2">
@@ -643,11 +604,11 @@ export default function QuestionPage() {
       }
     },
     [
+      prefixMap,
       onRowDetailPress,
       onRowConsultationPress,
       onRowEditQuestionnairePress,
       onRowEditConsultationPress,
-      filteredItems,
     ]
   );
 
@@ -655,17 +616,17 @@ export default function QuestionPage() {
     () => (
       <QuestionFilterContent
         addonFilter={addonFilter}
-        data={data}
+        data={questionsList}
         filterValue={filterValue}
-        filteredData={filteredItems}
+        filteredData={questionsList}
         phqaFilter={phqaFilter}
         q2Filter={q2Filter}
         schoolFilter={schoolFilter}
-        setAddonFilter={setAddonFilter}
-        setPhqaFilter={setPhqaFilter}
-        setQ2Filter={setQ2Filter}
-        setSchoolFilter={setSchoolFilter}
-        setStatusFilter={setStatusFilter}
+        setAddonFilter={setAddonFilterAndResetPage}
+        setPhqaFilter={setPhqaFilterAndResetPage}
+        setQ2Filter={setQ2FilterAndResetPage}
+        setSchoolFilter={setSchoolFilterAndResetPage}
+        setStatusFilter={setStatusFilterAndResetPage}
         statusFilter={statusFilter}
         onDataUpdate={mutate}
         onSearchChange={onSearchChange}
@@ -675,22 +636,23 @@ export default function QuestionPage() {
       filterValue,
       onSearchChange,
       statusFilter,
-      setStatusFilter,
+      setStatusFilterAndResetPage,
       schoolFilter,
-      setSchoolFilter,
+      setSchoolFilterAndResetPage,
       phqaFilter,
-      setPhqaFilter,
+      setPhqaFilterAndResetPage,
       q2Filter,
-      setQ2Filter,
+      setQ2FilterAndResetPage,
       addonFilter,
-      setAddonFilter,
-      data,
-      filteredItems,
+      setAddonFilterAndResetPage,
+      questionsList,
       mutate,
     ]
   );
 
   const bottomContent = useMemo(() => {
+    const total = serverPagination?.total ?? 0;
+
     return (
       <div>
         <div className="flex justify-center">
@@ -701,12 +663,12 @@ export default function QuestionPage() {
             color="primary"
             page={page}
             total={pages}
-            onChange={(page) => setPage(page)}
+            onChange={(p) => setPage(p)}
           />
         </div>
         <div className="mt-4 md:mt-[-30px] px-2 flex justify-between items-center">
           <div className="w-[30%] text-small text-default-400">
-            หน้า {page}/{pages} ({filteredItems.length} รายการ)
+            หน้า {page}/{pages || 1} (ทั้งหมด {total} รายการ)
           </div>
           <div className="flex justify-between items-center">
             <span className="text-default-400 text-small" />
@@ -714,19 +676,20 @@ export default function QuestionPage() {
               แสดงต่อหน้า:
               <select
                 className="bg-transparent outline-none text-default-400 text-small"
-                defaultValue={rowsPerPage}
+                value={rowsPerPage}
                 onChange={onRowsPerPageChange}
               >
-                <option value="5">5</option>
                 <option value="10">10</option>
-                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
               </select>
             </label>
           </div>
         </div>
       </div>
     );
-  }, [page, pages, filteredItems.length, rowsPerPage, onRowsPerPageChange]);
+  }, [page, pages, serverPagination?.total, rowsPerPage, onRowsPerPageChange]);
 
   return (
     <Suspense fallback={<Loading />}>

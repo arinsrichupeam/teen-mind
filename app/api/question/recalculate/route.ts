@@ -1,5 +1,6 @@
 import { Questions_PHQA } from "@prisma/client";
 
+import { requireAdmin } from "@/lib/get-session";
 import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
 import { prisma } from "@/utils/prisma";
 
@@ -27,6 +28,12 @@ function calculateSum(phqa_data: Questions_PHQA) {
 }
 
 export async function POST() {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // ดึงข้อมูลทั้งหมดที่มี PHQA
     const allQuestions = await prisma.questions_Master.findMany({

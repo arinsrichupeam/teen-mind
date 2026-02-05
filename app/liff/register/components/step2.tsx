@@ -23,38 +23,71 @@ export const Step2 = ({
   const [province, setProvince] = useState<Provinces[]>([]);
   const [district, setDistrict] = useState<Districts[]>([]);
   const [subDistrict, setSubDistrict] = useState<Subdistricts[]>([]);
+  const [isProvinceLoading, setIsProvinceLoading] = useState<boolean>(false);
+  const [isDistrictLoading, setIsDistrictLoading] = useState<boolean>(false);
+  const [isSubDistrictLoading, setIsSubDistrictLoading] =
+    useState<boolean>(false);
 
   useEffect(() => {
-    fetch("/api/data/provinces")
-      .then((res) => res.json())
-      .then((val) => {
-        setProvince(val);
-      });
+    const fetchInitialData = async () => {
+      setIsProvinceLoading(true);
+      try {
+        const res = await fetch("/api/data/provinces");
+        const val = await res.json();
 
-    onProvinceChange(Result?.province);
-    onDistrictChange(Result?.district);
+        setProvince(val);
+
+        // โหลดเขต/อำเภอ และแขวง/ตำบลเริ่มต้น สำหรับกรณีแก้ไขข้อมูล
+        if (Result?.province) {
+          await onProvinceChange(Result.province);
+        }
+
+        if (Result?.district) {
+          await onDistrictChange(Result.district);
+        }
+      } finally {
+        setIsProvinceLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   const onProvinceChange = async (e: any) => {
     setDistrict([]);
+    setSubDistrict([]);
+
     if (e !== null) {
-      await fetch(`/api/data/districts/${e}`)
-        .then((res) => res.json())
-        .then((val) => {
-          setDistrict(val);
-        });
+      setIsDistrictLoading(true);
+      try {
+        await fetch(`/api/data/districts/${e}`)
+          .then((res) => res.json())
+          .then((val) => {
+            setDistrict(val);
+          });
+      } finally {
+        setIsDistrictLoading(false);
+      }
+
       HandleChange({ target: { name: "province", value: parseInt(e) } });
     }
   };
 
   const onDistrictChange = async (e: any) => {
     setSubDistrict([]);
+
     if (e !== null) {
-      await fetch(`/api/data/subdistricts/${e}`)
-        .then((res) => res.json())
-        .then((val) => {
-          setSubDistrict(val);
-        });
+      setIsSubDistrictLoading(true);
+      try {
+        await fetch(`/api/data/subdistricts/${e}`)
+          .then((res) => res.json())
+          .then((val) => {
+            setSubDistrict(val);
+          });
+      } finally {
+        setIsSubDistrictLoading(false);
+      }
+
       HandleChange({ target: { name: "district", value: parseInt(e) } });
     }
   };
@@ -128,11 +161,12 @@ export const Step2 = ({
         className="w-full"
         defaultSelectedKey={Result?.province.toString()}
         errorMessage="กรุณาเลือกจังหวัด"
+        isDisabled={isProvinceLoading}
         isRequired={request}
         label="จังหวัด"
         labelPlacement="inside"
         name="province"
-        placeholder="จังหวัด"
+        placeholder={isProvinceLoading ? "กำลังโหลดจังหวัด..." : "จังหวัด"}
         radius="md"
         size="sm"
         variant="faded"
@@ -148,11 +182,18 @@ export const Step2 = ({
         className="w-full"
         defaultSelectedKey={Result?.district.toString()}
         errorMessage="กรุณาเลือกเขต/อำเภอ"
+        isDisabled={isDistrictLoading || !Result?.province}
         isRequired={request}
         label="เขต/อำเภอ"
         labelPlacement="inside"
         name="district"
-        placeholder="เขต/อำเภอ"
+        placeholder={
+          !Result?.province
+            ? "เลือกจังหวัดก่อน"
+            : isDistrictLoading
+              ? "กำลังโหลดเขต/อำเภอ..."
+              : "เขต/อำเภอ"
+        }
         radius="md"
         size="sm"
         variant="faded"
@@ -168,11 +209,18 @@ export const Step2 = ({
         className="w-full"
         defaultSelectedKey={Result?.subdistrict.toString()}
         errorMessage="กรุณาเลือกแขวง/ตำบล"
+        isDisabled={isSubDistrictLoading || !Result?.district}
         isRequired={request}
         label="แขวง/ตำบล"
         labelPlacement="inside"
         name="subdistrict"
-        placeholder="แขวง/ตำบล"
+        placeholder={
+          !Result?.district
+            ? "เลือกเขต/อำเภอก่อน"
+            : isSubDistrictLoading
+              ? "กำลังโหลดแขวง/ตำบล..."
+              : "แขวง/ตำบล"
+        }
         radius="md"
         size="sm"
         variant="faded"

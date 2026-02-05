@@ -1,13 +1,27 @@
 import { ProfileAdminData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
+import { getSession, requireAdmin } from "@/lib/get-session";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // read query
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const userId = (await params).id;
+
+  if (session.user.id !== userId) {
+    const auth = await requireAdmin();
+
+    if (!auth) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   // Get User From DB
   const user = await prisma.user.findUnique({

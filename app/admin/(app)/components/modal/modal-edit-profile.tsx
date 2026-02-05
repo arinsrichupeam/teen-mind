@@ -498,13 +498,25 @@ export const ModalEditProfile = ({
           body: JSON.stringify(profileData),
         });
       } else {
-        // แก้ไข profile ที่มีอยู่
+        // แก้ไข profile ที่มีอยู่ (ส่ง user id ตาม semantics ของ API)
+        const userId = data?.profile?.userId;
+
+        if (!userId) {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: "ไม่พบข้อมูล user id",
+            color: "danger",
+          });
+          setIsProfileSaving(false);
+
+          return;
+        }
         const updateData = {
           id: data?.profile.id,
           ...profileData,
         };
 
-        response = await fetch(`/api/profile/user/${data?.profile.id}`, {
+        response = await fetch(`/api/profile/user/${userId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

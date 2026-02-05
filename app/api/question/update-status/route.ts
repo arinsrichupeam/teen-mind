@@ -1,6 +1,13 @@
+import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin();
+
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
 

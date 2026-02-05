@@ -21,9 +21,17 @@ interface Props {
   Result: ProfileWithGradeYear | undefined;
   HandleChange: (val: any) => void;
   onCancel?: () => void;
+  /** กำหนดลำดับปุ่มหลัก: "next" = ปุ่มถัดไปอยู่บน, "cancel" = ปุ่มยกเลิกอยู่บน */
+  primaryAction?: "next" | "cancel";
 }
 
-export const Step1 = ({ NextStep, Result, HandleChange, onCancel }: Props) => {
+export const Step1 = ({
+  NextStep,
+  Result,
+  HandleChange,
+  onCancel,
+  primaryAction = "next",
+}: Props) => {
   const request = true;
   const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
@@ -80,13 +88,15 @@ export const Step1 = ({ NextStep, Result, HandleChange, onCancel }: Props) => {
         setBirthday(parsedDate);
       }
     }
+  }, [Result?.birthday]);
 
+  useEffect(() => {
     fetch("/api/data/school")
       .then((res) => res.json())
       .then((val) => {
         setSchool(val);
       });
-  }, [Result]);
+  }, []);
 
   return (
     <Form
@@ -295,27 +305,54 @@ export const Step1 = ({ NextStep, Result, HandleChange, onCancel }: Props) => {
         variant="faded"
         onChange={HandleChange}
       />
-      <Button
-        className="w-full"
-        color="primary"
-        radius="full"
-        size="lg"
-        type="submit"
-        variant="solid"
-      >
-        ถัดไป
-      </Button>
-      {onCancel && (
-        <Button
-          className="w-full"
-          color="default"
-          radius="full"
-          size="lg"
-          variant="solid"
-          onPress={onCancel}
-        >
-          ยกเลิก
-        </Button>
+      {primaryAction === "cancel" && onCancel ? (
+        <>
+          <Button
+            className="w-full"
+            color="default"
+            radius="full"
+            size="lg"
+            variant="solid"
+            onPress={onCancel}
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            className="w-full"
+            color="primary"
+            radius="full"
+            size="lg"
+            type="submit"
+            variant="solid"
+          >
+            ถัดไป
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            className="w-full"
+            color="primary"
+            radius="full"
+            size="lg"
+            type="submit"
+            variant="solid"
+          >
+            ถัดไป
+          </Button>
+          {onCancel && (
+            <Button
+              className="w-full"
+              color="default"
+              radius="full"
+              size="lg"
+              variant="solid"
+              onPress={onCancel}
+            >
+              ยกเลิก
+            </Button>
+          )}
+        </>
       )}
     </Form>
   );
