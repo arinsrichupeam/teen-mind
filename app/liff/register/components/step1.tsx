@@ -118,63 +118,6 @@ export const Step1 = ({
       validationBehavior="native"
       onSubmit={onSubmit}
     >
-      <Autocomplete
-        defaultItems={school}
-        errorMessage="กรุณากรอกสถานศึกษา"
-        isRequired={false}
-        label="สถานศึกษา"
-        labelPlacement="inside"
-        menuTrigger="input"
-        name="school"
-        placeholder="โรงเรียน"
-        radius="md"
-        scrollShadowProps={{
-          isEnabled: false,
-        }}
-        selectedKey={Result?.schoolId?.toString() ?? null}
-        size="sm"
-        variant="faded"
-        onSelectionChange={(val) => {
-          const schoolId = val != null ? Number(val) : 0;
-
-          HandleChange({ target: { name: "school", value: schoolId } });
-          if (schoolId === 0) {
-            HandleChange({ target: { name: "gradeYear", value: "" } });
-          }
-        }}
-      >
-        {(item) => (
-          <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
-        )}
-      </Autocomplete>
-      {Result?.schoolId != null && Result.schoolId > 0 && (
-        <Select
-          errorMessage="กรุณาเลือกชั้นปี"
-          isRequired={false}
-          label="ชั้นปี"
-          labelPlacement="inside"
-          name="gradeYear"
-          placeholder="เลือกชั้นปี"
-          radius="md"
-          selectedKeys={
-            Result?.gradeYear != null ? [Result.gradeYear.toString()] : []
-          }
-          size="sm"
-          variant="faded"
-          onChange={(e) =>
-            HandleChange({
-              target: {
-                name: "gradeYear",
-                value: e.target.value ? parseInt(e.target.value, 10) : "",
-              },
-            } as React.ChangeEvent<HTMLSelectElement>)
-          }
-        >
-          {gradeYearLevels.map((level) => (
-            <SelectItem key={level.key}>{level.label}</SelectItem>
-          ))}
-        </Select>
-      )}
       <Input
         errorMessage={error}
         isInvalid={!!error}
@@ -319,6 +262,63 @@ export const Step1 = ({
         variant="faded"
         onChange={HandleChange}
       />
+      <Autocomplete
+        defaultItems={school}
+        errorMessage="กรุณากรอกสถานศึกษา"
+        isRequired={false}
+        label="สถานศึกษา"
+        labelPlacement="inside"
+        menuTrigger="input"
+        name="school"
+        placeholder="โรงเรียน"
+        radius="md"
+        scrollShadowProps={{
+          isEnabled: false,
+        }}
+        selectedKey={Result?.schoolId?.toString() ?? null}
+        size="sm"
+        variant="faded"
+        onSelectionChange={(val) => {
+          const schoolId = val != null ? Number(val) : 0;
+
+          HandleChange({ target: { name: "school", value: schoolId } });
+          if (schoolId === 0) {
+            HandleChange({ target: { name: "gradeYear", value: "" } });
+          }
+        }}
+      >
+        {(item) => (
+          <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
+        )}
+      </Autocomplete>
+      {Result?.schoolId != null && Result.schoolId > 0 && (
+        <Select
+          errorMessage="กรุณาเลือกชั้นปี"
+          isRequired={false}
+          label="ชั้นปี"
+          labelPlacement="inside"
+          name="gradeYear"
+          placeholder="เลือกชั้นปี"
+          radius="md"
+          selectedKeys={
+            Result?.gradeYear != null ? [Result.gradeYear.toString()] : []
+          }
+          size="sm"
+          variant="faded"
+          onChange={(e) =>
+            HandleChange({
+              target: {
+                name: "gradeYear",
+                value: e.target.value ? parseInt(e.target.value, 10) : "",
+              },
+            } as React.ChangeEvent<HTMLSelectElement>)
+          }
+        >
+          {gradeYearLevels.map((level) => (
+            <SelectItem key={level.key}>{level.label}</SelectItem>
+          ))}
+        </Select>
+      )}
       {primaryAction === "cancel" && onCancel ? (
         <>
           <Button
