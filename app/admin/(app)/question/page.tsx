@@ -45,7 +45,7 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
-import { formatThaiDate, calculateAge } from "@/utils/helper";
+import { formatThaiDateTime, calculateAge } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -72,7 +72,7 @@ export default function QuestionPage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
-    column: "screeningDate",
+    column: "createdAt",
     direction: "descending",
   });
   const [mode, setMode] = useState("view-questionnaire");
@@ -512,24 +512,13 @@ export default function QuestionPage() {
           }
 
           return "-";
-        case "screeningDate": {
-          const school = item.profile?.school;
-          const screeningDate =
-            typeof school === "object" && school !== null
-              ? school.screeningDate
-              : undefined;
-
+        case "screeningDate":
+        case "createdAt": {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {screeningDate
-                  ? formatThaiDate(
-                      typeof screeningDate === "string"
-                        ? screeningDate
-                        : screeningDate instanceof Date
-                          ? screeningDate.toISOString()
-                          : ""
-                    )
+                {item.createdAt
+                  ? formatThaiDateTime(String(item.createdAt))
                   : "-"}
               </p>
             </div>
