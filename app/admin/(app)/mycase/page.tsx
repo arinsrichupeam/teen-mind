@@ -78,6 +78,8 @@ export default function MyCasePage() {
   const [phqaFilter, setPhqaFilter] = useState<Selection>(new Set([]));
   const [q2Filter, setQ2Filter] = useState<Selection>(new Set([]));
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
+  const [q8Filter, setQ8Filter] = useState<Selection>(new Set([]));
+  const [mainScaleFilter, setMainScaleFilter] = useState<string>("all");
 
   const consultUserId = session?.user?.id ?? "";
 
@@ -108,6 +110,16 @@ export default function MyCasePage() {
       : addonSet.has("no-risk")
         ? "no-risk"
         : "";
+    const q8Set = q8Filter as Set<string>;
+    const q8Risk = q8Set.has("risk")
+      ? "risk"
+      : q8Set.has("no-risk")
+        ? "no-risk"
+        : "";
+    const mainScale =
+      mainScaleFilter === "nineq" || mainScaleFilter === "phqa"
+        ? mainScaleFilter
+        : "";
 
     return {
       search: filterValue,
@@ -116,6 +128,8 @@ export default function MyCasePage() {
       phqa: phqaKey,
       q2Risk,
       addonRisk,
+      q8Risk,
+      mainScale,
     };
   }, [
     filterValue,
@@ -124,6 +138,8 @@ export default function MyCasePage() {
     phqaFilter,
     q2Filter,
     addonFilter,
+    q8Filter,
+    mainScaleFilter,
   ]);
 
   const { data, mutate } = useSWR(
@@ -145,6 +161,8 @@ export default function MyCasePage() {
         if (key.phqa) params.set("result", key.phqa);
         if (key.q2Risk) params.set("q2Risk", key.q2Risk);
         if (key.addonRisk) params.set("addonRisk", key.addonRisk);
+        if (key.q8Risk) params.set("q8Risk", key.q8Risk);
+        if (key.mainScale) params.set("mainScale", key.mainScale);
 
         const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },
@@ -265,6 +283,14 @@ export default function MyCasePage() {
     setAddonFilter(s);
     setPage(1);
   }, []);
+  const setQ8FilterAndResetPage = useCallback((s: Selection) => {
+    setQ8Filter(s);
+    setPage(1);
+  }, []);
+  const setMainScaleFilterAndResetPage = useCallback((s: string) => {
+    setMainScaleFilter(s);
+    setPage(1);
+  }, []);
 
   const topContent = useMemo(
     () => (
@@ -273,12 +299,16 @@ export default function MyCasePage() {
         data={questionsList}
         filterValue={filterValue}
         filteredData={questionsList}
+        mainScaleFilter={mainScaleFilter}
         phqaFilter={phqaFilter}
         q2Filter={q2Filter}
+        q8Filter={q8Filter}
         schoolFilter={schoolFilter}
         setAddonFilter={setAddonFilterAndResetPage}
+        setMainScaleFilter={setMainScaleFilterAndResetPage}
         setPhqaFilter={setPhqaFilterAndResetPage}
         setQ2Filter={setQ2FilterAndResetPage}
+        setQ8Filter={setQ8FilterAndResetPage}
         setSchoolFilter={setSchoolFilterAndResetPage}
         setStatusFilter={setStatusFilterAndResetPage}
         statusFilter={statusFilter}
@@ -299,6 +329,10 @@ export default function MyCasePage() {
       setQ2FilterAndResetPage,
       addonFilter,
       setAddonFilterAndResetPage,
+      mainScaleFilter,
+      setMainScaleFilterAndResetPage,
+      q8Filter,
+      setQ8FilterAndResetPage,
       questionsList,
       mutate,
     ]

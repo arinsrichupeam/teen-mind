@@ -27,19 +27,26 @@ import { StatusUpdateButton } from "../status-update-button";
 
 import { QuestionsData } from "@/types";
 
-// ตัวเลือกสำหรับ filter สถานะ PHQA, 2Q, Addon
+// 2Q / PHQ-A Addon / 8Q: พบหรือไม่พบความเสี่ยง (กรองคนละตารางในฐานข้อมูล)
 const riskStatusOptions = [
   { name: "พบความเสี่ยง", uid: "risk" },
   { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
 ];
 
-// ตัวเลือกสำหรับ filter สถานะ PHQA 5 ระดับ
+// ระดับความเสี่ยงจากคะแนน 9Q หรือ PHQ-A (ฟิลด์ result เดียวกัน)
 const phqaStatusOptions = [
   { name: "ไม่พบความเสี่ยง", uid: "Green" },
   { name: "พบความเสี่ยงเล็กน้อย", uid: "Green-Low" },
   { name: "พบความเสี่ยงปานกลาง", uid: "Yellow" },
   { name: "พบความเสี่ยงมาก", uid: "Orange" },
   { name: "พบความเสี่ยงรุนแรง", uid: "Red" },
+];
+
+/** แยกชุดคำถามหลัก (9Q มีแถว q9; PHQ-A เด็กเล็กไม่มี q9) */
+const mainScaleOptions = [
+  { name: "ทุกชุดแบบประเมิน", uid: "all" },
+  { name: "9Q (อายุ 12 ปีขึ้นไป)", uid: "nineq" },
+  { name: "PHQ-A (ต่ำกว่า 12 ปี)", uid: "phqa" },
 ];
 
 interface QuestionFilterContentProps {
@@ -53,8 +60,12 @@ interface QuestionFilterContentProps {
   setPhqaFilter: (filter: Selection) => void;
   q2Filter: Selection;
   setQ2Filter: (filter: Selection) => void;
+  q8Filter: Selection;
+  setQ8Filter: (filter: Selection) => void;
   addonFilter: Selection;
   setAddonFilter: (filter: Selection) => void;
+  mainScaleFilter: string;
+  setMainScaleFilter: (value: string) => void;
   data?: QuestionsData[];
   filteredData?: QuestionsData[];
   onDataUpdate?: () => void;
@@ -71,8 +82,12 @@ export function QuestionFilterContent({
   setPhqaFilter,
   q2Filter,
   setQ2Filter,
+  q8Filter,
+  setQ8Filter,
   addonFilter,
   setAddonFilter,
+  mainScaleFilter,
+  setMainScaleFilter,
   data,
   filteredData,
   onDataUpdate,
@@ -105,20 +120,22 @@ export function QuestionFilterContent({
 
   const topContent = useMemo(
     () => (
-      <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-2 w-full">
         {/* Search Bar และ Filter ทั้งหมด */}
-        <div className="flex flex-col gap-3 w-full bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+        <div className="flex flex-col gap-2 w-full bg-white rounded-lg p-2 shadow-sm border border-gray-200">
           {/* แถวที่ 1: Search และ School Filter */}
           <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
             <Input
               isClearable
               classNames={{
                 base: "w-full shadow-sm",
+                input: "text-small",
+                inputWrapper: "min-h-9 h-9",
               }}
               placeholder="ค้นหาชื่อ-นามสกุล"
-              size="md"
+              size="sm"
               startContent={
-                <MagnifyingGlassIcon className="size-5 text-default-400" />
+                <MagnifyingGlassIcon className="size-4 text-default-400" />
               }
               value={filterValue}
               variant="bordered"
@@ -129,12 +146,19 @@ export function QuestionFilterContent({
             <Autocomplete
               classNames={{
                 base: "w-full shadow-sm",
+                selectorButton: "min-w-9 w-9",
+              }}
+              inputProps={{
+                classNames: {
+                  input: "text-small",
+                  inputWrapper: "min-h-9 h-9",
+                },
               }}
               placeholder="เลือกโรงเรียน"
               selectedKey={schoolFilter}
-              size="md"
+              size="sm"
               startContent={
-                <BuildingOfficeIcon className="size-5 text-default-400" />
+                <BuildingOfficeIcon className="size-4 text-default-400" />
               }
               variant="bordered"
               onSelectionChange={(key) => setSchoolFilter(key as string)}
@@ -147,17 +171,54 @@ export function QuestionFilterContent({
             </Autocomplete>
           </div>
 
-          {/* แถวที่ 2: Status Filters */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row gap-3 items-center">
+          {/* แถวที่ 2: ชุดคำถามหลัก + สถานะ + ระดับคะแนน + 2Q/8Q/Addon */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 items-center flex-wrap">
+              {/* ชุดคำถามหลัก 9Q vs PHQ-A */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
+                    color="secondary"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
+                    variant="flat"
+                  >
+                    {mainScaleOptions.find((o) => o.uid === mainScaleFilter)
+                      ?.name ?? "ชุดคำถามหลัก"}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="Main scale filter"
+                  selectedKeys={new Set([mainScaleFilter])}
+                  selectionMode="single"
+                  onSelectionChange={(keys) => {
+                    const first = Array.from(keys as Set<string>)[0];
+
+                    if (first) setMainScaleFilter(first);
+                  }}
+                >
+                  {mainScaleOptions.map((opt) => (
+                    <DropdownItem key={opt.uid} className="capitalize">
+                      {opt.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
               {/* สถานะทั่วไป */}
               <Dropdown>
                 <DropdownTrigger>
                   <Button
-                    className="w-full shadow-sm"
+                    className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
                     color="primary"
-                    endContent={<ChevronDownIcon className="size-4" />}
-                    size="md"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
                     variant="flat"
                   >
                     สถานะ
@@ -179,22 +240,24 @@ export function QuestionFilterContent({
                 </DropdownMenu>
               </Dropdown>
 
-              {/* PHQA Filter */}
+              {/* ระดับความเสี่ยง 9Q / PHQ-A (คะแนนรวม → result) */}
               <Dropdown>
                 <DropdownTrigger>
                   <Button
-                    className="w-full shadow-sm"
+                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
                     color="primary"
-                    endContent={<ChevronDownIcon className="size-4" />}
-                    size="md"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
                     variant="flat"
                   >
-                    PHQA
+                    9Q / PHQ-A
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="PHQA Filter"
+                  aria-label="9Q PHQA risk levels"
                   closeOnSelect={false}
                   selectedKeys={phqaFilter}
                   selectionMode="multiple"
@@ -212,10 +275,12 @@ export function QuestionFilterContent({
               <Dropdown>
                 <DropdownTrigger>
                   <Button
-                    className="w-full shadow-sm"
+                    className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
                     color="primary"
-                    endContent={<ChevronDownIcon className="size-4" />}
-                    size="md"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
                     variant="flat"
                   >
                     2Q
@@ -237,22 +302,55 @@ export function QuestionFilterContent({
                 </DropdownMenu>
               </Dropdown>
 
-              {/* Addon Filter */}
+              {/* 8Q (คะแนนรวม sum — คอลัมน์ 8Q ในตาราง) */}
               <Dropdown>
                 <DropdownTrigger>
                   <Button
-                    className="w-full shadow-sm"
+                    className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
                     color="primary"
-                    endContent={<ChevronDownIcon className="size-4" />}
-                    size="md"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
                     variant="flat"
                   >
-                    Addon
+                    8Q
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="Addon Filter"
+                  aria-label="8Q Filter"
+                  closeOnSelect={false}
+                  selectedKeys={q8Filter}
+                  selectionMode="multiple"
+                  onSelectionChange={setQ8Filter}
+                >
+                  {riskStatusOptions.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
+              {/* PHQ-A Addon (2 ข้อ — ไม่ใช่ 8Q) */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
+                    color="primary"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
+                    variant="flat"
+                  >
+                    PHQ-A Addon
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="PHQ-A Addon Filter"
                   closeOnSelect={false}
                   selectedKeys={addonFilter}
                   selectionMode="multiple"
@@ -268,9 +366,9 @@ export function QuestionFilterContent({
 
               {/* Clear All Filters */}
               <Button
-                className="w-full shadow-sm"
+                className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
                 color="danger"
-                size="md"
+                size="sm"
                 variant="bordered"
                 onPress={() => {
                   onSearchChange("");
@@ -278,7 +376,9 @@ export function QuestionFilterContent({
                   setSchoolFilter("");
                   setPhqaFilter(new Set([]));
                   setQ2Filter(new Set([]));
+                  setQ8Filter(new Set([]));
                   setAddonFilter(new Set([]));
+                  setMainScaleFilter("all");
                 }}
               >
                 ล้าง Filter
@@ -298,9 +398,11 @@ export function QuestionFilterContent({
         {/* แสดง Filter ที่เลือก */}
         {(filterValue ||
           schoolFilter ||
+          mainScaleFilter !== "all" ||
           (statusFilter as Set<string>).size > 0 ||
           (phqaFilter as Set<string>).size > 0 ||
           (q2Filter as Set<string>).size > 0 ||
+          (q8Filter as Set<string>).size > 0 ||
           (addonFilter as Set<string>).size > 0) && (
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-small text-default-500">Filter :</span>
@@ -315,6 +417,21 @@ export function QuestionFilterContent({
                 onClose={() => onSearchChange("")}
               >
                 ชื่อ: {filterValue}
+              </Chip>
+            )}
+
+            {/* ชุดคำถามหลัก */}
+            {mainScaleFilter !== "all" && (
+              <Chip
+                className="text-xs"
+                color="secondary"
+                size="sm"
+                variant="flat"
+                onClose={() => setMainScaleFilter("all")}
+              >
+                ชุดหลัก:{" "}
+                {mainScaleOptions.find((o) => o.uid === mainScaleFilter)
+                  ?.name ?? mainScaleFilter}
               </Chip>
             )}
 
@@ -357,7 +474,7 @@ export function QuestionFilterContent({
                 );
               })}
 
-            {/* PHQA Filter */}
+            {/* 9Q / PHQ-A ระดับความเสี่ยง */}
             {(phqaFilter as Set<string>).size > 0 &&
               Array.from(phqaFilter as Set<string>).map((phqa) => {
                 const phqaOption = phqaStatusOptions.find(
@@ -378,7 +495,7 @@ export function QuestionFilterContent({
                       setPhqaFilter(newPhqaFilter);
                     }}
                   >
-                    PHQA: {phqaOption?.name}
+                    9Q/PHQ-A: {phqaOption?.name}
                   </Chip>
                 );
               })}
@@ -409,7 +526,33 @@ export function QuestionFilterContent({
                 );
               })}
 
-            {/* Addon Filter */}
+            {/* 8Q */}
+            {(q8Filter as Set<string>).size > 0 &&
+              Array.from(q8Filter as Set<string>).map((q8) => {
+                const q8Option = riskStatusOptions.find(
+                  (opt) => opt.uid === q8
+                );
+
+                return (
+                  <Chip
+                    key={q8}
+                    className="text-xs"
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const newQ8Filter = new Set(q8Filter as Set<string>);
+
+                      newQ8Filter.delete(q8);
+                      setQ8Filter(newQ8Filter);
+                    }}
+                  >
+                    8Q: {q8Option?.name}
+                  </Chip>
+                );
+              })}
+
+            {/* PHQ-A Addon */}
             {(addonFilter as Set<string>).size > 0 &&
               Array.from(addonFilter as Set<string>).map((addon) => {
                 const addonOption = riskStatusOptions.find(
@@ -432,7 +575,7 @@ export function QuestionFilterContent({
                       setAddonFilter(newAddonFilter);
                     }}
                   >
-                    Addon: {addonOption?.name}
+                    PHQ-A Addon: {addonOption?.name}
                   </Chip>
                 );
               })}
@@ -447,13 +590,17 @@ export function QuestionFilterContent({
       schoolFilter,
       phqaFilter,
       q2Filter,
+      q8Filter,
       addonFilter,
+      mainScaleFilter,
       schoolsData,
       setStatusFilter,
       setSchoolFilter,
       setPhqaFilter,
       setQ2Filter,
+      setQ8Filter,
       setAddonFilter,
+      setMainScaleFilter,
       data,
       filteredData,
     ]

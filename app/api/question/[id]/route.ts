@@ -71,6 +71,7 @@ export async function GET(
           user: {
             select: {
               image: true,
+              name: true,
             },
           },
         },
@@ -78,6 +79,8 @@ export async function GET(
       phqa: true,
       q2: true,
       addon: true,
+      q8: true,
+      q9: true,
     },
   });
 

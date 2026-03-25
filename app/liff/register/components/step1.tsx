@@ -275,7 +275,11 @@ export const Step1 = ({
         scrollShadowProps={{
           isEnabled: false,
         }}
-        selectedKey={Result?.schoolId?.toString() ?? null}
+        selectedKey={
+          Result?.schoolId != null && Result.schoolId > 0
+            ? String(Result.schoolId)
+            : null
+        }
         size="sm"
         variant="faded"
         onSelectionChange={(val) => {

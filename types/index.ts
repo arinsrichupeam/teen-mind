@@ -39,10 +39,14 @@ export type QuestionsData = {
   phqa: Phqa[];
   q2: Questions2Q[];
   addon: Addon[];
+  q9: Q9Data[];
+  q8: Q8Data[];
 };
 
 export interface User {
   image: string;
+  /** ชื่อแสดงจาก LINE (เก็บใน User.name) */
+  name?: string | null;
   profile: Profile[];
 }
 
@@ -113,6 +117,32 @@ export interface Addon {
   q2: number;
 }
 
+export interface Q9Data {
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  q5: number;
+  q6: number;
+  q7: number;
+  q8: number;
+  q9: number;
+  sum: number;
+}
+
+export interface Q8Data {
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  q5: number;
+  q6: number;
+  q7: number;
+  q8: number;
+  q8Addon: number;
+  sum: number;
+}
+
 /** PHQA คะแนน 9 ข้อ (สำหรับ payload ยังไม่มี sum) */
 export interface PhqaPayload {
   q1: number;
@@ -126,13 +156,34 @@ export interface PhqaPayload {
   q9: number;
 }
 
+/** 9Q payload (มี sum สำหรับคำนวณระดับความเสี่ยง) */
+export interface Q9Payload extends PhqaPayload {
+  sum: number;
+}
+
+/** 8Q payload (มี q8Addon และ sum สำหรับคำนวณความเสี่ยง) */
+export interface Q8Payload {
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  q5: number;
+  q6: number;
+  q7: number;
+  q8: number;
+  q8Addon: number;
+  sum: number;
+}
+
 /** Payload สำหรับสร้าง/อัปเดตแบบประเมิน (POST/PUT question API) */
 export interface QuestionPayload {
   profileId: string;
   reference?: number | null;
-  phqa: PhqaPayload;
+  phqa?: PhqaPayload & { sum: number };
   Q2: Questions2Q;
-  phqaAddon: Addon;
+  phqaAddon?: Addon;
+  q9?: Q9Payload;
+  q8?: Q8Payload;
   location?: LocationData | null;
 }
 

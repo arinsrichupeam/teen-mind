@@ -214,6 +214,9 @@ model Questions_Master {
   q2               Questions_2Q[]
   phqa             Questions_PHQA[]
   addon            Questions_PHQA_Addon[]
+  // เวอร์ชันแบบประเมินอื่น (แยกโมเดลเฉพาะชุดคำถาม)
+  q9               Questions_9Q[]
+  q8               Questions_8Q[]
   referent         Referent?              @relation(fields: [referentId], references: [id])
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -258,6 +261,45 @@ model Questions_PHQA_Addon {
   questions_MasterId String?
   q1                 Int
   q2                 Int
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+
+  @@index([questions_MasterId])
+}
+
+model Questions_9Q {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int     @default(0)
+  q2                 Int     @default(0)
+  q3                 Int     @default(0)
+  q4                 Int     @default(0)
+  q5                 Int     @default(0)
+  q6                 Int     @default(0)
+  q7                 Int     @default(0)
+  q8                 Int     @default(0)
+  q9                 Int     @default(0)
+  sum                Int     @default(0)
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+
+  @@index([questions_MasterId])
+}
+
+model Questions_8Q {
+  id                 String  @id @default(cuid())
+  questions_MasterId String?
+  q1                 Int     @default(0)
+  q2                 Int     @default(0)
+  q3                 Int     @default(0)
+  q4                 Int     @default(0)
+  q5                 Int     @default(0)
+  q6                 Int     @default(0)
+  q7                 Int     @default(0)
+  q8                 Int     @default(0)
+  // คำถามต่อเนื่อง (สำหรับกรณีตอบข้อที่เกี่ยวกับการคิดฆ่าตัวตาย)
+  q8Addon           Int     @default(0)
+  sum                Int     @default(0)
 
   Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
 

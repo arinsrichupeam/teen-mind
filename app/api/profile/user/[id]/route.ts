@@ -157,6 +157,15 @@ export async function PUT(
 
     const profileId = existingProfile.id;
 
+    const rawSchoolId = body.schoolId;
+    const normalizedSchoolId =
+      rawSchoolId != null &&
+      rawSchoolId !== "" &&
+      Number.isFinite(Number(rawSchoolId)) &&
+      Number(rawSchoolId) > 0
+        ? Number(rawSchoolId)
+        : null;
+
     await prisma.profile.update({
       where: { id: profileId },
       data: {
@@ -170,8 +179,13 @@ export async function PUT(
         ethnicity: body.ethnicity,
         nationality: body.nationality,
         tel: body.tel,
-        schoolId: body.schoolId != null ? Number(body.schoolId) : null,
-        gradeYear: body.gradeYear != null ? Number(body.gradeYear) : null,
+        schoolId: normalizedSchoolId,
+        gradeYear:
+          normalizedSchoolId == null
+            ? null
+            : body.gradeYear != null && body.gradeYear !== ""
+              ? Number(body.gradeYear)
+              : null,
       },
     });
 

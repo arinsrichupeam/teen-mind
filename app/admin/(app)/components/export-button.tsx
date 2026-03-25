@@ -87,11 +87,11 @@ export const ExportButton = ({
   return (
     <>
       <Button
-        className="w-full shadow-sm"
+        className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
         color="success"
         isDisabled={false}
-        size="md"
-        startContent={<ArrowDownTrayIcon className="w-4 h-4" />}
+        size="sm"
+        startContent={<ArrowDownTrayIcon className="size-3.5 shrink-0" />}
         variant="bordered"
         onPress={onOpen}
         // isDisabled={!isAdmin}

@@ -72,7 +72,14 @@ function toModalEditProfileData(
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
-import { Addon, Consultant, Phqa, Questions2Q, QuestionsData } from "@/types";
+import {
+  Addon,
+  Consultant,
+  Phqa,
+  Q8Data,
+  Questions2Q,
+  QuestionsData,
+} from "@/types";
 import { subtitle } from "@/components/primitives";
 
 interface Props {
@@ -352,6 +359,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           q2: questionData.q2,
           phqa: questionData.phqa,
           addon: questionData.addon,
+          q8: questionData.q8,
           status: questionData.status,
         };
       } else {
@@ -368,6 +376,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           q2: questionData.q2,
           phqa: questionData.phqa,
           addon: questionData.addon,
+          q8: questionData.q8,
         };
       }
 
@@ -595,7 +604,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
   const handleQuestionChange = (
     field: string,
-    value: string | number | null | Questions2Q[] | Phqa[] | Addon[]
+    value: string | number | null | Questions2Q[] | Phqa[] | Addon[] | Q8Data[]
   ) => {
     setQuestionData((prev) => ({
       ...prev,
@@ -670,7 +679,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         placement="right"
-        size={"4xl"}
+        size="5xl"
         onClose={onClose}
       >
         <DrawerContent>
@@ -750,6 +759,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               HN:{" "}
                               <b>
                                 {questionData?.profile?.hn || data?.profile?.hn}
+                              </b>
+                            </p>
+                            <p className="text-small">
+                              ชื่อแสดง LINE :{" "}
+                              <b>
+                                {questionData?.profile?.user?.name ||
+                                  data?.profile?.user?.name ||
+                                  "-"}
                               </b>
                             </p>
                             <p className="text-md">
@@ -1004,6 +1021,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             width={100}
                           />
                           <div className="flex flex-col">
+                            <p className="text-small">
+                              ชื่อแสดง LINE :{" "}
+                              <b>
+                                {questionData?.profile?.user?.name ||
+                                  data?.profile?.user?.name ||
+                                  "-"}
+                              </b>
+                            </p>
                             <p className="text-md">
                               {
                                 prefix.find(

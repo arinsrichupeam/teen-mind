@@ -241,7 +241,12 @@ export default function ProfilePage() {
       ethnicity: profile.ethnicity,
       nationality: profile.nationality,
       tel: profile.tel,
-      schoolId: profile.schoolId || null,
+      schoolId:
+        profile.schoolId != null &&
+        profile.schoolId !== 0 &&
+        Number(profile.schoolId) > 0
+          ? Number(profile.schoolId)
+          : null,
       gradeYear:
         profile.gradeYear !== null && profile.gradeYear !== undefined
           ? profile.gradeYear

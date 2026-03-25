@@ -1,13 +1,12 @@
 export const QuestionColumnsName = [
   { name: "ชื่อ - สกุล", uid: "name", align: "start" },
   { name: "อายุ", uid: "age", align: "center" },
-  { name: "โรงเรียน", uid: "school", align: "start" },
-  { name: "ผลการประเมิน", uid: "phqa", align: "center" },
-  { name: "PHQA", uid: "result", align: "center" },
+  { name: "คะแนน 9Q/PHQ-A", uid: "phqa", align: "center" },
+  { name: "ระดับความเสี่ยง", uid: "result", align: "center" },
   { name: "2Q", uid: "2q", align: "center" },
-  // { name: "PHQA-9", uid: "phqa-9", align: "center" },
-  { name: "Addon", uid: "addon", align: "center" },
+  { name: "8Q", uid: "addon", align: "center" },
   { name: "วันที่ประเมิน", uid: "createdAt", align: "center" },
+  { name: "โรงเรียน", uid: "school", align: "start" },
   { name: "สถานะ", uid: "status", align: "center" },
   { name: "", uid: "actions", align: "center" },
 ];

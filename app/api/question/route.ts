@@ -1,4 +1,10 @@
-import { Questions_PHQA, Questions_PHQA_Addon } from "@prisma/client";
+import {
+  Prisma,
+  Questions_8Q,
+  Questions_9Q,
+  Questions_PHQA,
+  Questions_PHQA_Addon,
+} from "@prisma/client";
 
 import { getSession, requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
@@ -24,6 +30,8 @@ function buildWhereFromQuery(url: URL) {
   const resultParam = url.searchParams.get("result");
   const q2Risk = url.searchParams.get("q2Risk");
   const addonRisk = url.searchParams.get("addonRisk");
+  const q8Risk = url.searchParams.get("q8Risk");
+  const mainScale = url.searchParams.get("mainScale")?.trim() || "";
 
   const statusArray =
     statusParam && statusParam !== "all"
@@ -96,6 +104,24 @@ function buildWhereFromQuery(url: URL) {
     whereConditions.push({
       NOT: { addon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
     });
+  }
+
+  /** 8Q: พบความเสี่ยงเมื่อ sum > 0 (สอดคล้องหน้า admin คอลัมน์ 8Q) */
+  if (q8Risk === "risk") {
+    whereConditions.push({
+      q8: { some: { sum: { gt: 0 } } },
+    });
+  } else if (q8Risk === "no-risk") {
+    whereConditions.push({
+      NOT: { q8: { some: { sum: { gt: 0 } } } },
+    });
+  }
+
+  /** แยกชุดคำถามหลัก: 9Q (มีแถว q9) กับ PHQ-A เด็กเล็ก (ไม่มี q9) */
+  if (mainScale === "nineq") {
+    whereConditions.push({ q9: { some: {} } });
+  } else if (mainScale === "phqa") {
+    whereConditions.push({ NOT: { q9: { some: {} } } });
   }
 
   if (whereConditions.length === 0) return undefined;
@@ -172,6 +198,12 @@ export async function GET(req: Request) {
                 relation: true,
               },
             },
+            user: {
+              select: {
+                image: true,
+                name: true,
+              },
+            },
           },
         },
         referent: {
@@ -208,6 +240,34 @@ export async function GET(req: Request) {
             q2: true,
           },
         },
+        q8: {
+          select: {
+            q1: true,
+            q2: true,
+            q3: true,
+            q4: true,
+            q5: true,
+            q6: true,
+            q7: true,
+            q8: true,
+            q8Addon: true,
+            sum: true,
+          },
+        },
+        q9: {
+          select: {
+            q1: true,
+            q2: true,
+            q3: true,
+            q4: true,
+            q5: true,
+            q6: true,
+            q7: true,
+            q8: true,
+            q9: true,
+            sum: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -242,13 +302,20 @@ export async function POST(req: Request) {
 
     const profileId = data.profileId;
     const referenceId = data.reference;
-    const phqa_data: Questions_PHQA = data.phqa;
     const Q2_data: Questions_PHQA_Addon = data.Q2;
-    const phqaAddon_data: Questions_PHQA_Addon = data.phqaAddon;
-    const location_data: LocationData = data.location;
+    const location_data: LocationData | null = data.location;
 
-    const phqa_sum = SumValue(phqa_data);
-    const { result, result_text } = calculateResult(phqa_sum);
+    const phqa_data = data.phqa as Questions_PHQA | undefined;
+    const phqaAddon_data = data.phqaAddon as Questions_PHQA_Addon | undefined;
+    const q9_data = data.q9 as Questions_9Q | undefined;
+    const q8_data = data.q8 as Questions_8Q;
+
+    const scoreSum = q9_data
+      ? SumValue9Q(q9_data)
+      : SumValue(phqa_data as Questions_PHQA);
+    const q8_sum = SumValue8Q(q8_data);
+
+    const { result, result_text } = calculateResult(scoreSum);
 
     // ดึงข้อมูลผู้ใช้ (รวมชื่อ-เบอร์ สำหรับแจ้งเตือน admin เมื่อ Red)
     const profile = await prisma.profile.findUnique({
@@ -297,42 +364,101 @@ export async function POST(req: Request) {
     const status = profile.hn ? 1 : 0;
 
     // บันทึกข้อมูลลงฐานข้อมูล
-    const savedQuestion = await prisma.questions_Master.create({
-      data: {
-        latitude: location_data?.latitude,
-        longitude: location_data?.longitude,
-        referentId: referenceId,
-        result: result,
-        result_text: result_text,
-        status: status,
-        profileId: profileId,
-        phqa: {
-          create: {
-            q1: phqa_data.q1,
-            q2: phqa_data.q2,
-            q3: phqa_data.q3,
-            q4: phqa_data.q4,
-            q5: phqa_data.q5,
-            q6: phqa_data.q6,
-            q7: phqa_data.q7,
-            q8: phqa_data.q8,
-            q9: phqa_data.q9,
-            sum: phqa_sum,
-          },
-        },
-        q2: {
-          create: {
-            q1: Q2_data.q1,
-            q2: Q2_data.q2,
-          },
-        },
-        addon: {
-          create: {
-            q1: phqaAddon_data.q1,
-            q2: phqaAddon_data.q2,
-          },
+    const createPayload: Prisma.Questions_MasterUncheckedCreateInput = {
+      latitude: location_data?.latitude,
+      longitude: location_data?.longitude,
+      referentId: referenceId,
+      result: result,
+      result_text: result_text,
+      status: status,
+      profileId: profileId,
+      q2: {
+        create: {
+          q1: Q2_data.q1,
+          q2: Q2_data.q2,
         },
       },
+      q8: {
+        create: {
+          q1: q8_data.q1,
+          q2: q8_data.q2,
+          q3: q8_data.q3,
+          q4: q8_data.q4,
+          q5: q8_data.q5,
+          q6: q8_data.q6,
+          q7: q8_data.q7,
+          q8: q8_data.q8,
+          q8Addon: q8_data.q8Addon,
+          sum: q8_sum,
+        },
+      },
+    };
+
+    if (q9_data) {
+      // สร้าง q9 + สร้าง phqa/addon เพื่อไม่ให้หน้า admin ที่อิง phqa/addon พัง
+      createPayload.q9 = {
+        create: {
+          q1: q9_data.q1,
+          q2: q9_data.q2,
+          q3: q9_data.q3,
+          q4: q9_data.q4,
+          q5: q9_data.q5,
+          q6: q9_data.q6,
+          q7: q9_data.q7,
+          q8: q9_data.q8,
+          q9: q9_data.q9,
+          sum: scoreSum,
+        },
+      };
+
+      createPayload.phqa = {
+        create: {
+          q1: q9_data.q1,
+          q2: q9_data.q2,
+          q3: q9_data.q3,
+          q4: q9_data.q4,
+          q5: q9_data.q5,
+          q6: q9_data.q6,
+          q7: q9_data.q7,
+          q8: q9_data.q8,
+          q9: q9_data.q9,
+          sum: scoreSum,
+        },
+      };
+
+      createPayload.addon = {
+        create: {
+          q1: 0,
+          q2: 0,
+        },
+      };
+    } else {
+      // under12
+      createPayload.phqa = {
+        create: {
+          q1: (phqa_data as Questions_PHQA).q1,
+          q2: (phqa_data as Questions_PHQA).q2,
+          q3: (phqa_data as Questions_PHQA).q3,
+          q4: (phqa_data as Questions_PHQA).q4,
+          q5: (phqa_data as Questions_PHQA).q5,
+          q6: (phqa_data as Questions_PHQA).q6,
+          q7: (phqa_data as Questions_PHQA).q7,
+          q8: (phqa_data as Questions_PHQA).q8,
+          q9: (phqa_data as Questions_PHQA).q9,
+          sum: scoreSum,
+        },
+      };
+
+      createPayload.addon = {
+        create: {
+          q1: (phqaAddon_data as Questions_PHQA_Addon).q1,
+          q2: (phqaAddon_data as Questions_PHQA_Addon).q2,
+        },
+      };
+    }
+
+    const savedQuestion = await prisma.questions_Master.create({
+      data: createPayload,
     });
 
     // ส่งข้อความผ่าน Line เฉพาะเมื่อมี userId
@@ -423,7 +549,8 @@ export async function PUT(req: Request) {
     const data = await req.json();
     const question: QuestionsData = data;
 
-    const { result, result_text } = calculateResult(question.phqa[0].sum);
+    const mainScreeningSum = getMainScreeningSum(question);
+    const { result, result_text } = calculateResult(mainScreeningSum);
 
     // อัปเดตข้อมูลหลัก
     const updatedQuestion = await prisma.questions_Master.update({
@@ -553,7 +680,61 @@ export async function PUT(req: Request) {
           })()
         : Promise.resolve();
 
-    await Promise.all([q2Promise, phqaPromise, addonPromise]);
+    const q8Promise =
+      question.q8 && question.q8.length > 0
+        ? (async () => {
+            const row = question.q8[0];
+            const q8AddonStored = row.q3 === 6 ? row.q8Addon : 0;
+            const q8_sum = SumValue8Q({
+              ...row,
+              q8Addon: q8AddonStored,
+            } as Questions_8Q);
+
+            const existingQ8 = await prisma.questions_8Q.findFirst({
+              where: {
+                questions_MasterId: question.id,
+              },
+            });
+
+            if (existingQ8) {
+              await prisma.questions_8Q.updateMany({
+                where: {
+                  questions_MasterId: question.id,
+                },
+                data: {
+                  q1: row.q1,
+                  q2: row.q2,
+                  q3: row.q3,
+                  q4: row.q4,
+                  q5: row.q5,
+                  q6: row.q6,
+                  q7: row.q7,
+                  q8: row.q8,
+                  q8Addon: q8AddonStored,
+                  sum: q8_sum,
+                },
+              });
+            } else {
+              await prisma.questions_8Q.create({
+                data: {
+                  questions_MasterId: question.id,
+                  q1: row.q1,
+                  q2: row.q2,
+                  q3: row.q3,
+                  q4: row.q4,
+                  q5: row.q5,
+                  q6: row.q6,
+                  q7: row.q7,
+                  q8: row.q8,
+                  q8Addon: q8AddonStored,
+                  sum: q8_sum,
+                },
+              });
+            }
+          })()
+        : Promise.resolve();
+
+    await Promise.all([q2Promise, phqaPromise, addonPromise, q8Promise]);
 
     return Response.json({
       success: true,
@@ -572,6 +753,31 @@ export async function PUT(req: Request) {
       { status: 400 }
     );
   }
+}
+
+/** คะแนนชุดหลัก PHQ-A / 9Q สำหรับคำนวณระดับความเสี่ยง (รองรับทั้ง under12 และ over12) */
+function getMainScreeningSum(question: QuestionsData): number {
+  const phqaRow = question.phqa?.[0];
+
+  if (
+    phqaRow != null &&
+    typeof phqaRow.sum === "number" &&
+    !Number.isNaN(phqaRow.sum)
+  ) {
+    return phqaRow.sum;
+  }
+
+  const q9Row = question.q9?.[0];
+
+  if (
+    q9Row != null &&
+    typeof q9Row.sum === "number" &&
+    !Number.isNaN(q9Row.sum)
+  ) {
+    return q9Row.sum;
+  }
+
+  return 0;
 }
 
 function CalStatus(value: QuestionsData) {
@@ -608,25 +814,115 @@ function SumValue(value: Questions_PHQA) {
   return PHQA_SUM;
 }
 
+function SumValue9Q(value: Questions_9Q) {
+  const { q1, q2, q3, q4, q5, q6, q7, q8, q9 } = value;
+
+  return (
+    Number(q1 ?? 0) +
+    Number(q2 ?? 0) +
+    Number(q3 ?? 0) +
+    Number(q4 ?? 0) +
+    Number(q5 ?? 0) +
+    Number(q6 ?? 0) +
+    Number(q7 ?? 0) +
+    Number(q8 ?? 0) +
+    Number(q9 ?? 0)
+  );
+}
+
+function SumValue8Q(value: Questions_8Q) {
+  // q1..q8 ตามฟิลด์ + q8Addon (เมื่อ q3=6); q3 เป็นคะแนนข้อ 3 (0 หรือ 6) ต้องรวมใน sum
+  return (
+    Number(value.q1 ?? 0) +
+    Number(value.q2 ?? 0) +
+    Number(value.q3 ?? 0) +
+    Number(value.q4 ?? 0) +
+    Number(value.q5 ?? 0) +
+    Number(value.q6 ?? 0) +
+    Number(value.q7 ?? 0) +
+    Number(value.q8 ?? 0) +
+    Number(value.q8Addon ?? 0)
+  );
+}
+
 function validateQuestionData(data: QuestionPayload) {
-  if (!data.profileId || !data.phqa || !data.Q2 || !data.phqaAddon) {
-    throw new Error("ข้อมูลไม่ครบถ้วน");
-  }
+  if (!data.profileId) throw new Error("ข้อมูลไม่ครบถ้วน: profileId");
+  if (!data.Q2) throw new Error("ข้อมูลไม่ครบถ้วน: Q2");
+  if (!data.q8) throw new Error("ข้อมูลไม่ครบถ้วน: q8");
 
-  for (let i = 1; i <= 9; i++) {
-    const key = `q${i}` as keyof QuestionPayload["phqa"];
-    const value = data.phqa[key];
-
-    if (value == null || value < 0 || value > 3) {
-      throw new Error(`ค่า PHQA q${i} ไม่ถูกต้อง`);
-    }
-  }
-
+  // validate Q2 (0/1)
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {
     throw new Error("ค่า 2Q q1 ไม่ถูกต้อง");
   }
   if (data.Q2.q2 !== 0 && data.Q2.q2 !== 1) {
     throw new Error("ค่า 2Q q2 ไม่ถูกต้อง");
+  }
+
+  // validate 8Q (ตามน้ำหนักที่ UI ส่งมา)
+  const q8 = data.q8;
+  const allowedQ8 = {
+    q1: [0, 1],
+    q2: [0, 2],
+    q3: [0, 6],
+    q4: [0, 8],
+    q5: [0, 9],
+    q6: [0, 5],
+    q7: [0, 10],
+    q8: [0, 4],
+    q8Addon: [0, 8],
+  };
+
+  const checkAllowed = (key: keyof typeof allowedQ8, value: number) => {
+    const ok = allowedQ8[key].includes(value);
+
+    if (!ok) throw new Error(`ค่า 8Q ${String(key)} ไม่ถูกต้อง`);
+  };
+
+  checkAllowed("q1", q8.q1);
+  checkAllowed("q2", q8.q2);
+  checkAllowed("q3", q8.q3);
+  checkAllowed("q4", q8.q4);
+  checkAllowed("q5", q8.q5);
+  checkAllowed("q6", q8.q6);
+  checkAllowed("q7", q8.q7);
+  checkAllowed("q8", q8.q8);
+
+  if (q8.q3 === 6) {
+    checkAllowed("q8Addon", q8.q8Addon);
+  } else {
+    // ถ้า q3 ไม่ใช่ (0) ไม่ควรมีค่า addon
+    if (q8.q8Addon !== 0)
+      throw new Error("ค่า 8Q q8Addon ไม่ถูกต้องเมื่อ q3 ไม่ใช่");
+  }
+
+  // validate path ตาม payload ที่ส่งมา
+  if (data.q9) {
+    const q9 = data.q9;
+
+    for (let i = 1; i <= 9; i++) {
+      const key = `q${i}` as keyof typeof q9;
+      const value = q9[key] as unknown as number;
+
+      if (value == null || value < 0 || value > 3) {
+        throw new Error(`ค่า 9Q q${i} ไม่ถูกต้อง`);
+      }
+    }
+
+    return;
+  }
+
+  // under12: ต้องมี phqa และ phqaAddon
+  if (!data.phqa || !data.phqaAddon) {
+    throw new Error("ข้อมูลไม่ครบถ้วนสำหรับ under12: phqa/phqaAddon");
+  }
+
+  for (let i = 1; i <= 9; i++) {
+    const key = `q${i}` as keyof typeof data.phqa;
+    const value = data.phqa[key] as unknown as number;
+
+    if (value == null || value < 0 || value > 3) {
+      throw new Error(`ค่า PHQA q${i} ไม่ถูกต้อง`);
+    }
   }
 
   if (data.phqaAddon.q1 !== 0 && data.phqaAddon.q1 !== 1) {
