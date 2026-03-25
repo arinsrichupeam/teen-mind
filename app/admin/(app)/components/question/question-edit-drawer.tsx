@@ -762,7 +762,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               </b>
                             </p>
                             <p className="text-small">
-                              ชื่อแสดง LINE :{" "}
+                              LINE :{" "}
                               <b>
                                 {questionData?.profile?.user?.name ||
                                   data?.profile?.user?.name ||
@@ -1022,7 +1022,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           />
                           <div className="flex flex-col">
                             <p className="text-small">
-                              ชื่อแสดง LINE :{" "}
+                              LINE :{" "}
                               <b>
                                 {questionData?.profile?.user?.name ||
                                   data?.profile?.user?.name ||
