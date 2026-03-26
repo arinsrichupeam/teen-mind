@@ -1,6 +1,6 @@
 export const questionStatusOptions = [
   { name: "รอระบุ HN", uid: "0" },
-  { name: "รอจัดนัด Telemed", uid: "1" },
+  { name: "รอให้คำปรึกษา", uid: "1" },
   { name: "รอสรุปผลการให้คำปรึกษา", uid: "2" },
   { name: "เสร็จสิ้น", uid: "3" },
 ];

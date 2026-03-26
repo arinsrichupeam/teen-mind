@@ -372,7 +372,7 @@ export function QuestionFilterContent({
                 variant="bordered"
                 onPress={() => {
                   onSearchChange("");
-                  setStatusFilter(new Set(["0", "1"]));
+                  setStatusFilter(new Set([]));
                   setSchoolFilter("");
                   setPhqaFilter(new Set([]));
                   setQ2Filter(new Set([]));

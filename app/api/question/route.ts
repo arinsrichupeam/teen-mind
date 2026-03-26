@@ -6,6 +6,11 @@ import {
   Questions_PHQA_Addon,
 } from "@prisma/client";
 
+import {
+  isAllFollowUpRoundsComplete,
+  isConsultTelemedRoundComplete,
+} from "../../../lib/question-followup-rounds";
+
 import { getSession, requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionPayload, QuestionsData } from "@/types";
@@ -163,13 +168,30 @@ export async function GET(req: Request) {
         result_text: true,
         status: true,
         consult: true,
+        consult2: true,
+        consult3: true,
         schedule_telemed: true,
+        schedule_telemed2: true,
+        schedule_telemed3: true,
         referentId: true,
         subjective: true,
+        subjective2: true,
+        subjective3: true,
         objective: true,
+        objective2: true,
+        objective3: true,
         assessment: true,
+        assessment2: true,
+        assessment3: true,
         plan: true,
+        plan2: true,
+        plan3: true,
+        note: true,
+        note2: true,
+        note3: true,
         follow_up: true,
+        follow_up2: true,
+        follow_up3: true,
         profile: {
           select: {
             id: true,
@@ -559,12 +581,29 @@ export async function PUT(req: Request) {
       },
       data: {
         consult: question.consult,
+        consult2: question.consult2,
+        consult3: question.consult3,
         schedule_telemed: question.schedule_telemed,
+        schedule_telemed2: question.schedule_telemed2,
+        schedule_telemed3: question.schedule_telemed3,
         subjective: question.subjective,
+        subjective2: question.subjective2,
+        subjective3: question.subjective3,
         objective: question.objective,
+        objective2: question.objective2,
+        objective3: question.objective3,
         assessment: question.assessment,
+        assessment2: question.assessment2,
+        assessment3: question.assessment3,
         plan: question.plan,
+        plan2: question.plan2,
+        plan3: question.plan3,
+        note: question.note,
+        note2: question.note2,
+        note3: question.note3,
         follow_up: question.follow_up,
+        follow_up2: question.follow_up2,
+        follow_up3: question.follow_up3,
         status: CalStatus(question),
         result: result,
         result_text: result_text,
@@ -781,18 +820,12 @@ function getMainScreeningSum(question: QuestionsData): number {
 }
 
 function CalStatus(value: QuestionsData) {
-  if (value.schedule_telemed != null && value.consult != null) {
-    if (
-      value.subjective != null &&
-      value.objective != null &&
-      value.assessment != null &&
-      value.plan != null
-    ) {
-      return 3;
-    }
-
-    return 2;
-  }
+  // status ความหมาย:
+  // 1 = ยังไม่เริ่มติดตาม (อย่างน้อยต้องครบ schedule+consult รอบที่ 1)
+  // 2 = เริ่มติดตามแล้ว (ครบ schedule+consult รอบที่ 1 แต่ยังไม่ครบทุกครั้ง)
+  // 3 = ครบ “ครั้งติดตามที่ 1–3” (รวม Consultant/Telemed + Discharge Summary ต่อรอบ)
+  if (isAllFollowUpRoundsComplete(value)) return 3;
+  if (isConsultTelemedRoundComplete(value, 0)) return 2;
 
   return 1;
 }

@@ -6,6 +6,28 @@ import { prisma } from "@/utils/prisma";
 // const RISK_LEVELS = ["Green", "Green-Low", "Yellow", "Orange", "Red"] as const;
 
 // type RiskLevel = (typeof RISK_LEVELS)[number];
+const parseDateParam = (dateParam: string | null) => {
+  // Expected: YYYY-MM-DD
+  if (!dateParam) return null;
+  const m = dateParam.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!m) return null;
+  const year = Number(m[1]);
+  const monthIndex = Number(m[2]) - 1;
+  const day = Number(m[3]);
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(monthIndex) ||
+    !Number.isFinite(day)
+  ) {
+    return null;
+  }
+  if (monthIndex < 0 || monthIndex > 11) return null;
+  if (day < 1 || day > 31) return null;
+
+  return { year, monthIndex, day };
+};
 
 const getRiskCounts = (result: string) => {
   switch (result) {
@@ -24,19 +46,86 @@ const getRiskCounts = (result: string) => {
   }
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdmin();
 
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const now = new Date();
-  const todayStartUtc = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
-  );
+  const url = new URL(req.url);
+  const dateFromParam = url.searchParams.get("dateFrom");
+  const dateToParam = url.searchParams.get("dateTo");
 
+  // ตีความเป็น “วันตามเวลาไทย”
+  const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
   const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const parsedFrom = parseDateParam(dateFromParam);
+  const parsedTo = parseDateParam(dateToParam);
+
+  // Guard: อย่าให้ query ช่วงยาวมาก เพราะแต่ละวันมีหลาย query ฝั่ง prisma
+  const MAX_DAYS = 30;
+
+  let startUtc: Date;
+  let endUtcExclusive: Date;
+
+  if (parsedFrom && parsedTo) {
+    const fromUtcMidnight = Date.UTC(
+      parsedFrom.year,
+      parsedFrom.monthIndex,
+      parsedFrom.day,
+      0,
+      0,
+      0
+    );
+    const toUtcNextMidnight = Date.UTC(
+      parsedTo.year,
+      parsedTo.monthIndex,
+      parsedTo.day + 1,
+      0,
+      0,
+      0
+    );
+
+    startUtc = new Date(fromUtcMidnight - TH_OFFSET_MS);
+    endUtcExclusive = new Date(toUtcNextMidnight - TH_OFFSET_MS);
+
+    const totalDays = Math.round(
+      (endUtcExclusive.getTime() - startUtc.getTime()) / DAY_MS
+    );
+
+    if (!Number.isFinite(totalDays) || totalDays <= 0) {
+      return NextResponse.json(
+        { error: "Invalid date range" },
+        { status: 400 }
+      );
+    }
+    if (totalDays > MAX_DAYS) {
+      return NextResponse.json(
+        { error: `Date range too large (max ${MAX_DAYS} days)` },
+        { status: 400 }
+      );
+    }
+  } else {
+    // Default: 7 วันล่าสุด (รวมวันนี้) ตามวันเวลาไทย
+    const now = new Date();
+    const thaiToday = new Date(now.getTime() + TH_OFFSET_MS);
+    const thaiTodayStartUtc = new Date(
+      Date.UTC(
+        thaiToday.getUTCFullYear(),
+        thaiToday.getUTCMonth(),
+        thaiToday.getUTCDate(),
+        0,
+        0,
+        0
+      ) - TH_OFFSET_MS
+    );
+
+    startUtc = new Date(thaiTodayStartUtc.getTime() - 6 * DAY_MS);
+    endUtcExclusive = new Date(thaiTodayStartUtc.getTime() + DAY_MS);
+  }
+
   const days: Array<{
     dayLabel: string;
     totalUse: number;
@@ -48,9 +137,9 @@ export async function GET() {
     red: number;
   }> = [];
 
-  for (let i = 4; i >= 0; i--) {
-    const start = new Date(todayStartUtc.getTime() - i * DAY_MS);
-    const end = new Date(start.getTime() + DAY_MS);
+  for (let t = startUtc.getTime(); t < endUtcExclusive.getTime(); t += DAY_MS) {
+    const start = new Date(t);
+    const end = new Date(t + DAY_MS);
 
     const totalUse = await prisma.profile.count({
       where: {
@@ -117,7 +206,9 @@ export async function GET() {
       }
     }
 
-    const dayLabel = start.toLocaleDateString("th-TH", {
+    // Convert start (UTC) -> Thai local date for correct day/month label
+    const thaiDate = new Date(start.getTime() + TH_OFFSET_MS);
+    const dayLabel = thaiDate.toLocaleDateString("th-TH", {
       day: "2-digit",
       month: "short",
     });

@@ -389,9 +389,7 @@ export const ModalStatusUpdate = ({
                                   }}
                                 >
                                   <SelectItem key="0">รอระบุ HN</SelectItem>
-                                  <SelectItem key="1">
-                                    รอจัดนัด Telemed
-                                  </SelectItem>
+                                  <SelectItem key="1">รอให้คำปรึกษา</SelectItem>
                                   <SelectItem key="2">
                                     รอสรุปผลการให้คำปรึกษา
                                   </SelectItem>
@@ -573,7 +571,7 @@ export const ModalStatusUpdate = ({
                                         case 0:
                                           return "รอระบุ HN";
                                         case 1:
-                                          return "รอจัดนัด Telemed";
+                                          return "รอให้คำปรึกษา";
                                         case 2:
                                           return "รอสรุปผลการให้คำปรึกษา";
                                         case 3:

@@ -12,6 +12,16 @@ export type LocationData = {
   longitude: number;
 };
 
+/** สถานะติดตามครั้งที่ 1–3 (คำนวณจากนัด Telemed + ผู้ให้คำปรึกษา + Discharge SOAP ต่อครั้ง) */
+export type FollowUpRoundTrackingStatus = {
+  round: 1 | 2 | 3;
+  complete: boolean;
+  statusLabel: string;
+  title: string;
+  consultTelemedComplete: boolean;
+  dischargeSoapComplete: boolean;
+};
+
 export type QuestionsData = {
   id: string;
   result: string;
@@ -22,9 +32,27 @@ export type QuestionsData = {
   objective: string;
   assessment: string;
   plan: string;
+  /** Discharge Summary รอบ 2–3 (ตาม schema questions_master) */
+  subjective2?: string | null;
+  subjective3?: string | null;
+  objective2?: string | null;
+  objective3?: string | null;
+  assessment2?: string | null;
+  assessment3?: string | null;
+  plan2?: string | null;
+  plan3?: string | null;
+  note?: string | null;
+  note2?: string | null;
+  note3?: string | null;
   schedule_telemed: Date | null;
-  follow_up: Date;
+  schedule_telemed2?: Date | null;
+  schedule_telemed3?: Date | null;
+  follow_up: Date | null;
+  follow_up2?: Date | null;
+  follow_up3?: Date | null;
   consult: string;
+  consult2?: string | null;
+  consult3?: string | null;
   createdAt: string;
   status: number;
   hn: string;
@@ -41,6 +69,8 @@ export type QuestionsData = {
   addon: Addon[];
   q9: Q9Data[];
   q8: Q8Data[];
+  /** จาก GET /api/question/[id] (คำนวณฝั่งเซิร์ฟเวอร์) */
+  followUpRoundStatuses?: FollowUpRoundTrackingStatus[];
 };
 
 export interface User {

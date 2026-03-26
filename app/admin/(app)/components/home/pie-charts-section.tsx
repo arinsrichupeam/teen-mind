@@ -43,7 +43,7 @@ const COLORS = {
   },
   status: {
     "รอระบุ HN": "#6b7280", // gray
-    "รอจัดนัด Telemed": "#3b82f6", // blue
+    รอให้คำปรึกษา: "#3b82f6", // blue
     รอสรุปผลการให้คำปรึกษา: "#f59e0b", // amber
     เสร็จสิ้น: "#10b981", // emerald
   },
@@ -159,7 +159,7 @@ export const PieChartsSection = ({ data }: props) => {
   const statusData = useMemo(() => {
     const statusCounts: { [key: string]: number } = {
       "รอระบุ HN": 0,
-      "รอจัดนัด Telemed": 0,
+      รอให้คำปรึกษา: 0,
       รอสรุปผลการให้คำปรึกษา: 0,
       เสร็จสิ้น: 0,
     };
@@ -172,7 +172,7 @@ export const PieChartsSection = ({ data }: props) => {
           statusCounts["รอระบุ HN"]++;
           break;
         case 1:
-          statusCounts["รอจัดนัด Telemed"]++;
+          statusCounts["รอให้คำปรึกษา"]++;
           break;
         case 2:
           statusCounts["รอสรุปผลการให้คำปรึกษา"]++;

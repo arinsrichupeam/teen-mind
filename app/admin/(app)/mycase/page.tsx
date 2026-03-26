@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
 import { QuestionEditDrawer } from "../components/question/question-edit-drawer";
+import { QuestionTableStatusCell } from "../components/question/question-table-status-cell";
 import { QuestionColumnsName } from "../data/tableColumn";
 import { QuestionFilterContent } from "../components/question/question-filter-content";
 
@@ -60,9 +61,7 @@ export default function MyCasePage() {
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<QuestionsData>();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [statusFilter, setStatusFilter] = useState<Selection>(
-    new Set(["0", "1", "2", "3"])
-  );
+  const [statusFilter, setStatusFilter] = useState<Selection>(new Set([]));
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
@@ -609,30 +608,7 @@ export default function MyCasePage() {
           );
         }
         case "status":
-          return (
-            <Chip
-              className="capitalize"
-              color={
-                item.status === 0
-                  ? "default"
-                  : item.status === 1
-                    ? "primary"
-                    : item.status === 2
-                      ? "warning"
-                      : "success"
-              }
-              size="sm"
-              variant="flat"
-            >
-              {item.status === 0
-                ? "รอระบุ HN"
-                : item.status === 1
-                  ? "รอจัดนัด Telemed"
-                  : item.status === 2
-                    ? "รอสรุปผลการให้คำปรึกษา"
-                    : "เสร็จสิ้น"}
-            </Chip>
-          );
+          return <QuestionTableStatusCell row={item} />;
         case "actions":
           return (
             <div className="relative flex items-center gap-2">
@@ -683,7 +659,7 @@ export default function MyCasePage() {
                         key="edit-consultation"
                         onPress={() => onRowEditConsultationPress(item.id)}
                       >
-                        แก้ไขการให้คำปรึกษา
+                        บันทึกการให้คำปรึกษา
                       </DropdownItem>
                     </DropdownMenu>
                   </Dropdown>

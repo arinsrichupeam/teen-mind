@@ -110,10 +110,20 @@ type Last7DayStat = {
   red: number;
 };
 
-const fetchLast7Days = async (): Promise<Last7DayStat[]> => {
-  const res = await fetch(`/api/dashboard/usage-stats/last-7-days`, {
-    credentials: "include",
-  });
+const fetchLast7Days = async (params?: {
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<Last7DayStat[]> => {
+  const search = new URLSearchParams();
+
+  if (params?.dateFrom) search.set("dateFrom", params.dateFrom);
+  if (params?.dateTo) search.set("dateTo", params.dateTo);
+
+  const url = `/api/dashboard/usage-stats/last-7-days${
+    search.toString() ? `?${search.toString()}` : ""
+  }`;
+
+  const res = await fetch(url, { credentials: "include" });
 
   if (!res.ok) {
     throw new Error(
@@ -216,6 +226,10 @@ export default function AdminHome() {
     start?: string;
     end?: string;
   }>({});
+  const [lastDaysRange, setLastDaysRange] = useState<{
+    start?: string;
+    end?: string;
+  }>({});
 
   const { data: rawQuestions = [], isLoading: isLoadingQuestions } = useQuery({
     queryKey: ["questions"],
@@ -228,8 +242,12 @@ export default function AdminHome() {
   });
 
   const { data: last7Days = [], isLoading: isLoadingLast7Days } = useQuery({
-    queryKey: ["last-7-days-usage"],
-    queryFn: fetchLast7Days,
+    queryKey: ["last-7-days-usage", lastDaysRange.start, lastDaysRange.end],
+    queryFn: () =>
+      fetchLast7Days({
+        dateFrom: lastDaysRange.start,
+        dateTo: lastDaysRange.end,
+      }),
   });
 
   const {
@@ -425,14 +443,13 @@ export default function AdminHome() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
                 กราฟสถิติการเข้าใช้งานตามระดับความเสี่ยง
               </h3>
-              <div className="max-w-md">
+              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
                 <DateRangePicker
-                  label="เลือกช่วงวันที่"
                   value={
                     riskRange.start && riskRange.end
                       ? {
@@ -462,16 +479,45 @@ export default function AdminHome() {
                 <div className="text-sm text-default-500">ไม่พบข้อมูล</div>
               )}
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2 mb-8">
             <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold">สถิติ 7 วันล่าสุด</h3>
+              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                <DateRangePicker
+                  value={
+                    lastDaysRange.start && lastDaysRange.end
+                      ? {
+                          start: parseDate(lastDaysRange.start),
+                          end: parseDate(lastDaysRange.end),
+                        }
+                      : null
+                  }
+                  onChange={(range) => {
+                    if (!range) {
+                      setLastDaysRange({});
+
+                      return;
+                    }
+                    setLastDaysRange({
+                      start: range.start?.toString(),
+                      end: range.end?.toString(),
+                    });
+                  }}
+                />
+              </div>
+              {isLoadingLast7Days ? (
+                <div className="text-sm text-default-500">กำลังโหลด...</div>
+              ) : (
+                <Last7DaysUsageCards data={last7Days} />
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 lg:col-span-2">
               <h3 className="text-xl font-semibold">
                 Heatmap เวลาเมื่อทำแบบประเมิน
               </h3>
-              <div className="max-w-md">
+              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
                 <DateRangePicker
-                  label="เลือกช่วงวันที่"
                   value={
                     heatmapRange.start && heatmapRange.end
                       ? {
@@ -504,17 +550,6 @@ export default function AdminHome() {
                   total={assessmentWeekhourMonthly.total}
                   weekdayLabels={assessmentWeekhourMonthly.weekdayLabels}
                 />
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 mb-8">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">สถิติ 5 วันล่าสุด</h3>
-              {isLoadingLast7Days ? (
-                <div className="text-sm text-default-500">กำลังโหลด...</div>
-              ) : (
-                <Last7DaysUsageCards data={last7Days} />
               )}
             </div>
           </div>

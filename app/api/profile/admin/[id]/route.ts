@@ -39,15 +39,15 @@ export async function GET(
     },
   });
 
+  const lineAccount = user?.accounts.find((a) => a.provider === "line");
+
   // Update User LineName and image
-  if (user?.accounts[0].provider == "line") {
-    const lineProfile = await lineSdk.getProfile(
-      user.accounts[0].providerAccountId
-    );
+  if (lineAccount) {
+    const lineProfile = await lineSdk.getProfile(lineAccount.providerAccountId);
 
     await prisma.user.update({
       where: {
-        id: user.accounts[0].userId,
+        id: lineAccount.userId,
       },
       data: {
         name: lineProfile.displayName,

@@ -189,7 +189,7 @@ export default function RecalculatePHQAPage() {
       case 0:
         return "รอระบุ HN";
       case 1:
-        return "รอจัดนัด Telemed";
+        return "รอให้คำปรึกษา";
       case 2:
         return "รอสรุปผลการให้คำปรึกษา";
       case 3:

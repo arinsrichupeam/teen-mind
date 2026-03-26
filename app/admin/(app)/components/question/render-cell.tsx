@@ -9,7 +9,7 @@ import {
   DropdownItem,
 } from "@heroui/react";
 
-import { questionStatusOptions as options } from "../../data/optionData";
+import { QuestionTableStatusCell } from "./question-table-status-cell";
 
 import { ProfileSchool, QuestionsData } from "@/types";
 import { prefix } from "@/utils/data";
@@ -129,13 +129,7 @@ export const RenderCell = ({
         </div>
       );
     case "status":
-      return (
-        <div>
-          <span className="text-xs font-semibold">
-            {options[data.status].name}
-          </span>
-        </div>
-      );
+      return <QuestionTableStatusCell row={data} />;
     case "actions":
       return (
         <div className="flex justify-center gap-2">
@@ -181,7 +175,7 @@ export const RenderCell = ({
                   key="edit-consultation"
                   onPress={() => editDetail(data.id, "edit-consultation")}
                 >
-                  แก้ไขการให้คำปรึกษา
+                  บันทึกการให้คำปรึกษา
                 </DropdownItem>
               </DropdownMenu>
             </Dropdown>

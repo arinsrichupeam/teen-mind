@@ -1,33 +1,54 @@
+import type { QuestionsData } from "@/types";
+
+import {
+  isAllFollowUpRoundsComplete,
+  isConsultTelemedRoundComplete,
+} from "../../../../../lib/question-followup-rounds";
+
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
 interface QuestionForStatus {
   profile?: { hn?: string | null } | null;
   schedule_telemed?: unknown;
+  schedule_telemed2?: unknown;
+  schedule_telemed3?: unknown;
   consult?: string | null;
+  consult2?: string | null;
+  consult3?: string | null;
   subjective?: string | null;
+  subjective2?: string | null;
+  subjective3?: string | null;
   objective?: string | null;
+  objective2?: string | null;
+  objective3?: string | null;
   assessment?: string | null;
+  assessment2?: string | null;
+  assessment3?: string | null;
   plan?: string | null;
+  plan2?: string | null;
+  plan3?: string | null;
 }
 
 function calculateStatus(question: QuestionForStatus) {
   if (!question.profile?.hn) {
     return 0;
   }
-  if (!question.schedule_telemed || !question.consult) {
-    return 1;
+  const value = question as unknown as QuestionsData;
+
+  // status ความหมาย:
+  // 1 = ยังไม่เริ่มติดตาม
+  // 2 = เริ่มติดตามแล้ว (แต่ยังไม่ครบทุกครั้ง)
+  // 3 = ครบ “ครั้งติดตามที่ 1–3”
+  if (isAllFollowUpRoundsComplete(value)) {
+    return 3;
   }
-  if (
-    !question.subjective ||
-    !question.objective ||
-    !question.assessment ||
-    !question.plan
-  ) {
+
+  if (isConsultTelemedRoundComplete(value, 0)) {
     return 2;
   }
 
-  return 3;
+  return 1;
 }
 
 export async function POST() {

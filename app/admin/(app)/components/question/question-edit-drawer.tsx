@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import moment from "moment";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
@@ -25,8 +26,8 @@ import {
   Image,
   Input,
   Link,
-  Select,
-  SelectItem,
+  Tab,
+  Tabs,
   Textarea,
 } from "@heroui/react";
 
@@ -81,6 +82,22 @@ import {
   QuestionsData,
 } from "@/types";
 import { subtitle } from "@/components/primitives";
+import {
+  CONSULT_TELEMED_ROUNDS,
+  DISCHARGE_SUMMARY_ROUNDS,
+  FOLLOW_UP_ROUNDS,
+  isConsultTelemedRoundComplete,
+  isFollowUpRoundComplete,
+} from "@/lib/question-followup-rounds";
+
+/** map ชื่อฟิลด์ schedule/consult → รอบ 0–2 */
+function roundIndexFromScheduleOrConsult(name: string): 0 | 1 | 2 | null {
+  if (name === "schedule_telemed" || name === "consult") return 0;
+  if (name === "schedule_telemed2" || name === "consult2") return 1;
+  if (name === "schedule_telemed3" || name === "consult3") return 2;
+
+  return null;
+}
 
 interface Props {
   isOpen: boolean;
@@ -109,10 +126,21 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [consultationLoading, setConsultationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+  const [consultValidationRound, setConsultValidationRound] = useState<
+    0 | 1 | 2 | null
+  >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
-  const [consultantSaved, setConsultantSaved] = useState(false);
+  /** รอบไหนบันทึกวันที่พบ + ผู้ให้คำปรึกษาแล้ว (ถึงจะกรอก SOAP / หมายเหตุ / นัดพบครั้งถัดไป) */
+  const [consultantRoundSaved, setConsultantRoundSaved] = useState<
+    [boolean, boolean, boolean]
+  >([
+    isConsultTelemedRoundComplete(data, 0),
+    isConsultTelemedRoundComplete(data, 1),
+    isConsultTelemedRoundComplete(data, 2),
+  ]);
   const [consultationSaved, setConsultationSaved] = useState(false);
+  const [followUpRoundTab, setFollowUpRoundTab] = useState("r1");
 
   const latitude =
     questionData?.latitude != null
@@ -270,9 +298,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       if (response.ok) {
         const updatedData = await response.json();
 
-        if (updatedData && updatedData.length > 0) {
-          // อัปเดตข้อมูลใหม่
-          setQuestionData(updatedData[0]);
+        if (updatedData) {
+          setQuestionData(
+            Array.isArray(updatedData) ? updatedData[0] : updatedData
+          );
         }
       } else {
         // หาก API ล้มเหลว ให้ใช้ data เดิม
@@ -307,15 +336,23 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       setIsError(false);
     }
 
-    if (name === "schedule_telemed") {
+    if (
+      name === "schedule_telemed" ||
+      name === "schedule_telemed2" ||
+      name === "schedule_telemed3"
+    ) {
       setQuestionData((prev) => ({
         ...prev,
-        schedule_telemed: valueStr ? new Date(valueStr) : null,
+        [name]: valueStr ? new Date(valueStr) : null,
       }));
-    } else if (name === "follow_up") {
+    } else if (
+      name === "follow_up" ||
+      name === "follow_up2" ||
+      name === "follow_up3"
+    ) {
       setQuestionData((prev) => ({
         ...prev,
-        follow_up: valueStr ? new Date(valueStr) : new Date(0),
+        [name]: valueStr ? new Date(valueStr) : null,
       }));
     } else if (name === "status") {
       setQuestionData((prev) => ({
@@ -327,6 +364,18 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         ...prev,
         [name]: valueStr,
       }));
+    }
+
+    const roundIdx = roundIndexFromScheduleOrConsult(name);
+
+    if (roundIdx !== null) {
+      setConsultantRoundSaved((prev) => {
+        const next: [boolean, boolean, boolean] = [...prev];
+
+        next[roundIdx] = false;
+
+        return next;
+      });
     }
   };
 
@@ -366,12 +415,29 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         updateData = {
           id: questionData.id,
           consult: questionData.consult,
+          consult2: questionData.consult2,
+          consult3: questionData.consult3,
           schedule_telemed: questionData.schedule_telemed,
+          schedule_telemed2: questionData.schedule_telemed2,
+          schedule_telemed3: questionData.schedule_telemed3,
           subjective: questionData.subjective,
+          subjective2: questionData.subjective2,
+          subjective3: questionData.subjective3,
           objective: questionData.objective,
+          objective2: questionData.objective2,
+          objective3: questionData.objective3,
           assessment: questionData.assessment,
+          assessment2: questionData.assessment2,
+          assessment3: questionData.assessment3,
           plan: questionData.plan,
+          plan2: questionData.plan2,
+          plan3: questionData.plan3,
+          note: questionData.note,
+          note2: questionData.note2,
+          note3: questionData.note3,
           follow_up: questionData.follow_up,
+          follow_up2: questionData.follow_up2,
+          follow_up3: questionData.follow_up3,
           status: questionData.status,
           q2: questionData.q2,
           phqa: questionData.phqa,
@@ -436,6 +502,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const validateForm = useCallback(() => {
     setError(null);
     setIsError(false);
+    setConsultValidationRound(null);
 
     if (!questionData) {
       setError("ไม่พบข้อมูลที่จะตรวจสอบ");
@@ -444,40 +511,175 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
 
     if (mode === "edit-consultation") {
-      if (questionData.status === 2 && !questionData.consult) {
+      const statusVal = questionData.status;
+
+      // Round 1
+      if (statusVal === 2 && !questionData.consult) {
         setIsError(true);
+        setConsultValidationRound(0);
         setError("กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น'");
 
         return false;
       }
 
       if (!questionData.schedule_telemed) {
+        setIsError(true);
+        setConsultValidationRound(0);
         setError("กรุณาเลือกวันนัด Telemedicine");
 
         return false;
       }
 
-      if (questionData.status === 2 || questionData.status === 3) {
+      // Round 2
+      if (
+        (statusVal === 2 || statusVal === 3) &&
+        !questionData.schedule_telemed2
+      ) {
+        setIsError(true);
+        setConsultValidationRound(1);
+        setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 2");
+
+        return false;
+      }
+
+      if (statusVal === 2 && !questionData.consult2) {
+        setIsError(true);
+        setConsultValidationRound(1);
+        setError(
+          "กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น' (รอบที่ 2)"
+        );
+
+        return false;
+      }
+
+      // Round 3
+      if (
+        (statusVal === 2 || statusVal === 3) &&
+        !questionData.schedule_telemed3
+      ) {
+        setIsError(true);
+        setConsultValidationRound(2);
+        setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 3");
+
+        return false;
+      }
+
+      if (statusVal === 2 && !questionData.consult3) {
+        setIsError(true);
+        setConsultValidationRound(2);
+        setError(
+          "กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น' (รอบที่ 3)"
+        );
+
+        return false;
+      }
+
+      // Discharge Summary SOAP (ทุกครั้งเมื่อสถานะเป็น 2/3)
+      if (statusVal === 2 || statusVal === 3) {
         if (!questionData.subjective || questionData.subjective.trim() === "") {
-          setError("กรุณากรอกข้อมูล Subjective data");
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 1)");
 
           return false;
         }
 
         if (!questionData.objective || questionData.objective.trim() === "") {
-          setError("กรุณากรอกข้อมูล Objective data");
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 1)");
 
           return false;
         }
 
         if (!questionData.assessment || questionData.assessment.trim() === "") {
-          setError("กรุณากรอกข้อมูล Assessment");
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 1)");
 
           return false;
         }
 
         if (!questionData.plan || questionData.plan.trim() === "") {
-          setError("กรุณากรอกข้อมูล Plan");
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Plan (รอบที่ 1)");
+
+          return false;
+        }
+
+        if (
+          !questionData.subjective2 ||
+          questionData.subjective2.trim() === ""
+        ) {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 2)");
+
+          return false;
+        }
+
+        if (!questionData.objective2 || questionData.objective2.trim() === "") {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 2)");
+
+          return false;
+        }
+
+        if (
+          !questionData.assessment2 ||
+          questionData.assessment2.trim() === ""
+        ) {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 2)");
+
+          return false;
+        }
+
+        if (!questionData.plan2 || questionData.plan2.trim() === "") {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Plan (รอบที่ 2)");
+
+          return false;
+        }
+
+        if (
+          !questionData.subjective3 ||
+          questionData.subjective3.trim() === ""
+        ) {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 3)");
+
+          return false;
+        }
+
+        if (!questionData.objective3 || questionData.objective3.trim() === "") {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 3)");
+
+          return false;
+        }
+
+        if (
+          !questionData.assessment3 ||
+          questionData.assessment3.trim() === ""
+        ) {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 3)");
+
+          return false;
+        }
+
+        if (!questionData.plan3 || questionData.plan3.trim() === "") {
+          setIsError(true);
+          setConsultValidationRound(null);
+          setError("กรุณากรอกข้อมูล Plan (รอบที่ 3)");
 
           return false;
         }
@@ -515,26 +717,19 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     await onSubmit(e);
   };
 
-  const handleSaveConsultant = async () => {
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบหรือไม่
+  const handleSaveConsultant = async (roundIndex: 0 | 1 | 2) => {
     if (!questionData?.id) {
       setError("ไม่พบข้อมูลคำถาม");
 
       return;
     }
 
-    if (!questionData?.consult) {
-      setError("กรุณาเลือกผู้ให้คำปรึกษา");
-
-      return;
-    }
-
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบถ้วนหรือไม่
-    // อนุญาตให้บันทึกได้ตราบใดที่มีผู้ให้คำปรึกษา
-    if (!questionData.consult) {
+    if (!isConsultTelemedRoundComplete(questionData, roundIndex)) {
+      setError("กรุณากรอกวันที่พบนักจิตวิทยาและผู้ให้คำปรึกษาให้ครบก่อนบันทึก");
       addToast({
         title: "แจ้งเตือน",
-        description: "กรุณาเลือกผู้ให้คำปรึกษา",
+        description:
+          "กรุณากรอกวันที่พบนักจิตวิทยาและผู้ให้คำปรึกษาให้ครบก่อนบันทึก",
         color: "warning",
       });
 
@@ -545,12 +740,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     setError(null);
 
     try {
-      // ส่งข้อมูลทั้งหมดที่จำเป็นสำหรับ API
       const updateData = {
         ...questionData,
-        consult: questionData.consult,
-        schedule_telemed: questionData.schedule_telemed,
-        // ตรวจสอบว่ามีข้อมูล phqa หรือไม่ ถ้าไม่มีให้ใช้ข้อมูลเดิม
         phqa: questionData.phqa,
         q2: questionData.q2,
         addon: questionData.addon,
@@ -574,8 +765,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           color: "success",
         });
 
-        // ตั้งค่าสถานะการบันทึกสำเร็จ
-        setConsultantSaved(true);
+        setConsultantRoundSaved((prev) => {
+          const next: [boolean, boolean, boolean] = [...prev];
+
+          next[roundIndex] = true;
+
+          return next;
+        });
       } else {
         const errorData = await response.json().catch(() => ({}));
 
@@ -610,6 +806,17 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       ...prev,
       [field]: value,
     }));
+    const roundIdx = roundIndexFromScheduleOrConsult(field);
+
+    if (roundIdx !== null) {
+      setConsultantRoundSaved((prev) => {
+        const next: [boolean, boolean, boolean] = [...prev];
+
+        next[roundIdx] = false;
+
+        return next;
+      });
+    }
   };
 
   // โหลด list APIs พร้อมกันเพื่อลดเวลาเปิด drawer (async-parallel)
@@ -646,22 +853,58 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   useEffect(() => {
     if (data) {
       setQuestionData(data);
+      setConsultantRoundSaved([
+        isConsultTelemedRoundComplete(data, 0),
+        isConsultTelemedRoundComplete(data, 1),
+        isConsultTelemedRoundComplete(data, 2),
+      ]);
     }
   }, [data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
 
   // useEffect สำหรับรีเซ็ตสถานะการบันทึกเมื่อ drawer เปิดใหม่
   useEffect(() => {
     if (isOpen && data) {
-      setConsultantSaved(false);
+      setConsultantRoundSaved([
+        isConsultTelemedRoundComplete(data, 0),
+        isConsultTelemedRoundComplete(data, 1),
+        isConsultTelemedRoundComplete(data, 2),
+      ]);
       setConsultationSaved(false);
+      if (mode === "edit-consultation") {
+        const q = data;
+        const r1Complete = isFollowUpRoundComplete(q, 0);
+        const r2Complete = isFollowUpRoundComplete(q, 1);
+
+        setFollowUpRoundTab(r1Complete ? (r2Complete ? "r3" : "r2") : "r1");
+      } else {
+        setFollowUpRoundTab("r1");
+      }
     }
   }, [isOpen, data?.id]);
+
+  // ถ้ารอบก่อนหน้าว่าง แท็บที่เลือกอยู่ไม่ถูกต้อง — ถอยกลับ
+  useEffect(() => {
+    const q = questionData ?? data;
+    const r1 = isFollowUpRoundComplete(q, 0);
+    const r2 = isFollowUpRoundComplete(q, 1);
+
+    if (followUpRoundTab === "r3" && !r2) {
+      setFollowUpRoundTab(r1 ? "r2" : "r1");
+    } else if (followUpRoundTab === "r2" && !r1) {
+      setFollowUpRoundTab("r1");
+    }
+  }, [questionData, data, followUpRoundTab]);
 
   // useEffect สำหรับ reset ข้อมูลเมื่อ drawer เปิด
   useEffect(() => {
     if (isOpen && data) {
       // Reset ข้อมูลเมื่อ drawer เปิดเฉพาะเมื่อเป็นข้อมูลใหม่
       setQuestionData(data);
+      setConsultantRoundSaved([
+        isConsultTelemedRoundComplete(data, 0),
+        isConsultTelemedRoundComplete(data, 1),
+        isConsultTelemedRoundComplete(data, 2),
+      ]);
       // ล้าง error state
       setError(null);
       setIsError(false);
@@ -671,6 +914,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       setIsError(false);
     }
   }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+
+  // ถ้า drawer ปิดแล้วให้ unmount เลย เพื่อกัน backdrop/overlay ค้างบังการใช้งาน
+  if (!isOpen) return null;
 
   return (
     <>
@@ -686,23 +932,47 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           {(onClose) => (
             <Form onReset={onClose} onSubmit={handleSubmit}>
               <DrawerHeader className="w-full">
-                <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm">
-                  <div className="pt-2">
-                    <span className="font-semibold">วันที่ประเมิน:</span>{" "}
+                <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm items-start lg:items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">วันที่ประเมิน:</span>
                     <span>
                       {formatThaiDateTime(
                         questionData?.createdAt || (data?.createdAt as string)
                       )}
                     </span>
                   </div>
-                  <div className="flex flex-row gap-5">
-                    <div className="pt-2">
-                      <span className="font-semibold">โหมด:</span> {mode}
+                  <div className="flex flex-wrap items-center justify-end gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">โหมด:</span>
+                      <span>{mode}</span>
                     </div>
-                    <div className="pr-5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">สถานะ:</span>
+                      {(() => {
+                        const statusVal = questionData?.status ?? data?.status;
+                        const statusName =
+                          options.find((item) => item.uid === String(statusVal))
+                            ?.name ?? `สถานะ ${statusVal}`;
+
+                        const chipColor =
+                          statusVal === 0
+                            ? "default"
+                            : statusVal === 1
+                              ? "primary"
+                              : statusVal === 2
+                                ? "warning"
+                                : "success";
+
+                        return (
+                          <Chip color={chipColor} size="lg" variant="flat">
+                            <span className="text-xs">{statusName}</span>
+                          </Chip>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <span className="font-semibold">ผลการประเมิน:</span>
                       <Chip
-                        className="ml-3"
                         color={
                           (questionData?.result || data?.result) === "Green"
                             ? "success"
@@ -1216,136 +1486,212 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 {mode === "view-questionnaire" ? (
                   <QuestionDetailDrawer data={questionData || data} />
                 ) : mode === "view-consultation" ? (
-                  <div className="flex flex-col">
-                    <div>
-                      <div className="flex flex-row pb-3">
-                        <h2 className={subtitle()}>Telemedicine</h2>
-                        <Select
-                          className="max-w-xs"
-                          defaultSelectedKeys={(
-                            questionData?.status || data?.status
-                          ).toString()}
-                          isDisabled={true}
-                          label="สถานะ"
-                          labelPlacement="outside-left"
-                          name="status"
-                          placeholder="สถานะ"
-                          radius="md"
-                          variant="bordered"
-                        >
-                          {options.map((item) => (
-                            <SelectItem key={item.uid}>{item.name}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <Card>
-                        <CardBody className="flex flex-row gap-5">
-                          <div className="w-full">
-                            <DatePicker
-                              showMonthAndYearPickers
-                              defaultValue={parseDateForPicker(
-                                questionData?.schedule_telemed ??
-                                  data?.schedule_telemed
-                              )}
-                              isDisabled={true}
-                              label="Schedule Telemed"
-                              labelPlacement="outside"
-                              name="schedule_telemed"
-                              selectorButtonPlacement="start"
-                              variant="bordered"
-                            />
-                          </div>
-                          <div className="w-full">
-                            <Autocomplete
-                              defaultItems={Consultant}
-                              defaultSelectedKey={
-                                questionData?.consult || data?.consult
-                              }
-                              isDisabled={true}
-                              label="Consultant"
-                              labelPlacement="outside"
-                              placeholder="Consultant"
-                              radius="md"
-                              variant="bordered"
-                            >
-                              {(item) => (
-                                <AutocompleteItem key={item.id}>
-                                  {item.name}
-                                </AutocompleteItem>
-                              )}
-                            </Autocomplete>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    </div>
-                    <div>
-                      <div className="flex flex-row py-3">
-                        <h2 className={subtitle()}>Discharge Summary</h2>
-                        <DatePicker
-                          showMonthAndYearPickers
-                          className="max-w-xs"
-                          defaultValue={parseDateForPicker(
-                            questionData?.follow_up ?? data?.follow_up
-                          )}
-                          isDisabled={true}
-                          label="Follow Up"
-                          labelPlacement="outside-left"
-                          name="follow_up"
-                          selectorButtonPlacement="start"
-                          variant="bordered"
-                        />
-                      </div>
-                      <Card>
-                        <CardBody className="gap-5">
-                          <Textarea
-                            defaultValue={
-                              questionData?.subjective || data?.subjective
-                            }
-                            isDisabled={true}
-                            label="1.	Subjective data"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="subjective"
-                            placeholder="Description"
-                            variant="bordered"
-                          />
-                          <Textarea
-                            defaultValue={
-                              questionData?.objective || data?.objective
-                            }
-                            isDisabled={true}
-                            label="2.	Objective data"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="objective"
-                            placeholder="Description"
-                            variant="bordered"
-                          />
-                          <Textarea
-                            defaultValue={
-                              questionData?.assessment || data?.assessment
-                            }
-                            isDisabled={true}
-                            label="3.	Assessment"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="assessment"
-                            placeholder="Description"
-                            variant="bordered"
-                          />
-                          <Textarea
-                            defaultValue={questionData?.plan || data?.plan}
-                            isDisabled={true}
-                            label="4.	Plan"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="plan"
-                            placeholder="Description"
-                            variant="bordered"
-                          />
-                        </CardBody>
-                      </Card>
-                    </div>
+                  <div className="flex flex-col gap-6">
+                    <Card className="rounded-xl border border-default-200 shadow-sm">
+                      <CardBody className="flex flex-col gap-4 p-4 sm:p-6">
+                        {(() => {
+                          const q = questionData ?? data;
+                          const followTab2Disabled = !isFollowUpRoundComplete(
+                            q,
+                            0
+                          );
+                          const followTab3Disabled = !isFollowUpRoundComplete(
+                            q,
+                            1
+                          );
+
+                          return (
+                            <>
+                              <h2 className={subtitle()}>
+                                บันทึกการให้คำปรึกษา
+                              </h2>
+                              <Tabs
+                                fullWidth
+                                aria-label="รอบติดตาม (Consultant/Telemedicine + Discharge Summary)"
+                                className="w-full"
+                                color="primary"
+                                selectedKey={followUpRoundTab}
+                                variant="bordered"
+                                onSelectionChange={(key) =>
+                                  setFollowUpRoundTab(String(key))
+                                }
+                              >
+                                {CONSULT_TELEMED_ROUNDS.map((round, idx) => {
+                                  const schedVal = q?.[
+                                    round.schedule as keyof QuestionsData
+                                  ] as Date | string | null | undefined;
+                                  const consultVal = q?.[
+                                    round.consult as keyof QuestionsData
+                                  ] as string | null | undefined;
+                                  const tabKey = `r${idx + 1}`;
+                                  const dischargeRound =
+                                    DISCHARGE_SUMMARY_ROUNDS[idx];
+                                  const followUpVal = q?.[
+                                    FOLLOW_UP_ROUNDS[idx]
+                                      .followUp as keyof QuestionsData
+                                  ] as Date | string | null | undefined;
+                                  const isRoundComplete =
+                                    isFollowUpRoundComplete(
+                                      q,
+                                      idx as 0 | 1 | 2
+                                    );
+
+                                  return (
+                                    <Tab
+                                      key={tabKey}
+                                      isDisabled={
+                                        (idx === 1 && followTab2Disabled) ||
+                                        (idx === 2 && followTab3Disabled)
+                                      }
+                                      title={
+                                        isRoundComplete ? (
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <span>{round.label}</span>
+                                            <CheckCircleIcon className="size-4 text-success" />
+                                          </span>
+                                        ) : (
+                                          round.label
+                                        )
+                                      }
+                                    >
+                                      <div className="mt-2 flex flex-col gap-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                                          <DatePicker
+                                            showMonthAndYearPickers
+                                            defaultValue={parseDateForPicker(
+                                              schedVal
+                                            )}
+                                            isDisabled={true}
+                                            label="วันที่พบนักจิตวิทยา"
+                                            labelPlacement="outside"
+                                            name={round.schedule}
+                                            selectorButtonPlacement="start"
+                                            variant="bordered"
+                                          />
+                                          <Autocomplete
+                                            defaultItems={Consultant}
+                                            defaultSelectedKey={
+                                              consultVal ?? undefined
+                                            }
+                                            isDisabled={true}
+                                            label="ผู้ให้คำปรึกษา"
+                                            labelPlacement="outside"
+                                            placeholder="เลือกผู้ให้คำปรึกษา"
+                                            radius="md"
+                                            variant="bordered"
+                                          >
+                                            {(item) => (
+                                              <AutocompleteItem key={item.id}>
+                                                {item.name}
+                                              </AutocompleteItem>
+                                            )}
+                                          </Autocomplete>
+                                        </div>
+
+                                        <Divider className="bg-default-200" />
+
+                                        <div className="flex flex-col gap-4">
+                                          <Textarea
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.subjective as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={true}
+                                            label="1. Subjective data"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.subjective}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                          />
+                                          <Textarea
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.objective as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={true}
+                                            label="2. Objective data"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.objective}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                          />
+                                          <Textarea
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.assessment as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={true}
+                                            label="3. Assessment"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.assessment}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                          />
+                                          <Textarea
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.plan as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={true}
+                                            label="4. Plan"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.plan}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                          />
+                                          <Textarea
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.note as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={true}
+                                            label="5. หมายเหตุ"
+                                            labelPlacement="outside"
+                                            minRows={2}
+                                            name={dischargeRound.note}
+                                            placeholder="หมายเหตุเพิ่มเติม"
+                                            variant="bordered"
+                                          />
+                                          <DatePicker
+                                            showMonthAndYearPickers
+                                            className="max-w-xs"
+                                            defaultValue={parseDateForPicker(
+                                              followUpVal
+                                            )}
+                                            isDisabled={true}
+                                            label="นัดพบครั้งถัดไป"
+                                            labelPlacement="outside"
+                                            name={
+                                              FOLLOW_UP_ROUNDS[idx].followUp
+                                            }
+                                            selectorButtonPlacement="start"
+                                            variant="bordered"
+                                          />
+                                        </div>
+                                      </div>
+                                    </Tab>
+                                  );
+                                })}
+                              </Tabs>
+                            </>
+                          );
+                        })()}
+                      </CardBody>
+                    </Card>
                   </div>
                 ) : mode === "edit-questionnaire" ? (
                   <QuestionDetailDrawer
@@ -1354,239 +1700,350 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     onQuestionChange={handleQuestionChange}
                   />
                 ) : (
-                  <div className="flex flex-col">
-                    <div>
-                      <div className="flex flex-row pb-3">
-                        <h2 className={subtitle()}>
-                          Consultant & Telemedicine
-                        </h2>
-                        <Select
-                          className="max-w-xs"
-                          defaultSelectedKeys={(
-                            questionData?.status || data?.status
-                          ).toString()}
-                          isDisabled={true}
-                          label="สถานะ"
-                          labelPlacement="outside-left"
-                          name="status"
-                          placeholder="สถานะ"
-                          radius="md"
-                          variant="bordered"
-                          onChange={(val) => {
-                            HandleChange({
-                              target: {
-                                name: "status",
-                                value: val.target.value,
-                              },
-                            });
-                          }}
-                        >
-                          {options.map((item) => (
-                            <SelectItem key={item.uid}>{item.name}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <Card>
-                        <CardBody className="flex flex-row gap-5">
-                          <div className="w-full">
-                            <DatePicker
-                              showMonthAndYearPickers
-                              defaultValue={parseDateForPicker(
-                                questionData?.schedule_telemed ??
-                                  data?.schedule_telemed
-                              )}
-                              isDisabled={
-                                (questionData?.status ?? data?.status) === 0
-                              }
-                              isRequired={true}
-                              label="วันที่พบนักจิตวิทยา"
-                              labelPlacement="outside"
-                              name="schedule_telemed"
-                              selectorButtonPlacement="start"
-                              variant="bordered"
-                              onChange={(date) => {
-                                if (date) {
-                                  HandleChange({
-                                    target: {
-                                      name: "schedule_telemed",
-                                      value: date.toString(),
-                                    },
-                                  });
+                  <div className="flex flex-col gap-6">
+                    <Card className="rounded-xl border border-default-200 shadow-sm">
+                      <CardBody className="flex flex-col gap-4 p-4 sm:p-6">
+                        {(() => {
+                          const q = questionData ?? data;
+                          const statusVal = q?.status ?? data?.status;
+                          const isLocked = statusVal === 0;
+                          const soapDisabled =
+                            statusVal !== 2 && statusVal !== 3;
+                          const followTab2Disabled = !isFollowUpRoundComplete(
+                            q,
+                            0
+                          );
+                          const followTab3Disabled = !isFollowUpRoundComplete(
+                            q,
+                            1
+                          );
+
+                          return (
+                            <>
+                              <h2 className={subtitle()}>
+                                บันทึกการให้คำปรึกษา
+                              </h2>
+                              <Tabs
+                                fullWidth
+                                aria-label="รอบ Consultant และ Telemedicine"
+                                className="w-full"
+                                color="primary"
+                                selectedKey={followUpRoundTab}
+                                variant="bordered"
+                                onSelectionChange={(key) =>
+                                  setFollowUpRoundTab(String(key))
                                 }
-                              }}
-                            />
-                          </div>
-                          <div className="w-full">
-                            <Autocomplete
-                              defaultItems={Consultant}
-                              defaultSelectedKey={
-                                questionData?.consult ??
-                                data?.consult ??
-                                undefined
-                              }
-                              errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
-                              isDisabled={
-                                (questionData?.status || data?.status) === 0
-                              }
-                              isInvalid={isError}
-                              isRequired={true}
-                              label="ผู้ให้คำปรึกษา"
-                              labelPlacement="outside"
-                              placeholder="Consultant"
-                              radius="md"
-                              variant="bordered"
-                              onSelectionChange={(val) =>
-                                HandleChange({
-                                  target: {
-                                    name: "consult",
-                                    value: val != null ? String(val) : null,
-                                  },
-                                })
-                              }
-                            >
-                              {(item) => (
-                                <AutocompleteItem key={item.id}>
-                                  {item.name}
-                                </AutocompleteItem>
-                              )}
-                            </Autocomplete>
-                            <div className="mt-2 flex justify-end">
-                              <Button
-                                color={consultantSaved ? "success" : "primary"}
-                                isDisabled={consultantLoading}
-                                isLoading={consultantLoading}
-                                type="button"
-                                variant="flat"
-                                onPress={handleSaveConsultant}
                               >
-                                {consultantSaved
-                                  ? "บันทึกแล้ว"
-                                  : "บันทึกผู้ให้คำปรึกษา"}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    </div>
-                    <div>
-                      <div className="flex flex-row py-3">
-                        <h2 className={subtitle()}>Discharge Summary</h2>
-                        <DatePicker
-                          showMonthAndYearPickers
-                          className="max-w-xs"
-                          defaultValue={parseDateForPicker(
-                            questionData?.follow_up ?? data?.follow_up
-                          )}
-                          isDisabled={
-                            (questionData?.status ?? data?.status) !== 2 &&
-                            (questionData?.status ?? data?.status) !== 3
-                          }
-                          label="นัดพบครั้งถัดไป"
-                          labelPlacement="outside-left"
-                          name="follow_up"
-                          selectorButtonPlacement="start"
-                          variant="bordered"
-                        />
-                      </div>
-                      <Card>
-                        <CardBody className="gap-5">
-                          <Textarea
-                            isClearable
-                            isRequired
-                            defaultValue={
-                              questionData?.subjective ?? data?.subjective
-                            }
-                            isDisabled={
-                              (questionData?.status ?? data?.status) !== 2 &&
-                              (questionData?.status ?? data?.status) !== 3
-                            }
-                            label="1.	Subjective data"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="subjective"
-                            placeholder="Description"
-                            variant="bordered"
-                            onChange={HandleChange}
-                            onClear={() =>
-                              HandleChange({
-                                target: { name: "subjective", value: "" },
-                              })
-                            }
-                          />
-                          <Textarea
-                            isClearable
-                            isRequired
-                            defaultValue={
-                              questionData?.objective || data?.objective
-                            }
-                            isDisabled={
-                              (questionData?.status || data?.status) !== 2 &&
-                              (questionData?.status || data?.status) !== 3
-                            }
-                            label="2.	Objective data"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="objective"
-                            placeholder="Description"
-                            variant="bordered"
-                            onChange={HandleChange}
-                            onClear={() =>
-                              HandleChange({
-                                target: { name: "objective", value: "" },
-                              })
-                            }
-                          />
-                          <Textarea
-                            isClearable
-                            isRequired
-                            defaultValue={
-                              questionData?.assessment ?? data?.assessment
-                            }
-                            isDisabled={
-                              (questionData?.status || data?.status) !== 2 &&
-                              (questionData?.status || data?.status) !== 3
-                            }
-                            label="3.	Assessment"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="assessment"
-                            placeholder="Description"
-                            variant="bordered"
-                            onChange={HandleChange}
-                            onClear={() =>
-                              HandleChange({
-                                target: { name: "assessment", value: "" },
-                              })
-                            }
-                          />
-                          <Textarea
-                            isClearable
-                            isRequired
-                            defaultValue={questionData?.plan ?? data?.plan}
-                            isDisabled={
-                              (questionData?.status || data?.status) !== 2 &&
-                              (questionData?.status || data?.status) !== 3
-                            }
-                            label="4.	Plan"
-                            labelPlacement="outside"
-                            minRows={3}
-                            name="plan"
-                            placeholder="Description"
-                            variant="bordered"
-                            onChange={HandleChange}
-                            onClear={() =>
-                              HandleChange({
-                                target: { name: "plan", value: "" },
-                              })
-                            }
-                          />
-                        </CardBody>
-                      </Card>
-                    </div>
+                                {CONSULT_TELEMED_ROUNDS.map((round, idx) => {
+                                  const schedVal = q?.[
+                                    round.schedule as keyof QuestionsData
+                                  ] as Date | string | null | undefined;
+                                  const consultVal = q?.[
+                                    round.consult as keyof QuestionsData
+                                  ] as string | null | undefined;
+                                  const tabKey = `r${idx + 1}`;
+                                  const dischargeRound =
+                                    DISCHARGE_SUMMARY_ROUNDS[idx];
+                                  const followUpVal = q?.[
+                                    FOLLOW_UP_ROUNDS[idx]
+                                      .followUp as keyof QuestionsData
+                                  ] as Date | string | null | undefined;
+                                  const isRoundComplete =
+                                    isFollowUpRoundComplete(
+                                      q,
+                                      idx as 0 | 1 | 2
+                                    );
+                                  const soapSectionLocked =
+                                    soapDisabled || !consultantRoundSaved[idx];
+
+                                  return (
+                                    <Tab
+                                      key={tabKey}
+                                      isDisabled={
+                                        (idx === 1 && followTab2Disabled) ||
+                                        (idx === 2 && followTab3Disabled)
+                                      }
+                                      title={
+                                        isRoundComplete ? (
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <span>{round.label}</span>
+                                            <CheckCircleIcon className="size-4 text-success" />
+                                          </span>
+                                        ) : (
+                                          round.label
+                                        )
+                                      }
+                                    >
+                                      <div className="mt-2 flex flex-col gap-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                                          <DatePicker
+                                            showMonthAndYearPickers
+                                            defaultValue={parseDateForPicker(
+                                              schedVal
+                                            )}
+                                            isDisabled={isLocked}
+                                            isRequired={!isLocked}
+                                            label="วันที่พบนักจิตวิทยา"
+                                            labelPlacement="outside"
+                                            name={round.schedule}
+                                            selectorButtonPlacement="start"
+                                            variant="bordered"
+                                            onChange={(date) => {
+                                              HandleChange({
+                                                target: {
+                                                  name: round.schedule,
+                                                  value: date
+                                                    ? date.toString()
+                                                    : "",
+                                                },
+                                              });
+                                            }}
+                                          />
+                                          <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
+                                            <Autocomplete
+                                              className="min-w-0 flex-1"
+                                              defaultItems={Consultant}
+                                              defaultSelectedKey={
+                                                consultVal ?? undefined
+                                              }
+                                              errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
+                                              isDisabled={isLocked}
+                                              isInvalid={
+                                                isError &&
+                                                consultValidationRound === idx
+                                              }
+                                              isRequired={!isLocked}
+                                              label="ผู้ให้คำปรึกษา"
+                                              labelPlacement="outside"
+                                              placeholder="เลือกผู้ให้คำปรึกษา"
+                                              radius="md"
+                                              variant="bordered"
+                                              onSelectionChange={(val) =>
+                                                HandleChange({
+                                                  target: {
+                                                    name: round.consult,
+                                                    value:
+                                                      val != null
+                                                        ? String(val)
+                                                        : null,
+                                                  },
+                                                })
+                                              }
+                                            >
+                                              {(item) => (
+                                                <AutocompleteItem key={item.id}>
+                                                  {item.name}
+                                                </AutocompleteItem>
+                                              )}
+                                            </Autocomplete>
+                                            <Button
+                                              className="w-full shrink-0 md:w-auto"
+                                              color={
+                                                consultantRoundSaved[idx]
+                                                  ? "success"
+                                                  : "primary"
+                                              }
+                                              isDisabled={consultantLoading}
+                                              isLoading={consultantLoading}
+                                              type="button"
+                                              variant="flat"
+                                              onPress={() =>
+                                                handleSaveConsultant(
+                                                  idx as 0 | 1 | 2
+                                                )
+                                              }
+                                            >
+                                              {consultantRoundSaved[idx]
+                                                ? "บันทึกแล้ว"
+                                                : "บันทึกผู้ให้คำปรึกษา"}
+                                            </Button>
+                                          </div>
+                                        </div>
+
+                                        <Divider className="bg-default-200" />
+
+                                        {!soapDisabled &&
+                                          !consultantRoundSaved[idx] && (
+                                            <p className="text-small text-default-500">
+                                              กรุณากรอกวันที่พบและผู้ให้คำปรึกษา
+                                              แล้วกด
+                                              &quot;บันทึกผู้ให้คำปรึกษา&quot;
+                                              ก่อนกรอก Discharge Summary
+                                              ด้านล่าง
+                                            </p>
+                                          )}
+
+                                        <div className="flex flex-col gap-4">
+                                          <Textarea
+                                            isClearable
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.subjective as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={soapSectionLocked}
+                                            isRequired={true}
+                                            label="1. Subjective data"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.subjective}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                            onChange={HandleChange}
+                                            onClear={() =>
+                                              HandleChange({
+                                                target: {
+                                                  name: dischargeRound.subjective,
+                                                  value: "",
+                                                },
+                                              })
+                                            }
+                                          />
+                                          <Textarea
+                                            isClearable
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.objective as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={soapSectionLocked}
+                                            isRequired={true}
+                                            label="2. Objective data"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.objective}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                            onChange={HandleChange}
+                                            onClear={() =>
+                                              HandleChange({
+                                                target: {
+                                                  name: dischargeRound.objective,
+                                                  value: "",
+                                                },
+                                              })
+                                            }
+                                          />
+                                          <Textarea
+                                            isClearable
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.assessment as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={soapSectionLocked}
+                                            isRequired={true}
+                                            label="3. Assessment"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.assessment}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                            onChange={HandleChange}
+                                            onClear={() =>
+                                              HandleChange({
+                                                target: {
+                                                  name: dischargeRound.assessment,
+                                                  value: "",
+                                                },
+                                              })
+                                            }
+                                          />
+                                          <Textarea
+                                            isClearable
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.plan as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={soapSectionLocked}
+                                            isRequired={true}
+                                            label="4. Plan"
+                                            labelPlacement="outside"
+                                            minRows={3}
+                                            name={dischargeRound.plan}
+                                            placeholder="Description"
+                                            variant="bordered"
+                                            onChange={HandleChange}
+                                            onClear={() =>
+                                              HandleChange({
+                                                target: {
+                                                  name: dischargeRound.plan,
+                                                  value: "",
+                                                },
+                                              })
+                                            }
+                                          />
+                                          <Textarea
+                                            isClearable
+                                            defaultValue={
+                                              (q?.[
+                                                dischargeRound.note as keyof QuestionsData
+                                              ] as string | null | undefined) ??
+                                              ""
+                                            }
+                                            isDisabled={soapSectionLocked}
+                                            label="5. หมายเหตุ"
+                                            labelPlacement="outside"
+                                            minRows={2}
+                                            name={dischargeRound.note}
+                                            placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)"
+                                            variant="bordered"
+                                            onChange={HandleChange}
+                                            onClear={() =>
+                                              HandleChange({
+                                                target: {
+                                                  name: dischargeRound.note,
+                                                  value: "",
+                                                },
+                                              })
+                                            }
+                                          />
+                                          <DatePicker
+                                            showMonthAndYearPickers
+                                            className="max-w-xs"
+                                            defaultValue={parseDateForPicker(
+                                              followUpVal
+                                            )}
+                                            isDisabled={soapSectionLocked}
+                                            label="นัดพบครั้งถัดไป"
+                                            labelPlacement="outside"
+                                            name={
+                                              FOLLOW_UP_ROUNDS[idx].followUp
+                                            }
+                                            selectorButtonPlacement="start"
+                                            variant="bordered"
+                                            onChange={(date) => {
+                                              HandleChange({
+                                                target: {
+                                                  name: FOLLOW_UP_ROUNDS[idx]
+                                                    .followUp,
+                                                  value: date
+                                                    ? date.toString()
+                                                    : "",
+                                                },
+                                              });
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </Tab>
+                                  );
+                                })}
+                              </Tabs>
+                            </>
+                          );
+                        })()}
+                      </CardBody>
+                    </Card>
                   </div>
                 )}
               </DrawerBody>
-              <DrawerFooter className="w-full">
+              <DrawerFooter className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-default-200 bg-content1/40 px-4 py-3 sm:px-6">
                 <Button color="danger" variant="light" onPress={onClose}>
                   ปิด
                 </Button>

@@ -451,25 +451,12 @@ export const ModalExportData = ({
         return item.schedule_telemed != null
           ? formatThaiDate(item.schedule_telemed)
           : "-";
-      case "followUpDate1": {
-        const row = item as Record<string, unknown>;
-
-        return row.followUpDate1 ? formatThaiDate(item.follow_up) : "-";
-      }
-      case "followUpDate2": {
-        const row = item as Record<string, unknown>;
-
-        return row.followUpDate2 && row.follow_up2
-          ? formatThaiDate(row.follow_up2 as Date)
-          : "-";
-      }
-      case "followUpDate3": {
-        const row = item as Record<string, unknown>;
-
-        return row.followUpDate3 && row.follow_up3
-          ? formatThaiDate(row.follow_up3 as Date)
-          : "-";
-      }
+      case "followUpDate1":
+        return item.follow_up != null ? formatThaiDate(item.follow_up) : "-";
+      case "followUpDate2":
+        return item.follow_up2 != null ? formatThaiDate(item.follow_up2) : "-";
+      case "followUpDate3":
+        return item.follow_up3 != null ? formatThaiDate(item.follow_up3) : "-";
       case "referralUnit":
         return (item as Record<string, unknown>).referralUnit != null
           ? String((item as Record<string, unknown>).referralUnit)

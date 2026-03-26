@@ -1,3 +1,7 @@
+import type { QuestionsData } from "@/types";
+
+import { getFollowUpRoundStatuses } from "../../../../lib/question-followup-rounds";
+
 import { prisma } from "@/utils/prisma";
 import { getSession, requireAdmin } from "@/lib/get-session";
 
@@ -23,12 +27,29 @@ export async function GET(
       longitude: true,
       createdAt: true,
       subjective: true,
+      subjective2: true,
+      subjective3: true,
       objective: true,
+      objective2: true,
+      objective3: true,
       assessment: true,
+      assessment2: true,
+      assessment3: true,
       plan: true,
+      plan2: true,
+      plan3: true,
+      note: true,
+      note2: true,
+      note3: true,
       schedule_telemed: true,
+      schedule_telemed2: true,
+      schedule_telemed3: true,
       follow_up: true,
+      follow_up2: true,
+      follow_up3: true,
       consult: true,
+      consult2: true,
+      consult3: true,
       status: true,
       profile: {
         select: {
@@ -96,5 +117,12 @@ export async function GET(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return Response.json(question);
+  const payload = {
+    ...question,
+    followUpRoundStatuses: getFollowUpRoundStatuses(
+      question as unknown as QuestionsData
+    ),
+  };
+
+  return Response.json(payload);
 }

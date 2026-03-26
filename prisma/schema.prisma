@@ -98,7 +98,7 @@ model Profile {
   school School? @relation(fields: [schoolId], references: [id])
 
   schoolId  Int?
-  gradeYear Int?   // ชั้นปี (แสดงเมื่อเลือกสถานศึกษา) 1-6 ป.1-ป.6, 7-12 ม.1-ม.6
+  gradeYear Int? // ชั้นปี (แสดงเมื่อเลือกสถานศึกษา) 1-6 ป.1-ป.6, 7-12 ม.1-ม.6
 
   @@index([userId])
 }
@@ -194,30 +194,48 @@ model Subdistricts {
 }
 
 model Questions_Master {
-  id               String                 @id @default(cuid())
-  profileId        String
-  referentId       Int?
-  consult          String?
-  latitude         Decimal?               @db.Decimal(10, 7)
-  longitude        Decimal?               @db.Decimal(10, 7)
-  result           String
-  result_text      String?
-  schedule_telemed DateTime?
-  subjective       String?                @db.Text
-  objective        String?                @db.Text
-  assessment       String?                @db.Text
-  plan             String?                @db.Text
-  follow_up        DateTime?
-  status           Int                    @default(0)
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  q2               Questions_2Q[]
-  phqa             Questions_PHQA[]
-  addon            Questions_PHQA_Addon[]
+  id                String                 @id @default(cuid())
+  profileId         String
+  referentId        Int?
+  consult           String?
+  consult2          String?
+  consult3          String?
+  latitude          Decimal?               @db.Decimal(10, 7)
+  longitude         Decimal?               @db.Decimal(10, 7)
+  result            String
+  result_text       String?
+  schedule_telemed  DateTime?
+  schedule_telemed2 DateTime?
+  schedule_telemed3 DateTime?
+  subjective        String?                @db.Text
+  objective         String?                @db.Text
+  assessment        String?                @db.Text
+  plan              String?                @db.Text
+  // Discharge Summary (SOAP + หมายเหตุ) รอบ 1–3 — สอดคล้อง lib/question-followup-rounds DISCHARGE_SUMMARY_ROUNDS
+  note              String?                @db.Text
+  note2             String?                @db.Text
+  note3             String?                @db.Text
+  subjective2       String?                @db.Text
+  subjective3       String?                @db.Text
+  objective2        String?                @db.Text
+  objective3        String?                @db.Text
+  assessment2       String?                @db.Text
+  assessment3       String?                @db.Text
+  plan2             String?                @db.Text
+  plan3             String?                @db.Text
+  follow_up         DateTime?
+  follow_up2        DateTime?
+  follow_up3        DateTime?
+  status            Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  q2                Questions_2Q[]
+  phqa              Questions_PHQA[]
+  addon             Questions_PHQA_Addon[]
   // เวอร์ชันแบบประเมินอื่น (แยกโมเดลเฉพาะชุดคำถาม)
-  q9               Questions_9Q[]
-  q8               Questions_8Q[]
-  referent         Referent?              @relation(fields: [referentId], references: [id])
+  q9                Questions_9Q[]
+  q8                Questions_8Q[]
+  referent          Referent?              @relation(fields: [referentId], references: [id])
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   // User    User?   @relation(fields: [userId], references: [id])
@@ -298,7 +316,7 @@ model Questions_8Q {
   q7                 Int     @default(0)
   q8                 Int     @default(0)
   // คำถามต่อเนื่อง (สำหรับกรณีตอบข้อที่เกี่ยวกับการคิดฆ่าตัวตาย)
-  q8Addon           Int     @default(0)
+  q8Addon            Int     @default(0)
   sum                Int     @default(0)
 
   Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
