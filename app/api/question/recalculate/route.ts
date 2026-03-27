@@ -1,13 +1,22 @@
 import { Questions_PHQA } from "@prisma/client";
 
 import { requireAdmin } from "@/lib/get-session";
-import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
+import {
+  getNineQRiskLevel,
+  getNineQRiskText,
+  getPhqaRiskLevel,
+  getPhqaRiskText,
+} from "@/utils/helper";
 import { prisma } from "@/utils/prisma";
 
-// ฟังก์ชันคำนวณผลลัพธ์ PHQA
-function calculateResult(phqa_sum: number) {
-  const result = getPhqaRiskLevel(phqa_sum);
-  const result_text = getPhqaRiskText(phqa_sum);
+type MainAssessmentScale = "PHQA" | "9Q";
+
+// ฟังก์ชันคำนวณผลลัพธ์ตามแบบประเมินหลัก
+function calculateResult(sum: number, scale: MainAssessmentScale) {
+  const result =
+    scale === "9Q" ? getNineQRiskLevel(sum) : getPhqaRiskLevel(sum);
+  const result_text =
+    scale === "9Q" ? getNineQRiskText(sum) : getPhqaRiskText(sum);
 
   return { result, result_text };
 }
@@ -39,6 +48,7 @@ export async function POST() {
     const allQuestions = await prisma.questions_Master.findMany({
       include: {
         phqa: true,
+        q9: true,
         profile: true,
       },
       where: {
@@ -59,13 +69,17 @@ export async function POST() {
 
       try {
         if (question.phqa && question.phqa.length > 0) {
-          const phqaData = question.phqa[0];
+          const isNineQ = Array.isArray(question.q9) && question.q9.length > 0;
+          const sourceData = isNineQ ? question.q9[0] : question.phqa[0];
 
           // คำนวณ sum ใหม่
-          const newSum = calculateSum(phqaData);
+          const newSum = calculateSum(sourceData as Questions_PHQA);
 
           // คำนวณผลลัพธ์ใหม่
-          const { result, result_text } = calculateResult(newSum);
+          const { result, result_text } = calculateResult(
+            newSum,
+            isNineQ ? "9Q" : "PHQA"
+          );
 
           // อัปเดตข้อมูลในฐานข้อมูล
           await prisma.$transaction([
@@ -78,6 +92,18 @@ export async function POST() {
                 sum: newSum,
               },
             }),
+            ...(isNineQ
+              ? [
+                  prisma.questions_9Q.updateMany({
+                    where: {
+                      questions_MasterId: question.id,
+                    },
+                    data: {
+                      sum: newSum,
+                    },
+                  }),
+                ]
+              : []),
             // อัปเดต result และ result_text ใน Questions_Master (ไม่รวม status)
             prisma.questions_Master.update({
               where: {

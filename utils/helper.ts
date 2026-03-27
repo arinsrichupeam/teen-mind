@@ -38,6 +38,25 @@ export function getPhqaRiskText(sum: number): string {
   return ""; // default value เป็นค่าว่าง
 }
 
+// ฟังก์ชันคำนวณระดับความเสี่ยง 9Q และ return result value
+export function getNineQRiskLevel(sum: number): string {
+  if (sum < 7) return "Green";
+  if (sum <= 12) return "Yellow";
+  if (sum <= 18) return "Orange";
+
+  return "Red";
+}
+
+// ฟังก์ชันคำนวณระดับความเสี่ยง 9Q และ return result_text
+export function getNineQRiskText(sum: number): string {
+  if (sum < 7)
+    return "ไม่มีอาการของโรคซึมเศร้าหรือมีอาการของโรคซึมเศร้าระดับน้อยมาก";
+  if (sum <= 12) return "มีอาการของโรคซึมเศร้า ระดับน้อย";
+  if (sum <= 18) return "มีอาการของโรคซึมเศร้า ระดับปานกลาง";
+
+  return "มีอาการของโรคซึมเศร้า ระดับรุนแรง";
+}
+
 /** Item ที่มี phqa array (ใช้กับ calculatePhqaRiskLevel) */
 export interface ItemWithPhqa {
   phqa?: Array<{ sum: number }>;

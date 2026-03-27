@@ -23,7 +23,12 @@ import {
   OrangeFlex,
   getEmergencyAlertFlex,
 } from "@/config/line-flex";
-import { getPhqaRiskLevel, getPhqaRiskText } from "@/utils/helper";
+import {
+  getNineQRiskLevel,
+  getNineQRiskText,
+  getPhqaRiskLevel,
+  getPhqaRiskText,
+} from "@/utils/helper";
 
 function buildWhereFromQuery(url: URL) {
   const search = url.searchParams.get("search")?.trim() || "";
@@ -337,7 +342,10 @@ export async function POST(req: Request) {
       : SumValue(phqa_data as Questions_PHQA);
     const q8_sum = SumValue8Q(q8_data);
 
-    const { result, result_text } = calculateResult(scoreSum);
+    const { result, result_text } = calculateMainAssessmentResult(
+      scoreSum,
+      q9_data ? "9Q" : "PHQA"
+    );
 
     // ดึงข้อมูลผู้ใช้ (รวมชื่อ-เบอร์ สำหรับแจ้งเตือน admin เมื่อ Red)
     const profile = await prisma.profile.findUnique({
@@ -571,8 +579,11 @@ export async function PUT(req: Request) {
     const data = await req.json();
     const question: QuestionsData = data;
 
-    const mainScreeningSum = getMainScreeningSum(question);
-    const { result, result_text } = calculateResult(mainScreeningSum);
+    const { sum: mainScreeningSum, scale } = getMainScreeningData(question);
+    const { result, result_text } = calculateMainAssessmentResult(
+      mainScreeningSum,
+      scale
+    );
 
     // อัปเดตข้อมูลหลัก
     const updatedQuestion = await prisma.questions_Master.update({
@@ -795,17 +806,10 @@ export async function PUT(req: Request) {
 }
 
 /** คะแนนชุดหลัก PHQ-A / 9Q สำหรับคำนวณระดับความเสี่ยง (รองรับทั้ง under12 และ over12) */
-function getMainScreeningSum(question: QuestionsData): number {
-  const phqaRow = question.phqa?.[0];
-
-  if (
-    phqaRow != null &&
-    typeof phqaRow.sum === "number" &&
-    !Number.isNaN(phqaRow.sum)
-  ) {
-    return phqaRow.sum;
-  }
-
+function getMainScreeningData(question: QuestionsData): {
+  sum: number;
+  scale: "PHQA" | "9Q";
+} {
   const q9Row = question.q9?.[0];
 
   if (
@@ -813,10 +817,20 @@ function getMainScreeningSum(question: QuestionsData): number {
     typeof q9Row.sum === "number" &&
     !Number.isNaN(q9Row.sum)
   ) {
-    return q9Row.sum;
+    return { sum: q9Row.sum, scale: "9Q" };
   }
 
-  return 0;
+  const phqaRow = question.phqa?.[0];
+
+  if (
+    phqaRow != null &&
+    typeof phqaRow.sum === "number" &&
+    !Number.isNaN(phqaRow.sum)
+  ) {
+    return { sum: phqaRow.sum, scale: "PHQA" };
+  }
+
+  return { sum: 0, scale: "PHQA" };
 }
 
 function CalStatus(value: QuestionsData) {
@@ -966,10 +980,12 @@ function validateQuestionData(data: QuestionPayload) {
   }
 }
 
-// แยกฟังก์ชันคำนวณผลลัพธ์
-function calculateResult(phqa_sum: number) {
-  const result = getPhqaRiskLevel(phqa_sum);
-  const result_text = getPhqaRiskText(phqa_sum);
+// แยกฟังก์ชันคำนวณผลลัพธ์ตามแบบประเมินหลัก
+function calculateMainAssessmentResult(sum: number, scale: "PHQA" | "9Q") {
+  const result =
+    scale === "9Q" ? getNineQRiskLevel(sum) : getPhqaRiskLevel(sum);
+  const result_text =
+    scale === "9Q" ? getNineQRiskText(sum) : getPhqaRiskText(sum);
 
   return { result, result_text };
 }
