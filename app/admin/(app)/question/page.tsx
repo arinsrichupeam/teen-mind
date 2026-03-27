@@ -495,15 +495,38 @@ export default function QuestionPage() {
             </Chip>
           );
         case "phqa":
+          let phqaScore: string | number = "-";
+
           if (Array.isArray(item.q9) && item.q9.length > 0) {
-            return item.q9[0].sum;
+            phqaScore = item.q9[0].sum;
+          } else if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+            phqaScore = item.phqa[0].sum;
           }
 
-          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-            return item.phqa[0].sum;
+          if (!item.result_text || phqaScore === "-") {
+            return "-";
           }
 
-          return "-";
+          return (
+            <Chip
+              className="capitalize"
+              color={
+                item.result === "Green"
+                  ? "success"
+                  : item.result === "Green-Low"
+                    ? "success"
+                    : item.result === "Yellow"
+                      ? "warning"
+                      : item.result === "Orange"
+                        ? "warning"
+                        : "danger"
+              }
+              size="sm"
+              variant="flat"
+            >
+              {`${item.result_text} (${phqaScore})`}
+            </Chip>
+          );
         case "2q":
           if (Array.isArray(item.q2) && item.q2.length > 0) {
             const q2Data = item.q2[0];
@@ -536,22 +559,6 @@ export default function QuestionPage() {
                 variant="flat"
               >
                 {hasRisk ? `พบความเสี่ยง (${q8Score})` : "ไม่พบความเสี่ยง (0)"}
-              </Chip>
-            );
-          }
-
-          if (Array.isArray(item.addon) && item.addon.length > 0) {
-            const addonData = item.addon[0];
-            const hasRisk = addonData.q1 === 1 || addonData.q2 === 1;
-
-            return (
-              <Chip
-                className="capitalize"
-                color={hasRisk ? "danger" : "success"}
-                size="sm"
-                variant="flat"
-              >
-                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
               </Chip>
             );
           }

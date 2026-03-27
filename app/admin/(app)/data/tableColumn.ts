@@ -1,8 +1,7 @@
 export const QuestionColumnsName = [
   { name: "ชื่อ - สกุล", uid: "name", align: "start" },
   { name: "อายุ", uid: "age", align: "center" },
-  { name: "คะแนน 9Q/PHQ-A", uid: "phqa", align: "center" },
-  { name: "ระดับความเสี่ยง", uid: "result", align: "center" },
+  { name: "9Q/PHQ-A", uid: "phqa", align: "center" },
   { name: "2Q", uid: "2q", align: "center" },
   { name: "8Q", uid: "addon", align: "center" },
   { name: "วันที่ประเมิน", uid: "createdAt", align: "center" },
