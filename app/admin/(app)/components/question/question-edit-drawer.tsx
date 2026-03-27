@@ -1,5 +1,6 @@
 "use client";
 
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import moment from "moment";
 import { FormEvent, useCallback, useEffect, useState } from "react";
@@ -280,6 +281,78 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         title: "Error",
         description:
           err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก HN",
+        color: "danger",
+      });
+    } finally {
+      setHnIsloading(false);
+    }
+  };
+
+  const handleSearchHN = async () => {
+    const citizenId = (
+      questionData?.profile?.citizenId ||
+      data?.profile?.citizenId ||
+      ""
+    ).trim();
+
+    if (!citizenId) {
+      addToast({
+        title: "ไม่พบเลขบัตรประชาชน",
+        description: "กรุณาตรวจสอบข้อมูลเลขบัตรประชาชนก่อนค้นหา HN",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setHnIsloading(true);
+    try {
+      const response = await fetch("/api/his/patient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cardno: citizenId }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        hn?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "เกิดข้อผิดพลาดในการค้นหา HN");
+      }
+
+      const foundHn = payload.hn?.trim();
+
+      if (!foundHn) {
+        addToast({
+          title: "ไม่พบข้อมูล HN",
+          description: `ไม่พบข้อมูลผู้ป่วยจากเลขบัตร ${citizenId}`,
+          color: "warning",
+        });
+
+        return;
+      }
+
+      setQuestionData((prev) => ({
+        ...prev,
+        hn: foundHn,
+      }));
+
+      addToast({
+        title: "ค้นหา HN สำเร็จ",
+        description: `พบ HN: ${foundHn}`,
+        color: "success",
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการค้นหา HN"
+      );
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการค้นหา HN",
         color: "danger",
       });
     } finally {
@@ -1194,8 +1267,20 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           {!(questionData?.profile?.hn || data?.profile?.hn) ? (
                             <div className="flex flex-row gap-4">
                               <Input
-                                defaultValue={
-                                  questionData?.profile?.hn || data?.profile?.hn
+                                endContent={
+                                  <Button
+                                    isIconOnly
+                                    aria-label="ค้นหา HN"
+                                    isDisabled={
+                                      mode == "view-questionnaire" ||
+                                      mode == "view-consultation"
+                                    }
+                                    size="sm"
+                                    variant="light"
+                                    onPress={handleSearchHN}
+                                  >
+                                    <MagnifyingGlassIcon className="w-4 h-4" />
+                                  </Button>
                                 }
                                 isDisabled={
                                   mode == "view-questionnaire" ||
@@ -1203,6 +1288,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 }
                                 name="hn"
                                 startContent={<p> HN:</p>}
+                                value={
+                                  questionData?.hn ||
+                                  questionData?.profile?.hn ||
+                                  data?.profile?.hn ||
+                                  ""
+                                }
                                 variant="bordered"
                                 onChange={HandleChange}
                               />
