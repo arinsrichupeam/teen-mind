@@ -9,14 +9,14 @@ export default function Loading() {
         <Image
           alt="app logo"
           className="h-[calc(7vh)]"
-          loading="lazy"
-          src="../image/Logo_App.png"
+          loading="eager"
+          src="/image/Logo_App.png"
         />
         <Image
           alt="loading"
           className="h-[calc(35vh)]"
-          loading="lazy"
-          src="../image/Loading.gif"
+          loading="eager"
+          src="/image/Loading.gif"
         />
         <h1 className={title({ size: "sm" })}>รอสักครู่นะทุกคน</h1>
       </div>

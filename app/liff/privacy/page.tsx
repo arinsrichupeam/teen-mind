@@ -79,7 +79,7 @@ export default function PrivacyPage() {
                   <Image
                     alt="Privacy Image"
                     height={200}
-                    loading="lazy"
+                    loading="eager"
                     src="../image/Privacy.png"
                   />
                   <h2 className={title({ size: "xs" })}>

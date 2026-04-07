@@ -41,6 +41,7 @@ export async function GET(
       note: true,
       note2: true,
       note3: true,
+      close_case_reason: true,
       schedule_telemed: true,
       schedule_telemed2: true,
       schedule_telemed3: true,

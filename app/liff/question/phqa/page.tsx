@@ -57,7 +57,7 @@ export default function PHQAPage() {
       key={index}
       alt={image.alt}
       className="h-[20vh]"
-      loading="lazy"
+      loading="eager"
       src={image.src}
     />
   ));
@@ -70,7 +70,7 @@ export default function PHQAPage() {
       key={index}
       alt={image.alt}
       className="h-[20vh]"
-      loading="lazy"
+      loading="eager"
       src={image.src}
     />
   ));

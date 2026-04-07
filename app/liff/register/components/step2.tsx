@@ -161,8 +161,6 @@ export const Step2 = ({
         onChange={HandleChange}
       />
       <Input
-        errorMessage="กรุณากรอกถนน"
-        isRequired={request}
         label="ถนน"
         labelPlacement="inside"
         name="road"

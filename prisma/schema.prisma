@@ -215,6 +215,7 @@ model Questions_Master {
   note              String?                @db.Text
   note2             String?                @db.Text
   note3             String?                @db.Text
+  close_case_reason String?                @db.Text
   subjective2       String?                @db.Text
   subjective3       String?                @db.Text
   objective2        String?                @db.Text

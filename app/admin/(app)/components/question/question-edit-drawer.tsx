@@ -27,6 +27,11 @@ import {
   Image,
   Input,
   Link,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Tab,
   Tabs,
   Textarea,
@@ -131,6 +136,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     0 | 1 | 2 | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCloseCaseModalOpen, setIsCloseCaseModalOpen] = useState(false);
+  const [closeCaseReason, setCloseCaseReason] = useState("");
   const [modalKey, setModalKey] = useState(0);
   /** รอบไหนบันทึกวันที่พบ + ผู้ให้คำปรึกษาแล้ว (ถึงจะกรอก SOAP / หมายเหตุ / นัดพบครั้งถัดไป) */
   const [consultantRoundSaved, setConsultantRoundSaved] = useState<
@@ -508,6 +515,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           note: questionData.note,
           note2: questionData.note2,
           note3: questionData.note3,
+          close_case_reason: questionData.close_case_reason,
           follow_up: questionData.follow_up,
           follow_up2: questionData.follow_up2,
           follow_up3: questionData.follow_up3,
@@ -603,11 +611,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return false;
       }
 
+      const isPendingSummary = statusVal === 2;
+      const isCompleted = statusVal === 3;
+      const requiresRound2 = isPendingSummary || isCompleted;
+      const requiresRound3 = isCompleted;
+
       // Round 2
-      if (
-        (statusVal === 2 || statusVal === 3) &&
-        !questionData.schedule_telemed2
-      ) {
+      if (requiresRound2 && !questionData.schedule_telemed2) {
         setIsError(true);
         setConsultValidationRound(1);
         setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 2");
@@ -626,10 +636,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       }
 
       // Round 3
-      if (
-        (statusVal === 2 || statusVal === 3) &&
-        !questionData.schedule_telemed3
-      ) {
+      if (requiresRound3 && !questionData.schedule_telemed3) {
         setIsError(true);
         setConsultValidationRound(2);
         setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 3");
@@ -637,7 +644,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return false;
       }
 
-      if (statusVal === 2 && !questionData.consult3) {
+      if (requiresRound3 && !questionData.consult3) {
         setIsError(true);
         setConsultValidationRound(2);
         setError(
@@ -647,8 +654,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return false;
       }
 
-      // Discharge Summary SOAP (ทุกครั้งเมื่อสถานะเป็น 2/3)
-      if (statusVal === 2 || statusVal === 3) {
+      // Discharge Summary SOAP
+      // status=2 ต้องครบรอบ 1-2, status=3 ต้องครบรอบ 1-3
+      if (requiresRound2) {
         if (!questionData.subjective || questionData.subjective.trim() === "") {
           setIsError(true);
           setConsultValidationRound(null);
@@ -718,7 +726,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
           return false;
         }
+      }
 
+      if (requiresRound3) {
         if (
           !questionData.subjective3 ||
           questionData.subjective3.trim() === ""
@@ -788,6 +798,101 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(e);
+  };
+
+  const openCloseCaseModal = () => {
+    setCloseCaseReason(questionData?.close_case_reason ?? "");
+    setIsCloseCaseModalOpen(true);
+  };
+
+  const handleCloseCase = async () => {
+    if (!questionData?.id) {
+      setError("ไม่พบข้อมูลคำถาม");
+
+      return;
+    }
+
+    const reason = closeCaseReason.trim();
+
+    if (!reason) {
+      addToast({
+        title: "แจ้งเตือน",
+        description: "กรุณาระบุเหตุผลการปิดเคสก่อนยืนยัน",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setConsultationLoading(true);
+    setError(null);
+
+    try {
+      const updatedPayload: QuestionsData = {
+        ...questionData,
+        close_case_reason: reason,
+      };
+      const saveReasonResponse = await fetch("/api/question/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedPayload),
+      });
+
+      if (!saveReasonResponse.ok) {
+        const errorData = await saveReasonResponse.json().catch(() => ({}));
+
+        throw new Error(
+          errorData.message || "ไม่สามารถบันทึกเหตุผลการปิดเคสได้"
+        );
+      }
+
+      const statusResponse = await fetch("/api/question/update-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          selectedIds: [questionData.id],
+          newStatus: 3,
+        }),
+      });
+
+      const statusResult = await statusResponse.json().catch(() => ({}));
+
+      if (!statusResponse.ok || !statusResult?.success) {
+        throw new Error(
+          statusResult?.error || "ไม่สามารถอัปเดตสถานะเป็นเสร็จสิ้นได้"
+        );
+      }
+
+      await refreshDrawerData();
+      setQuestionData((prev) => ({
+        ...prev,
+        status: 3,
+        close_case_reason: reason,
+      }));
+
+      addToast({
+        title: "Success",
+        description: "ปิดเคสสำเร็จ (สถานะเสร็จสิ้น)",
+        color: "success",
+      });
+      setIsCloseCaseModalOpen(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการปิดเคส";
+
+      setError(message);
+      addToast({
+        title: "Error",
+        description: message,
+        color: "danger",
+      });
+    } finally {
+      setConsultationLoading(false);
+    }
   };
 
   const handleSaveConsultant = async (roundIndex: 0 | 1 | 2) => {
@@ -909,6 +1014,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       setModalKey((prev) => prev + 1);
     }
   }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsCloseCaseModalOpen(false);
+      setCloseCaseReason("");
+    }
+  }, [isOpen]);
 
   // useEffect เพิ่มเติมสำหรับ refresh ข้อมูลหลังจาก drawer เปิดแล้ว
   useEffect(() => {
@@ -2138,6 +2250,18 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   ปิด
                 </Button>
+                {mode === "edit-consultation" && (
+                  <Button
+                    color="warning"
+                    isDisabled={consultationLoading}
+                    isLoading={consultationLoading}
+                    type="button"
+                    variant="flat"
+                    onPress={openCloseCaseModal}
+                  >
+                    ปิดเคส
+                  </Button>
+                )}
                 {mode === "edit-questionnaire" && (
                   <Button
                     color="primary"
@@ -2174,6 +2298,44 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         onClose={() => setIsModalOpen(false)}
         onSuccess={refreshDrawerData}
       />
+
+      <Modal
+        isOpen={isCloseCaseModalOpen}
+        placement="center"
+        onClose={() => setIsCloseCaseModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>ปิดเคส</ModalHeader>
+          <ModalBody>
+            <Textarea
+              isRequired
+              label="เหตุผลการปิดเคส"
+              labelPlacement="outside"
+              minRows={3}
+              placeholder="กรุณาระบุเหตุผลการปิดเคส"
+              value={closeCaseReason}
+              variant="bordered"
+              onChange={(e) => setCloseCaseReason(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              variant="light"
+              onPress={() => setIsCloseCaseModalOpen(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              color="danger"
+              isLoading={consultationLoading}
+              onPress={handleCloseCase}
+            >
+              ยืนยันปิดเคส
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };

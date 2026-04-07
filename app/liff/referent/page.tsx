@@ -39,8 +39,8 @@ export default function QuestionPage() {
           <Image
             alt="app logo"
             className="h-[calc(5vh)]"
-            loading="lazy"
-            src="../image/Logo_App.png"
+            loading="eager"
+            src="/image/Logo_App.png"
           />
           <Button
             className="w-40"

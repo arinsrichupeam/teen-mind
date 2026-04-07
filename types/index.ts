@@ -44,6 +44,7 @@ export type QuestionsData = {
   note?: string | null;
   note2?: string | null;
   note3?: string | null;
+  close_case_reason?: string | null;
   schedule_telemed: Date | null;
   schedule_telemed2?: Date | null;
   schedule_telemed3?: Date | null;
@@ -98,6 +99,7 @@ export interface Profile {
   citizenId: string;
   tel: string;
   school: ProfileSchool;
+  gradeYear?: number | null;
   hn: string;
   address: Address[];
   emergency: Emergency[];

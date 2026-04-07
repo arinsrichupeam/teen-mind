@@ -494,7 +494,7 @@ export function calculateGradeLevel(age: number): string {
     case 18:
       return "ม.6";
     default:
-      return "ไม่ระบุระดับชั้น";
+      return "-";
   }
 }
 

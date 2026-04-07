@@ -9,7 +9,7 @@ import {
   Button,
   Card,
   CardBody,
-  DatePicker,
+  DateRangePicker,
   Select,
   SelectItem,
   Table,
@@ -18,6 +18,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Pagination,
   addToast,
   Progress,
 } from "@heroui/react";
@@ -26,23 +27,9 @@ import * as XLSX from "xlsx";
 import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
 
-import { ProfileSchool, QuestionsData } from "@/types";
-import { prefix } from "@/utils/data";
-import {
-  calculateGradeLevelFromBirthday,
-  formatThaiDate,
-  calculateAge,
-} from "@/utils/helper";
-
-function getSchoolScreeningDate(
-  school: ProfileSchool | undefined
-): Date | string | null | undefined {
-  return typeof school === "object" &&
-    school !== null &&
-    "screeningDate" in school
-    ? school.screeningDate
-    : undefined;
-}
+import { QuestionsData } from "@/types";
+import { gradeYearLevels, prefix } from "@/utils/data";
+import { formatThaiDate, calculateAge } from "@/utils/helper";
 
 interface ExportField {
   key: string;
@@ -63,22 +50,76 @@ export const ModalExportData = ({
   data,
   dataType,
 }: ExportModalProps) => {
+  const [sourceData, setSourceData] = useState<QuestionsData[]>(data);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState<{
     dateFrom: string;
     dateTo: string;
     school: string;
+    mainScale: "" | "nineq" | "phqa";
     phqa: string[];
   }>({
     dateFrom: "",
     dateTo: "",
     school: "",
+    mainScale: "",
     phqa: [],
   });
-  const [displayedItems, setDisplayedItems] = useState<number>(10);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const rowsPerPage = 10;
+
+  useEffect(() => {
+    setSourceData(data);
+  }, [data]);
+
+  useEffect(() => {
+    const fetchAllQuestionData = async () => {
+      if (!isOpen || dataType !== "question") return;
+
+      try {
+        const firstRes = await fetch("/api/question?page=1&limit=2000", {
+          credentials: "include",
+        });
+
+        if (!firstRes.ok) {
+          throw new Error("Failed to fetch questions page 1");
+        }
+
+        const firstJson = await firstRes.json();
+        const allQuestions: QuestionsData[] = firstJson.questionsList ?? [];
+        const totalPages = Number(firstJson.pagination?.totalPages ?? 1);
+
+        if (totalPages > 1) {
+          for (let page = 2; page <= totalPages; page++) {
+            const res = await fetch(`/api/question?page=${page}&limit=2000`, {
+              credentials: "include",
+            });
+
+            if (!res.ok) {
+              throw new Error(`Failed to fetch questions page ${page}`);
+            }
+
+            const json = await res.json();
+
+            allQuestions.push(...(json.questionsList ?? []));
+          }
+        }
+
+        setSourceData(allQuestions);
+      } catch (error) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description:
+            "ไม่สามารถดึงข้อมูลทั้งหมดได้ ใช้ข้อมูลหน้าปัจจุบันแทน: " + error,
+          color: "warning",
+        });
+      }
+    };
+
+    fetchAllQuestionData();
+  }, [isOpen, dataType]);
 
   // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบสอบถาม
   const getAvailableFields = (): ExportField[] => {
@@ -277,19 +318,21 @@ export const ModalExportData = ({
         ...prev,
         [key]: value,
       }));
-      setDisplayedItems(10);
+      setCurrentPage(1);
+    },
+    []
+  );
+
+  const getMainScaleKey = useCallback(
+    (item: QuestionsData): "nineq" | "phqa" => {
+      return item.q9 != null && item.q9.length > 0 ? "nineq" : "phqa";
     },
     []
   );
 
   // ฟังก์ชันสำหรับ filter ข้อมูล
   const getFilteredData = useCallback(() => {
-    let filteredData = [...data];
-
-    // Filter เฉพาะ Status = 3 เท่านั้น
-    filteredData = filteredData.filter((item: QuestionsData) => {
-      return item.status === 3;
-    });
+    let filteredData = [...sourceData];
 
     if (filters.dateFrom && filters.dateTo) {
       filteredData = filteredData.filter((item: QuestionsData) => {
@@ -313,45 +356,20 @@ export const ModalExportData = ({
       });
     }
 
+    if (filters.mainScale) {
+      filteredData = filteredData.filter(
+        (item: QuestionsData) => getMainScaleKey(item) === filters.mainScale
+      );
+    }
+
     if (filters.phqa && filters.phqa.length > 0) {
       filteredData = filteredData.filter((item: QuestionsData) => {
         return filters.phqa.includes(item.result_text);
       });
     }
 
-    filteredData = filteredData.filter((item: QuestionsData) => {
-      if (!item.profile?.birthday) return false;
-
-      const age = calculateAge(
-        item.profile.birthday,
-        getSchoolScreeningDate(item.profile.school)
-      );
-
-      return age >= 12 && age <= 18;
-    });
-
-    // Filter ให้แสดงเฉพาะแบบประเมินล่าสุดของแต่ละคน
-    const latestAssessments = new Map();
-
-    filteredData.forEach((item: QuestionsData) => {
-      const profileId = item.profile?.id;
-
-      if (profileId) {
-        const existingItem = latestAssessments.get(profileId);
-
-        if (
-          !existingItem ||
-          new Date(item.createdAt) > new Date(existingItem.createdAt)
-        ) {
-          latestAssessments.set(profileId, item);
-        }
-      }
-    });
-
-    filteredData = Array.from(latestAssessments.values());
-
     return filteredData;
-  }, [data, filters]);
+  }, [sourceData, filters, getMainScaleKey]);
 
   const getFieldValue = (
     item: QuestionsData,
@@ -408,7 +426,17 @@ export const ModalExportData = ({
             : "-";
       }
       case "grade":
-        return calculateGradeLevelFromBirthday(item.profile?.birthday);
+        if (
+          item.profile?.gradeYear == null ||
+          Number.isNaN(Number(item.profile.gradeYear))
+        ) {
+          return "-";
+        }
+
+        return (
+          gradeYearLevels.find((level) => level.key === item.profile.gradeYear)
+            ?.label || "-"
+        );
       case "district":
         if (item.profile?.school) {
           const profileSchool = item.profile.school;
@@ -441,9 +469,7 @@ export const ModalExportData = ({
 
         return "-";
       case "serviceDate": {
-        const screeningDate = getSchoolScreeningDate(item.profile?.school);
-
-        return screeningDate != null ? formatThaiDate(screeningDate) : "-";
+        return item.createdAt ? formatThaiDate(item.createdAt) : "-";
       }
       case "phqa":
         return item.result_text || "-";
@@ -494,33 +520,6 @@ export const ModalExportData = ({
     }
   };
 
-  // ฟังก์ชันสำหรับโหลดข้อมูลเพิ่มเมื่อ scroll
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-
-    // เมื่อ scroll ถึง 80% ของความสูง
-    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-      loadMoreData();
-    }
-  };
-
-  // ฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม
-  const loadMoreData = useCallback(() => {
-    const currentFilteredData = getFilteredData();
-
-    if (displayedItems < currentFilteredData.length && !isLoadingMore) {
-      setIsLoadingMore(true);
-
-      // จำลองการโหลดข้อมูล
-      setTimeout(() => {
-        setDisplayedItems((prev) =>
-          Math.min(prev + 10, currentFilteredData.length)
-        );
-        setIsLoadingMore(false);
-      }, 500);
-    }
-  }, [displayedItems, isLoadingMore, getFilteredData]);
-
   const handleClose = useCallback(() => {
     // Clear ข้อมูลทั้งหมด
     setSelectedFields([]);
@@ -528,9 +527,10 @@ export const ModalExportData = ({
       dateFrom: "",
       dateTo: "",
       school: "",
+      mainScale: "",
       phqa: [],
     });
-    setDisplayedItems(10);
+    setCurrentPage(1);
 
     // เรียก onClose จาก props
     onClose();
@@ -654,16 +654,29 @@ export const ModalExportData = ({
 
   // สร้างรายการ PHQA สำหรับ filter
   const phqaOptions = useMemo(() => {
+    const scaleFiltered = filters.mainScale
+      ? sourceData.filter((item) => getMainScaleKey(item) === filters.mainScale)
+      : sourceData;
+
     const uniquePhqa = Array.from(
       new Set(
-        data.map((item: QuestionsData) => item.result_text).filter(Boolean)
+        scaleFiltered
+          .map((item: QuestionsData) => item.result_text)
+          .filter(Boolean)
       )
     );
 
     return uniquePhqa.sort();
-  }, [data]);
+  }, [sourceData, filters.mainScale, getMainScaleKey]);
 
   const filteredData = getFilteredData();
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredData.slice(start, end);
+  }, [filteredData, currentPage]);
 
   return (
     <Modal
@@ -689,38 +702,68 @@ export const ModalExportData = ({
               <CardBody>
                 <h4 className="font-medium mb-3">ตัวกรองข้อมูล</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* วันที่เริ่มต้น */}
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="dateFrom">
-                      วันที่เริ่มต้น
+                  {/* ช่วงวันที่ */}
+                  <div className="lg:col-span-1">
+                    <label className="text-sm font-medium" htmlFor="dateRange">
+                      ช่วงวันที่
                     </label>
-                    <DatePicker
+                    <DateRangePicker
                       value={
-                        filters.dateFrom ? parseDate(filters.dateFrom) : null
+                        filters.dateFrom && filters.dateTo
+                          ? {
+                              start: parseDate(filters.dateFrom),
+                              end: parseDate(filters.dateTo),
+                            }
+                          : null
                       }
-                      onChange={(date) =>
+                      onChange={(range) => {
+                        if (!range) {
+                          handleFilterChange("dateFrom", "");
+                          handleFilterChange("dateTo", "");
+
+                          return;
+                        }
+
                         handleFilterChange(
                           "dateFrom",
-                          date ? date.toString() : ""
-                        )
-                      }
+                          range.start ? range.start.toString() : ""
+                        );
+                        handleFilterChange(
+                          "dateTo",
+                          range.end ? range.end.toString() : ""
+                        );
+                      }}
                     />
                   </div>
 
-                  {/* วันที่สิ้นสุด */}
+                  {/* ประเภทแบบประเมิน */}
                   <div>
-                    <label className="text-sm font-medium" htmlFor="dateTo">
-                      วันที่สิ้นสุด
+                    <label className="text-sm font-medium" htmlFor="mainScale">
+                      ประเภทแบบประเมิน
                     </label>
-                    <DatePicker
-                      value={filters.dateTo ? parseDate(filters.dateTo) : null}
-                      onChange={(date) =>
-                        handleFilterChange(
-                          "dateTo",
-                          date ? date.toString() : ""
-                        )
+                    <Select
+                      placeholder="เลือกประเภทแบบประเมิน"
+                      selectedKeys={
+                        filters.mainScale ? [filters.mainScale] : []
                       }
-                    />
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0] as
+                          | ""
+                          | "nineq"
+                          | "phqa"
+                          | undefined;
+
+                        setFilters((prev) => ({
+                          ...prev,
+                          mainScale: selectedKey || "",
+                          phqa: [],
+                        }));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectItem key="nineq">9Q</SelectItem>
+                      <SelectItem key="phqa">PHQ-A</SelectItem>
+                    </Select>
                   </div>
 
                   {/* โรงเรียน */}
@@ -776,14 +819,13 @@ export const ModalExportData = ({
                   <h4 className="font-medium">ตัวอย่างข้อมูลที่จะ Export</h4>
                   {filteredData.length > 0 && (
                     <span className="text-sm text-gray-600">
-                      แสดง {displayedItems} จาก {filteredData.length} รายการ
+                      แสดง {(currentPage - 1) * rowsPerPage + 1}-
+                      {Math.min(currentPage * rowsPerPage, filteredData.length)}{" "}
+                      จาก {filteredData.length} รายการ
                     </span>
                   )}
                 </div>
-                <div
-                  className="flex-1 overflow-y-auto border shadow-sm rounded-lg max-h-[400px]"
-                  onScroll={handleScroll}
-                >
+                <div className="flex-1 overflow-y-auto border shadow-sm rounded-lg max-h-[400px]">
                   {selectedFields.length > 0 && availableFields.length > 0 ? (
                     schoolsLoading ||
                     districtsLoading ||
@@ -820,31 +862,29 @@ export const ModalExportData = ({
                           })}
                         </TableHeader>
                         <TableBody>
-                          {filteredData
-                            .slice(0, displayedItems)
-                            .map((item, index) => (
-                              <TableRow key={item.id || index}>
-                                {selectedFields.map((field) => {
-                                  const value = getFieldValue(item, field);
+                          {paginatedData.map((item, index) => (
+                            <TableRow key={item.id || index}>
+                              {selectedFields.map((field) => {
+                                const value = getFieldValue(item, field);
 
-                                  return (
-                                    <TableCell
-                                      key={field}
-                                      className="text-center whitespace-nowrap"
+                                return (
+                                  <TableCell
+                                    key={field}
+                                    className="text-center whitespace-nowrap"
+                                  >
+                                    <div
+                                      className="truncate"
+                                      title={
+                                        value != null ? String(value) : "-"
+                                      }
                                     >
-                                      <div
-                                        className="truncate"
-                                        title={
-                                          value != null ? String(value) : "-"
-                                        }
-                                      >
-                                        {value != null ? String(value) : "-"}
-                                      </div>
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            ))}
+                                      {value != null ? String(value) : "-"}
+                                    </div>
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
                         </TableBody>
                       </Table>
                     )
@@ -856,37 +896,18 @@ export const ModalExportData = ({
                     </div>
                   )}
                 </div>
-
-                {/* แสดงปุ่มโหลดข้อมูลเพิ่มเมื่อยังมีข้อมูลที่ไม่ได้แสดง */}
-                {displayedItems < filteredData.length && !isLoadingMore && (
-                  <div className="flex justify-center items-center py-4">
-                    <Button
+                {filteredData.length > 0 && (
+                  <div className="flex justify-center pt-4">
+                    <Pagination
+                      isCompact
+                      showControls
                       color="primary"
-                      variant="bordered"
-                      onPress={loadMoreData}
-                    >
-                      โหลดข้อมูลเพิ่ม ({displayedItems} / {filteredData.length})
-                    </Button>
+                      page={currentPage}
+                      total={totalPages}
+                      onChange={setCurrentPage}
+                    />
                   </div>
                 )}
-
-                {/* แสดง loading indicator เมื่อกำลังโหลดข้อมูลเพิ่ม */}
-                {isLoadingMore && (
-                  <div className="flex justify-center items-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
-                    <span className="ml-2 text-sm text-gray-600">
-                      กำลังโหลดข้อมูลเพิ่ม...
-                    </span>
-                  </div>
-                )}
-
-                {/* แสดงข้อความเมื่อโหลดข้อมูลครบแล้ว */}
-                {displayedItems >= filteredData.length &&
-                  filteredData.length > 0 && (
-                    <div className="text-center py-2 text-sm text-gray-500">
-                      แสดงข้อมูลครบทั้งหมดแล้ว ({filteredData.length} รายการ)
-                    </div>
-                  )}
 
                 {selectedFields.length > 0 &&
                   filteredData.length === 0 &&

@@ -16,7 +16,7 @@ export default function AuthPage() {
         <Image
           alt="BKK Logo"
           className="max-h-[calc(10vh)]"
-          loading="lazy"
+          loading="eager"
           src="/image/Logo_BKK.png"
         />
 
@@ -24,7 +24,7 @@ export default function AuthPage() {
           <Image
             alt="BKK Logo"
             className="h-[calc(7vh)]"
-            loading="lazy"
+            loading="eager"
             src="/image/logo_App.png"
           />
           <p className={title({ size: "sm" })}>เข้าสู่ระบบ</p>

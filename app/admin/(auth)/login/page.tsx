@@ -12,7 +12,7 @@ export default function LoginPage() {
       <Image
         alt="BKK Logo"
         className="max-h-[calc(6vh)]"
-        loading="lazy"
+        loading="eager"
         src="/image/LogoBKK-Black.png"
       />
       <h1 className={title({ size: "sm" })}>เข้าสู่ระบบ</h1>

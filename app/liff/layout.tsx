@@ -1,5 +1,7 @@
 import { Link } from "@heroui/link";
 
+import packageJson from "../../package.json";
+
 import ProfileAvatar from "./components/ProfileAvatar";
 
 import { siteConfig } from "@/config/site";
@@ -9,6 +11,8 @@ export default function AboutLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const appVersion = packageJson.version;
+
   return (
     <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden">
       <header className="absolute top-0 left-0 right-0 w-full flex justify-end px-4 py-3 !bg-transparent z-10">
@@ -23,7 +27,9 @@ export default function AboutLayout({
           title="heroui.com homepage"
         >
           <span className="text-default-600">Powered by</span>
-          <p className="text-primary">โรงพยาบาลราชพิพัฒน์ (ฝ่ายวิชาการ)</p>
+          <p className="text-primary">
+            โรงพยาบาลราชพิพัฒน์ (ฝ่ายวิชาการ) v{appVersion}
+          </p>
         </Link>
       </footer>
     </div>

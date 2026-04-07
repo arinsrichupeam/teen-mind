@@ -38,7 +38,7 @@ export default function QuestionListPage() {
       <Suspense fallback={<Loading />}>
         <h1 className={title({ size: "sm" })}>ผลประเมินภาวะซึมเศร้า</h1>
         <h2 className={subtitle()}>
-          สำรวจตัวเองว่าคุณกำลังเศร้ามากแค่ไหน โดยทำแบบสำรวจซึ่งใช้เวลาประมาณ
+          สำรวจตัวเองว่าคุณกำลังเศร้ามากแค่ไหน โดยทำแบบประเมินซึ่งใช้เวลาประมาณ
           4-5 นาที
         </h2>
         <Button
@@ -49,7 +49,7 @@ export default function QuestionListPage() {
           variant="solid"
           onPress={() => router.push("/liff/question")}
         >
-          ทำแบบสำรวจ
+          ทำแบบประเมิน
         </Button>
         <h2 className={title({ size: "xs" })}>ประวัติการทำรายการ</h2>
         <ScrollShadow

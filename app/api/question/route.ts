@@ -194,6 +194,7 @@ export async function GET(req: Request) {
         note: true,
         note2: true,
         note3: true,
+        close_case_reason: true,
         follow_up: true,
         follow_up2: true,
         follow_up3: true,
@@ -208,6 +209,7 @@ export async function GET(req: Request) {
             citizenId: true,
             tel: true,
             hn: true,
+            gradeYear: true,
             sex: true,
             school: {
               select: {
@@ -612,6 +614,7 @@ export async function PUT(req: Request) {
         note: question.note,
         note2: question.note2,
         note3: question.note3,
+        close_case_reason: question.close_case_reason,
         follow_up: question.follow_up,
         follow_up2: question.follow_up2,
         follow_up3: question.follow_up3,
