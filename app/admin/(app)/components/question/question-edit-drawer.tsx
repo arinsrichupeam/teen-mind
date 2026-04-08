@@ -457,6 +457,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return next;
       });
     }
+
+    if (mode === "edit-consultation") {
+      setConsultationSaved(false);
+    }
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -616,44 +620,6 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       const requiresRound2 = isPendingSummary || isCompleted;
       const requiresRound3 = isCompleted;
 
-      // Round 2
-      if (requiresRound2 && !questionData.schedule_telemed2) {
-        setIsError(true);
-        setConsultValidationRound(1);
-        setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 2");
-
-        return false;
-      }
-
-      if (statusVal === 2 && !questionData.consult2) {
-        setIsError(true);
-        setConsultValidationRound(1);
-        setError(
-          "กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น' (รอบที่ 2)"
-        );
-
-        return false;
-      }
-
-      // Round 3
-      if (requiresRound3 && !questionData.schedule_telemed3) {
-        setIsError(true);
-        setConsultValidationRound(2);
-        setError("กรุณาเลือกวันนัด Telemedicine รอบที่ 3");
-
-        return false;
-      }
-
-      if (requiresRound3 && !questionData.consult3) {
-        setIsError(true);
-        setConsultValidationRound(2);
-        setError(
-          "กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น' (รอบที่ 3)"
-        );
-
-        return false;
-      }
-
       // Discharge Summary SOAP
       // status=2 ต้องครบรอบ 1-2, status=3 ต้องครบรอบ 1-3
       if (requiresRound2) {
@@ -689,82 +655,92 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           return false;
         }
 
-        if (
-          !questionData.subjective2 ||
-          questionData.subjective2.trim() === ""
-        ) {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 2)");
+        if (isConsultTelemedRoundComplete(questionData, 1)) {
+          if (
+            !questionData.subjective2 ||
+            questionData.subjective2.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 2)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (!questionData.objective2 || questionData.objective2.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 2)");
+          if (
+            !questionData.objective2 ||
+            questionData.objective2.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Objective data (รอบที่ 2)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (
-          !questionData.assessment2 ||
-          questionData.assessment2.trim() === ""
-        ) {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 2)");
+          if (
+            !questionData.assessment2 ||
+            questionData.assessment2.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Assessment (รอบที่ 2)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (!questionData.plan2 || questionData.plan2.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Plan (รอบที่ 2)");
+          if (!questionData.plan2 || questionData.plan2.trim() === "") {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Plan (รอบที่ 2)");
 
-          return false;
+            return false;
+          }
         }
       }
 
       if (requiresRound3) {
-        if (
-          !questionData.subjective3 ||
-          questionData.subjective3.trim() === ""
-        ) {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 3)");
+        if (isConsultTelemedRoundComplete(questionData, 2)) {
+          if (
+            !questionData.subjective3 ||
+            questionData.subjective3.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 3)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (!questionData.objective3 || questionData.objective3.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 3)");
+          if (
+            !questionData.objective3 ||
+            questionData.objective3.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Objective data (รอบที่ 3)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (
-          !questionData.assessment3 ||
-          questionData.assessment3.trim() === ""
-        ) {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 3)");
+          if (
+            !questionData.assessment3 ||
+            questionData.assessment3.trim() === ""
+          ) {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Assessment (รอบที่ 3)");
 
-          return false;
-        }
+            return false;
+          }
 
-        if (!questionData.plan3 || questionData.plan3.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Plan (รอบที่ 3)");
+          if (!questionData.plan3 || questionData.plan3.trim() === "") {
+            setIsError(true);
+            setConsultValidationRound(null);
+            setError("กรุณากรอกข้อมูล Plan (รอบที่ 3)");
 
-          return false;
+            return false;
+          }
         }
       }
     }
@@ -2046,7 +2022,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                                   ? "success"
                                                   : "primary"
                                               }
-                                              isDisabled={consultantLoading}
+                                              isDisabled={
+                                                consultantLoading ||
+                                                consultantRoundSaved[idx]
+                                              }
                                               isLoading={consultantLoading}
                                               type="button"
                                               variant="flat"
@@ -2276,7 +2255,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                 {mode === "edit-consultation" && (
                   <Button
                     color={consultationSaved ? "success" : "primary"}
-                    isDisabled={consultationLoading || !questionData?.consult}
+                    isDisabled={
+                      consultationLoading ||
+                      !questionData?.consult ||
+                      consultationSaved
+                    }
                     isLoading={consultationLoading}
                     type="submit"
                     variant="flat"
