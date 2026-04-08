@@ -72,7 +72,7 @@ export const ExportButton = ({
   }, [session?.user?.id]);
 
   // ตรวจสอบว่าเป็น admin หรือไม่ (roleId === 4 หรือ roleId === 3)
-  const isAdmin = adminProfile?.roleId === 4 || adminProfile?.roleId === 3;
+  const isAdmin = adminProfile?.roleId === 4;
 
   // แสดง loading state ขณะดึงข้อมูล profile
   if (!adminProfile && !showForAllRoles) {
