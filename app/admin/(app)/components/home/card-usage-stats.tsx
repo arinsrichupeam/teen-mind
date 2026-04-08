@@ -4,6 +4,8 @@ import {
   Button,
   Card,
   CardBody,
+  Select,
+  SelectItem,
   Table,
   TableHeader,
   TableColumn,
@@ -78,6 +80,7 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
     risk: RiskLevel;
   } | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>("all");
 
   const riskLabels = useMemo(
     () => ({
@@ -90,7 +93,32 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
     []
   );
 
-  const summary = data.reduce(
+  const monthOptions = useMemo(
+    () => [
+      { key: "all", label: "ทุกเดือน" },
+      ...data.map((row) => ({
+        key: `${row.yearBe}-${THAI_MONTHS.indexOf(
+          row.monthLabel as (typeof THAI_MONTHS)[number]
+        )}`,
+        label: `${row.monthLabel} ${row.yearBe}`,
+      })),
+    ],
+    [data]
+  );
+
+  const filteredData = useMemo(() => {
+    if (selectedMonthKey === "all") return data;
+
+    return data.filter((row) => {
+      const monthIndex = THAI_MONTHS.indexOf(
+        row.monthLabel as (typeof THAI_MONTHS)[number]
+      );
+
+      return `${row.yearBe}-${monthIndex}` === selectedMonthKey;
+    });
+  }, [data, selectedMonthKey]);
+
+  const summary = filteredData.reduce(
     (acc, row) => {
       acc.totalUse += row.totalUse;
       acc.totalUsers += row.totalUsers;
@@ -116,7 +144,7 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
 
   const totalPages = totalItems > 0 ? Math.ceil(totalItems / PAGE_SIZE) : 0;
 
-  const tableRows = data.map((row) => (
+  const tableRows = filteredData.map((row) => (
     <TableRow key={`${row.yearBe}-${row.monthLabel}`}>
       <TableCell className="text-nowrap">
         {row.yearBe} {row.monthLabel}
@@ -274,12 +302,37 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
 
   return (
     <Card className="w-full">
+      <div className="px-3 pt-3">
+        <Select
+          aria-label="เลือกเดือนสำหรับตารางสถิติการเข้าใช้งาน"
+          className="max-w-xs"
+          placeholder="เลือกเดือน"
+          selectedKeys={[selectedMonthKey]}
+          size="sm"
+          variant="bordered"
+          onSelectionChange={(keys) => {
+            if (keys === "all") {
+              setSelectedMonthKey("all");
+
+              return;
+            }
+
+            const selectedKey = Array.from(keys)[0] as string | undefined;
+
+            setSelectedMonthKey(selectedKey ?? "all");
+          }}
+        >
+          {monthOptions.map((option) => (
+            <SelectItem key={option.key}>{option.label}</SelectItem>
+          ))}
+        </Select>
+      </div>
       <CardBody className="max-h-[400px] overflow-y-auto p-0">
         <Table isHeaderSticky isStriped aria-label="Usage Statistics Table">
           <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
             <TableColumn>ปี-เดือน</TableColumn>
             <TableColumn className="text-center">จำนวนเข้าใช้งาน</TableColumn>
-            <TableColumn className="text-center">จำนวนผู้ใช้งาน</TableColumn>
+            <TableColumn className="text-center">จำนวนผู้ประเมิน</TableColumn>
             <TableColumn className="text-center">
               <span className="text-green-700 font-semibold">
                 ไม่พบความเสี่ยง
