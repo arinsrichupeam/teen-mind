@@ -4,7 +4,6 @@ import {
   CreditCardIcon,
   HomeIcon,
   HomeModernIcon,
-  MapIcon,
   UserGroupIcon,
   UserIcon,
 } from "@heroicons/react/24/solid";
@@ -12,7 +11,6 @@ import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Suspense, useEffect, useState } from "react";
-import { CalculatorIcon } from "@heroicons/react/24/outline";
 
 import { ProfileAdminDataInitData } from "../../../../../types/initData";
 
@@ -119,18 +117,18 @@ export const SidebarWrapper = () => {
                     isActive={pathname === "/admin/volunteer"}
                     title="รายชื่อ อสท."
                   />
-                  <SidebarItem
+                  {/* <SidebarItem
                     // href="/admin/area"
                     icon={<MapIcon className="size-6" />}
                     isActive={pathname === "/admin/area"}
                     title="พื้นที่อยู่อาศัย"
-                  />
-                  <SidebarItem
+                  /> */}
+                  {/* <SidebarItem
                     href="/admin/recalculate-phqa"
                     icon={<CalculatorIcon className="size-6" />}
                     isActive={pathname === "/admin/recalculate-phqa"}
                     title="Re-calculate"
-                  />
+                  /> */}
                 </SidebarMenu>
               )}
             </div>

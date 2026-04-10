@@ -1079,6 +1079,25 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   // ถ้า drawer ปิดแล้วให้ unmount เลย เพื่อกัน backdrop/overlay ค้างบังการใช้งาน
   if (!isOpen) return null;
 
+  const renderCloseCaseReasonBlock = (row: QuestionsData) => {
+    const closeReasonText = (row.close_case_reason ?? "").trim();
+
+    if (!closeReasonText) {
+      return null;
+    }
+
+    return (
+      <div className="mt-4 rounded-medium border border-default-200 bg-content2/40 p-4">
+        <p className="mb-2 text-small font-semibold text-foreground-600">
+          เหตุผลการปิดเคส
+        </p>
+        <p className="text-small whitespace-pre-wrap text-default-600">
+          {closeReasonText}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <>
       <Drawer
@@ -1866,6 +1885,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                   );
                                 })}
                               </Tabs>
+                              {renderCloseCaseReasonBlock(q)}
                             </>
                           );
                         })()}
@@ -2217,6 +2237,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                   );
                                 })}
                               </Tabs>
+                              {renderCloseCaseReasonBlock(q)}
                             </>
                           );
                         })()}

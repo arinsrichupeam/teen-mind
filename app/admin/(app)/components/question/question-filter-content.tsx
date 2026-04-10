@@ -179,7 +179,7 @@ export function QuestionFilterContent({
                 <DropdownTrigger>
                   <Button
                     className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
-                    color="secondary"
+                    color="primary"
                     endContent={
                       <ChevronDownIcon className="size-3.5 shrink-0" />
                     }
