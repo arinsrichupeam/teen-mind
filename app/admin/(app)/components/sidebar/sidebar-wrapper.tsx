@@ -10,10 +10,19 @@ import {
 import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/modal";
 import { Suspense, useEffect, useState } from "react";
 
 import { ProfileAdminDataInitData } from "../../../../../types/initData";
+import packageJson from "../../../../../package.json";
 
+import patchNotes from "./patch-notes.json";
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
 
@@ -23,9 +32,16 @@ import { siteConfig } from "@/config/site";
 import Loading from "@/app/loading";
 import { ProfileAdminData } from "@/types";
 
+interface PatchNoteItem {
+  version: string;
+  date?: string;
+  changes: string[];
+}
+
 export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [profile, setProfile] = useState<ProfileAdminData>(
     ProfileAdminDataInitData
   );
@@ -41,6 +57,11 @@ export const SidebarWrapper = () => {
       setProfile(JSON.parse(data));
     }
   };
+
+  const allPatchNotes = patchNotes as PatchNoteItem[];
+  const latestPatchNote =
+    allPatchNotes.find((item) => item.version === packageJson.version) ??
+    allPatchNotes[0];
 
   return (
     <Suspense fallback={<Loading />}>
@@ -133,19 +154,82 @@ export const SidebarWrapper = () => {
               )}
             </div>
             <div className={Sidebar.Footer()}>
-              <Link
-                isExternal
-                className="flex flex-col items-center gap-1 text-sm"
-                href={siteConfig.links.rpp}
-                title="heroui.com homepage"
-              >
-                <span className="text-default-600">Powered by</span>
-                <p className="text-primary">โรงพยาบาลราชพิพัฒน์</p>
-                <p className="text-primary">(ฝ่ายวิชาการ)</p>
-              </Link>
+              <div className="flex flex-col items-center gap-1 text-sm">
+                <Link
+                  isExternal
+                  className="flex flex-col items-center gap-1"
+                  href={siteConfig.links.rpp}
+                  title="RPP hospital homepage"
+                >
+                  <span className="text-default-600">Powered by</span>
+                  <p className="text-primary">โรงพยาบาลราชพิพัฒน์</p>
+                  <p className="text-primary">(ฝ่ายวิชาการ)</p>
+                </Link>
+                <Button
+                  className="min-w-0 h-auto px-0 text-primary"
+                  variant="light"
+                  onPress={onOpen}
+                >
+                  v{packageJson.version}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
+        <Modal isOpen={isOpen} size="lg" onOpenChange={onOpenChange}>
+          <ModalContent>
+            <ModalHeader className="flex flex-col gap-1">
+              Patch Note
+            </ModalHeader>
+            <ModalBody className="pb-6">
+              <p className="text-default-600">
+                รายการอัปเดตของระบบ Teen Mind ในแต่ละเวอร์ชัน
+              </p>
+              <div className="space-y-3">
+                {latestPatchNote && (
+                  <div className="rounded-xl border border-default-200 bg-content1 p-4">
+                    <h2 className="text-lg font-semibold text-default-900">
+                      v{latestPatchNote.version}
+                    </h2>
+                    {latestPatchNote.date && (
+                      <p className="mt-1 text-xs text-default-500">
+                        วันที่อัปเดต: {latestPatchNote.date}
+                      </p>
+                    )}
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-default-700">
+                      {latestPatchNote.changes.map((change) => (
+                        <li key={change}>{change}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {allPatchNotes
+                  .filter((item) => item.version !== latestPatchNote?.version)
+                  .map((patch) => (
+                    <div
+                      key={patch.version}
+                      className="rounded-xl border border-default-200 bg-content1 p-4"
+                    >
+                      <h3 className="text-base font-semibold text-default-900">
+                        v{patch.version}
+                      </h3>
+                      {patch.date && (
+                        <p className="mt-1 text-xs text-default-500">
+                          วันที่อัปเดต: {patch.date}
+                        </p>
+                      )}
+                      <ul className="mt-3 list-disc space-y-2 pl-5 text-default-700">
+                        {patch.changes.map((change) => (
+                          <li key={`${patch.version}-${change}`}>{change}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       </aside>
     </Suspense>
   );

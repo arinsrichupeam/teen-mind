@@ -130,6 +130,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [consultantLoading, setConsultantLoading] = useState(false);
   const [questionnaireLoading, setQuestionnaireLoading] = useState(false);
   const [consultationLoading, setConsultationLoading] = useState(false);
+  const [sendMessageLoading, setSendMessageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [consultValidationRound, setConsultValidationRound] = useState<
@@ -292,6 +293,52 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       });
     } finally {
       setHnIsloading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    const questionId = questionData?.id || data?.id;
+
+    if (!questionId) {
+      addToast({
+        title: "Error",
+        description: "ไม่พบรหัสเคสสำหรับส่งข้อความ",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    setSendMessageLoading(true);
+    try {
+      const res = await fetch("/api/question/send-consult-message", {
+        method: "POST",
+        body: JSON.stringify({ questionId }),
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          typeof result?.error === "string"
+            ? result.error
+            : "ไม่สามารถส่งข้อความ LINE ได้"
+        );
+      }
+
+      addToast({
+        title: "สำเร็จ",
+        description: "ส่งข้อความรับคำปรึกษาไปยังผู้ใช้แล้ว",
+        color: "success",
+      });
+    } catch (err) {
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการส่งข้อความ",
+        color: "danger",
+      });
+    } finally {
+      setSendMessageLoading(false);
     }
   };
 
@@ -1420,6 +1467,20 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                           ) : (
                             <div className="flex flex-row gap-4 justify-center w-full">
                               <Button
+                                color="success"
+                                isDisabled={sendMessageLoading}
+                                isLoading={sendMessageLoading}
+                                startContent={
+                                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
+                                    LINE
+                                  </span>
+                                }
+                                variant="flat"
+                                onPress={handleSendMessage}
+                              >
+                                ส่งข้อความ
+                              </Button>
+                              <Button
                                 color="warning"
                                 variant="flat"
                                 onPress={() => setIsModalOpen(true)}
@@ -1631,6 +1692,20 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <Divider />
                         <CardFooter>
                           <div className="flex flex-row gap-4 justify-center w-full">
+                            <Button
+                              color="primary"
+                              isDisabled={sendMessageLoading}
+                              isLoading={sendMessageLoading}
+                              startContent={
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
+                                  LINE
+                                </span>
+                              }
+                              variant="flat"
+                              onPress={handleSendMessage}
+                            >
+                              ส่งข้อความ
+                            </Button>
                             <Button
                               color="warning"
                               variant="flat"
