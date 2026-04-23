@@ -6,7 +6,7 @@ import { Form } from "@heroui/form";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
 import { CalendarDate, parseDate } from "@internationalized/date";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import moment from "moment";
 import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
@@ -45,6 +45,7 @@ export const Step1 = ({
   const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
+  const latestCitizenIdRef = useRef("");
 
   const onSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -78,6 +79,48 @@ export const Step1 = ({
     return true;
   };
 
+  const searchAndSetHn = useCallback(
+    async (citizenId: string) => {
+      latestCitizenIdRef.current = citizenId;
+      try {
+        const response = await fetch("/api/his/patient", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ cardno: citizenId }),
+        });
+        const payload = (await response.json()) as {
+          error?: string;
+          hn?: string | null;
+        };
+
+        // ป้องกันการเขียนทับด้วยผลลัพธ์ request เก่า
+        if (latestCitizenIdRef.current !== citizenId) {
+          return;
+        }
+
+        if (!response.ok) {
+          HandleChange({ target: { name: "hn", value: "" } });
+          if (response.status !== 401) {
+            setError(payload.error || "เกิดข้อผิดพลาดในการค้นหา HN");
+          }
+
+          return;
+        }
+
+        HandleChange({
+          target: { name: "hn", value: payload.hn?.trim() || "" },
+        });
+      } catch {
+        if (latestCitizenIdRef.current === citizenId) {
+          HandleChange({ target: { name: "hn", value: "" } });
+        }
+      }
+    },
+    [HandleChange]
+  );
+
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
@@ -86,9 +129,16 @@ export const Step1 = ({
     }
 
     if (value.length === 13) {
-      await validateCitizenId(value);
+      const isValid = await validateCitizenId(value);
+
+      if (isValid) {
+        await searchAndSetHn(value);
+      } else {
+        HandleChange({ target: { name: "hn", value: "" } });
+      }
     } else {
       setError("");
+      HandleChange({ target: { name: "hn", value: "" } });
     }
 
     HandleChange({ target: { name: "citizenId", value } });

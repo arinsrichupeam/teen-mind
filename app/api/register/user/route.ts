@@ -169,6 +169,7 @@ export async function POST(req: Request) {
               ethnicity: profile.ethnicity,
               nationality: profile.nationality,
               tel: profile.tel,
+              hn: profile.hn?.trim() || "",
               schoolId,
               gradeYear,
               address: {
@@ -221,6 +222,7 @@ export async function POST(req: Request) {
         ethnicity: profile.ethnicity,
         nationality: profile.nationality,
         tel: profile.tel,
+        hn: profile.hn?.trim() || "",
         schoolId,
         gradeYear: gradeYear ?? undefined,
         address: {

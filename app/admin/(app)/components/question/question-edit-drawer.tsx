@@ -150,6 +150,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   ]);
   const [consultationSaved, setConsultationSaved] = useState(false);
   const [followUpRoundTab, setFollowUpRoundTab] = useState("r1");
+  const [showRegisterHnLineButton, setShowRegisterHnLineButton] =
+    useState(false);
 
   const latitude =
     questionData?.latitude != null
@@ -342,6 +344,52 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   };
 
+  const handleSendRegisterHnMessage = async () => {
+    const questionId = questionData?.id || data?.id;
+
+    if (!questionId) {
+      addToast({
+        title: "Error",
+        description: "ไม่พบรหัสเคสสำหรับส่งข้อความ",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    setSendMessageLoading(true);
+    try {
+      const res = await fetch("/api/question/send-consult-message", {
+        method: "POST",
+        body: JSON.stringify({ questionId, messageType: "hn-register" }),
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          typeof result?.error === "string"
+            ? result.error
+            : "ไม่สามารถส่งข้อความ LINE ได้"
+        );
+      }
+
+      addToast({
+        title: "สำเร็จ",
+        description: "ส่งข้อความลงทะเบียน HN ไปยังผู้ใช้แล้ว",
+        color: "success",
+      });
+    } catch (err) {
+      addToast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการส่งข้อความ",
+        color: "danger",
+      });
+    } finally {
+      setSendMessageLoading(false);
+    }
+  };
+
   const handleSearchHN = async () => {
     const citizenId = (
       questionData?.profile?.citizenId ||
@@ -350,6 +398,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     ).trim();
 
     if (!citizenId) {
+      setShowRegisterHnLineButton(false);
       addToast({
         title: "ไม่พบเลขบัตรประชาชน",
         description: "กรุณาตรวจสอบข้อมูลเลขบัตรประชาชนก่อนค้นหา HN",
@@ -380,6 +429,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       const foundHn = payload.hn?.trim();
 
       if (!foundHn) {
+        setShowRegisterHnLineButton(true);
         addToast({
           title: "ไม่พบข้อมูล HN",
           description: `ไม่พบข้อมูลผู้ป่วยจากเลขบัตร ${citizenId}`,
@@ -393,6 +443,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         ...prev,
         hn: foundHn,
       }));
+      setShowRegisterHnLineButton(false);
 
       addToast({
         title: "ค้นหา HN สำเร็จ",
@@ -400,6 +451,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         color: "success",
       });
     } catch (err) {
+      setShowRegisterHnLineButton(false);
       setError(
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการค้นหา HN"
       );
@@ -1116,10 +1168,12 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       // ล้าง error state
       setError(null);
       setIsError(false);
+      setShowRegisterHnLineButton(false);
     } else if (!isOpen) {
       // ล้าง error state เมื่อปิด drawer
       setError(null);
       setIsError(false);
+      setShowRegisterHnLineButton(false);
     }
   }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
 
@@ -1149,6 +1203,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     <>
       <Drawer
         key={`drawer-${data?.id || "default"}-${modalKey}`}
+        classNames={{
+          wrapper: "z-40",
+          backdrop: "z-30",
+        }}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         placement="right"
@@ -1419,50 +1477,68 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                         <Divider />
                         <CardFooter>
                           {!(questionData?.profile?.hn || data?.profile?.hn) ? (
-                            <div className="flex flex-row gap-4">
-                              <Input
-                                endContent={
-                                  <Button
-                                    isIconOnly
-                                    aria-label="ค้นหา HN"
-                                    isDisabled={
-                                      mode == "view-questionnaire" ||
-                                      mode == "view-consultation"
-                                    }
-                                    size="sm"
-                                    variant="light"
-                                    onPress={handleSearchHN}
-                                  >
-                                    <MagnifyingGlassIcon className="w-4 h-4" />
-                                  </Button>
-                                }
-                                isDisabled={
-                                  mode == "view-questionnaire" ||
-                                  mode == "view-consultation"
-                                }
-                                name="hn"
-                                startContent={<p> HN:</p>}
-                                value={
-                                  questionData?.hn ||
-                                  questionData?.profile?.hn ||
-                                  data?.profile?.hn ||
-                                  ""
-                                }
-                                variant="bordered"
-                                onChange={HandleChange}
-                              />
-                              <Button
-                                color="primary"
-                                isDisabled={
-                                  mode == "view-questionnaire" ||
-                                  mode == "view-consultation"
-                                }
-                                isLoading={hnIsloading}
-                                type="button"
-                                onPress={() => ChangeHN()}
-                              >
-                                บันทึก HN
-                              </Button>
+                            <div className="flex w-full flex-col gap-3">
+                              <div className="flex flex-row gap-4">
+                                <Input
+                                  endContent={
+                                    <Button
+                                      isIconOnly
+                                      aria-label="ค้นหา HN"
+                                      isDisabled={
+                                        mode == "view-questionnaire" ||
+                                        mode == "view-consultation"
+                                      }
+                                      size="sm"
+                                      variant="light"
+                                      onPress={handleSearchHN}
+                                    >
+                                      <MagnifyingGlassIcon className="w-4 h-4" />
+                                    </Button>
+                                  }
+                                  isDisabled={
+                                    mode == "view-questionnaire" ||
+                                    mode == "view-consultation"
+                                  }
+                                  name="hn"
+                                  startContent={<p> HN:</p>}
+                                  value={
+                                    questionData?.hn ||
+                                    questionData?.profile?.hn ||
+                                    data?.profile?.hn ||
+                                    ""
+                                  }
+                                  variant="bordered"
+                                  onChange={HandleChange}
+                                />
+                                <Button
+                                  color="primary"
+                                  isDisabled={
+                                    mode == "view-questionnaire" ||
+                                    mode == "view-consultation"
+                                  }
+                                  isLoading={hnIsloading}
+                                  type="button"
+                                  onPress={() => ChangeHN()}
+                                >
+                                  บันทึก HN
+                                </Button>
+                              </div>
+                              {showRegisterHnLineButton && (
+                                <Button
+                                  color="success"
+                                  isDisabled={sendMessageLoading}
+                                  isLoading={sendMessageLoading}
+                                  startContent={
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
+                                      LINE
+                                    </span>
+                                  }
+                                  variant="flat"
+                                  onPress={handleSendRegisterHnMessage}
+                                >
+                                  ส่ง Line ลงทะเบียน HN
+                                </Button>
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-row gap-4 justify-center w-full">

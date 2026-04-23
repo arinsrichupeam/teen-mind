@@ -65,7 +65,12 @@ export function PatchNotesModal({
   );
 
   return (
-    <Modal isOpen={isOpen} size="lg" onOpenChange={onOpenChange}>
+    <Modal
+      backdrop="blur"
+      isOpen={isOpen}
+      size="lg"
+      onOpenChange={onOpenChange}
+    >
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">Patch Note</ModalHeader>
         <ModalBody className="max-h-[min(70vh,32rem)] overflow-y-auto overscroll-contain pb-6">

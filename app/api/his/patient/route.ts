@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/get-session";
+import { getSession } from "@/lib/get-session";
 
 type AbsTokenResponse = {
   MessageCode?: number;
@@ -54,9 +54,9 @@ async function fetchAbsPatient(
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAdmin();
+  const session = await getSession();
 
-  if (!auth) {
+  if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

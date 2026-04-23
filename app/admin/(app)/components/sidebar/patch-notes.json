@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.0.5",
+    "date": "2026-04-23",
+    "changes": [
+      "อัปเดต version เป็น 2.0.5",
+      "เพิ่มความสามารถส่งข้อความลงทะเบียน HN ใน QuestionEditDrawer",
+      "ปรับปรุง error handling สำหรับการส่งข้อความให้ครอบคลุมมากขึ้น",
+      "Refactor API routes เพื่อปรับปรุงการจัดการ session"
+    ]
+  },
+  {
     "version": "2.0.4",
     "date": "2026-04-23",
     "changes": [
