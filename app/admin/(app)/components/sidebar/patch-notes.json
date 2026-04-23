@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.0.4",
+    "date": "2026-04-23",
+    "changes": [
+      "อัปเดต version เป็น 2.0.4",
+      "Refactor หน้า Admin Home โดย comment out components ที่ไม่ได้ใช้งาน เพื่อให้ layout สะอาดและอ่านง่ายขึ้น",
+      "ปรับปรุง CardUsageStats โดยเพิ่ม sorting สำหรับ usage statistics",
+      "ปรับปรุง data handling ใน ConsultTelemedCharts ด้วย age-based filtering",
+      "Restructure การคำนวณ statistics ใน ConsultTelemedCharts ให้ชัดเจนและ maintain ได้ง่ายขึ้น"
+    ]
+  },
+  {
     "version": "2.0.3",
     "date": "2026-04-23",
     "changes": [

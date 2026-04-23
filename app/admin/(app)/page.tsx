@@ -10,12 +10,18 @@ import { CardUsageStats } from "./components/home/card-usage-stats";
 import { UsageRiskMonthlyChart } from "./components/home/usage-risk-monthly-chart";
 import { Last7DaysUsageCards } from "./components/home/last-7-days-usage-cards";
 import { AssessmentWeekhourMonthlyHeatmap } from "./components/home/assessment-weekhour-monthly-heatmap";
-import { PieChartsSection } from "./components/home/pie-charts-section";
-import { CardSchoolStats } from "./components/home/card-school-stats";
+// import { PieChartsSection } from "./components/home/pie-charts-section";
+// import { CardSchoolStats } from "./components/home/card-school-stats";
+import {
+  AdminDashboardPageSkeleton,
+  DashboardChartAreaSkeleton,
+  DashboardHeatmapSkeleton,
+  DashboardLast7DaysSkeleton,
+  DashboardUsageStatsSkeleton,
+} from "./components/home/admin-dashboard-skeleton";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";
-import { calculateAge } from "@/utils/helper";
 
 const QUESTIONS_PAGE_LIMIT = 2000;
 const CONCURRENT_PAGES = 5;
@@ -200,22 +206,22 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 };
 
 // ฟังก์ชันกรองข้อมูลตามอายุ 12-18 ปี สำหรับสถิติ
-const filterByAge = (
-  data: QuestionsData[],
-  ageRange: { min: number; max: number } = { min: 12, max: 18 }
-) => {
-  return data.filter((item) => {
-    if (!item.profile?.birthday) return false;
-    const school = item.profile.school;
-    const screeningDate =
-      typeof school === "object" && school !== null
-        ? school.screeningDate
-        : undefined;
-    const age = calculateAge(item.profile.birthday, screeningDate);
+// const filterByAge = (
+//   data: QuestionsData[],
+//   ageRange: { min: number; max: number } = { min: 12, max: 18 }
+// ) => {
+//   return data.filter((item) => {
+//     if (!item.profile?.birthday) return false;
+//     const school = item.profile.school;
+//     const screeningDate =
+//       typeof school === "object" && school !== null
+//         ? school.screeningDate
+//         : undefined;
+//     const age = calculateAge(item.profile.birthday, screeningDate);
 
-    return age >= ageRange.min && age <= ageRange.max;
-  });
-};
+//     return age >= ageRange.min && age <= ageRange.max;
+//   });
+// };
 
 export default function AdminHome() {
   const [riskRange, setRiskRange] = useState<{
@@ -315,100 +321,108 @@ export default function AdminHome() {
       }),
   });
 
-  type SchoolStat = {
-    schoolName: string;
-    total: number;
-    green: number;
-    greenLow: number;
-    yellow: number;
-    orange: number;
-    red: number;
-  };
+  // type SchoolStat = {
+  //   schoolName: string;
+  //   total: number;
+  //   green: number;
+  //   greenLow: number;
+  //   yellow: number;
+  //   orange: number;
+  //   red: number;
+  // };
 
   // useMemo ลดการคำนวณซ้ำเมื่อ rawQuestions ไม่เปลี่ยน (rerender-memo)
-  const filteredQuestions = useMemo(
-    () => filterByAge(rawQuestions),
+  // const filteredQuestions = useMemo(
+  //   () => filterByAge(rawQuestions),
+  //   [rawQuestions]
+  // );
+
+  // const filteredLatestQuestions = useMemo(
+  //   () => filterLatestQuestions(filteredQuestions),
+  //   [filteredQuestions]
+  // );
+
+  /** รายการประเมินล่าสุดต่อคน ทุกช่วงอายุ — ใช้กับ ConsultTelemedCharts ที่แยก 12–18 กับมากกว่า 18 ปี */
+  const latestQuestionsAllAges = useMemo(
+    () => filterLatestQuestions(rawQuestions),
     [rawQuestions]
   );
 
-  const filteredLatestQuestions = useMemo(
-    () => filterLatestQuestions(filteredQuestions),
-    [filteredQuestions]
-  );
+  // const schoolStats = useMemo(
+  //   () =>
+  //     Object.values(
+  //       filteredLatestQuestions.reduce((acc: Record<string, SchoolStat>, q) => {
+  //         let schoolName: string;
 
-  const schoolStats = useMemo(
-    () =>
-      Object.values(
-        filteredLatestQuestions.reduce((acc: Record<string, SchoolStat>, q) => {
-          let schoolName: string;
+  //         if (
+  //           typeof q.profile.school === "object" &&
+  //           q.profile.school !== null
+  //         ) {
+  //           schoolName =
+  //             (q.profile.school as { name?: string }).name || "ไม่ระบุโรงเรียน";
+  //         } else {
+  //           schoolName = (q.profile.school as string) || "ไม่ระบุโรงเรียน";
+  //         }
 
-          if (
-            typeof q.profile.school === "object" &&
-            q.profile.school !== null
-          ) {
-            schoolName =
-              (q.profile.school as { name?: string }).name || "ไม่ระบุโรงเรียน";
-          } else {
-            schoolName = (q.profile.school as string) || "ไม่ระบุโรงเรียน";
-          }
+  //         if (!acc[schoolName]) {
+  //           acc[schoolName] = {
+  //             schoolName,
+  //             total: 0,
+  //             green: 0,
+  //             greenLow: 0,
+  //             yellow: 0,
+  //             orange: 0,
+  //             red: 0,
+  //           };
+  //         }
+  //         acc[schoolName].total++;
+  //         if (q.result === "Green") acc[schoolName].green++;
+  //         if (q.result === "Green-Low") acc[schoolName].greenLow++;
+  //         if (q.result === "Yellow") acc[schoolName].yellow++;
+  //         if (q.result === "Orange") acc[schoolName].orange++;
+  //         if (q.result === "Red") acc[schoolName].red++;
 
-          if (!acc[schoolName]) {
-            acc[schoolName] = {
-              schoolName,
-              total: 0,
-              green: 0,
-              greenLow: 0,
-              yellow: 0,
-              orange: 0,
-              red: 0,
-            };
-          }
-          acc[schoolName].total++;
-          if (q.result === "Green") acc[schoolName].green++;
-          if (q.result === "Green-Low") acc[schoolName].greenLow++;
-          if (q.result === "Yellow") acc[schoolName].yellow++;
-          if (q.result === "Orange") acc[schoolName].orange++;
-          if (q.result === "Red") acc[schoolName].red++;
+  //         return acc;
+  //       }, {})
+  //     ),
+  //   [filteredLatestQuestions]
+  // );
 
-          return acc;
-        }, {})
-      ),
-    [filteredLatestQuestions]
-  );
+  // const schoolStatsSummary = useMemo(
+  //   () =>
+  //     schoolStats.reduce(
+  //       (acc, school) => {
+  //         acc.total += school.total;
+  //         acc.green += school.green;
+  //         acc.greenLow += school.greenLow;
+  //         acc.yellow += school.yellow;
+  //         acc.orange += school.orange;
+  //         acc.red += school.red;
 
-  const schoolStatsSummary = useMemo(
-    () =>
-      schoolStats.reduce(
-        (acc, school) => {
-          acc.total += school.total;
-          acc.green += school.green;
-          acc.greenLow += school.greenLow;
-          acc.yellow += school.yellow;
-          acc.orange += school.orange;
-          acc.red += school.red;
+  //         return acc;
+  //       },
+  //       {
+  //         schoolName: "Total",
+  //         total: 0,
+  //         green: 0,
+  //         greenLow: 0,
+  //         yellow: 0,
+  //         orange: 0,
+  //         red: 0,
+  //       } as SchoolStat
+  //     ),
+  //   [schoolStats]
+  // );
 
-          return acc;
-        },
-        {
-          schoolName: "Total",
-          total: 0,
-          green: 0,
-          greenLow: 0,
-          yellow: 0,
-          orange: 0,
-          red: 0,
-        } as SchoolStat
-      ),
-    [schoolStats]
-  );
+  const isInitialDashboardLoading =
+    isLoadingQuestions ||
+    isLoadingUsage ||
+    isLoadingLast7Days ||
+    isLoadingWeekhourMonthly ||
+    isLoadingRiskSummary;
 
-  if (
-    isLoadingQuestions &&
-    isLoadingUsage &&
-    isLoadingLast7Days &&
-    isLoadingWeekhourMonthly
-  ) {
-    return <></>;
+  if (isInitialDashboardLoading) {
+    return <AdminDashboardPageSkeleton />;
   }
 
   return (
@@ -418,22 +432,26 @@ export default function AdminHome() {
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
-                ผลการพบนักจิตวิทยา (อายุ 12-18 ปี)
+                ผลการพบนักจิตวิทยา (แยกอายุ 12–18 ปี และมากกว่า 18 ปี)
               </h3>
-              <ConsultTelemedCharts questions={filteredLatestQuestions} />
+              {isLoadingQuestions ? (
+                <DashboardChartAreaSkeleton chartClassName="min-h-[260px]" />
+              ) : (
+                <ConsultTelemedCharts questions={latestQuestionsAllAges} />
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/* <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
                 กราฟแสดงผลการประเมิน (อายุ 12-18 ปี)
               </h3>
               <PieChartsSection data={filteredLatestQuestions} />
             </div>
-          </div>
+          </div> */}
 
-          <div className="flex flex-col gap-2 mb-8">
+          {/* <div className="flex flex-col gap-2 mb-8">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">ตารางสถิติรายโรงเรียน</h3>
               <CardSchoolStats
@@ -441,7 +459,7 @@ export default function AdminHome() {
                 summary={schoolStatsSummary}
               />
             </div>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="flex flex-col gap-2">
@@ -472,7 +490,7 @@ export default function AdminHome() {
                 />
               </div>
               {isLoadingRiskSummary ? (
-                <div className="text-sm text-default-500">กำลังโหลด...</div>
+                <DashboardChartAreaSkeleton />
               ) : riskSummary ? (
                 <UsageRiskMonthlyChart summary={riskSummary} />
               ) : (
@@ -506,7 +524,7 @@ export default function AdminHome() {
                 />
               </div>
               {isLoadingLast7Days ? (
-                <div className="text-sm text-default-500">กำลังโหลด...</div>
+                <DashboardLast7DaysSkeleton />
               ) : (
                 <Last7DaysUsageCards data={last7Days} />
               )}
@@ -540,7 +558,7 @@ export default function AdminHome() {
                 />
               </div>
               {isLoadingWeekhourMonthly ? (
-                <div className="text-sm text-default-500">กำลังโหลด...</div>
+                <DashboardHeatmapSkeleton />
               ) : (
                 <AssessmentWeekhourMonthlyHeatmap
                   cells={assessmentWeekhourMonthly.cells}
@@ -558,7 +576,7 @@ export default function AdminHome() {
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">ตารางสถิติการเข้าใช้งาน</h3>
               {isLoadingUsage ? (
-                <div className="text-sm text-default-500">กำลังโหลด...</div>
+                <DashboardUsageStatsSkeleton />
               ) : (
                 <CardUsageStats data={usageStats} />
               )}

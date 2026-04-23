@@ -63,6 +63,18 @@ const formatDateTime = (iso: string) =>
     minute: "2-digit",
   });
 
+const getUsageStatRowSortKey = (row: UsageStatRow): number => {
+  const monthIndex = THAI_MONTHS.indexOf(
+    row.monthLabel as (typeof THAI_MONTHS)[number]
+  );
+
+  if (monthIndex < 0) return 0;
+
+  const gregorianYear = row.yearBe - 543;
+
+  return Date.UTC(gregorianYear, monthIndex, 1);
+};
+
 export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -93,30 +105,38 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
     []
   );
 
+  const sortedData = useMemo(
+    () =>
+      [...data].sort(
+        (a, b) => getUsageStatRowSortKey(b) - getUsageStatRowSortKey(a)
+      ),
+    [data]
+  );
+
   const monthOptions = useMemo(
     () => [
       { key: "all", label: "ทุกเดือน" },
-      ...data.map((row) => ({
+      ...sortedData.map((row) => ({
         key: `${row.yearBe}-${THAI_MONTHS.indexOf(
           row.monthLabel as (typeof THAI_MONTHS)[number]
         )}`,
         label: `${row.monthLabel} ${row.yearBe}`,
       })),
     ],
-    [data]
+    [sortedData]
   );
 
   const filteredData = useMemo(() => {
-    if (selectedMonthKey === "all") return data;
+    if (selectedMonthKey === "all") return sortedData;
 
-    return data.filter((row) => {
+    return sortedData.filter((row) => {
       const monthIndex = THAI_MONTHS.indexOf(
         row.monthLabel as (typeof THAI_MONTHS)[number]
       );
 
       return `${row.yearBe}-${monthIndex}` === selectedMonthKey;
     });
-  }, [data, selectedMonthKey]);
+  }, [sortedData, selectedMonthKey]);
 
   const summary = filteredData.reduce(
     (acc, row) => {
@@ -331,8 +351,8 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
         <Table isHeaderSticky isStriped aria-label="Usage Statistics Table">
           <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
             <TableColumn>ปี-เดือน</TableColumn>
-            <TableColumn className="text-center">จำนวนเข้าใช้งาน</TableColumn>
-            <TableColumn className="text-center">จำนวนผู้ประเมิน</TableColumn>
+            <TableColumn className="text-center">เข้าใช้งาน</TableColumn>
+            <TableColumn className="text-center">ผู้ทำแบบประเมิน</TableColumn>
             <TableColumn className="text-center">
               <span className="text-green-700 font-semibold">
                 ไม่พบความเสี่ยง

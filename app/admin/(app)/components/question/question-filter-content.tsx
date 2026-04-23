@@ -23,7 +23,7 @@ import useSWR from "swr";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 import { ExportButton } from "../export-button";
-import { StatusUpdateButton } from "../status-update-button";
+// import { StatusUpdateButton } from "../status-update-button";
 
 import { QuestionsData } from "@/types";
 
@@ -105,7 +105,7 @@ export function QuestionFilterContent({
   setMainScaleFilter,
   data,
   filteredData,
-  onDataUpdate,
+  // onDataUpdate,
 }: QuestionFilterContentProps) {
   // ดึงข้อมูลโรงเรียน
   const { data: schoolsData } = useSWR(
@@ -432,9 +432,9 @@ export function QuestionFilterContent({
               </Button>
 
               {/* ปุ่มปรับสถานะ */}
-              {data && (
+              {/* {data && (
                 <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />
-              )}
+              )} */}
 
               {/* Export Button */}
               {data && <ExportButton data={data} />}
