@@ -74,7 +74,12 @@ export default function MyCasePage() {
 
   // เพิ่ม state สำหรับ filter ใหม่
   const [schoolFilter, setSchoolFilter] = useState<string>("");
-  const [phqaFilter, setPhqaFilter] = useState<Selection>(new Set([]));
+  const [nineqResultFilter, setNineqResultFilter] = useState<Selection>(
+    new Set([])
+  );
+  const [phqaResultFilter, setPhqaResultFilter] = useState<Selection>(
+    new Set([])
+  );
   const [q2Filter, setQ2Filter] = useState<Selection>(new Set([]));
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
   const [q8Filter, setQ8Filter] = useState<Selection>(new Set([]));
@@ -94,7 +99,10 @@ export default function MyCasePage() {
         : Array.from(statusFilter as Set<string>)
             .sort()
             .join(",");
-    const phqaKey = Array.from(phqaFilter as Set<string>)
+    const resultNineq = Array.from(nineqResultFilter as Set<string>)
+      .sort()
+      .join(",");
+    const resultPhqa = Array.from(phqaResultFilter as Set<string>)
       .sort()
       .join(",");
     const q2Set = q2Filter as Set<string>;
@@ -124,7 +132,8 @@ export default function MyCasePage() {
       search: filterValue,
       status: statusKey,
       school: schoolFilter,
-      phqa: phqaKey,
+      resultNineq,
+      resultPhqa,
       q2Risk,
       addonRisk,
       q8Risk,
@@ -134,7 +143,8 @@ export default function MyCasePage() {
     filterValue,
     statusFilter,
     schoolFilter,
-    phqaFilter,
+    nineqResultFilter,
+    phqaResultFilter,
     q2Filter,
     addonFilter,
     q8Filter,
@@ -157,7 +167,8 @@ export default function MyCasePage() {
         if (key.status && key.status !== "all")
           params.set("status", key.status);
         if (key.school) params.set("school", key.school);
-        if (key.phqa) params.set("result", key.phqa);
+        if (key.resultNineq) params.set("resultNineq", key.resultNineq);
+        if (key.resultPhqa) params.set("resultPhqa", key.resultPhqa);
         if (key.q2Risk) params.set("q2Risk", key.q2Risk);
         if (key.addonRisk) params.set("addonRisk", key.addonRisk);
         if (key.q8Risk) params.set("q8Risk", key.q8Risk);
@@ -270,8 +281,12 @@ export default function MyCasePage() {
     setSchoolFilter(s);
     setPage(1);
   }, []);
-  const setPhqaFilterAndResetPage = useCallback((s: Selection) => {
-    setPhqaFilter(s);
+  const setNineqResultFilterAndResetPage = useCallback((s: Selection) => {
+    setNineqResultFilter(s);
+    setPage(1);
+  }, []);
+  const setPhqaResultFilterAndResetPage = useCallback((s: Selection) => {
+    setPhqaResultFilter(s);
     setPage(1);
   }, []);
   const setQ2FilterAndResetPage = useCallback((s: Selection) => {
@@ -299,13 +314,15 @@ export default function MyCasePage() {
         filterValue={filterValue}
         filteredData={questionsList}
         mainScaleFilter={mainScaleFilter}
-        phqaFilter={phqaFilter}
+        nineqResultFilter={nineqResultFilter}
+        phqaResultFilter={phqaResultFilter}
         q2Filter={q2Filter}
         q8Filter={q8Filter}
         schoolFilter={schoolFilter}
         setAddonFilter={setAddonFilterAndResetPage}
         setMainScaleFilter={setMainScaleFilterAndResetPage}
-        setPhqaFilter={setPhqaFilterAndResetPage}
+        setNineqResultFilter={setNineqResultFilterAndResetPage}
+        setPhqaResultFilter={setPhqaResultFilterAndResetPage}
         setQ2Filter={setQ2FilterAndResetPage}
         setQ8Filter={setQ8FilterAndResetPage}
         setSchoolFilter={setSchoolFilterAndResetPage}
@@ -322,8 +339,10 @@ export default function MyCasePage() {
       setStatusFilterAndResetPage,
       schoolFilter,
       setSchoolFilterAndResetPage,
-      phqaFilter,
-      setPhqaFilterAndResetPage,
+      nineqResultFilter,
+      setNineqResultFilterAndResetPage,
+      phqaResultFilter,
+      setPhqaResultFilterAndResetPage,
       q2Filter,
       setQ2FilterAndResetPage,
       addonFilter,

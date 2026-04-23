@@ -33,7 +33,18 @@ const riskStatusOptions = [
   { name: "ไม่พบความเสี่ยง", uid: "no-risk" },
 ];
 
-// ระดับความเสี่ยงจากคะแนน 9Q หรือ PHQ-A (ฟิลด์ result เดียวกัน)
+// ระดับจากคะแนน 9Q — ฟิลด์ result ตรงกับ getNineQRiskLevel (ไม่มี Green-Low)
+const nineqStatusOptions = [
+  {
+    name: "ไม่มีอาการของโรคซึมเศร้าหรือมีอาการของโรคซึมเศร้าระดับน้อยมาก",
+    uid: "Green",
+  },
+  { name: "มีอาการของโรคซึมเศร้า ระดับน้อย", uid: "Yellow" },
+  { name: "มีอาการของโรคซึมเศร้า ระดับปานกลาง", uid: "Orange" },
+  { name: "มีอาการของโรคซึมเศร้า ระดับรุนแรง", uid: "Red" },
+];
+
+// ระดับจากคะแนน PHQ-A — ฟิลด์ result ตรงกับ getPhqaRiskLevel
 const phqaStatusOptions = [
   { name: "ไม่พบความเสี่ยง", uid: "Green" },
   { name: "พบความเสี่ยงเล็กน้อย", uid: "Green-Low" },
@@ -56,8 +67,10 @@ interface QuestionFilterContentProps {
   setStatusFilter: (filter: Selection) => void;
   schoolFilter: string;
   setSchoolFilter: (filter: string) => void;
-  phqaFilter: Selection;
-  setPhqaFilter: (filter: Selection) => void;
+  nineqResultFilter: Selection;
+  setNineqResultFilter: (filter: Selection) => void;
+  phqaResultFilter: Selection;
+  setPhqaResultFilter: (filter: Selection) => void;
   q2Filter: Selection;
   setQ2Filter: (filter: Selection) => void;
   q8Filter: Selection;
@@ -78,8 +91,10 @@ export function QuestionFilterContent({
   setStatusFilter,
   schoolFilter,
   setSchoolFilter,
-  phqaFilter,
-  setPhqaFilter,
+  nineqResultFilter,
+  setNineqResultFilter,
+  phqaResultFilter,
+  setPhqaResultFilter,
   q2Filter,
   setQ2Filter,
   q8Filter,
@@ -240,7 +255,7 @@ export function QuestionFilterContent({
                 </DropdownMenu>
               </Dropdown>
 
-              {/* ระดับความเสี่ยง 9Q / PHQ-A (คะแนนรวม → result) */}
+              {/* ระดับผล 9Q (กรองเฉพาะแถวที่มี q9 — ไม่ผูกกับชุดคำถามหลัก) */}
               <Dropdown>
                 <DropdownTrigger>
                   <Button
@@ -252,16 +267,47 @@ export function QuestionFilterContent({
                     size="sm"
                     variant="flat"
                   >
-                    9Q / PHQ-A
+                    9Q
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="9Q PHQA risk levels"
+                  aria-label="9Q risk levels"
                   closeOnSelect={false}
-                  selectedKeys={phqaFilter}
+                  selectedKeys={nineqResultFilter}
                   selectionMode="multiple"
-                  onSelectionChange={setPhqaFilter}
+                  onSelectionChange={setNineqResultFilter}
+                >
+                  {nineqStatusOptions.map((status) => (
+                    <DropdownItem key={status.uid} className="capitalize">
+                      {status.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
+              {/* ระดับผล PHQ-A ชุดหลัก (แถวที่ไม่มี q9) */}
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
+                    color="primary"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
+                    variant="flat"
+                  >
+                    PHQ-A
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="PHQ-A main scale risk levels"
+                  closeOnSelect={false}
+                  selectedKeys={phqaResultFilter}
+                  selectionMode="multiple"
+                  onSelectionChange={setPhqaResultFilter}
                 >
                   {phqaStatusOptions.map((status) => (
                     <DropdownItem key={status.uid} className="capitalize">
@@ -374,7 +420,8 @@ export function QuestionFilterContent({
                   onSearchChange("");
                   setStatusFilter(new Set([]));
                   setSchoolFilter("");
-                  setPhqaFilter(new Set([]));
+                  setNineqResultFilter(new Set([]));
+                  setPhqaResultFilter(new Set([]));
                   setQ2Filter(new Set([]));
                   setQ8Filter(new Set([]));
                   setAddonFilter(new Set([]));
@@ -400,7 +447,8 @@ export function QuestionFilterContent({
           schoolFilter ||
           mainScaleFilter !== "all" ||
           (statusFilter as Set<string>).size > 0 ||
-          (phqaFilter as Set<string>).size > 0 ||
+          (nineqResultFilter as Set<string>).size > 0 ||
+          (phqaResultFilter as Set<string>).size > 0 ||
           (q2Filter as Set<string>).size > 0 ||
           (q8Filter as Set<string>).size > 0 ||
           (addonFilter as Set<string>).size > 0) && (
@@ -474,28 +522,50 @@ export function QuestionFilterContent({
                 );
               })}
 
-            {/* 9Q / PHQ-A ระดับความเสี่ยง */}
-            {(phqaFilter as Set<string>).size > 0 &&
-              Array.from(phqaFilter as Set<string>).map((phqa) => {
-                const phqaOption = phqaStatusOptions.find(
-                  (opt) => opt.uid === phqa
-                );
+            {/* ระดับผล 9Q */}
+            {(nineqResultFilter as Set<string>).size > 0 &&
+              Array.from(nineqResultFilter as Set<string>).map((uid) => {
+                const opt = nineqStatusOptions.find((o) => o.uid === uid);
 
                 return (
                   <Chip
-                    key={phqa}
+                    key={`9q-${uid}`}
                     className="text-xs"
                     color="default"
                     size="sm"
                     variant="flat"
                     onClose={() => {
-                      const newPhqaFilter = new Set(phqaFilter as Set<string>);
+                      const next = new Set(nineqResultFilter as Set<string>);
 
-                      newPhqaFilter.delete(phqa);
-                      setPhqaFilter(newPhqaFilter);
+                      next.delete(uid);
+                      setNineqResultFilter(next);
                     }}
                   >
-                    9Q/PHQ-A: {phqaOption?.name}
+                    9Q: {opt?.name ?? uid}
+                  </Chip>
+                );
+              })}
+
+            {/* ระดับผล PHQ-A ชุดหลัก */}
+            {(phqaResultFilter as Set<string>).size > 0 &&
+              Array.from(phqaResultFilter as Set<string>).map((uid) => {
+                const opt = phqaStatusOptions.find((o) => o.uid === uid);
+
+                return (
+                  <Chip
+                    key={`phqa-${uid}`}
+                    className="text-xs"
+                    color="default"
+                    size="sm"
+                    variant="flat"
+                    onClose={() => {
+                      const next = new Set(phqaResultFilter as Set<string>);
+
+                      next.delete(uid);
+                      setPhqaResultFilter(next);
+                    }}
+                  >
+                    PHQ-A: {opt?.name ?? uid}
                   </Chip>
                 );
               })}
@@ -588,7 +658,8 @@ export function QuestionFilterContent({
       statusFilter,
       onSearchChange,
       schoolFilter,
-      phqaFilter,
+      nineqResultFilter,
+      phqaResultFilter,
       q2Filter,
       q8Filter,
       addonFilter,
@@ -596,7 +667,8 @@ export function QuestionFilterContent({
       schoolsData,
       setStatusFilter,
       setSchoolFilter,
-      setPhqaFilter,
+      setNineqResultFilter,
+      setPhqaResultFilter,
       setQ2Filter,
       setQ8Filter,
       setAddonFilter,

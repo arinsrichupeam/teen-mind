@@ -5,13 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { DateRangePicker } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
-import { CardSchoolStats } from "./components/home/card-school-stats";
-import { PieChartsSection } from "./components/home/pie-charts-section";
 import { ConsultTelemedCharts } from "./components/home/consult-telemed-charts";
 import { CardUsageStats } from "./components/home/card-usage-stats";
 import { UsageRiskMonthlyChart } from "./components/home/usage-risk-monthly-chart";
 import { Last7DaysUsageCards } from "./components/home/last-7-days-usage-cards";
 import { AssessmentWeekhourMonthlyHeatmap } from "./components/home/assessment-weekhour-monthly-heatmap";
+import { PieChartsSection } from "./components/home/pie-charts-section";
+import { CardSchoolStats } from "./components/home/card-school-stats";
 
 import Loading from "@/app/loading";
 import { QuestionsData } from "@/types";

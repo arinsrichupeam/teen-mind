@@ -38,6 +38,8 @@ function buildWhereFromQuery(url: URL) {
     url.searchParams.get("referentCitizenId")?.trim() || "";
   const consultUserId = url.searchParams.get("consult")?.trim() || "";
   const resultParam = url.searchParams.get("result");
+  const resultNineqParam = url.searchParams.get("resultNineq");
+  const resultPhqaParam = url.searchParams.get("resultPhqa");
   const q2Risk = url.searchParams.get("q2Risk");
   const addonRisk = url.searchParams.get("addonRisk");
   const q8Risk = url.searchParams.get("q8Risk");
@@ -52,6 +54,18 @@ function buildWhereFromQuery(url: URL) {
       : [];
   const resultArray = resultParam
     ? resultParam
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean)
+    : [];
+  const resultNineqArray = resultNineqParam
+    ? resultNineqParam
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean)
+    : [];
+  const resultPhqaArray = resultPhqaParam
+    ? resultPhqaParam
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
@@ -92,7 +106,33 @@ function buildWhereFromQuery(url: URL) {
     whereConditions.push({ consult: consultUserId });
   }
 
-  if (resultArray.length > 0) {
+  const hasSplitMainResult =
+    resultNineqArray.length > 0 || resultPhqaArray.length > 0;
+
+  if (hasSplitMainResult) {
+    const mainResultOr: Record<string, unknown>[] = [];
+
+    if (resultNineqArray.length > 0) {
+      mainResultOr.push({
+        AND: [{ q9: { some: {} } }, { result: { in: resultNineqArray } }],
+      });
+    }
+
+    if (resultPhqaArray.length > 0) {
+      mainResultOr.push({
+        AND: [
+          { NOT: { q9: { some: {} } } },
+          { result: { in: resultPhqaArray } },
+        ],
+      });
+    }
+
+    if (mainResultOr.length === 1) {
+      whereConditions.push(mainResultOr[0]);
+    } else {
+      whereConditions.push({ OR: mainResultOr });
+    }
+  } else if (resultArray.length > 0) {
     whereConditions.push({ result: { in: resultArray } });
   }
 
