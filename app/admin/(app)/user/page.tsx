@@ -78,7 +78,7 @@ const columns = [
   },
   { name: "โรงเรียน", uid: "school", align: "start" as const, sortable: true },
   {
-    name: "จำนวนแบบสอบถาม",
+    name: "จำนวนแบบประเมิน",
     uid: "questionCount",
     align: "center" as const,
     sortable: true,

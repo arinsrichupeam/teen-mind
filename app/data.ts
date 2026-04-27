@@ -48,3 +48,67 @@ export const q8 = [
 export const q8Addon = [
   "ท่านสามารถควบคุมความอยากฆ่าตัวตายที่ท่านคิดอยู่นั้นได้หรือไม่ หรือบอกได้ไหมว่าคงจะไม่ทำตามความคิดนั้นในขณะนี้",
 ];
+
+export const teenMindProblems = [
+  {
+    category: "ปัญหาเรื่องครอบครัว",
+    items: [
+      { key: "familyRelation", label: "ความสัมพันธ์ในครอบครัว" },
+      {
+        key: "familyStudyPressure",
+        label: "พ่อแม่คาดหวังสูง กดดันเรื่องการเรียน",
+      },
+      { key: "familyConflict", label: "การทะเลาะกันในบ้าน" },
+      { key: "familyAbuse", label: "ถูกทำร้ายร่างกายจากคนในครอบครัว / OSCC" },
+      { key: "familyLoss", label: "สูญเสียคนในครอบครัว" },
+    ],
+  },
+  {
+    category: "ความสัมพันธ์/สังคม",
+    items: [
+      { key: "socialFriendIssue", label: "ปัญหากับเพื่อน" },
+      { key: "socialBullying", label: "การถูกบูลลี่/กลั่นแกล้ง" },
+      { key: "socialBreakup", label: "อกหัก ทะเลาะกับแฟน" },
+      { key: "socialTeacher", label: "มีปัญหากับครู" },
+      { key: "socialAssault", label: "ถูกทำร้ายร่างกาย" },
+    ],
+  },
+  {
+    category: "การเรียน",
+    items: [
+      { key: "studyStress", label: "เครียดเรื่องเรียน" },
+      { key: "studyNoMotivation", label: "ไม่มีแรงจูงใจ" },
+      { key: "studyBurnout", label: "เบิร์นเอาท์ (หมดไฟในการเรียน)" },
+      { key: "studyTimeManage", label: "จัดการเวลาไม่ได้" },
+      { key: "studyHomeworkLoad", label: "เครียดเรื่องการบ้านเยอะ" },
+      {
+        key: "studyExamAnxiety",
+        label: "กลัวสอบตกหรือได้คะแนนไม่เป็นไปตามความคาดหวัง",
+      },
+    ],
+  },
+  {
+    category: "การเงิน",
+    items: [{ key: "financeFamilyIssue", label: "ปัญหาการเงินภายในครอบครัว" }],
+  },
+  {
+    category: "พฤติกรรม/การใช้ชีวิต",
+    items: [
+      {
+        key: "lifestyleSocialMediaOveruse",
+        label: "ใช้โซเชียลมีเดียมากเกินไป",
+      },
+      { key: "lifestyleGamingAddiction", label: "ติดเกม" },
+      {
+        key: "lifestyleSubstanceUse",
+        label: "เสพติดบางอย่าง เช่น บุหรี่ กระท่อม กัญชา",
+      },
+      {
+        key: "lifestyleEatingIssue",
+        label: "ปัญหาการกิน (กินมาก/น้อยเกินไป)",
+      },
+      { key: "lifestyleBodyImageConcern", label: "กังวลเรื่องรูปลักษณ์" },
+      { key: "lifestyleInsomnia", label: "นอนไม่หลับ" },
+    ],
+  },
+] as const;

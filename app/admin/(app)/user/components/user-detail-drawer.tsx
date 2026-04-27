@@ -319,11 +319,11 @@ export default function UserDetailDrawer({
 
             <Divider />
 
-            {/* ข้อมูลแบบสอบถาม */}
+            {/* ข้อมูลแบบประเมิน */}
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-md font-semibold mb-3 text-primary">
-                  ข้อมูลแบบสอบถาม
+                  ข้อมูลแบบประเมิน
                 </h4>
                 {mode === "edit" && (
                   <Button
@@ -337,13 +337,13 @@ export default function UserDetailDrawer({
                       setIsAddQuestionModalOpen(true);
                     }}
                   >
-                    เพิ่มแบบทดสอบ
+                    เพิ่มแบบประเมิน
                   </Button>
                 )}
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-default-500">จำนวนแบบสอบถาม:</span>
+                <span className="text-default-500">จำนวนแบบประเมิน:</span>
                 <Chip
                   color={user.questions.length > 0 ? "primary" : "default"}
                   size="sm"
@@ -417,7 +417,7 @@ export default function UserDetailDrawer({
                   })
                 ) : (
                   <span className="text-default-400 italic">
-                    ไม่มีแบบสอบถาม
+                    ไม่มีแบบประเมิน
                   </span>
                 )}
               </div>

@@ -112,59 +112,6 @@ export const GreenFlex: FlexMessage = {
           ],
         },
       },
-      {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: "https://img5.pic.in.th/file/secure-sv1/-70a854123a6de2944.jpg",
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "Application OOCA",
-              weight: "bold",
-              size: "xl",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: "ดาวน์โหลดฟรี",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "Android",
-                uri: "https://play.google.com/store/apps/details?id=co.ooca.user&hl=th",
-              },
-              style: "primary",
-            },
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "IOS",
-                uri: "https://apps.apple.com/th/app/ooca-%E0%B8%9B%E0%B8%A3-%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%9B-%E0%B8%8D%E0%B8%AB%E0%B8%B2%E0%B9%83%E0%B8%88/id1260476046",
-              },
-              style: "primary",
-            },
-          ],
-        },
-      },
     ],
   },
 };
@@ -273,59 +220,6 @@ export const YellowFlex: FlexMessage = {
                 type: "uri",
                 label: "IOS",
                 uri: "https://apps.apple.com/th/app/%E0%B8%AB%E0%B8%A1%E0%B8%AD-%E0%B8%81%E0%B8%97%E0%B8%A1/id1600388607",
-              },
-              style: "primary",
-            },
-          ],
-        },
-      },
-      {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: "https://img5.pic.in.th/file/secure-sv1/-70a854123a6de2944.jpg",
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "Application OOCA",
-              weight: "bold",
-              size: "xl",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: "ดาวน์โหลดฟรี",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "Android",
-                uri: "https://play.google.com/store/apps/details?id=co.ooca.user&hl=th",
-              },
-              style: "primary",
-            },
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "IOS",
-                uri: "https://apps.apple.com/th/app/ooca-%E0%B8%9B%E0%B8%A3-%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%9B-%E0%B8%8D%E0%B8%AB%E0%B8%B2%E0%B9%83%E0%B8%88/id1260476046",
               },
               style: "primary",
             },
@@ -441,59 +335,6 @@ export const RedFlex: FlexMessage = {
                 type: "uri",
                 label: "IOS",
                 uri: "https://apps.apple.com/th/app/%E0%B8%AB%E0%B8%A1%E0%B8%AD-%E0%B8%81%E0%B8%97%E0%B8%A1/id1600388607",
-              },
-              style: "primary",
-            },
-          ],
-        },
-      },
-      {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: "https://img5.pic.in.th/file/secure-sv1/-70a854123a6de2944.jpg",
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "Application OOCA",
-              weight: "bold",
-              size: "xl",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: "ดาวน์โหลดฟรี",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "Android",
-                uri: "https://play.google.com/store/apps/details?id=co.ooca.user&hl=th",
-              },
-              style: "primary",
-            },
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "IOS",
-                uri: "https://apps.apple.com/th/app/ooca-%E0%B8%9B%E0%B8%A3-%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%9B-%E0%B8%8D%E0%B8%AB%E0%B8%B2%E0%B9%83%E0%B8%88/id1260476046",
               },
               style: "primary",
             },
@@ -616,59 +457,6 @@ export const GreenLowFlex: FlexMessage = {
           ],
         },
       },
-      {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: "https://img5.pic.in.th/file/secure-sv1/-70a854123a6de2944.jpg",
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "Application OOCA",
-              weight: "bold",
-              size: "xl",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: "ดาวน์โหลดฟรี",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "Android",
-                uri: "https://play.google.com/store/apps/details?id=co.ooca.user&hl=th",
-              },
-              style: "primary",
-            },
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "IOS",
-                uri: "https://apps.apple.com/th/app/ooca-%E0%B8%9B%E0%B8%A3-%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%9B-%E0%B8%8D%E0%B8%AB%E0%B8%B2%E0%B9%83%E0%B8%88/id1260476046",
-              },
-              style: "primary",
-            },
-          ],
-        },
-      },
     ],
   },
 };
@@ -777,59 +565,6 @@ export const OrangeFlex: FlexMessage = {
                 type: "uri",
                 label: "IOS",
                 uri: "https://apps.apple.com/th/app/%E0%B8%AB%E0%B8%A1%E0%B8%AD-%E0%B8%81%E0%B8%97%E0%B8%A1/id1600388607",
-              },
-              style: "primary",
-            },
-          ],
-        },
-      },
-      {
-        type: "bubble",
-        hero: {
-          type: "image",
-          url: "https://img5.pic.in.th/file/secure-sv1/-70a854123a6de2944.jpg",
-          size: "full",
-          aspectRatio: "20:13",
-          aspectMode: "cover",
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "Application OOCA",
-              weight: "bold",
-              size: "xl",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: "ดาวน์โหลดฟรี",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "Android",
-                uri: "https://play.google.com/store/apps/details?id=co.ooca.user&hl=th",
-              },
-              style: "primary",
-            },
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "IOS",
-                uri: "https://apps.apple.com/th/app/ooca-%E0%B8%9B%E0%B8%A3-%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%9B-%E0%B8%8D%E0%B8%AB%E0%B8%B2%E0%B9%83%E0%B8%88/id1260476046",
               },
               style: "primary",
             },

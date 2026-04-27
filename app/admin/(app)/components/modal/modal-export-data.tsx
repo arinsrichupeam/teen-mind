@@ -121,7 +121,7 @@ export const ModalExportData = ({
     fetchAllQuestionData();
   }, [isOpen, dataType]);
 
-  // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบสอบถาม
+  // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบประเมิน
   const getAvailableFields = (): ExportField[] => {
     return [
       { key: "id", label: "ลำดับ", selected: true },

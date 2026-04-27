@@ -272,7 +272,7 @@ export default function RecalculatePHQAPage() {
                 สถิติปัจจุบัน
               </p>
               <p className="text-small text-blue-600">
-                จำนวนแบบสอบถามทั้งหมดที่มีข้อมูล PHQA
+                จำนวนแบบประเมินทั้งหมดที่มีข้อมูล PHQA
               </p>
             </div>
           </CardHeader>

@@ -17,9 +17,9 @@ export async function GET() {
       },
     });
 
-    // แปลงข้อมูลให้มี prefix และจำนวนแบบสอบถาม
+    // แปลงข้อมูลให้มี prefix และจำนวนแบบประเมิน
     const formattedReferents = referents.map((referent) => {
-      // นับจำนวนแบบสอบถามโดยจัดกลุ่มตาม userid
+      // นับจำนวนแบบประเมินโดยจัดกลุ่มตาม userid
       const questionCountByUser = referent.questions_master.reduce(
         (acc, question) => {
           const profileId = question.profile?.id || "unknown";

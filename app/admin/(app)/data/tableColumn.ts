@@ -33,7 +33,7 @@ export const VolunteerColumnsName = [
   },
   {
     uid: "question_count",
-    name: "จำนวนแบบสอบถาม",
+    name: "จำนวนแบบประเมิน",
     align: "center",
   },
   {

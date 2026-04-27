@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/button";
+import { Checkbox } from "@heroui/checkbox";
 import { Tab, Tabs } from "@heroui/tabs";
 import { Progress } from "@heroui/progress";
 import { Image } from "@heroui/image";
@@ -25,7 +26,7 @@ import {
 import { Divider, InputOtp } from "@heroui/react";
 
 import { subtitle, title } from "@/components/primitives";
-import { LocationData } from "@/types";
+import { LocationData, ProblemPayload } from "@/types";
 import Loading from "@/app/loading";
 import { calculateAge } from "@/utils/helper";
 import {
@@ -35,6 +36,7 @@ import {
   q9 as q9Questions,
   q8 as q8Questions,
   q8Addon as q8AddonQuestions,
+  teenMindProblems,
 } from "@/app/data";
 
 export default function PHQAPage() {
@@ -135,6 +137,33 @@ export default function PHQAPage() {
     sum: 0,
   };
 
+  const problemInitValue: ProblemPayload = {
+    familyRelation: 0,
+    familyStudyPressure: 0,
+    familyConflict: 0,
+    familyAbuse: 0,
+    familyLoss: 0,
+    socialFriendIssue: 0,
+    socialBullying: 0,
+    socialBreakup: 0,
+    socialTeacher: 0,
+    socialAssault: 0,
+    studyStress: 0,
+    studyNoMotivation: 0,
+    studyBurnout: 0,
+    studyTimeManage: 0,
+    studyHomeworkLoad: 0,
+    studyExamAnxiety: 0,
+    financeFamilyIssue: 0,
+    lifestyleSocialMediaOveruse: 0,
+    lifestyleGamingAddiction: 0,
+    lifestyleSubstanceUse: 0,
+    lifestyleEatingIssue: 0,
+    lifestyleBodyImageConcern: 0,
+    lifestyleInsomnia: 0,
+    sum: 0,
+  };
+
   const router = useRouter();
   const { data: session, status } = useSession();
   const [questionName, setQuestionName] = useState("2Q");
@@ -143,6 +172,7 @@ export default function PHQAPage() {
   const [showPHQAAddon, setPHQAAddonShow] = useState(false);
   const [showQ9, setShowQ9] = useState(false);
   const [showQ8, setShowQ8] = useState(false);
+  const [showProblem, setShowProblem] = useState(false);
   const [canProceed, setCanProceed] = useState(false);
   const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false);
   const [profileIdState, setProfileIdState] = useState("");
@@ -168,6 +198,7 @@ export default function PHQAPage() {
     useState<Questions_PHQA_Addon>(phqaAddonInitValue);
   const [q9_data, setQ9] = useState<Questions_9Q>(q9InitValue);
   const [q8_data, setQ8] = useState<Questions_8Q>(q8InitValue);
+  const [problem_data, setProblem] = useState<ProblemPayload>(problemInitValue);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -337,6 +368,7 @@ export default function PHQAPage() {
           setPHQAAddonShow(false);
           setShowQ9(false);
           setShowQ8(false);
+          setShowProblem(false);
           setQuestion("1");
           setQuestionName("2Q");
           setProgress(0);
@@ -441,8 +473,9 @@ export default function PHQAPage() {
 
       // จำนวนคำถามทั้งหมด (นับเฉพาะหน้าที่แสดงด้วย Tab)
       // under12: 2Q(2) + PHQ-A(9) + PHQ-A Addon(2) + 8Q(9) = 22
-      // over12 : 2Q(2) + 9Q(9) + 8Q(9) = 20
-      const totalQuestions = ageGroup === "under12" ? 22 : 20;
+      // + ประเมินปัญหา(1)
+      // over12 : 2Q(2) + 9Q(9) + 8Q(9) + ประเมินปัญหา(1) = 21
+      const totalQuestions = ageGroup === "under12" ? 23 : 21;
       const currentQuestion = e - 1; // ลบ 1 เพื่อให้เริ่มจาก 0
 
       // คำนวณเปอร์เซ็นต์ความคืบหน้า (100/13 ≈ 7.7% ต่อข้อ)
@@ -651,6 +684,28 @@ export default function PHQAPage() {
     });
   };
 
+  const toggleProblem = useCallback((key: keyof ProblemPayload) => {
+    if (key === "sum") return;
+    setProblem((prev) => {
+      const nextValue = prev[key] === 1 ? 0 : 1;
+      const nextData = {
+        ...prev,
+        [key]: nextValue,
+      };
+      const keys = Object.keys(nextData).filter(
+        (itemKey) => itemKey !== "sum"
+      ) as Array<keyof ProblemPayload>;
+      const sum = keys.reduce(
+        (acc, itemKey) =>
+          acc + Number(itemKey !== "sum" && Number(nextData[itemKey]) === 1),
+        0
+      );
+
+      return { ...nextData, sum };
+    });
+    setCanProceed(true);
+  }, []);
+
   const handleNext = useCallback(() => {
     if (!ageGroup) return;
 
@@ -658,6 +713,7 @@ export default function PHQAPage() {
     const q8Start = ageGroup === "under12" ? 14 : 12;
     /** คีย์สุดท้ายของ 8Q: q1..q3, addon, q4..q8 (รวม 9 ขั้น) */
     const q8LastKey = q8Start + 8;
+    const problemStepKey = q8LastKey + 1;
 
     const resetForNext = (nextKey: number) => {
       setProgress(calProgress(nextKey));
@@ -676,6 +732,7 @@ export default function PHQAPage() {
       setPHQAAddonShow(false);
       setShowQ9(!isUnder12);
       setShowQ8(false);
+      setShowProblem(false);
 
       setQuestionName(isUnder12 ? "PHQ-A" : "9Q");
       resetForNext(3);
@@ -696,6 +753,7 @@ export default function PHQAPage() {
         setPHQAAddonShow(true);
         setShowQ9(false);
         setShowQ8(false);
+        setShowProblem(false);
         setQuestionName("PHQ-A Addon");
         resetForNext(12);
 
@@ -712,6 +770,7 @@ export default function PHQAPage() {
         setPHQAAddonShow(false);
         setShowQ9(false);
         setShowQ8(true);
+        setShowProblem(false);
         setQuestionName("8Q");
         resetForNext(q8Start);
 
@@ -732,6 +791,7 @@ export default function PHQAPage() {
         setPHQAAddonShow(false);
         setShowQ9(false);
         setShowQ8(true);
+        setShowProblem(false);
         setQuestionName("8Q");
         resetForNext(q8Start);
 
@@ -753,6 +813,20 @@ export default function PHQAPage() {
       setCurrentQuestionAnswers({});
       setLastQuestionAnswered(false);
       setCanProceed(false);
+
+      return;
+    }
+
+    if (currentQuestion === q8LastKey) {
+      setShowQ8(false);
+      setShowProblem(true);
+      setQuestionName("ประเมินปัญหา");
+      setProgress(calProgress(problemStepKey));
+      setQuestion(problemStepKey.toString());
+      setCurrentAnswer("");
+      setCurrentQuestionAnswers({});
+      setLastQuestionAnswered(false);
+      setCanProceed(true);
 
       return;
     }
@@ -895,6 +969,7 @@ export default function PHQAPage() {
           q8Addon: q8AddonValue,
           sum: q8_sum,
         },
+        problem: problem_data,
         location: location || null,
         reference: referenceId ? parseInt(referenceId) : null,
       };
@@ -930,6 +1005,7 @@ export default function PHQAPage() {
           q8Addon: q8AddonValue,
           sum: q8_sum,
         },
+        problem: problem_data,
         location: location || null,
         reference: referenceId ? parseInt(referenceId) : null,
       };
@@ -981,11 +1057,15 @@ export default function PHQAPage() {
     }
 
     const q8Start = ageGroup === "under12" ? 14 : 12;
+    const q8LastKey = q8Start + 8;
+    const problemStepKey = q8LastKey + 1;
     // จาก q4 กลับ: ถ้า q3=0 ไม่ได้ผ่าน addon — ข้ามกลับไป q3
     const prevKey =
-      currentKey === q8Start + 4 && q8_data.q3 === 0
-        ? q8Start + 2
-        : currentKey - 1;
+      currentKey === problemStepKey
+        ? q8LastKey
+        : currentKey === q8Start + 4 && q8_data.q3 === 0
+          ? q8Start + 2
+          : currentKey - 1;
 
     setProgress(calProgress(prevKey));
     setQuestion(prevKey.toString());
@@ -998,7 +1078,8 @@ export default function PHQAPage() {
     // sync show flags ตาม key
     if (ageGroup === "under12") {
       setShowQ9(false);
-      setShowQ8(prevKey >= 14);
+      setShowQ8(prevKey >= 14 && prevKey <= q8LastKey);
+      setShowProblem(prevKey === problemStepKey);
       setPHQAShow(prevKey >= 3 && prevKey <= 11);
       setPHQAAddonShow(prevKey >= 12 && prevKey <= 13);
       setQuestionName(
@@ -1008,14 +1089,25 @@ export default function PHQAPage() {
             ? "PHQ-A"
             : prevKey <= 13
               ? "PHQ-A Addon"
-              : "8Q"
+              : prevKey <= q8LastKey
+                ? "8Q"
+                : "ประเมินปัญหา"
       );
     } else {
       setPHQAShow(false);
       setPHQAAddonShow(false);
       setShowQ9(prevKey >= 3 && prevKey <= 11);
-      setShowQ8(prevKey >= 12);
-      setQuestionName(prevKey <= 2 ? "2Q" : prevKey <= 11 ? "9Q" : "8Q");
+      setShowQ8(prevKey >= 12 && prevKey <= q8LastKey);
+      setShowProblem(prevKey === problemStepKey);
+      setQuestionName(
+        prevKey <= 2
+          ? "2Q"
+          : prevKey <= 11
+            ? "9Q"
+            : prevKey <= q8LastKey
+              ? "8Q"
+              : "ประเมินปัญหา"
+      );
     }
   }, [question, calProgress, router, ageGroup, Q2_data, q8_data.q3]);
 
@@ -1262,7 +1354,7 @@ export default function PHQAPage() {
             selectedKey={question}
             variant="underlined"
           >
-            {!showPHQA && !showPHQAAddon && !showQ9 && !showQ8
+            {!showPHQA && !showPHQAAddon && !showQ9 && !showQ8 && !showProblem
               ? q2.map((val, index) => (
                   <Tab key={(index + 1).toString()}>
                     <div className="flex flex-col gap-4 mt-[-50px]">
@@ -1616,7 +1708,54 @@ export default function PHQAPage() {
                             </>
                           );
                         })()
-                      : null}
+                      : showProblem
+                        ? (() => {
+                            const problemTabKey =
+                              ageGroup === "under12" ? "23" : "21";
+
+                            return (
+                              <Tab key={problemTabKey}>
+                                <div className="flex flex-col gap-4 mt-[-40px]">
+                                  <p className="text-primary-500 font-semibold text-start">
+                                    เลือกหัวข้อที่ตรงกับสิ่งที่คุณกำลังพบเจออยู่
+                                    (เลือกได้มากกว่า 1 ข้อ)
+                                  </p>
+                                  <div className="flex flex-col gap-4">
+                                    {teenMindProblems.map((section) => (
+                                      <div
+                                        key={section.category}
+                                        className="rounded-xl border p-4"
+                                      >
+                                        <p className="font-semibold text-primary-500 mb-2">
+                                          {section.category}
+                                        </p>
+                                        <div className="flex flex-col gap-2">
+                                          {section.items.map((item) => (
+                                            <Checkbox
+                                              key={item.key}
+                                              isSelected={
+                                                problem_data[
+                                                  item.key as keyof ProblemPayload
+                                                ] === 1
+                                              }
+                                              onValueChange={() =>
+                                                toggleProblem(
+                                                  item.key as keyof ProblemPayload
+                                                )
+                                              }
+                                            >
+                                              {item.label}
+                                            </Checkbox>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </Tab>
+                            );
+                          })()
+                        : null}
           </Tabs>
         </div>
 
@@ -1642,9 +1781,9 @@ export default function PHQAPage() {
           onPress={() => {
             const finalQuestionKey =
               ageGroup === "under12"
-                ? "22"
+                ? "23"
                 : ageGroup === "over12"
-                  ? "20"
+                  ? "21"
                   : "13";
 
             if (question === finalQuestionKey) {
@@ -1657,9 +1796,9 @@ export default function PHQAPage() {
           {(() => {
             const finalQuestionKey =
               ageGroup === "under12"
-                ? "22"
+                ? "23"
                 : ageGroup === "over12"
-                  ? "20"
+                  ? "21"
                   : "13";
 
             return question === finalQuestionKey ? "บันทึกผล" : "ถัดไป";

@@ -10,8 +10,23 @@ import {
 } from "@heroui/react";
 
 import { subtitle } from "@/components/primitives";
-import { q2, q8, q8Addon, q9, qPhqa, phqaAddon } from "@/app/data";
-import { Addon, Phqa, Q8Data, Questions2Q, QuestionsData } from "@/types";
+import {
+  q2,
+  q8,
+  q8Addon,
+  q9,
+  qPhqa,
+  phqaAddon,
+  teenMindProblems,
+} from "@/app/data";
+import {
+  Addon,
+  Phqa,
+  ProblemPayload,
+  Q8Data,
+  Questions2Q,
+  QuestionsData,
+} from "@/types";
 
 /** คะแนนรวม 8Q สอดคล้อง SumValue8Q ใน API */
 function sumQ8Payload(row: Q8Data): number {
@@ -143,6 +158,9 @@ export const QuestionDetailDrawer = ({
     addonPhqaRow != null
       ? Number(addonPhqaRow.q1 ?? 0) + Number(addonPhqaRow.q2 ?? 0)
       : null;
+  const problemRow = data?.problem?.[0];
+  const problemTotalScore =
+    problemRow != null ? Number(problemRow.sum ?? 0) : null;
 
   const handleQ2Change = (questionIndex: number, value: string) => {
     if (onQuestionChange) {
@@ -680,6 +698,50 @@ export const QuestionDetailDrawer = ({
           </Table>
         </div>
       )}
+      <div>
+        <h2 className={subtitle()}>แบบประเมินปัญหา</h2>
+        {problemTotalScore !== null && (
+          <p className="text-small text-default-600 mb-2">
+            จำนวนหัวข้อที่เลือก: {problemTotalScore}
+          </p>
+        )}
+        <Table aria-label="Question Answer Problem">
+          <TableHeader>
+            <TableColumn>หมวด</TableColumn>
+            <TableColumn>หัวข้อที่เลือก</TableColumn>
+          </TableHeader>
+          <TableBody>
+            {teenMindProblems.map((section) => {
+              const selectedItems =
+                problemRow == null
+                  ? []
+                  : section.items
+                      .filter(
+                        (item) =>
+                          Number(
+                            (problemRow as unknown as Record<string, number>)[
+                              item.key as keyof ProblemPayload
+                            ] ?? 0
+                          ) === 1
+                      )
+                      .map((item) => item.label);
+
+              return (
+                <TableRow key={section.category}>
+                  <TableCell className="min-w-[220px]">
+                    {section.category}
+                  </TableCell>
+                  <TableCell>
+                    {selectedItems.length > 0
+                      ? selectedItems.join(", ")
+                      : "ไม่ได้เลือก"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

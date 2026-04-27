@@ -67,7 +67,7 @@ export default function RegistrationDescriptionModal({
               <div>
                 <p className="">
                   <span className="font-semibold">ค่าตอบแทน</span>{" "}
-                  50บาท/1แบบสอบถาม (จ่ายเป็นเงินก้อนเมื่อครบสัญญา)
+                  50บาท/1แบบประเมิน (จ่ายเป็นเงินก้อนเมื่อครบสัญญา)
                 </p>
               </div>
               <Divider />

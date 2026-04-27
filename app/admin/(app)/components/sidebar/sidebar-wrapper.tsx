@@ -74,7 +74,7 @@ export const SidebarWrapper = () => {
                   href="/admin/question"
                   icon={<ClipboardDocumentCheckIcon className="size-6" />}
                   isActive={pathname === "/admin/question"}
-                  title="แบบสอบถาม"
+                  title="แบบประเมิน"
                 />
                 {profile.roleId !== 2 && (
                   <SidebarItem

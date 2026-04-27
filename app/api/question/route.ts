@@ -337,6 +337,34 @@ export async function GET(req: Request) {
             sum: true,
           },
         },
+        problem: {
+          select: {
+            familyRelation: true,
+            familyStudyPressure: true,
+            familyConflict: true,
+            familyAbuse: true,
+            familyLoss: true,
+            socialFriendIssue: true,
+            socialBullying: true,
+            socialBreakup: true,
+            socialTeacher: true,
+            socialAssault: true,
+            studyStress: true,
+            studyNoMotivation: true,
+            studyBurnout: true,
+            studyTimeManage: true,
+            studyHomeworkLoad: true,
+            studyExamAnxiety: true,
+            financeFamilyIssue: true,
+            lifestyleSocialMediaOveruse: true,
+            lifestyleGamingAddiction: true,
+            lifestyleSubstanceUse: true,
+            lifestyleEatingIssue: true,
+            lifestyleBodyImageConcern: true,
+            lifestyleInsomnia: true,
+            sum: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -378,6 +406,9 @@ export async function POST(req: Request) {
     const phqaAddon_data = data.phqaAddon as Questions_PHQA_Addon | undefined;
     const q9_data = data.q9 as Questions_9Q | undefined;
     const q8_data = data.q8 as Questions_8Q;
+    const problem_data = data.problem as
+      | (Record<string, number> & { sum?: number })
+      | undefined;
 
     const scoreSum = q9_data
       ? SumValue9Q(q9_data)
@@ -465,6 +496,47 @@ export async function POST(req: Request) {
         },
       },
     };
+
+    if (problem_data) {
+      const normalizedProblemSum = calculateProblemSum(problem_data);
+
+      createPayload.problem = {
+        create: {
+          familyRelation: Number(problem_data.familyRelation ?? 0),
+          familyStudyPressure: Number(problem_data.familyStudyPressure ?? 0),
+          familyConflict: Number(problem_data.familyConflict ?? 0),
+          familyAbuse: Number(problem_data.familyAbuse ?? 0),
+          familyLoss: Number(problem_data.familyLoss ?? 0),
+          socialFriendIssue: Number(problem_data.socialFriendIssue ?? 0),
+          socialBullying: Number(problem_data.socialBullying ?? 0),
+          socialBreakup: Number(problem_data.socialBreakup ?? 0),
+          socialTeacher: Number(problem_data.socialTeacher ?? 0),
+          socialAssault: Number(problem_data.socialAssault ?? 0),
+          studyStress: Number(problem_data.studyStress ?? 0),
+          studyNoMotivation: Number(problem_data.studyNoMotivation ?? 0),
+          studyBurnout: Number(problem_data.studyBurnout ?? 0),
+          studyTimeManage: Number(problem_data.studyTimeManage ?? 0),
+          studyHomeworkLoad: Number(problem_data.studyHomeworkLoad ?? 0),
+          studyExamAnxiety: Number(problem_data.studyExamAnxiety ?? 0),
+          financeFamilyIssue: Number(problem_data.financeFamilyIssue ?? 0),
+          lifestyleSocialMediaOveruse: Number(
+            problem_data.lifestyleSocialMediaOveruse ?? 0
+          ),
+          lifestyleGamingAddiction: Number(
+            problem_data.lifestyleGamingAddiction ?? 0
+          ),
+          lifestyleSubstanceUse: Number(
+            problem_data.lifestyleSubstanceUse ?? 0
+          ),
+          lifestyleEatingIssue: Number(problem_data.lifestyleEatingIssue ?? 0),
+          lifestyleBodyImageConcern: Number(
+            problem_data.lifestyleBodyImageConcern ?? 0
+          ),
+          lifestyleInsomnia: Number(problem_data.lifestyleInsomnia ?? 0),
+          sum: normalizedProblemSum,
+        },
+      };
+    }
 
     if (q9_data) {
       // สร้าง q9 + สร้าง phqa/addon เพื่อไม่ให้หน้า admin ที่อิง phqa/addon พัง
@@ -935,10 +1007,58 @@ function SumValue8Q(value: Questions_8Q) {
   );
 }
 
+function getProblemKeys() {
+  return [
+    "familyRelation",
+    "familyStudyPressure",
+    "familyConflict",
+    "familyAbuse",
+    "familyLoss",
+    "socialFriendIssue",
+    "socialBullying",
+    "socialBreakup",
+    "socialTeacher",
+    "socialAssault",
+    "studyStress",
+    "studyNoMotivation",
+    "studyBurnout",
+    "studyTimeManage",
+    "studyHomeworkLoad",
+    "studyExamAnxiety",
+    "financeFamilyIssue",
+    "lifestyleSocialMediaOveruse",
+    "lifestyleGamingAddiction",
+    "lifestyleSubstanceUse",
+    "lifestyleEatingIssue",
+    "lifestyleBodyImageConcern",
+    "lifestyleInsomnia",
+  ] as const;
+}
+
+function calculateProblemSum(problem: Record<string, number>) {
+  const keys = getProblemKeys();
+
+  return keys.reduce((acc, key) => acc + Number(problem[key] === 1), 0);
+}
+
+function validateProblem(problem?: Record<string, number>) {
+  if (!problem) return;
+  for (const key of getProblemKeys()) {
+    const value = Number(problem[key] ?? 0);
+
+    if (value !== 0 && value !== 1) {
+      throw new Error(`ค่าประเมินปัญหา ${key} ไม่ถูกต้อง`);
+    }
+  }
+}
+
 function validateQuestionData(data: QuestionPayload) {
   if (!data.profileId) throw new Error("ข้อมูลไม่ครบถ้วน: profileId");
   if (!data.Q2) throw new Error("ข้อมูลไม่ครบถ้วน: Q2");
   if (!data.q8) throw new Error("ข้อมูลไม่ครบถ้วน: q8");
+  validateProblem(
+    (data as QuestionPayload & { problem?: Record<string, number> }).problem
+  );
 
   // validate Q2 (0/1)
   if (data.Q2.q1 !== 0 && data.Q2.q1 !== 1) {

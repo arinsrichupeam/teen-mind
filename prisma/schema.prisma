@@ -236,6 +236,7 @@ model Questions_Master {
   // เวอร์ชันแบบประเมินอื่น (แยกโมเดลเฉพาะชุดคำถาม)
   q9                Questions_9Q[]
   q8                Questions_8Q[]
+  problem           Questions_Problem[]
   referent          Referent?              @relation(fields: [referentId], references: [id])
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -243,6 +244,50 @@ model Questions_Master {
   // userId  String?
 
   @@index([profileId])
+}
+
+model Questions_Problem {
+  id                 String  @id @default(cuid())
+  questions_MasterId String? @unique
+
+  // ปัญหาเรื่องครอบครัว
+  familyRelation      Int @default(0)
+  familyStudyPressure Int @default(0)
+  familyConflict      Int @default(0)
+  familyAbuse         Int @default(0)
+  familyLoss          Int @default(0)
+
+  // ความสัมพันธ์/สังคม
+  socialFriendIssue Int @default(0)
+  socialBullying    Int @default(0)
+  socialBreakup     Int @default(0)
+  socialTeacher     Int @default(0)
+  socialAssault     Int @default(0)
+
+  // การเรียน
+  studyStress        Int @default(0)
+  studyNoMotivation  Int @default(0)
+  studyBurnout       Int @default(0)
+  studyTimeManage    Int @default(0)
+  studyHomeworkLoad  Int @default(0)
+  studyExamAnxiety   Int @default(0)
+
+  // การเงิน
+  financeFamilyIssue Int @default(0)
+
+  // พฤติกรรม/การใช้ชีวิต
+  lifestyleSocialMediaOveruse Int @default(0)
+  lifestyleGamingAddiction    Int @default(0)
+  lifestyleSubstanceUse       Int @default(0)
+  lifestyleEatingIssue        Int @default(0)
+  lifestyleBodyImageConcern   Int @default(0)
+  lifestyleInsomnia           Int @default(0)
+
+  sum Int @default(0)
+
+  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+
+  @@index([questions_MasterId])
 }
 
 model Questions_2Q {

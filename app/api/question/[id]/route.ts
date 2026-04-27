@@ -103,6 +103,7 @@ export async function GET(
       addon: true,
       q8: true,
       q9: true,
+      problem: true,
     },
   });
 

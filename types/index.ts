@@ -70,6 +70,7 @@ export type QuestionsData = {
   addon: Addon[];
   q9: Q9Data[];
   q8: Q8Data[];
+  problem: ProblemPayload[];
   /** จาก GET /api/question/[id] (คำนวณฝั่งเซิร์ฟเวอร์) */
   followUpRoundStatuses?: FollowUpRoundTrackingStatus[];
 };
@@ -207,6 +208,33 @@ export interface Q8Payload {
   sum: number;
 }
 
+export interface ProblemPayload {
+  familyRelation: number;
+  familyStudyPressure: number;
+  familyConflict: number;
+  familyAbuse: number;
+  familyLoss: number;
+  socialFriendIssue: number;
+  socialBullying: number;
+  socialBreakup: number;
+  socialTeacher: number;
+  socialAssault: number;
+  studyStress: number;
+  studyNoMotivation: number;
+  studyBurnout: number;
+  studyTimeManage: number;
+  studyHomeworkLoad: number;
+  studyExamAnxiety: number;
+  financeFamilyIssue: number;
+  lifestyleSocialMediaOveruse: number;
+  lifestyleGamingAddiction: number;
+  lifestyleSubstanceUse: number;
+  lifestyleEatingIssue: number;
+  lifestyleBodyImageConcern: number;
+  lifestyleInsomnia: number;
+  sum: number;
+}
+
 /** Payload สำหรับสร้าง/อัปเดตแบบประเมิน (POST/PUT question API) */
 export interface QuestionPayload {
   profileId: string;
@@ -216,6 +244,7 @@ export interface QuestionPayload {
   phqaAddon?: Addon;
   q9?: Q9Payload;
   q8?: Q8Payload;
+  problem?: ProblemPayload;
   location?: LocationData | null;
 }
 

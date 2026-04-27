@@ -768,7 +768,7 @@ export default function QuestionPage() {
     <Suspense fallback={<Loading />}>
       <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
         <div className="flex justify-between items-end ">
-          <h3 className="text-lg font-semibold">จัดการแบบสอบถาม</h3>
+          <h3 className="text-lg font-semibold">จัดการแบบประเมิน</h3>
         </div>
 
         <div className="max-w-[95rem] mx-auto w-full">

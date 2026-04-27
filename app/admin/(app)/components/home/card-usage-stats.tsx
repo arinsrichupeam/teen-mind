@@ -411,7 +411,7 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
                       <TableColumn className="text-center">ลำดับ</TableColumn>
                       <TableColumn>ชื่อ</TableColumn>
                       <TableColumn className="text-center">
-                        วันเวลาที่ทำแบบสอบถาม
+                        วันเวลาที่ทำแบบประเมิน
                       </TableColumn>
                     </TableHeader>
                     <TableBody>

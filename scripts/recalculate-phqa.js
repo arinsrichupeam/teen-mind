@@ -193,7 +193,7 @@ async function showStats() {
     });
 
     console.log('📊 สถิติ PHQA Results:');
-    console.log(`   จำนวนแบบสอบถามทั้งหมด: ${totalQuestions} รายการ\n`);
+    console.log(`   จำนวนแบบประเมินทั้งหมด: ${totalQuestions} รายการ\n`);
     
     resultStats.forEach(stat => {
       const percentage = ((stat._count.result / totalQuestions) * 100).toFixed(1);
