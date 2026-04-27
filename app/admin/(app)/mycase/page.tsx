@@ -27,7 +27,13 @@ import {
   addToast,
   Chip,
 } from "@heroui/react";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  DocumentTextIcon,
+  DevicePhoneMobileIcon,
+} from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -40,7 +46,7 @@ import { QuestionFilterContent } from "../components/question/question-filter-co
 import { prefix } from "@/utils/data";
 import { QuestionsData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
-import { formatThaiDate, calculateAge } from "@/utils/helper";
+import { formatThaiDateTime, calculateAge } from "@/utils/helper";
 
 interface Column {
   key: string;
@@ -48,7 +54,7 @@ interface Column {
   align?: "center" | "start" | "end";
 }
 
-type MyCaseRow = QuestionsData & { rowIndex?: number };
+type QuestionRow = QuestionsData;
 
 const tableColumns: Column[] = QuestionColumnsName.map((col) => ({
   key: col.uid,
@@ -65,7 +71,7 @@ export default function MyCasePage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortDescriptor, setSortDescriptor] = useState<TableSortDescriptor>({
-    column: "screeningDate",
+    column: "createdAt",
     direction: "descending",
   });
   const [mode, setMode] = useState("view-questionnaire");
@@ -234,9 +240,9 @@ export default function MyCasePage() {
 
     const { column, direction } = sortDescriptor;
 
-    const sorted = [...items].sort((a: MyCaseRow, b: MyCaseRow) => {
-      const first = a[column as keyof MyCaseRow];
-      const second = b[column as keyof MyCaseRow];
+    return [...items].sort((a: QuestionsData, b: QuestionsData) => {
+      const first = a[column as keyof QuestionsData];
+      const second = b[column as keyof QuestionsData];
 
       if (typeof first === "string" && typeof second === "string") {
         return direction === "descending"
@@ -253,12 +259,7 @@ export default function MyCasePage() {
 
       return direction === "descending" ? -cmp : cmp;
     });
-
-    return sorted.map((item, index) => ({
-      ...item,
-      rowIndex: (page - 1) * rowsPerPage + index + 1,
-    }));
-  }, [sortDescriptor, items, page, rowsPerPage]);
+  }, [sortDescriptor, items]);
 
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -465,7 +466,6 @@ export default function MyCasePage() {
     if (status !== "loading") {
       if (status === "unauthenticated") {
         router.push("/admin/login");
-      } else {
       }
     }
   }, [session]);
@@ -482,22 +482,21 @@ export default function MyCasePage() {
   }, [error]);
 
   const renderCell = useCallback(
-    (item: MyCaseRow, columnKey: string) => {
-      const cellValue = item[columnKey as keyof MyCaseRow];
+    (item: QuestionRow, columnKey: string) => {
+      const cellValue = item[columnKey as keyof QuestionRow];
 
       switch (columnKey) {
-        case "id":
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small">{item.rowIndex}</p>
-            </div>
-          );
         case "name":
           const prefixLabel =
             prefixMap.get(item.profile?.prefixId?.toString() ?? "") || "";
 
           return (
-            <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              {item.profile.userId ? (
+                <DevicePhoneMobileIcon className="size-5 text-success-500" />
+              ) : (
+                <DocumentTextIcon className="size-5 text-primary-500" />
+              )}
               <p className="text-bold text-small">
                 {prefixLabel} {item.profile?.firstname || ""}{" "}
                 {item.profile?.lastname || ""}
@@ -537,8 +536,18 @@ export default function MyCasePage() {
             </div>
           );
         }
-        case "result": {
-          const resultText = item.result_text;
+        case "phqa":
+          let phqaScore: string | number = "-";
+
+          if (Array.isArray(item.q9) && item.q9.length > 0) {
+            phqaScore = item.q9[0].sum;
+          } else if (Array.isArray(item.phqa) && item.phqa.length > 0) {
+            phqaScore = item.phqa[0].sum;
+          }
+
+          if (!item.result_text || phqaScore === "-") {
+            return "-";
+          }
 
           return (
             <Chip
@@ -557,16 +566,9 @@ export default function MyCasePage() {
               size="sm"
               variant="flat"
             >
-              {resultText}
+              {`${item.result_text} (${phqaScore})`}
             </Chip>
           );
-        }
-        case "phqa":
-          if (Array.isArray(item.phqa) && item.phqa.length > 0) {
-            return item.phqa[0].sum;
-          }
-
-          return "-";
         case "2q":
           if (Array.isArray(item.q2) && item.q2.length > 0) {
             const q2Data = item.q2[0];
@@ -586,9 +588,9 @@ export default function MyCasePage() {
 
           return "-";
         case "addon":
-          if (Array.isArray(item.addon) && item.addon.length > 0) {
-            const addonData = item.addon[0];
-            const hasRisk = addonData.q1 === 1 || addonData.q2 === 1;
+          if (Array.isArray(item.q8) && item.q8.length > 0) {
+            const q8Score = Number(item.q8[0].sum ?? 0);
+            const hasRisk = q8Score > 0;
 
             return (
               <Chip
@@ -597,30 +599,19 @@ export default function MyCasePage() {
                 size="sm"
                 variant="flat"
               >
-                {hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง"}
+                {hasRisk ? `พบความเสี่ยง (${q8Score})` : "ไม่พบความเสี่ยง (0)"}
               </Chip>
             );
           }
 
           return "-";
-        case "screeningDate": {
-          const school = item.profile?.school;
-          const screeningDate =
-            typeof school === "object" && school !== null
-              ? school.screeningDate
-              : undefined;
-
+        case "screeningDate":
+        case "createdAt": {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {screeningDate
-                  ? formatThaiDate(
-                      typeof screeningDate === "string"
-                        ? screeningDate
-                        : screeningDate instanceof Date
-                          ? screeningDate.toISOString()
-                          : ""
-                    )
+                {item.createdAt
+                  ? formatThaiDateTime(String(item.createdAt))
                   : "-"}
               </p>
             </div>
@@ -723,6 +714,7 @@ export default function MyCasePage() {
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
+              isStriped
               aria-label="Question List Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
@@ -743,26 +735,11 @@ export default function MyCasePage() {
                 )}
               </TableHeader>
               <TableBody
-                emptyContent={
-                  <div className="text-center py-4">
-                    <p className="text-default-500">
-                      ไม่พบข้อมูลที่ได้รับมอบหมาย
-                    </p>
-                    <p className="text-small text-default-400">
-                      หากคุณเห็นข้อความนี้ อาจเป็นเพราะ:
-                    </p>
-                    <p className="text-small text-default-400">
-                      1. ยังไม่มีเคสที่ถูกมอบหมายให้คุณ
-                    </p>
-                    <p className="text-small text-default-400">
-                      2. เคสที่มีอยู่ยังไม่ได้ระบุผู้รับผิดชอบ
-                    </p>
-                  </div>
-                }
+                emptyContent={"ไม่พบข้อมูล"}
                 items={sortedItems}
-                loadingContent={<Spinner label="กำลังโหลด..." />}
+                loadingContent={<Spinner label="Loading..." />}
               >
-                {(item: MyCaseRow) => (
+                {(item: QuestionRow) => (
                   <TableRow key={item.id}>
                     {(columnKey) => (
                       <TableCell className="text-nowrap">

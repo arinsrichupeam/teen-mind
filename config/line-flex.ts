@@ -55,10 +55,19 @@ export const GreenFlex: FlexMessage = {
           contents: [
             {
               type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติมสามารถเข้ารับบริการได้ที่ สายด่วนสุขภาพจิต 1323",
+              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษากดปุ่มด้านล่าง",
               weight: "bold",
-              align: "start",
+              align: "center",
               wrap: true,
+            },
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "ขอรับคำปรึกษา",
+                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
+              },
+              style: "primary",
             },
           ],
         },
@@ -170,9 +179,19 @@ export const YellowFlex: FlexMessage = {
           contents: [
             {
               type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติมสามารถเข้ารับบริการได้ที่ สายด่วนสุขภาพจิต 1323",
+              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษา กดปุ่มด้านล่าง",
               weight: "bold",
+              align: "center",
               wrap: true,
+            },
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "ขอรับคำปรึกษา",
+                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
+              },
+              style: "primary",
             },
           ],
         },
@@ -285,9 +304,19 @@ export const RedFlex: FlexMessage = {
           contents: [
             {
               type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติมสามารถเข้ารับบริการได้ที่ สายดวนสุขภาพจิต 1323",
+              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษา กดปุ่มด้านล่าง",
               weight: "bold",
+              align: "center",
               wrap: true,
+            },
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "ขอรับคำปรึกษา",
+                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
+              },
+              style: "primary",
             },
           ],
         },
@@ -400,10 +429,19 @@ export const GreenLowFlex: FlexMessage = {
           contents: [
             {
               type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติมสามารถเข้ารับบริการได้ที่ สายด่วนสุขภาพจิต 1323",
+              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษา กดปุ่มด้านล่าง",
               weight: "bold",
-              align: "start",
+              align: "center",
               wrap: true,
+            },
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "ขอรับคำปรึกษา",
+                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
+              },
+              style: "primary",
             },
           ],
         },
@@ -515,9 +553,19 @@ export const OrangeFlex: FlexMessage = {
           contents: [
             {
               type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติมสามารถเข้ารับบริการได้ที่ สายด่วนสุขภาพจิต 1323",
+              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษา กดปุ่มด้านล่าง",
               weight: "bold",
+              align: "center",
               wrap: true,
+            },
+            {
+              type: "button",
+              action: {
+                type: "message",
+                label: "ขอรับคำปรึกษา",
+                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
+              },
+              style: "primary",
             },
           ],
         },
