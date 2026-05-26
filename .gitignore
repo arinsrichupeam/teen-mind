@@ -38,3 +38,6 @@ next-env.d.ts
 # Agent Skills
 .agents
 .cursor
+
+# local documentation
+/docs

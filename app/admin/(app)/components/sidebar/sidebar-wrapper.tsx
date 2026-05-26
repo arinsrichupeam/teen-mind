@@ -1,5 +1,6 @@
 import { usePathname } from "next/navigation";
 import {
+  ChartPieIcon,
   ClipboardDocumentCheckIcon,
   CreditCardIcon,
   HomeIcon,
@@ -69,6 +70,12 @@ export const SidebarWrapper = () => {
                   icon={<HomeIcon className="size-6" />}
                   isActive={pathname === "/admin"}
                   title="หน้าหลัก"
+                />
+                <SidebarItem
+                  href="/admin/dashboard-age"
+                  icon={<ChartPieIcon className="size-6" />}
+                  isActive={pathname === "/admin/dashboard-age"}
+                  title="Dashboard"
                 />
                 <SidebarItem
                   href="/admin/question"
