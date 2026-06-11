@@ -63,7 +63,7 @@ interface EditProfileData {
 export interface ModalEditProfileData {
   profile?: {
     id: string;
-    userId?: string;
+    userId?: string | null;
     citizenId?: string;
     prefixId?: number;
     firstname?: string;
