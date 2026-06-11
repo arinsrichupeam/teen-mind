@@ -8,8 +8,20 @@ import { Button } from "@heroui/button";
 import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useRef, useState } from "react";
 import moment from "moment";
-import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
+import {
+  Autocomplete,
+  AutocompleteItem,
+  DatePicker,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
+import { LineIcon } from "@/components/icons";
 import { prefix, sex, gradeYearLevels } from "@/utils/data";
 import { validateCitizen, validateTel, safeParseDate } from "@/utils/helper";
 
@@ -32,6 +44,8 @@ interface Props {
   onCancel?: () => void;
   /** กำหนดลำดับปุ่มหลัก: "next" = ปุ่มถัดไปอยู่บน, "cancel" = ปุ่มยกเลิกอยู่บน */
   primaryAction?: "next" | "cancel";
+  /** flow อสท. ลงทะเบียนผู้รับการประเมิน */
+  isReferentFlow?: boolean;
 }
 
 export const Step1 = ({
@@ -40,12 +54,27 @@ export const Step1 = ({
   HandleChange,
   onCancel,
   primaryAction = "next",
+  isReferentFlow = false,
 }: Props) => {
+  const router = useRouter();
+  const { status: sessionStatus } = useSession();
   const request = true;
   const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
+  const [referentDuplicate, setReferentDuplicate] = useState(false);
+  const [referentDuplicateHasLine, setReferentDuplicateHasLine] =
+    useState(false);
+  const [linkCitizenId, setLinkCitizenId] = useState("");
+  const [isLinkingLine, setIsLinkingLine] = useState(false);
+  const [linkError, setLinkError] = useState("");
   const latestCitizenIdRef = useRef("");
+  const {
+    isOpen: isLinkLineModalOpen,
+    onOpen: onOpenLinkLineModal,
+    onClose: onCloseLinkLineModal,
+    onOpenChange: onLinkLineModalOpenChange,
+  } = useDisclosure();
 
   const onSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,14 +99,90 @@ export const Step1 = ({
     const data = await result.json();
 
     if (!data.valid) {
+      if (isReferentFlow) {
+        setReferentDuplicate(true);
+        setReferentDuplicateHasLine(!!data.hasLineLinked);
+        if (data.hasLineLinked) {
+          setError(
+            'ผู้รับการประเมินรายนี้เชื่อมต่อ LINE แล้ว กรุณาให้ทำแบบประเมินด้วยตนเองที่เมนู "แบบทดสอบของฉัน" หรือติดต่อผู้ดูแลระบบ'
+          );
+        } else {
+          setError(
+            "พบข้อมูลเลขบัตรประชาชนนี้ในระบบแล้ว กรุณาค้นหาผู้รับการประเมินที่หน้าค้นหา"
+          );
+        }
+
+        return false;
+      }
+
+      if (data.canLinkLine) {
+        setError("");
+        setLinkCitizenId(value);
+        setLinkError("");
+        onOpenLinkLineModal();
+
+        return false;
+      }
+
       setError(data.error);
 
       return false;
     }
     setError("");
+    setReferentDuplicate(false);
+    setReferentDuplicateHasLine(false);
 
     return true;
   };
+
+  const handleLinkLine = useCallback(async () => {
+    if (!linkCitizenId) {
+      return;
+    }
+
+    if (sessionStatus === "unauthenticated") {
+      await signIn("line");
+
+      return;
+    }
+
+    setIsLinkingLine(true);
+    setLinkError("");
+
+    try {
+      const response = await fetch("/api/profile/link-line", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ citizenId: linkCitizenId }),
+        credentials: "include",
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        requiresLineSignIn?: boolean;
+      };
+
+      if (!response.ok) {
+        if (payload.requiresLineSignIn) {
+          await signIn("line");
+
+          return;
+        }
+
+        setLinkError(payload.error || "ไม่สามารถเชื่อมต่อ LINE ได้");
+
+        return;
+      }
+
+      onCloseLinkLineModal();
+      router.push("/liff/question/list");
+    } catch {
+      setLinkError("ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsLinkingLine(false);
+    }
+  }, [linkCitizenId, onCloseLinkLineModal, router, sessionStatus]);
 
   const searchAndSetHn = useCallback(
     async (citizenId: string) => {
@@ -138,6 +243,8 @@ export const Step1 = ({
       }
     } else {
       setError("");
+      setReferentDuplicate(false);
+      setReferentDuplicateHasLine(false);
       HandleChange({ target: { name: "hn", value: "" } });
     }
 
@@ -184,6 +291,18 @@ export const Step1 = ({
         variant="faded"
         onChange={handleChange}
       />
+      {isReferentFlow && referentDuplicate && !referentDuplicateHasLine ? (
+        <Button
+          className="w-full"
+          color="primary"
+          radius="full"
+          size="sm"
+          variant="bordered"
+          onPress={() => router.push("/liff/referent/lookup")}
+        >
+          กลับไปค้นหาผู้รับการประเมิน
+        </Button>
+      ) : null}
       <div className="flex flex-row gap-4 w-full">
         <Select
           className="max-w-xs"
@@ -422,6 +541,56 @@ export const Step1 = ({
           )}
         </>
       )}
+      <Modal
+        backdrop="opaque"
+        isOpen={isLinkLineModalOpen}
+        placement="center"
+        size="sm"
+        onOpenChange={onLinkLineModalOpenChange}
+      >
+        <ModalContent>
+          {() => (
+            <>
+              <ModalBody className="items-center text-center gap-3 pt-8 pb-2">
+                <h2 className="text-lg font-semibold">คุณเคยลงทะเบียนแล้ว</h2>
+                <p className="text-sm text-default-600">
+                  พบข้อมูลเลขบัตรประชาชนนี้ในระบบแล้ว แต่ยังไม่ได้เชื่อมต่อบัญชี
+                  LINE กรุณาเชื่อมต่อเพื่อใช้งานต่อ
+                </p>
+                {linkError ? (
+                  <p className="text-sm text-danger">{linkError}</p>
+                ) : null}
+              </ModalBody>
+              <ModalFooter className="flex flex-col gap-2 pb-6">
+                <Button
+                  className="w-full bg-emerald-200 text-emerald-600"
+                  isLoading={isLinkingLine}
+                  radius="full"
+                  size="lg"
+                  startContent={
+                    !isLinkingLine ? <LineIcon size={24} /> : undefined
+                  }
+                  variant="solid"
+                  onPress={handleLinkLine}
+                >
+                  เชื่อมต่อ LINE
+                </Button>
+                <Button
+                  className="w-full"
+                  color="default"
+                  isDisabled={isLinkingLine}
+                  radius="full"
+                  size="lg"
+                  variant="light"
+                  onPress={onCloseLinkLineModal}
+                >
+                  ปิด
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </Form>
   );
 };

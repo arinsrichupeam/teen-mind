@@ -11,7 +11,8 @@ import {
   isConsultTelemedRoundComplete,
 } from "../../../lib/question-followup-rounds";
 
-import { getSession, requireAdmin } from "@/lib/get-session";
+import { getSession, requireAdmin, requireReferent } from "@/lib/get-session";
+import { profileHasLineLinked } from "@/lib/profile-utils";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionPayload, QuestionsData } from "@/types";
 import lineSdk from "@/utils/linesdk";
@@ -436,10 +437,13 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
+    const referentAuth = await requireReferent();
+    const hasLine = await profileHasLineLinked(profile.userId);
+    const isReferentActor = referentAuth != null && !hasLine;
     const isOwner = !profile.userId || profile.userId === session.user.id;
     let isAdminActor = false;
 
-    if (!isOwner) {
+    if (!isOwner && !isReferentActor) {
       const auth = await requireAdmin();
 
       if (!auth) {

@@ -1,4 +1,5 @@
-import { getSession } from "@/lib/get-session";
+import { getSession, requireReferent } from "@/lib/get-session";
+import { profileHasLineLinked } from "@/lib/profile-utils";
 import { prisma } from "@/utils/prisma";
 
 export async function GET(
@@ -33,7 +34,15 @@ export async function GET(
       return Response.json({ error: "ไม่พบข้อมูลผู้ใช้" }, { status: 404 });
     }
 
-    if (profile.userId && profile.userId !== session.user.id) {
+    const referentAuth = await requireReferent();
+    const hasLine = await profileHasLineLinked(profile.userId);
+    const isReferentActor = referentAuth != null && !hasLine;
+
+    if (
+      profile.userId &&
+      profile.userId !== session.user.id &&
+      !isReferentActor
+    ) {
       return Response.json(
         { error: "Forbidden: ไม่สามารถเข้าถึงข้อมูลผู้ใช้นี้ได้" },
         { status: 403 }

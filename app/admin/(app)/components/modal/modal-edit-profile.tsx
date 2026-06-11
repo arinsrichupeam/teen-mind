@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import {
   addToast,
@@ -141,6 +142,7 @@ export const ModalEditProfile = ({
     gradeYear: "",
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [isHnLoading, setIsHnLoading] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
   const [birthdayError, setBirthdayError] = useState<string>("");
   const [currentData, setCurrentData] = useState<ModalEditProfileData | null>(
@@ -302,6 +304,70 @@ export const ModalEditProfile = ({
     }
   };
 
+  const handleSearchHn = useCallback(async () => {
+    const citizenId = editProfileData.citizenId.trim();
+
+    if (!citizenId || citizenId.length !== 13) {
+      addToast({
+        title: "ไม่พบเลขบัตรประชาชน",
+        description: "กรุณากรอกเลขบัตรประชาชน 13 หลักก่อนค้นหา HN",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setIsHnLoading(true);
+    try {
+      const response = await fetch("/api/his/patient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cardno: citizenId }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        hn?: string | null;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "เกิดข้อผิดพลาดในการค้นหา HN");
+      }
+
+      const foundHn = payload.hn?.trim();
+
+      if (!foundHn) {
+        setEditProfileData((prev) => ({ ...prev, hn: "" }));
+        addToast({
+          title: "ไม่พบข้อมูล HN",
+          description: `ไม่พบข้อมูลผู้ป่วยจากเลขบัตร ${citizenId}`,
+          color: "warning",
+        });
+
+        return;
+      }
+
+      setEditProfileData((prev) => ({ ...prev, hn: foundHn }));
+      addToast({
+        title: "ค้นหา HN สำเร็จ",
+        description: `พบ HN: ${foundHn}`,
+        color: "success",
+      });
+    } catch (error) {
+      addToast({
+        title: "ค้นหา HN ไม่สำเร็จ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาดในการค้นหา HN",
+        color: "danger",
+      });
+    } finally {
+      setIsHnLoading(false);
+    }
+  }, [editProfileData.citizenId]);
+
   const validateCitizenIdAsync = async (
     citizenId: string
   ): Promise<boolean> => {
@@ -419,6 +485,10 @@ export const ModalEditProfile = ({
         : "";
 
       const schoolObj = profile.school as { id?: number } | undefined;
+      const schoolId =
+        schoolObj?.id ??
+        (profile as { schoolId?: number | null }).schoolId ??
+        null;
       const emergencyFirst = profile.emergency?.[0];
 
       const initialData: EditProfileData = {
@@ -447,8 +517,11 @@ export const ModalEditProfile = ({
           tel: String(emergencyFirst?.tel ?? ""),
           relation: String(emergencyFirst?.relation ?? ""),
         },
-        school: schoolObj?.id != null ? String(schoolObj.id) : "",
-        gradeYear: profile.gradeYear != null ? String(profile.gradeYear) : "",
+        school: schoolId != null && schoolId > 0 ? String(schoolId) : "",
+        gradeYear:
+          (profile as { gradeYear?: number | null }).gradeYear != null
+            ? String((profile as { gradeYear?: number | null }).gradeYear)
+            : "",
       };
 
       setEditProfileData(initialData);
@@ -653,7 +726,7 @@ export const ModalEditProfile = ({
       radius="md"
       scrollBehavior="inside"
       shadow="lg"
-      size="2xl"
+      size="3xl"
     >
       <ModalContent>
         <ModalHeader className="flex flex-row justify-center">
@@ -668,14 +741,6 @@ export const ModalEditProfile = ({
             <p className="text-md font-bold">ข้อมูลส่วนตัว</p>
             <div className="flex flex-row gap-2">
               <Input
-                label="HN"
-                name="hn"
-                size="sm"
-                value={editProfileData.hn}
-                variant="bordered"
-                onChange={handleEditProfileChange}
-              />
-              <Input
                 errorMessage={citizenIdError}
                 isInvalid={citizenIdError !== ""}
                 isRequired={true}
@@ -685,6 +750,26 @@ export const ModalEditProfile = ({
                 placeholder="กรอกเลขบัตรประชาชน 13 หลัก"
                 size="sm"
                 value={editProfileData.citizenId}
+                variant="bordered"
+                onChange={handleEditProfileChange}
+              />
+              <Input
+                endContent={
+                  <Button
+                    isIconOnly
+                    aria-label="ค้นหา HN"
+                    isLoading={isHnLoading}
+                    size="sm"
+                    variant="light"
+                    onPress={handleSearchHn}
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </Button>
+                }
+                label="HN"
+                name="hn"
+                size="sm"
+                value={editProfileData.hn}
                 variant="bordered"
                 onChange={handleEditProfileChange}
               />
@@ -767,135 +852,134 @@ export const ModalEditProfile = ({
                 onChange={handleEditProfileChange}
               />
             </div>
-            <div className="flex flex-row gap-2">
-              <DatePicker
-                errorMessage={birthdayError}
-                isInvalid={!!birthdayError}
-                isRequired={true}
-                label="วันเกิด (พ.ศ.)"
-                maxValue={parseDate(moment().format("YYYY-MM-DD"))}
-                minValue={parseDate(
-                  moment().subtract(100, "years").format("YYYY-MM-DD")
-                )}
-                name="birthday"
-                selectorButtonPlacement="start"
-                showMonthAndYearPickers={true}
-                size="sm"
-                value={birthdayDate}
-                variant="bordered"
-                onChange={(
-                  date: CalendarDate | CalendarDateTime | ZonedDateTime | null
-                ) => {
-                  if (date) {
-                    const isoDate = date.toString();
-                    const thaiDate = formatDateForDisplay(isoDate);
+            <DatePicker
+              className="w-full"
+              errorMessage={birthdayError}
+              isInvalid={!!birthdayError}
+              isRequired={true}
+              label="วันเกิด (พ.ศ.)"
+              maxValue={parseDate(moment().format("YYYY-MM-DD"))}
+              minValue={parseDate(
+                moment().subtract(100, "years").format("YYYY-MM-DD")
+              )}
+              name="birthday"
+              selectorButtonPlacement="start"
+              showMonthAndYearPickers={true}
+              size="sm"
+              value={birthdayDate}
+              variant="bordered"
+              onChange={(
+                date: CalendarDate | CalendarDateTime | ZonedDateTime | null
+              ) => {
+                if (date) {
+                  const isoDate = date.toString();
+                  const thaiDate = formatDateForDisplay(isoDate);
 
-                    setEditProfileData((prev) => ({
-                      ...prev,
-                      birthday: thaiDate,
-                    }));
-                    setBirthdayDate(date); // อัพเดท state สำหรับจัดการค่าเริ่มต้น
+                  setEditProfileData((prev) => ({
+                    ...prev,
+                    birthday: thaiDate,
+                  }));
+                  setBirthdayDate(date); // อัพเดท state สำหรับจัดการค่าเริ่มต้น
 
-                    // Validate วันเกิดแบบ real-time
-                    const error = validateBirthday(thaiDate);
+                  // Validate วันเกิดแบบ real-time
+                  const error = validateBirthday(thaiDate);
 
-                    setBirthdayError(error);
+                  setBirthdayError(error);
 
-                    // คำนวณปีไทยเมื่อกรอกครบและไม่มี error
+                  // คำนวณปีไทยเมื่อกรอกครบและไม่มี error
+                  if (
+                    thaiDate.length === 10 &&
+                    thaiDate.includes("/") &&
+                    !error
+                  ) {
+                    const parts = thaiDate.split("/");
+
                     if (
-                      thaiDate.length === 10 &&
-                      thaiDate.includes("/") &&
-                      !error
+                      parts.length === 3 &&
+                      parts[0].length === 2 &&
+                      parts[1].length === 2 &&
+                      parts[2].length === 4
                     ) {
-                      const parts = thaiDate.split("/");
+                      try {
+                        const parsedIsoDate = parseThaiDateToISO(thaiDate);
+                        const thaiYear = calculateThaiYear(parsedIsoDate);
 
-                      if (
-                        parts.length === 3 &&
-                        parts[0].length === 2 &&
-                        parts[1].length === 2 &&
-                        parts[2].length === 4
-                      ) {
-                        try {
-                          const parsedIsoDate = parseThaiDateToISO(thaiDate);
-                          const thaiYear = calculateThaiYear(parsedIsoDate);
-
-                          setEditProfileData((prev) => ({
-                            ...prev,
-                            thaiYear: thaiYear,
-                          }));
-                        } catch {
-                          // กรณีที่แปลงวันที่ไม่สำเร็จ
-                          setEditProfileData((prev) => ({
-                            ...prev,
-                            thaiYear: "",
-                          }));
-                        }
+                        setEditProfileData((prev) => ({
+                          ...prev,
+                          thaiYear: thaiYear,
+                        }));
+                      } catch {
+                        // กรณีที่แปลงวันที่ไม่สำเร็จ
+                        setEditProfileData((prev) => ({
+                          ...prev,
+                          thaiYear: "",
+                        }));
                       }
-                    } else {
-                      // รีเซ็ตปีไทยเมื่อกรอกไม่ครบหรือมี error
-                      setEditProfileData((prev) => ({
-                        ...prev,
-                        thaiYear: "",
-                      }));
                     }
                   } else {
-                    // เมื่อล้างค่า
+                    // รีเซ็ตปีไทยเมื่อกรอกไม่ครบหรือมี error
                     setEditProfileData((prev) => ({
                       ...prev,
-                      birthday: "",
                       thaiYear: "",
                     }));
-                    setBirthdayDate(null); // ล้าง state สำหรับจัดการค่าเริ่มต้น
-                    setBirthdayError("");
                   }
-                }}
-              />
-              <Autocomplete
-                defaultItems={schools}
-                isRequired={true}
-                label="สถานศึกษา"
-                name="school"
-                placeholder="เลือกสถานศึกษา"
-                selectedKey={editProfileData.school || ""}
+                } else {
+                  // เมื่อล้างค่า
+                  setEditProfileData((prev) => ({
+                    ...prev,
+                    birthday: "",
+                    thaiYear: "",
+                  }));
+                  setBirthdayDate(null); // ล้าง state สำหรับจัดการค่าเริ่มต้น
+                  setBirthdayError("");
+                }
+              }}
+            />
+            <Autocomplete
+              className="w-full"
+              defaultItems={schools}
+              isRequired={false}
+              label="สถานศึกษา"
+              name="school"
+              placeholder="เลือกสถานศึกษา"
+              selectedKey={
+                editProfileData.school ? editProfileData.school : null
+              }
+              size="sm"
+              variant="bordered"
+              onSelectionChange={(key) => {
+                handleEditProfileSelectChange("school", key ? String(key) : "");
+              }}
+            >
+              {(item) => (
+                <AutocompleteItem key={String(item.id)} textValue={item.name}>
+                  {item.name}
+                </AutocompleteItem>
+              )}
+            </Autocomplete>
+            {editProfileData.school && Number(editProfileData.school) > 0 && (
+              <Select
+                className="w-full"
+                isRequired={false}
+                label="ชั้นปี"
+                name="gradeYear"
+                placeholder="เลือกชั้นปี"
+                selectedKeys={
+                  editProfileData.gradeYear ? [editProfileData.gradeYear] : []
+                }
                 size="sm"
                 variant="bordered"
-                onSelectionChange={(key) => {
-                  const selectedKey = key as string;
+                onSelectionChange={(keys) => {
+                  const selectedKey = Array.from(keys)[0] as string;
 
-                  handleEditProfileSelectChange("school", selectedKey);
+                  handleEditProfileSelectChange("gradeYear", selectedKey);
                 }}
               >
-                {(item) => (
-                  <AutocompleteItem key={item.id} textValue={item.name}>
-                    {item.name}
-                  </AutocompleteItem>
-                )}
-              </Autocomplete>
-              {editProfileData.school && (
-                <Select
-                  isRequired={false}
-                  label="ชั้นปี"
-                  name="gradeYear"
-                  placeholder="เลือกชั้นปี"
-                  selectedKeys={
-                    editProfileData.gradeYear ? [editProfileData.gradeYear] : []
-                  }
-                  size="sm"
-                  variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selectedKey = Array.from(keys)[0] as string;
-
-                    handleEditProfileSelectChange("gradeYear", selectedKey);
-                  }}
-                >
-                  {gradeYearLevels.map((level) => (
-                    <SelectItem key={level.key.toString()}>
-                      {level.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-              )}
-            </div>
+                {gradeYearLevels.map((level) => (
+                  <SelectItem key={String(level.key)}>{level.label}</SelectItem>
+                ))}
+              </Select>
+            )}
           </div>
           <Divider className="my-1" />
           <p className="text-md font-bold">ที่อยู่</p>
@@ -929,7 +1013,6 @@ export const ModalEditProfile = ({
                 onChange={handleEditProfileChange}
               />
               <Input
-                isRequired={true}
                 label="ถนน"
                 name="address.road"
                 size="sm"

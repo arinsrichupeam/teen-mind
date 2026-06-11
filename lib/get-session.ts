@@ -26,3 +26,27 @@ export async function requireAdmin() {
 
   return adminProfile ? { session, adminProfile } : null;
 }
+
+/**
+ * ตรวจสอบว่าเป็นอสท. (มี Referent ที่ citizenId ตรงกับ Profile ของ session)
+ * คืนค่า { session, referent } หรือ null
+ */
+export async function requireReferent() {
+  const session = await getSession();
+
+  if (!session?.user?.id) return null;
+
+  const profile = await prisma.profile.findUnique({
+    where: { userId: session.user.id },
+    select: { citizenId: true },
+  });
+
+  if (!profile?.citizenId) return null;
+
+  const referent = await prisma.referent.findUnique({
+    where: { citizenId: profile.citizenId },
+    select: { id: true, firstname: true, lastname: true },
+  });
+
+  return referent ? { session, referent } : null;
+}

@@ -12,6 +12,11 @@ import {
   Card,
   CardBody,
   CardFooter,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   addToast,
 } from "@heroui/react";
 import { PencilIcon, PlusIcon } from "@heroicons/react/24/outline";
@@ -20,6 +25,7 @@ import { useEffect, useState } from "react";
 import { ModalEditProfile } from "../../components/modal/modal-edit-profile";
 import { ModalAddQuestion } from "../../components/modal/modal-add-question";
 
+import { LineIcon } from "@/components/icons";
 import { prefix } from "@/utils/data";
 import { formatThaiDateTime, formatThaiDate } from "@/utils/helper";
 
@@ -84,6 +90,13 @@ interface UserData {
     tel?: string;
     relation?: string;
   }[];
+  user?: {
+    name: string | null;
+    image: string | null;
+    accounts: {
+      providerAccountId: string;
+    }[];
+  } | null;
 }
 
 interface UserDetailDrawerProps {
@@ -92,6 +105,7 @@ interface UserDetailDrawerProps {
   user: UserData | null;
   mode?: "view" | "edit";
   onRefresh?: () => void;
+  onMutate?: () => Promise<void>;
 }
 
 export default function UserDetailDrawer({
@@ -100,12 +114,17 @@ export default function UserDetailDrawer({
   user,
   mode,
   onRefresh,
+  onMutate,
 }: UserDetailDrawerProps) {
   const [provinces, setProvinces] = useState<Provinces[]>([]);
   const [districts, setDistricts] = useState<Districts[]>([]);
   const [subdistricts, setSubdistricts] = useState<Subdistricts[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
+  const [isResetLineModalOpen, setIsResetLineModalOpen] = useState(false);
+  const [isResettingLine, setIsResettingLine] = useState(false);
+
+  const isLineLinked = Boolean(user?.user?.accounts?.length);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -164,6 +183,48 @@ export default function UserDetailDrawer({
     );
 
     return subdistrict?.nameInThai || subdistrictId;
+  };
+
+  const handleResetLine = async () => {
+    if (!user) return;
+
+    setIsResettingLine(true);
+
+    try {
+      const response = await fetch(`/api/profile/user/${user.id}/reset-line`, {
+        method: "POST",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "ไม่สามารถรีเซ็ตการเชื่อมต่อ LINE ได้"
+        );
+      }
+
+      addToast({
+        title: "สำเร็จ",
+        description: "รีเซ็ตการเชื่อมต่อ LINE แล้ว",
+        color: "success",
+      });
+
+      setIsResetLineModalOpen(false);
+
+      if (onMutate) {
+        await onMutate();
+      }
+    } catch (error) {
+      addToast({
+        title: "ผิดพลาด",
+        description:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถรีเซ็ตการเชื่อมต่อ LINE ได้",
+        color: "danger",
+      });
+    } finally {
+      setIsResettingLine(false);
+    }
   };
 
   if (!user) return null;
@@ -297,6 +358,37 @@ export default function UserDetailDrawer({
                       </>
                     ) : (
                       <span className="font-medium ml-2">-</span>
+                    )}
+                  </div>
+                  <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-default-500 shrink-0">LINE:</span>
+                      <span className="inline-flex items-center gap-1.5 min-w-0">
+                        <LineIcon
+                          className={
+                            isLineLinked
+                              ? "shrink-0"
+                              : "shrink-0 grayscale opacity-40"
+                          }
+                          size={20}
+                        />
+                        <span className="font-medium truncate">
+                          {isLineLinked
+                            ? user.user?.name || "เชื่อมต่อแล้ว"
+                            : "ยังไม่เชื่อมต่อ"}
+                        </span>
+                      </span>
+                    </div>
+                    {mode === "edit" && isLineLinked && (
+                      <Button
+                        className="shrink-0"
+                        color="danger"
+                        size="sm"
+                        variant="flat"
+                        onPress={() => setIsResetLineModalOpen(true)}
+                      >
+                        รีเซ็ตการเชื่อมต่อ
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -465,6 +557,44 @@ export default function UserDetailDrawer({
           }
         }}
       />
+
+      <Modal
+        isOpen={isResetLineModalOpen}
+        placement="center"
+        onClose={() => setIsResetLineModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>รีเซ็ตการเชื่อมต่อ LINE</ModalHeader>
+          <ModalBody>
+            <p>
+              ต้องการยกเลิกการเชื่อมต่อ LINE ของ{" "}
+              <span className="font-semibold">
+                {user.firstname} {user.lastname}
+              </span>{" "}
+              ใช่หรือไม่?
+            </p>
+            <p className="text-small text-default-500 mt-2">
+              ผู้ใช้งานจะต้องเชื่อมต่อ LINE ใหม่ผ่านแอปก่อนใช้งานต่อ
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              variant="light"
+              onPress={() => setIsResetLineModalOpen(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              color="danger"
+              isLoading={isResettingLine}
+              onPress={handleResetLine}
+            >
+              ยืนยันรีเซ็ต
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Drawer>
   );
 }

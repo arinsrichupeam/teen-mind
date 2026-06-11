@@ -1,39 +1,17 @@
+import {
+  profileHasLineLinked,
+  validateCitizenIdFormat,
+} from "@/lib/profile-utils";
 import { prisma } from "@/utils/prisma";
 
 export async function POST(req: Request) {
   try {
     const { citizenId, source, excludeId } = await req.json();
 
-    // ตรวจสอบรูปแบบเลขบัตรประชาชน
-    if (!citizenId || citizenId.length !== 13) {
-      return Response.json(
-        { error: "กรอกเลขบัตรประชาชนไม่ครบถ้วน" },
-        { status: 400 }
-      );
-    }
+    const formatError = validateCitizenIdFormat(citizenId);
 
-    const isDigit = /^[0-9]*$/.test(citizenId);
-
-    if (!isDigit) {
-      return Response.json(
-        { error: "เลขบัตรประชาชนต้องเป็นตัวเลขเท่านั้น" },
-        { status: 400 }
-      );
-    }
-
-    // ตรวจสอบเลขตรวจสอบ
-    let sum = 0;
-
-    for (let i = 0; i < 12; i++) {
-      sum += parseInt(citizenId.charAt(i)) * (13 - i);
-    }
-    const checksum = (11 - (sum % 11)) % 10;
-
-    if (checksum !== parseInt(citizenId.charAt(12))) {
-      return Response.json(
-        { error: "กรอกเลขบัตรประชาชนไม่ถูกต้อง" },
-        { status: 400 }
-      );
+    if (formatError) {
+      return Response.json({ error: formatError }, { status: 400 });
     }
 
     // ตรวจสอบการซ้ำซ้อนตาม source
@@ -46,8 +24,25 @@ export async function POST(req: Request) {
       });
 
       if (existingUser) {
+        const hasLineLinked = await profileHasLineLinked(existingUser.userId);
+
+        if (!hasLineLinked) {
+          return Response.json(
+            {
+              error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว",
+              canLinkLine: true,
+              hasLineLinked: false,
+            },
+            { status: 409 }
+          );
+        }
+
         return Response.json(
-          { error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว" },
+          {
+            error: "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว",
+            canLinkLine: false,
+            hasLineLinked: true,
+          },
           { status: 400 }
         );
       }

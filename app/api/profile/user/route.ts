@@ -25,6 +25,7 @@ export async function GET() {
       citizenId: true,
       tel: true,
       school: true,
+      gradeYear: true,
       questions: {
         select: {
           id: true,
@@ -51,6 +52,18 @@ export async function GET() {
       },
       address: true,
       emergency: true,
+      user: {
+        select: {
+          name: true,
+          image: true,
+          accounts: {
+            where: { provider: "line" },
+            select: {
+              providerAccountId: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",

@@ -310,6 +310,7 @@ export default function RegisterPage() {
                   HandleChange={ProfileHandleChange}
                   NextStep={NextStep}
                   Result={profile}
+                  isReferentFlow={isReferentFlow}
                 />
               </Tab>
               <Tab key="address" title="ที่อยู่อาศัย">

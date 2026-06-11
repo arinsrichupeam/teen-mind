@@ -38,6 +38,7 @@ import { AuthGuard } from "../components/auth-guard";
 
 import UserDetailDrawer from "./components/user-detail-drawer";
 
+import { LineIcon } from "@/components/icons";
 import { prefix } from "@/utils/data";
 import Loading from "@/app/loading";
 
@@ -59,6 +60,13 @@ interface UserData {
     result: string;
     result_text?: string;
   }[];
+  user?: {
+    name: string | null;
+    image: string | null;
+    accounts: {
+      providerAccountId: string;
+    }[];
+  } | null;
 }
 
 interface SchoolData {
@@ -77,6 +85,12 @@ const columns = [
     sortable: true,
   },
   { name: "โรงเรียน", uid: "school", align: "start" as const, sortable: true },
+  {
+    name: "Line",
+    uid: "line",
+    align: "start" as const,
+    sortable: true,
+  },
   {
     name: "จำนวนแบบประเมิน",
     uid: "questionCount",
@@ -171,6 +185,8 @@ export default function UserPage() {
             return `${user.firstname} ${user.lastname}`;
           case "school":
             return user.school?.name || "";
+          case "line":
+            return user.user?.accounts?.length ? 1 : 0;
           case "questionCount":
             return user.questions.length;
           default:
@@ -363,6 +379,23 @@ export default function UserPage() {
               {user.school?.name || "-"}
             </p>
           );
+        case "line": {
+          const isLineLinked = Boolean(user.user?.accounts?.length);
+
+          return (
+            <div className="flex items-center justify-start gap-1.5">
+              <LineIcon
+                className={isLineLinked ? "" : "grayscale opacity-40"}
+                size={20}
+              />
+              {isLineLinked && user.user?.name && (
+                <span className="text-small truncate max-w-[140px]">
+                  {user.user.name}
+                </span>
+              )}
+            </div>
+          );
+        }
         case "questionCount":
           return (
             <Chip
@@ -473,6 +506,15 @@ export default function UserPage() {
               setIsDrawerOpen(false);
               setSelectedUser(null);
               setDrawerMode("view");
+            }}
+            onMutate={async () => {
+              const updated = await mutate();
+
+              if (selectedUser && Array.isArray(updated)) {
+                const fresh = updated.find((u) => u.id === selectedUser.id);
+
+                if (fresh) setSelectedUser(fresh);
+              }
             }}
             onRefresh={() => {
               mutate();

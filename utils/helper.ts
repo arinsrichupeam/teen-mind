@@ -280,7 +280,10 @@ export async function validateCitizen(
     const data = await response.json();
 
     if (!response.ok) {
-      return Response.json({ error: data.error }, { status: response.status });
+      return Response.json(
+        { valid: false, error: data.error, ...data },
+        { status: response.status }
+      );
     }
 
     return Response.json({ valid: true });
