@@ -58,6 +58,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref") || "";
+  const isReferentFlow = searchParams.get("referent") === "1";
   const { data: session, status } = useSession();
   const [selected, setSelected] = useState("profile");
   const [showAlert, setShowAlert] = useState(false);
@@ -109,6 +110,8 @@ export default function RegisterPage() {
       register_profile: { ...currentProfile, userId },
       register_address: currentAddress,
       register_emergency: currentEmergency,
+      registerForReferent: isReferentFlow,
+      referentRef: ref || undefined,
     };
 
     try {
@@ -134,23 +137,30 @@ export default function RegisterPage() {
         return;
       }
 
-      if (val.ref === "" || !val.ref) {
-        setShowAlert(true);
-        setIsSubmitted(true);
-        setTimeout(() => {
-          router.push("/liff/question");
-        }, 3000);
-      } else {
+      if (val.isReferentYouth) {
         setShowAlert(true);
         setIsSubmitted(true);
         setTimeout(() => {
           const refId =
             val.ref && typeof val.ref === "object" ? val.ref.id : val.ref;
           const referentId = ref || refId;
+          const youthProfileId = val.profile?.id ?? "";
+          const params = new URLSearchParams();
+
+          if (referentId) params.set("ref", String(referentId));
+          if (youthProfileId) params.set("profileId", youthProfileId);
+
+          const query = params.toString();
 
           router.push(
-            `/liff/question/phqa?ref=${referentId}&profileId=${val.profile?.id ?? ""}`
+            query ? `/liff/question/phqa?${query}` : "/liff/question/phqa"
           );
+        }, 3000);
+      } else {
+        setShowAlert(true);
+        setIsSubmitted(true);
+        setTimeout(() => {
+          router.push("/liff/question");
         }, 3000);
       }
     } catch (error) {
@@ -164,7 +174,7 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, ref, session?.user?.id]);
+  }, [router, ref, isReferentFlow, session?.user?.id]);
 
   type StepName = "Profile" | "Address" | "Emergency";
   type RegisterProfileState = Profile & { gradeYear?: number | null };

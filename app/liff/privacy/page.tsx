@@ -12,7 +12,7 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/modal";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Step1 } from "./components/step1";
 
@@ -21,6 +21,8 @@ import Loading from "@/app/loading";
 
 export default function PrivacyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isReferentFlow = searchParams.get("referent") === "1";
   const [agree, setAgree] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -98,7 +100,13 @@ export default function PrivacyPage() {
                     color="primary"
                     radius="full"
                     variant="bordered"
-                    onPress={() => router.push("register")}
+                    onPress={() =>
+                      router.push(
+                        isReferentFlow
+                          ? "/liff/register?referent=1"
+                          : "/liff/register"
+                      )
+                    }
                   >
                     เข้าใจแล้ว!
                   </Button>

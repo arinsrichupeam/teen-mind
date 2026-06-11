@@ -26,6 +26,8 @@ export async function POST(req: Request) {
     register_profile?: Profile;
     register_address?: Address;
     register_emergency?: EmergencyContact;
+    registerForReferent?: boolean;
+    referentRef?: string | number;
   };
 
   try {
@@ -139,8 +141,14 @@ export async function POST(req: Request) {
         ? Number(rawGradeYear)
         : null;
 
-  // CheckProfile
-  const checkProfile = await prisma.profile.findUnique({
+  const registerForReferent = data.registerForReferent === true;
+  const referentRefRaw = data.referentRef;
+  const referentRefFromClient =
+    referentRefRaw != null && String(referentRefRaw).trim() !== ""
+      ? parseInt(String(referentRefRaw), 10)
+      : null;
+
+  const existingUserProfile = await prisma.profile.findUnique({
     where: {
       userId,
     },
@@ -149,105 +157,99 @@ export async function POST(req: Request) {
     },
   });
 
-  if (checkProfile === null) {
-    // Create User Profile With Auth
+  let referentId: number | null =
+    referentRefFromClient != null && !Number.isNaN(referentRefFromClient)
+      ? referentRefFromClient
+      : null;
 
-    const profileData = await prisma.user.update({
+  if (referentId == null && existingUserProfile?.citizenId) {
+    const refRecord = await prisma.referent.findUnique({
       where: {
-        id: userId,
-      },
-      data: {
-        profile: {
-          create: [
-            {
-              citizenId: profile.citizenId,
-              prefixId: profile.prefixId,
-              sex: profile.sex,
-              firstname: profile.firstname,
-              lastname: profile.lastname,
-              birthday: profile.birthday,
-              ethnicity: profile.ethnicity,
-              nationality: profile.nationality,
-              tel: profile.tel,
-              hn: profile.hn?.trim() || "",
-              schoolId,
-              gradeYear,
-              address: {
-                create: [
-                  {
-                    houseNo: addressForCreate.houseNo,
-                    villageNo: addressForCreate.villageNo,
-                    soi: addressForCreate.soi,
-                    road: addressForCreate.road,
-                    province: addressForCreate.province,
-                    district: addressForCreate.district,
-                    subdistrict: addressForCreate.subdistrict,
-                  },
-                ],
-              },
-              emergency: {
-                create: {
-                  name: emergencyForCreate.name,
-                  tel: emergencyForCreate.tel,
-                  relation: emergencyForCreate.relation,
-                },
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    return Response.json({ profile: profileData, ref: "" });
-  } else {
-    // Create User Profile With Out Auth
-
-    const refId = await prisma.referent.findUnique({
-      where: {
-        citizenId: checkProfile.citizenId,
+        citizenId: existingUserProfile.citizenId,
       },
       select: {
         id: true,
       },
     });
 
+    referentId = refRecord?.id ?? null;
+  }
+
+  const shouldRegisterYouth =
+    registerForReferent ||
+    (existingUserProfile !== null && referentId !== null);
+
+  const youthProfileData = {
+    citizenId: profile.citizenId,
+    prefixId: profile.prefixId,
+    sex: profile.sex,
+    firstname: profile.firstname,
+    lastname: profile.lastname,
+    birthday: profile.birthday,
+    ethnicity: profile.ethnicity,
+    nationality: profile.nationality,
+    tel: profile.tel,
+    hn: profile.hn?.trim() || "",
+    schoolId,
+    gradeYear: gradeYear ?? undefined,
+    address: {
+      create: [
+        {
+          houseNo: addressForCreate.houseNo,
+          villageNo: addressForCreate.villageNo,
+          soi: addressForCreate.soi,
+          road: addressForCreate.road,
+          province: addressForCreate.province,
+          district: addressForCreate.district,
+          subdistrict: addressForCreate.subdistrict,
+        },
+      ],
+    },
+    emergency: {
+      create: {
+        name: emergencyForCreate.name,
+        tel: emergencyForCreate.tel,
+        relation: emergencyForCreate.relation,
+      },
+    },
+  };
+
+  if (shouldRegisterYouth) {
     const profileData = await prisma.profile.create({
+      data: youthProfileData,
+    });
+
+    return Response.json({
+      profile: profileData,
+      ref: referentId != null ? { id: referentId } : null,
+      isReferentYouth: true,
+    });
+  }
+
+  if (existingUserProfile === null) {
+    const profileData = await prisma.user.update({
+      where: {
+        id: userId,
+      },
       data: {
-        citizenId: profile.citizenId,
-        prefixId: profile.prefixId,
-        sex: profile.sex,
-        firstname: profile.firstname,
-        lastname: profile.lastname,
-        birthday: profile.birthday,
-        ethnicity: profile.ethnicity,
-        nationality: profile.nationality,
-        tel: profile.tel,
-        hn: profile.hn?.trim() || "",
-        schoolId,
-        gradeYear: gradeYear ?? undefined,
-        address: {
-          create: [
-            {
-              houseNo: addressForCreate.houseNo,
-              villageNo: addressForCreate.villageNo,
-              soi: addressForCreate.soi,
-              road: addressForCreate.road,
-              province: addressForCreate.province,
-              district: addressForCreate.district,
-              subdistrict: addressForCreate.subdistrict,
-            },
-          ],
+        profile: {
+          create: [youthProfileData],
         },
-        emergency: {
-          create: {
-            name: emergencyForCreate.name,
-            tel: emergencyForCreate.tel,
-            relation: emergencyForCreate.relation,
-          },
-        },
+      },
+      include: {
+        profile: true,
       },
     });
 
-    return Response.json({ profile: profileData, ref: refId });
+    return Response.json({
+      profile: profileData.profile[0],
+      ref: "",
+      isReferentYouth: false,
+    });
   }
+
+  return Response.json(
+    { error: "ไม่สามารถลงทะเบียนซ้ำได้ กรุณาติดต่อผู้ดูแลระบบ" },
+    { status: 400 }
+  );
 }

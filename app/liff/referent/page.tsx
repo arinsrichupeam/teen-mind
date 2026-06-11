@@ -26,7 +26,7 @@ export default function QuestionPage() {
   const GotoPrivacy = async () => {
     setIsLoading((prev) => ({ ...prev, privacy: true }));
     try {
-      await router.push("/liff/privacy");
+      await router.push("/liff/privacy?referent=1");
     } finally {
       setIsLoading((prev) => ({ ...prev, privacy: false }));
     }

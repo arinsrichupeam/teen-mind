@@ -341,6 +341,35 @@ export default function PHQAPage() {
     : null;
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  const applyProfileContext = useCallback(
+    (id: string, birthday: string | Date | null | undefined) => {
+      setProfileIdState(id);
+
+      if (birthday) {
+        const age = calculateAge(String(birthday));
+
+        // spec: อายุ < 12 -> under12, อายุ > 12 -> over12
+        // กรณีอายุเท่ากับ 12 ให้ถือว่า over12
+        setAgeGroup(age < 12 ? "under12" : "over12");
+      } else {
+        setAgeGroup(null);
+      }
+
+      setPHQAShow(false);
+      setPHQAAddonShow(false);
+      setShowQ9(false);
+      setShowQ8(false);
+      setShowProblem(false);
+      setQuestion("1");
+      setQuestionName("2Q");
+      setProgress(0);
+      setCanProceed(false);
+      setCurrentAnswer("");
+      setCurrentQuestionAnswers({});
+    },
+    []
+  );
+
   const checkProfile = useCallback(
     async (id: string) => {
       try {
@@ -350,31 +379,7 @@ export default function PHQAPage() {
         if (data?.profile.length === 0) {
           router.push("/liff/privacy");
         } else {
-          setProfileIdState(data?.profile[0].id);
-          const birthday = data?.profile?.[0]?.birthday;
-
-          if (birthday) {
-            const age = calculateAge(String(birthday));
-
-            // spec: อายุ < 12 -> under12, อายุ > 12 -> over12
-            // กรณีอายุเท่ากับ 12 ให้ถือว่า over12
-            setAgeGroup(age < 12 ? "under12" : "over12");
-          } else {
-            setAgeGroup(null);
-          }
-
-          // reset flow state
-          setPHQAShow(false);
-          setPHQAAddonShow(false);
-          setShowQ9(false);
-          setShowQ8(false);
-          setShowProblem(false);
-          setQuestion("1");
-          setQuestionName("2Q");
-          setProgress(0);
-          setCanProceed(false);
-          setCurrentAnswer("");
-          setCurrentQuestionAnswers({});
+          applyProfileContext(data.profile[0].id, data.profile[0].birthday);
         }
       } catch (error) {
         setErrorMessage(
@@ -385,16 +390,46 @@ export default function PHQAPage() {
         router.push("/liff");
       }
     },
-    [profileId, router]
+    [applyProfileContext, router]
+  );
+
+  const loadAssessmentProfile = useCallback(
+    async (targetProfileId: string) => {
+      try {
+        const response = await fetch(
+          `/api/profile/assessment/${targetProfileId}`
+        );
+
+        if (!response.ok) {
+          throw new Error("ไม่พบข้อมูลวัยรุ่นที่ลงทะเบียน");
+        }
+
+        const data = await response.json();
+
+        applyProfileContext(data.id, data.birthday);
+      } catch (error) {
+        setErrorMessage(
+          "เกิดข้อผิดพลาดในการโหลดข้อมูลวัยรุ่น กรุณาลองใหม่อีกครั้ง" + error
+        );
+        setIsModalOpened(true);
+        router.push("/liff");
+      }
+    },
+    [applyProfileContext, router]
   );
 
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
-      if (session?.user?.id) {
+      if (profileId) {
+        loadAssessmentProfile(profileId);
+      } else if (session?.user?.id) {
         checkProfile(session.user.id as string);
       }
-    } else {
+    } else if (profileId) {
       setProfileIdState(profileId);
+      setAgeGroup(null);
+    } else {
+      setProfileIdState("");
       setAgeGroup(null);
     }
 
@@ -415,7 +450,15 @@ export default function PHQAPage() {
 
     // เริ่มต้น progress ที่ 0%
     setProgress(0);
-  }, [session, status, profileId, ref, checkProfile, onOpen]);
+  }, [
+    session,
+    status,
+    profileId,
+    ref,
+    checkProfile,
+    loadAssessmentProfile,
+    onOpen,
+  ]);
 
   const fetchReferentData = useCallback(
     async (id: string) => {
