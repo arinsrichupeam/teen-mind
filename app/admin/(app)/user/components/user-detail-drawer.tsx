@@ -452,6 +452,7 @@ export default function UserDetailDrawer({
         }}
       />
       <ModalAddQuestion
+        birthday={user.birthday}
         isOpen={isAddQuestionModalOpen}
         userId={user.id}
         onClose={() => {

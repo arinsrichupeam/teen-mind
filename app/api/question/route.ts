@@ -436,11 +436,20 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
-    if (profile.userId && profile.userId !== session.user.id) {
-      return Response.json(
-        { error: "Forbidden: ไม่สามารถสร้างแบบประเมินแทนผู้ใช้อื่นได้" },
-        { status: 403 }
-      );
+    const isOwner = !profile.userId || profile.userId === session.user.id;
+    let isAdminActor = false;
+
+    if (!isOwner) {
+      const auth = await requireAdmin();
+
+      if (!auth) {
+        return Response.json(
+          { error: "Forbidden: ไม่สามารถสร้างแบบประเมินแทนผู้ใช้อื่นได้" },
+          { status: 403 }
+        );
+      }
+
+      isAdminActor = true;
     }
 
     let lineUserId: string | undefined;
@@ -605,24 +614,23 @@ export async function POST(req: Request) {
       data: createPayload,
     });
 
-    // ส่งข้อความผ่าน Line เฉพาะเมื่อมี userId
-    if (lineUserId) {
-      switch (result) {
-        case "Green":
-          await lineSdk.pushMessage(lineUserId, GreenFlex);
-          break;
-        case "Green-Low":
-          await lineSdk.pushMessage(lineUserId, GreenLowFlex);
-          break;
-        case "Yellow":
-          await lineSdk.pushMessage(lineUserId, YellowFlex);
-          break;
-        case "Orange":
-          await lineSdk.pushMessage(lineUserId, OrangeFlex);
-          break;
-        case "Red":
-          await lineSdk.pushMessage(lineUserId, RedFlex);
-          break;
+    // ส่งข้อความผ่าน Line เฉพาะผู้ใช้ที่ทำแบบประเมินเอง (ไม่แจ้งเมื่อ admin บันทึกแทน)
+    if (lineUserId && !isAdminActor) {
+      const resultFlex =
+        result === "Green"
+          ? GreenFlex
+          : result === "Green-Low"
+            ? GreenLowFlex
+            : result === "Yellow"
+              ? YellowFlex
+              : result === "Orange"
+                ? OrangeFlex
+                : result === "Red"
+                  ? RedFlex
+                  : null;
+
+      if (resultFlex) {
+        await Promise.allSettled([lineSdk.pushMessage(lineUserId, resultFlex)]);
       }
     }
 
