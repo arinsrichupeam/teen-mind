@@ -5,13 +5,10 @@ import { Input } from "@heroui/input";
 import { Form } from "@heroui/form";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
-import { CalendarDate, parseDate } from "@internationalized/date";
 import { useCallback, useEffect, useRef, useState } from "react";
-import moment from "moment";
 import {
   Autocomplete,
   AutocompleteItem,
-  DatePicker,
   Modal,
   ModalBody,
   ModalContent,
@@ -21,12 +18,16 @@ import {
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+import { BirthdaySelect } from "@/components/birthday-select";
 import { LineIcon } from "@/components/icons";
 import { prefix, sex, gradeYearLevels } from "@/utils/data";
-import { validateCitizen, validateTel, safeParseDate } from "@/utils/helper";
+import { validateCitizen, validateTel } from "@/utils/helper";
 
 /** Profile ที่มีฟิลด์ชั้นปี (gradeYear) สำหรับฟอร์มลงทะเบียน */
-type ProfileWithGradeYear = Profile & { gradeYear?: number | null };
+type ProfileWithGradeYear = Omit<Profile, "birthday"> & {
+  gradeYear?: number | null;
+  birthday: Date | null;
+};
 
 type StepName = "Profile" | "Address" | "Emergency";
 
@@ -59,7 +60,6 @@ export const Step1 = ({
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const request = true;
-  const [birthday, setBirthday] = useState<CalendarDate | null>(null);
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
   const [referentDuplicate, setReferentDuplicate] = useState(false);
@@ -82,16 +82,6 @@ export const Step1 = ({
       NextStep("Profile");
     },
     [NextStep]
-  );
-
-  const DateChange = useCallback(
-    (val: CalendarDate | null) => {
-      setBirthday(val);
-      if (val) {
-        HandleChange({ target: { name: "birthday", value: val.toString() } });
-      }
-    },
-    [HandleChange]
   );
 
   const validateCitizenId = async (value: string) => {
@@ -252,16 +242,6 @@ export const Step1 = ({
   };
 
   useEffect(() => {
-    if (Result?.birthday) {
-      const parsedDate = safeParseDate(Result.birthday);
-
-      if (parsedDate && typeof parsedDate !== "string") {
-        setBirthday(parsedDate);
-      }
-    }
-  }, [Result?.birthday]);
-
-  useEffect(() => {
     fetch("/api/data/school")
       .then((res) => res.json())
       .then((val) => {
@@ -369,23 +349,16 @@ export const Step1 = ({
         variant="faded"
         onChange={HandleChange}
       />
-      <DatePicker
-        className="w-full"
-        errorMessage="กรุณาระบุวันเกิดให้ถูกต้อง"
+      <BirthdaySelect
         isRequired={request}
         label="วันเกิด"
         labelPlacement="inside"
-        maxValue={parseDate(moment().format("YYYY-MM-DD"))}
-        minValue={parseDate(
-          moment().subtract(100, "years").format("YYYY-MM-DD")
-        )}
-        radius="md"
-        selectorButtonPlacement="start"
-        showMonthAndYearPickers={true}
         size="sm"
-        value={birthday ?? undefined}
+        value={Result?.birthday}
         variant="faded"
-        onChange={DateChange}
+        onChange={(isoDate) =>
+          HandleChange({ target: { name: "birthday", value: isoDate } })
+        }
       />
       <div className="flex flex-row gap-4 w-full">
         <Input
@@ -417,7 +390,6 @@ export const Step1 = ({
       </div>
       <Input
         errorMessage="กรอกเบอร์โทรศัพท์ไม่ถูกต้อง"
-        isRequired={request}
         label="เบอร์โทรศัพท์"
         labelPlacement="inside"
         maxLength={10}
@@ -426,7 +398,11 @@ export const Step1 = ({
         radius="md"
         size="sm"
         type="text"
-        validate={(val) => validateTel(val.toString())}
+        validate={(val) => {
+          const tel = val.toString();
+
+          return tel === "" ? "" : validateTel(tel);
+        }}
         value={Result?.tel}
         variant="faded"
         onChange={HandleChange}

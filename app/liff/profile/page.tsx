@@ -178,7 +178,10 @@ export default function ProfilePage() {
       if (name === "birthday") {
         setProfile((prev) => ({
           ...prev,
-          birthday: new Date(String(value)),
+          birthday:
+            value === null || value === ""
+              ? prev.birthday
+              : new Date(`${String(value)}T12:00:00`),
         }));
       } else if (name === "prefix") {
         setProfile((prev) => ({ ...prev, prefixId: Number(value) }));

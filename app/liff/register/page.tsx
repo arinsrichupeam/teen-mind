@@ -15,7 +15,12 @@ import { Step3 } from "./components/step3";
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
 
-const profileInitValue: Profile & { gradeYear?: number | null } = {
+type RegisterProfileState = Omit<Profile, "birthday"> & {
+  gradeYear?: number | null;
+  birthday: Date | null;
+};
+
+const profileInitValue: RegisterProfileState = {
   id: "",
   userId: "",
   citizenId: "",
@@ -23,7 +28,7 @@ const profileInitValue: Profile & { gradeYear?: number | null } = {
   sex: 0,
   firstname: "",
   lastname: "",
-  birthday: new Date(),
+  birthday: null,
   ethnicity: "",
   nationality: "",
   tel: "",
@@ -63,9 +68,8 @@ export default function RegisterPage() {
   const [selected, setSelected] = useState("profile");
   const [showAlert, setShowAlert] = useState(false);
 
-  const [profile, setProfile] = useState<
-    Profile & { gradeYear?: number | null }
-  >(profileInitValue);
+  const [profile, setProfile] =
+    useState<RegisterProfileState>(profileInitValue);
   const [address, setAddress] = useState<Address>(addressInitValue);
   const [emergency, setEmergency] = useState<EmergencyContact>(
     emergencyContactInitValue
@@ -177,7 +181,6 @@ export default function RegisterPage() {
   }, [router, ref, isReferentFlow, session?.user?.id]);
 
   type StepName = "Profile" | "Address" | "Emergency";
-  type RegisterProfileState = Profile & { gradeYear?: number | null };
 
   const NextStep = useCallback(
     (name: StepName) => {
@@ -221,8 +224,8 @@ export default function RegisterPage() {
           ...prev,
           birthday:
             value === null || value === ""
-              ? prev.birthday
-              : new Date(String(value)),
+              ? null
+              : new Date(`${String(value)}T12:00:00`),
         }));
       } else if (name === "prefix") {
         setProfile((prev: RegisterProfileState) => ({

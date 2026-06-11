@@ -17,16 +17,9 @@ import {
   SelectItem,
   Autocomplete,
   AutocompleteItem,
-  DatePicker,
 } from "@heroui/react";
-import {
-  CalendarDate,
-  parseDate,
-  CalendarDateTime,
-  ZonedDateTime,
-} from "@internationalized/date";
-import moment from "moment";
 
+import { BirthdaySelect } from "@/components/birthday-select";
 import { gradeYearLevels, prefix } from "@/utils/data";
 import {
   validateCitizen,
@@ -34,7 +27,6 @@ import {
   parseThaiDateToISO,
   calculateThaiYear,
   formatDateForDisplay,
-  safeParseDateForPicker,
 } from "@/utils/helper";
 
 interface EditProfileData {
@@ -109,9 +101,6 @@ export const ModalEditProfile = ({
   const [province, setProvince] = useState<Provinces[]>([]);
   const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
   const [schools, setSchools] = useState<{ id: number; name: string }[]>([]);
-  const [birthdayDate, setBirthdayDate] = useState<
-    CalendarDate | CalendarDateTime | ZonedDateTime | null
-  >(null);
   const [editProfileData, setEditProfileData] = useState<EditProfileData>({
     hn: "",
     citizenId: "",
@@ -224,14 +213,6 @@ export const ModalEditProfile = ({
     } else {
       let processedValue = value;
 
-      // จัดการการกรอกวันเกิด - ใช้ placeholder แทน auto format
-      if (name === "birthday") {
-        // จำกัดความยาวสูงสุดที่ 10 ตัวอักษร (dd/mm/yyyy)
-        if (value.length > 10) {
-          processedValue = value.slice(0, 10);
-        }
-      }
-
       // ตรวจสอบโทรศัพท์ให้รับเฉพาะตัวเลขเท่านั้น
       if (name === "tel" || name === "emergency.tel") {
         // อนุญาตให้กรอกได้แค่ตัวเลขเท่านั้น
@@ -261,13 +242,6 @@ export const ModalEditProfile = ({
         } else {
           setCitizenIdError("");
         }
-      }
-
-      // Validate birthday แบบ real-time
-      if (name === "birthday") {
-        const error = validateBirthday(processedValue);
-
-        setBirthdayError(error);
       }
     }
   };
@@ -433,7 +407,6 @@ export const ModalEditProfile = ({
         school: "",
         gradeYear: "",
       });
-      setBirthdayDate(null);
 
       return;
     }
@@ -451,8 +424,7 @@ export const ModalEditProfile = ({
         ? subdistrince.find((x) => x.id == addr.subdistrict)
         : undefined;
 
-      let birthdayDate = "";
-      let parsedBirthdayDate: ReturnType<typeof safeParseDateForPicker> = null;
+      let birthdayDisplay = "";
 
       const birthdayRaw = profile.birthday;
 
@@ -464,10 +436,13 @@ export const ModalEditProfile = ({
               : new Date(birthdayRaw as string | number);
 
           if (!isNaN(date.getTime())) {
-            birthdayDate = formatDateForDisplay(
-              date.toISOString().split("T")[0]
-            );
-            parsedBirthdayDate = safeParseDateForPicker(date);
+            const isoDate = [
+              date.getFullYear(),
+              String(date.getMonth() + 1).padStart(2, "0"),
+              String(date.getDate()).padStart(2, "0"),
+            ].join("-");
+
+            birthdayDisplay = formatDateForDisplay(isoDate);
           }
         } catch (error) {
           addToast({
@@ -480,8 +455,8 @@ export const ModalEditProfile = ({
         }
       }
 
-      const thaiYear = birthdayDate
-        ? calculateThaiYear(parseThaiDateToISO(birthdayDate))
+      const thaiYear = birthdayDisplay
+        ? calculateThaiYear(parseThaiDateToISO(birthdayDisplay))
         : "";
 
       const schoolObj = profile.school as { id?: number } | undefined;
@@ -498,7 +473,7 @@ export const ModalEditProfile = ({
         sex: profile.sex != null ? String(profile.sex) : "",
         firstname: String(profile.firstname ?? ""),
         lastname: String(profile.lastname ?? ""),
-        birthday: birthdayDate || "",
+        birthday: birthdayDisplay || "",
         thaiYear: thaiYear,
         ethnicity: String(profile.ethnicity ?? ""),
         nationality: String(profile.nationality ?? ""),
@@ -525,11 +500,6 @@ export const ModalEditProfile = ({
       };
 
       setEditProfileData(initialData);
-      setBirthdayDate(
-        parsedBirthdayDate && typeof parsedBirthdayDate !== "string"
-          ? parsedBirthdayDate
-          : null
-      );
     }
   };
 
@@ -852,89 +822,42 @@ export const ModalEditProfile = ({
                 onChange={handleEditProfileChange}
               />
             </div>
-            <DatePicker
-              className="w-full"
-              errorMessage={birthdayError}
-              isInvalid={!!birthdayError}
-              isRequired={true}
-              label="วันเกิด (พ.ศ.)"
-              maxValue={parseDate(moment().format("YYYY-MM-DD"))}
-              minValue={parseDate(
-                moment().subtract(100, "years").format("YYYY-MM-DD")
-              )}
-              name="birthday"
-              selectorButtonPlacement="start"
-              showMonthAndYearPickers={true}
-              size="sm"
-              value={birthdayDate}
-              variant="bordered"
-              onChange={(
-                date: CalendarDate | CalendarDateTime | ZonedDateTime | null
-              ) => {
-                if (date) {
-                  const isoDate = date.toString();
+            <div className="flex flex-row gap-2">
+              <BirthdaySelect
+                className="w-full"
+                errorMessage={birthdayError}
+                isInvalid={!!birthdayError}
+                isRequired={true}
+                label="วันเกิด"
+                name="birthday"
+                placeholder="วว/ดด/ปปปป (พ.ศ.)"
+                size="sm"
+                value={editProfileData.birthday}
+                variant="bordered"
+                onChange={(isoDate) => {
+                  if (!isoDate) {
+                    setEditProfileData((prev) => ({
+                      ...prev,
+                      birthday: "",
+                      thaiYear: "",
+                    }));
+                    setBirthdayError("กรุณาระบุวันเกิด");
+
+                    return;
+                  }
+
                   const thaiDate = formatDateForDisplay(isoDate);
+                  const error = validateBirthday(thaiDate);
 
                   setEditProfileData((prev) => ({
                     ...prev,
                     birthday: thaiDate,
+                    thaiYear: error ? "" : calculateThaiYear(isoDate),
                   }));
-                  setBirthdayDate(date); // อัพเดท state สำหรับจัดการค่าเริ่มต้น
-
-                  // Validate วันเกิดแบบ real-time
-                  const error = validateBirthday(thaiDate);
-
                   setBirthdayError(error);
-
-                  // คำนวณปีไทยเมื่อกรอกครบและไม่มี error
-                  if (
-                    thaiDate.length === 10 &&
-                    thaiDate.includes("/") &&
-                    !error
-                  ) {
-                    const parts = thaiDate.split("/");
-
-                    if (
-                      parts.length === 3 &&
-                      parts[0].length === 2 &&
-                      parts[1].length === 2 &&
-                      parts[2].length === 4
-                    ) {
-                      try {
-                        const parsedIsoDate = parseThaiDateToISO(thaiDate);
-                        const thaiYear = calculateThaiYear(parsedIsoDate);
-
-                        setEditProfileData((prev) => ({
-                          ...prev,
-                          thaiYear: thaiYear,
-                        }));
-                      } catch {
-                        // กรณีที่แปลงวันที่ไม่สำเร็จ
-                        setEditProfileData((prev) => ({
-                          ...prev,
-                          thaiYear: "",
-                        }));
-                      }
-                    }
-                  } else {
-                    // รีเซ็ตปีไทยเมื่อกรอกไม่ครบหรือมี error
-                    setEditProfileData((prev) => ({
-                      ...prev,
-                      thaiYear: "",
-                    }));
-                  }
-                } else {
-                  // เมื่อล้างค่า
-                  setEditProfileData((prev) => ({
-                    ...prev,
-                    birthday: "",
-                    thaiYear: "",
-                  }));
-                  setBirthdayDate(null); // ล้าง state สำหรับจัดการค่าเริ่มต้น
-                  setBirthdayError("");
-                }
-              }}
-            />
+                }}
+              />
+            </div>
             <Autocomplete
               className="w-full"
               defaultItems={schools}
@@ -1121,7 +1044,6 @@ export const ModalEditProfile = ({
                 )}
               </Autocomplete>
               <Input
-                isRequired={true}
                 label="โทรศัพท์"
                 maxLength={10}
                 name="tel"

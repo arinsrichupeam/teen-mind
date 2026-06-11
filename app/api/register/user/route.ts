@@ -60,13 +60,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const birthdayValue = profileRaw.birthday;
+  const birthdayValue = (profileRaw as { birthday?: string | Date | null })
+    .birthday;
+
+  if (birthdayValue == null || String(birthdayValue).trim() === "") {
+    return Response.json({ error: "กรุณาระบุวันเกิด" }, { status: 400 });
+  }
+
   const birthday =
     birthdayValue instanceof Date
       ? birthdayValue
-      : typeof birthdayValue === "string"
-        ? new Date(birthdayValue)
-        : new Date();
+      : new Date(String(birthdayValue));
+
+  if (Number.isNaN(birthday.getTime())) {
+    return Response.json({ error: "รูปแบบวันเกิดไม่ถูกต้อง" }, { status: 400 });
+  }
 
   const profile: Profile = {
     ...profileRaw,

@@ -1,6 +1,6 @@
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
-import { getSession } from "@/lib/get-session";
+import { getSession, requireAdmin } from "@/lib/get-session";
 
 export async function GET(
   req: Request,
@@ -137,7 +137,11 @@ export async function PUT(
   const userId = (await params).id;
 
   if (session.user.id !== userId) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+
+    if (!auth) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   try {
