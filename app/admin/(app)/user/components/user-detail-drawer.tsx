@@ -48,6 +48,7 @@ interface Subdistricts {
 
 interface UserData {
   id: string;
+  userId?: string | null;
   firstname: string;
   lastname: string;
   prefixId: number;

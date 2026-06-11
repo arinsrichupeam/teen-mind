@@ -134,23 +134,36 @@ export async function PUT(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = (await params).id;
-
-  if (session.user.id !== userId) {
-    const auth = await requireAdmin();
-
-    if (!auth) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
+  const idParam = (await params).id;
 
   try {
     const body = await req.json();
 
-    const existingProfile = await prisma.profile.findFirst({
-      where: { userId },
+    let existingProfile = await prisma.profile.findFirst({
+      where: { userId: idParam },
       include: { address: true, emergency: true },
     });
+
+    if (existingProfile) {
+      if (session.user.id !== idParam) {
+        const auth = await requireAdmin();
+
+        if (!auth) {
+          return Response.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    } else {
+      const auth = await requireAdmin();
+
+      if (!auth) {
+        return Response.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      existingProfile = await prisma.profile.findUnique({
+        where: { id: idParam },
+        include: { address: true, emergency: true },
+      });
+    }
 
     if (!existingProfile) {
       return Response.json(

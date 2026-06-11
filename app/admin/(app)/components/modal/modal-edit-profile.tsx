@@ -582,25 +582,28 @@ export const ModalEditProfile = ({
           body: JSON.stringify(profileData),
         });
       } else {
-        // แก้ไข profile ที่มีอยู่ (ส่ง user id ตาม semantics ของ API)
+        // แก้ไข profile ที่มีอยู่
+        // ถ้าเชื่อม LINE แล้วใช้ userId; ถ้ายังไม่เชื่อม LINE ใช้ profile.id (admin อัปเดตตาม profile id)
         const profile = data?.profile;
 
-        if (!profile?.userId) {
+        if (!profile?.id) {
           addToast({
             title: "เกิดข้อผิดพลาด",
-            description: "ไม่พบข้อมูล user id",
+            description: "ไม่พบข้อมูลโปรไฟล์",
             color: "danger",
           });
           setIsProfileSaving(false);
 
           return;
         }
+
+        const updateTargetId = profile.userId ?? profile.id;
         const updateData = {
           id: profile.id,
           ...profileData,
         };
 
-        response = await fetch(`/api/profile/user/${profile.userId}`, {
+        response = await fetch(`/api/profile/user/${updateTargetId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -626,7 +629,16 @@ export const ModalEditProfile = ({
 
         onClose();
       } else {
-        throw new Error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        const errorPayload = (await response.json().catch(() => ({}))) as {
+          message?: string;
+          error?: string;
+        };
+
+        throw new Error(
+          errorPayload.message ||
+            errorPayload.error ||
+            "เกิดข้อผิดพลาดในการบันทึกข้อมูล"
+        );
       }
     } catch (error) {
       addToast({
