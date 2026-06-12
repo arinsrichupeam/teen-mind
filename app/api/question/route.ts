@@ -25,11 +25,12 @@ import {
   getEmergencyAlertFlex,
 } from "@/config/line-flex";
 import {
-  getNineQRiskLevel,
-  getNineQRiskText,
-  getPhqaRiskLevel,
-  getPhqaRiskText,
-} from "@/utils/helper";
+  calculateMainAssessmentResult,
+  getAgeAtAssessment,
+  getMainAssessmentScaleFromAge,
+  getMainSumFromQuestion,
+  type MainAssessmentScale,
+} from "@/lib/assessment-scale";
 
 function buildWhereFromQuery(url: URL) {
   const search = url.searchParams.get("search")?.trim() || "";
@@ -395,10 +396,39 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // ตรวจสอบความถูกต้องของข้อมูล
-    validateQuestionData(data);
-
     const profileId = data.profileId;
+
+    // ดึงข้อมูลผู้ใช้ (รวมวันเกิดสำหรับกำหนดชุดแบบประเมิน)
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+      select: {
+        userId: true,
+        hn: true,
+        firstname: true,
+        lastname: true,
+        tel: true,
+        birthday: true,
+        school: { select: { screeningDate: true } },
+      },
+    });
+
+    if (!profile) {
+      throw new Error("ไม่พบข้อมูลผู้ใช้");
+    }
+
+    const age = getAgeAtAssessment(
+      profile.birthday,
+      profile.school?.screeningDate
+    );
+
+    if (age === null) {
+      throw new Error("ไม่พบวันเกิดสำหรับกำหนดชุดแบบประเมิน");
+    }
+
+    const expectedScale = getMainAssessmentScaleFromAge(age);
+
+    validateQuestionData(data, expectedScale);
+
     const referenceId = data.reference;
     const Q2_data: Questions_PHQA_Addon = data.Q2;
     const location_data: LocationData | null = data.location;
@@ -411,31 +441,16 @@ export async function POST(req: Request) {
       | (Record<string, number> & { sum?: number })
       | undefined;
 
-    const scoreSum = q9_data
-      ? SumValue9Q(q9_data)
-      : SumValue(phqa_data as Questions_PHQA);
+    const scoreSum =
+      expectedScale === "9Q"
+        ? SumValue9Q(q9_data as Questions_9Q)
+        : SumValue(phqa_data as Questions_PHQA);
     const q8_sum = SumValue8Q(q8_data);
 
     const { result, result_text } = calculateMainAssessmentResult(
       scoreSum,
-      q9_data ? "9Q" : "PHQA"
+      expectedScale
     );
-
-    // ดึงข้อมูลผู้ใช้ (รวมชื่อ-เบอร์ สำหรับแจ้งเตือน admin เมื่อ Red)
-    const profile = await prisma.profile.findUnique({
-      where: { id: profileId },
-      select: {
-        userId: true,
-        hn: true,
-        firstname: true,
-        lastname: true,
-        tel: true,
-      },
-    });
-
-    if (!profile) {
-      throw new Error("ไม่พบข้อมูลผู้ใช้");
-    }
 
     const referentAuth = await requireReferent();
     const hasLine = await profileHasLineLinked(profile.userId);
@@ -551,7 +566,11 @@ export async function POST(req: Request) {
       };
     }
 
-    if (q9_data) {
+    if (expectedScale === "9Q") {
+      if (!q9_data) {
+        throw new Error("ข้อมูลไม่ครบถ้วนสำหรับ 9Q");
+      }
+
       // สร้าง q9 + สร้าง phqa/addon เพื่อไม่ให้หน้า admin ที่อิง phqa/addon พัง
       createPayload.q9 = {
         create: {
@@ -590,7 +609,7 @@ export async function POST(req: Request) {
         },
       };
     } else {
-      // under12
+      // PHQ-A (อายุต่ำกว่า 18 ปี)
       createPayload.phqa = {
         create: {
           q1: (phqa_data as Questions_PHQA).q1,
@@ -932,32 +951,35 @@ export async function PUT(req: Request) {
   }
 }
 
-/** คะแนนชุดหลัก PHQ-A / 9Q สำหรับคำนวณระดับความเสี่ยง (รองรับทั้ง under12 และ over12) */
+/** คะแนนชุดหลัก PHQ-A / 9Q — เลือกสเกลจากอายุ ณ วันทำแบบประเมิน */
 function getMainScreeningData(question: QuestionsData): {
   sum: number;
-  scale: "PHQA" | "9Q";
+  scale: MainAssessmentScale;
 } {
   const q9Row = question.q9?.[0];
-
-  if (
-    q9Row != null &&
-    typeof q9Row.sum === "number" &&
-    !Number.isNaN(q9Row.sum)
-  ) {
-    return { sum: q9Row.sum, scale: "9Q" };
-  }
-
   const phqaRow = question.phqa?.[0];
+  const sum = getMainSumFromQuestion(q9Row?.sum, phqaRow?.sum) ?? 0;
 
-  if (
-    phqaRow != null &&
-    typeof phqaRow.sum === "number" &&
-    !Number.isNaN(phqaRow.sum)
-  ) {
-    return { sum: phqaRow.sum, scale: "PHQA" };
-  }
+  const school = question.profile?.school;
+  const screeningDate =
+    typeof school === "object" && school !== null
+      ? school.screeningDate
+      : undefined;
 
-  return { sum: 0, scale: "PHQA" };
+  const age = getAgeAtAssessment(
+    question.profile?.birthday,
+    screeningDate,
+    question.createdAt
+  );
+
+  const scale =
+    age !== null
+      ? getMainAssessmentScaleFromAge(age)
+      : q9Row != null
+        ? "9Q"
+        : "PHQA";
+
+  return { sum, scale };
 }
 
 function CalStatus(value: QuestionsData) {
@@ -1064,7 +1086,10 @@ function validateProblem(problem?: Record<string, number>) {
   }
 }
 
-function validateQuestionData(data: QuestionPayload) {
+function validateQuestionData(
+  data: QuestionPayload,
+  expectedScale: MainAssessmentScale
+) {
   if (!data.profileId) throw new Error("ข้อมูลไม่ครบถ้วน: profileId");
   if (!data.Q2) throw new Error("ข้อมูลไม่ครบถ้วน: Q2");
   if (!data.q8) throw new Error("ข้อมูลไม่ครบถ้วน: q8");
@@ -1117,8 +1142,11 @@ function validateQuestionData(data: QuestionPayload) {
       throw new Error("ค่า 8Q q8Addon ไม่ถูกต้องเมื่อ q3 ไม่ใช่");
   }
 
-  // validate path ตาม payload ที่ส่งมา
-  if (data.q9) {
+  if (expectedScale === "9Q") {
+    if (!data.q9) {
+      throw new Error("ข้อมูลไม่ครบถ้วนสำหรับ 9Q (อายุ 18 ปีขึ้นไป)");
+    }
+
     const q9 = data.q9;
 
     for (let i = 1; i <= 9; i++) {
@@ -1133,9 +1161,16 @@ function validateQuestionData(data: QuestionPayload) {
     return;
   }
 
-  // under12: ต้องมี phqa และ phqaAddon
+  if (data.q9) {
+    throw new Error(
+      "ไม่ควรมีข้อมูล 9Q สำหรับอายุต่ำกว่า 18 ปี (ใช้ PHQ-A + Addon)"
+    );
+  }
+
   if (!data.phqa || !data.phqaAddon) {
-    throw new Error("ข้อมูลไม่ครบถ้วนสำหรับ under12: phqa/phqaAddon");
+    throw new Error(
+      "ข้อมูลไม่ครบถ้วนสำหรับ PHQ-A (อายุต่ำกว่า 18 ปี): phqa/phqaAddon"
+    );
   }
 
   for (let i = 1; i <= 9; i++) {
@@ -1153,14 +1188,4 @@ function validateQuestionData(data: QuestionPayload) {
   if (data.phqaAddon.q2 !== 0 && data.phqaAddon.q2 !== 1) {
     throw new Error("ค่า PHQA Addon q2 ไม่ถูกต้อง");
   }
-}
-
-// แยกฟังก์ชันคำนวณผลลัพธ์ตามแบบประเมินหลัก
-function calculateMainAssessmentResult(sum: number, scale: "PHQA" | "9Q") {
-  const result =
-    scale === "9Q" ? getNineQRiskLevel(sum) : getPhqaRiskLevel(sum);
-  const result_text =
-    scale === "9Q" ? getNineQRiskText(sum) : getPhqaRiskText(sum);
-
-  return { result, result_text };
 }

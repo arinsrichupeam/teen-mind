@@ -2,13 +2,10 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DateRangePicker } from "@heroui/react";
-import { parseDate } from "@internationalized/date";
 
 import { ConsultTelemedCharts } from "./components/home/consult-telemed-charts";
 import { CardUsageStats } from "./components/home/card-usage-stats";
-import { UsageRiskMonthlyChart } from "./components/home/usage-risk-monthly-chart";
-import { Last7DaysUsageCards } from "./components/home/last-7-days-usage-cards";
+import { DashboardDateFilterFab } from "./components/home/dashboard-date-filter-fab";
 import { AssessmentWeekhourMonthlyHeatmap } from "./components/home/assessment-weekhour-monthly-heatmap";
 // import { PieChartsSection } from "./components/home/pie-charts-section";
 // import { CardSchoolStats } from "./components/home/card-school-stats";
@@ -16,11 +13,15 @@ import {
   AdminDashboardPageSkeleton,
   DashboardChartAreaSkeleton,
   DashboardHeatmapSkeleton,
-  DashboardLast7DaysSkeleton,
   DashboardUsageStatsSkeleton,
 } from "./components/home/admin-dashboard-skeleton";
 
 import Loading from "@/app/loading";
+import {
+  parseDateParam,
+  thaiDateRangeToUtc,
+} from "@/lib/dashboard/parse-dashboard-date";
+import { calculateQuestionStatus } from "@/lib/question-followup-rounds";
 import { QuestionsData } from "@/types";
 
 const QUESTIONS_PAGE_LIMIT = 2000;
@@ -105,43 +106,6 @@ const fetchUsageStats = async (): Promise<UsageStatsRow[]> => {
   return data.usageStats ?? [];
 };
 
-type Last7DayStat = {
-  dayLabel: string;
-  totalUse: number;
-  totalUsers: number;
-  green: number;
-  greenLow: number;
-  yellow: number;
-  orange: number;
-  red: number;
-};
-
-const fetchLast7Days = async (params?: {
-  dateFrom?: string;
-  dateTo?: string;
-}): Promise<Last7DayStat[]> => {
-  const search = new URLSearchParams();
-
-  if (params?.dateFrom) search.set("dateFrom", params.dateFrom);
-  if (params?.dateTo) search.set("dateTo", params.dateTo);
-
-  const url = `/api/dashboard/usage-stats/last-7-days${
-    search.toString() ? `?${search.toString()}` : ""
-  }`;
-
-  const res = await fetch(url, { credentials: "include" });
-
-  if (!res.ok) {
-    throw new Error(
-      res.status === 401 ? "Unauthorized" : "Failed to fetch last 7 days"
-    );
-  }
-
-  const data = await res.json();
-
-  return data.last7Days ?? [];
-};
-
 type AssessmentWeekhourMonthlyData = {
   monthLabel: string;
   weekdayLabels: string[];
@@ -187,6 +151,27 @@ const fetchAssessmentWeekhourMonthly = async (params?: {
   };
 };
 
+const filterQuestionsByDateRange = (
+  questions: QuestionsData[],
+  start?: string,
+  end?: string
+) => {
+  if (!start || !end) return questions;
+
+  const parsedFrom = parseDateParam(start);
+  const parsedTo = parseDateParam(end);
+
+  if (!parsedFrom || !parsedTo) return questions;
+
+  const { startUtc, endUtc } = thaiDateRangeToUtc(parsedFrom, parsedTo);
+
+  return questions.filter((q) => {
+    const created = new Date(q.createdAt);
+
+    return created >= startUtc && created < endUtc;
+  });
+};
+
 const filterLatestQuestions = (questions: QuestionsData[]) => {
   const latestQuestions: { [key: string]: QuestionsData } = {};
 
@@ -224,15 +209,7 @@ const filterLatestQuestions = (questions: QuestionsData[]) => {
 // };
 
 export default function AdminHome() {
-  const [riskRange, setRiskRange] = useState<{
-    start?: string;
-    end?: string;
-  }>({});
-  const [heatmapRange, setHeatmapRange] = useState<{
-    start?: string;
-    end?: string;
-  }>({});
-  const [lastDaysRange, setLastDaysRange] = useState<{
+  const [dateRange, setDateRange] = useState<{
     start?: string;
     end?: string;
   }>({});
@@ -247,15 +224,6 @@ export default function AdminHome() {
     queryFn: fetchUsageStats,
   });
 
-  const { data: last7Days = [], isLoading: isLoadingLast7Days } = useQuery({
-    queryKey: ["last-7-days-usage", lastDaysRange.start, lastDaysRange.end],
-    queryFn: () =>
-      fetchLast7Days({
-        dateFrom: lastDaysRange.start,
-        dateTo: lastDaysRange.end,
-      }),
-  });
-
   const {
     data: assessmentWeekhourMonthly = {
       monthLabel: "",
@@ -267,57 +235,11 @@ export default function AdminHome() {
     },
     isLoading: isLoadingWeekhourMonthly,
   } = useQuery({
-    queryKey: [
-      "assessment-weekhour-monthly",
-      heatmapRange.start,
-      heatmapRange.end,
-    ],
+    queryKey: ["assessment-weekhour-monthly", dateRange.start, dateRange.end],
     queryFn: () =>
       fetchAssessmentWeekhourMonthly({
-        dateFrom: heatmapRange.start,
-        dateTo: heatmapRange.end,
-      }),
-  });
-
-  const fetchRiskSummary = async (params?: {
-    dateFrom?: string;
-    dateTo?: string;
-  }) => {
-    const search = new URLSearchParams();
-
-    if (params?.dateFrom) search.set("dateFrom", params.dateFrom);
-    if (params?.dateTo) search.set("dateTo", params.dateTo);
-
-    const res = await fetch(
-      `/api/dashboard/usage-stats/risk-summary${
-        search.toString() ? `?${search.toString()}` : ""
-      }`,
-      { credentials: "include" }
-    );
-
-    if (!res.ok) {
-      throw new Error(
-        res.status === 401 ? "Unauthorized" : "Failed to fetch risk summary"
-      );
-    }
-
-    return res.json() as Promise<{
-      label: string | null;
-      totalUsers: number;
-      green: number;
-      greenLow: number;
-      yellow: number;
-      orange: number;
-      red: number;
-    }>;
-  };
-
-  const { data: riskSummary, isLoading: isLoadingRiskSummary } = useQuery({
-    queryKey: ["risk-summary", riskRange.start, riskRange.end],
-    queryFn: () =>
-      fetchRiskSummary({
-        dateFrom: riskRange.start,
-        dateTo: riskRange.end,
+        dateFrom: dateRange.start,
+        dateTo: dateRange.end,
       }),
   });
 
@@ -342,10 +264,25 @@ export default function AdminHome() {
   //   [filteredQuestions]
   // );
 
-  /** รายการประเมินล่าสุดต่อคน ทุกช่วงอายุ — ใช้กับ ConsultTelemedCharts ที่แยก 12–18 กับมากกว่า 18 ปี */
-  const latestQuestionsAllAges = useMemo(
-    () => filterLatestQuestions(rawQuestions),
-    [rawQuestions]
+  /** รายการประเมินล่าสุดต่อคนในช่วงเวลาที่เลือก — ใช้กับ ConsultTelemedCharts */
+  const latestQuestionsAllAges = useMemo(() => {
+    const inRange = filterQuestionsByDateRange(
+      rawQuestions,
+      dateRange.start,
+      dateRange.end
+    );
+
+    return filterLatestQuestions(inRange);
+  }, [rawQuestions, dateRange.start, dateRange.end]);
+
+  /** คำนวณสถานะจากข้อมูลนัด/คำปรึกษา/SOAP แทนค่า status ในฐานข้อมูล */
+  const latestQuestionsWithStatus = useMemo(
+    () =>
+      latestQuestionsAllAges.map((q) => ({
+        ...q,
+        status: calculateQuestionStatus(q),
+      })),
+    [latestQuestionsAllAges]
   );
 
   // const schoolStats = useMemo(
@@ -415,11 +352,7 @@ export default function AdminHome() {
   // );
 
   const isInitialDashboardLoading =
-    isLoadingQuestions ||
-    isLoadingUsage ||
-    isLoadingLast7Days ||
-    isLoadingWeekhourMonthly ||
-    isLoadingRiskSummary;
+    isLoadingQuestions || isLoadingUsage || isLoadingWeekhourMonthly;
 
   if (isInitialDashboardLoading) {
     return <AdminDashboardPageSkeleton />;
@@ -432,12 +365,12 @@ export default function AdminHome() {
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-semibold">
-                ผลการพบนักจิตวิทยา (แยกอายุ 12–18 ปี และมากกว่า 18 ปี)
+                ผลการพบนักจิตวิทยา (แยกอายุต่ำกว่า 18 ปี และ 18 ปีขึ้นไป)
               </h3>
               {isLoadingQuestions ? (
                 <DashboardChartAreaSkeleton chartClassName="min-h-[260px]" />
               ) : (
-                <ConsultTelemedCharts questions={latestQuestionsAllAges} />
+                <ConsultTelemedCharts questions={latestQuestionsWithStatus} />
               )}
             </div>
           </div>
@@ -461,102 +394,11 @@ export default function AdminHome() {
             </div>
           </div> */}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="flex flex-col gap-2 mb-8">
             <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">
-                กราฟสถิติการเข้าใช้งานตามระดับความเสี่ยง
-              </h3>
-              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                <DateRangePicker
-                  value={
-                    riskRange.start && riskRange.end
-                      ? {
-                          start: parseDate(riskRange.start),
-                          end: parseDate(riskRange.end),
-                        }
-                      : null
-                  }
-                  onChange={(range) => {
-                    if (!range) {
-                      setRiskRange({});
-
-                      return;
-                    }
-                    setRiskRange({
-                      start: range.start?.toString(),
-                      end: range.end?.toString(),
-                    });
-                  }}
-                />
-              </div>
-              {isLoadingRiskSummary ? (
-                <DashboardChartAreaSkeleton />
-              ) : riskSummary ? (
-                <UsageRiskMonthlyChart summary={riskSummary} />
-              ) : (
-                <div className="text-sm text-default-500">ไม่พบข้อมูล</div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">สถิติ 7 วันล่าสุด</h3>
-              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                <DateRangePicker
-                  value={
-                    lastDaysRange.start && lastDaysRange.end
-                      ? {
-                          start: parseDate(lastDaysRange.start),
-                          end: parseDate(lastDaysRange.end),
-                        }
-                      : null
-                  }
-                  onChange={(range) => {
-                    if (!range) {
-                      setLastDaysRange({});
-
-                      return;
-                    }
-                    setLastDaysRange({
-                      start: range.start?.toString(),
-                      end: range.end?.toString(),
-                    });
-                  }}
-                />
-              </div>
-              {isLoadingLast7Days ? (
-                <DashboardLast7DaysSkeleton />
-              ) : (
-                <Last7DaysUsageCards data={last7Days} />
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2 lg:col-span-2">
               <h3 className="text-xl font-semibold">
                 Heatmap เวลาเมื่อทำแบบประเมิน
               </h3>
-              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                <DateRangePicker
-                  value={
-                    heatmapRange.start && heatmapRange.end
-                      ? {
-                          start: parseDate(heatmapRange.start),
-                          end: parseDate(heatmapRange.end),
-                        }
-                      : null
-                  }
-                  onChange={(range) => {
-                    if (!range) {
-                      setHeatmapRange({});
-
-                      return;
-                    }
-                    setHeatmapRange({
-                      start: range.start?.toString(),
-                      end: range.end?.toString(),
-                    });
-                  }}
-                />
-              </div>
               {isLoadingWeekhourMonthly ? (
                 <DashboardHeatmapSkeleton />
               ) : (
@@ -583,6 +425,8 @@ export default function AdminHome() {
             </div>
           </div>
         </div>
+
+        <DashboardDateFilterFab value={dateRange} onChange={setDateRange} />
       </div>
     </Suspense>
   );

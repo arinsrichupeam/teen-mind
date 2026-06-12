@@ -11,8 +11,8 @@ import {
 
 type Props = {
   totalRecipients: number;
-  age12to18: number;
-  ageOver18: number;
+  ageUnder18: number;
+  age18AndOver: number;
 };
 
 const formatNumber = (value: number) => value.toLocaleString("th-TH");
@@ -28,8 +28,8 @@ const CARD_CLASS = "bg-white border border-default-200";
 
 export function AgeSegmentCards({
   totalRecipients,
-  age12to18,
-  ageOver18,
+  ageUnder18,
+  age18AndOver,
 }: Props) {
   const cards: CardConfig[] = [
     {
@@ -39,14 +39,14 @@ export function AgeSegmentCards({
       accentClass: "text-primary-500",
     },
     {
-      label: "อายุ 12–18 ปี",
-      value: age12to18,
+      label: "อายุต่ำกว่า 18 ปี",
+      value: ageUnder18,
       Icon: AcademicCapIcon,
       accentClass: "text-sky-600",
     },
     {
-      label: "อายุมากกว่า 18 ปี",
-      value: ageOver18,
+      label: "อายุ 18 ปีขึ้นไป",
+      value: age18AndOver,
       Icon: UserIcon,
       accentClass: "text-violet-600",
     },

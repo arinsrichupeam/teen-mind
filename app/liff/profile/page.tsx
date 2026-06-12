@@ -233,6 +233,21 @@ export default function ProfilePage() {
   );
 
   const SaveToDB = async () => {
+    const hasSchool = profile.schoolId != null && Number(profile.schoolId) > 0;
+    const hasGradeYear =
+      profile.gradeYear != null && Number(profile.gradeYear) > 0;
+
+    if (hasSchool && !hasGradeYear) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "กรุณาเลือกชั้นปีเมื่อระบุสถานศึกษา",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
+
     const data = JSON.stringify({
       hn: profile.hn,
       citizenId: profile.citizenId,

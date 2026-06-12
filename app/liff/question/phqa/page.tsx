@@ -30,6 +30,10 @@ import { LocationData, ProblemPayload } from "@/types";
 import Loading from "@/app/loading";
 import { calculateAge } from "@/utils/helper";
 import {
+  type AssessmentFlowGroup,
+  getAssessmentFlowGroupFromAge,
+} from "@/lib/assessment-scale";
+import {
   q2,
   qPhqa,
   phqaAddon,
@@ -176,7 +180,7 @@ export default function PHQAPage() {
   const [canProceed, setCanProceed] = useState(false);
   const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false);
   const [profileIdState, setProfileIdState] = useState("");
-  const [ageGroup, setAgeGroup] = useState<"under12" | "over12" | null>(null);
+  const [ageGroup, setAgeGroup] = useState<AssessmentFlowGroup | null>(null);
   const [referenceId, setReferenceId] = useState("");
   const [referentData, setReferentData] = useState<{
     fullName: string;
@@ -332,7 +336,7 @@ export default function PHQAPage() {
   };
 
   const selectedRisk = calculationResult
-    ? ageGroup === "over12"
+    ? ageGroup === "nineq"
       ? getNineQRiskDisplay(calculationResult.phqa_sum)
       : (riskDisplayMap[calculationResult.result] ?? riskDisplayMap.Red)
     : null;
@@ -348,9 +352,8 @@ export default function PHQAPage() {
       if (birthday) {
         const age = calculateAge(String(birthday));
 
-        // spec: อายุ < 12 -> under12, อายุ > 12 -> over12
-        // กรณีอายุเท่ากับ 12 ให้ถือว่า over12
-        setAgeGroup(age < 12 ? "under12" : "over12");
+        // spec: อายุ < 18 -> PHQ-A, อายุ >= 18 -> 9Q
+        setAgeGroup(getAssessmentFlowGroupFromAge(age));
       } else {
         setAgeGroup(null);
       }
@@ -518,7 +521,7 @@ export default function PHQAPage() {
       // under12: 2Q(2) + PHQ-A(9) + PHQ-A Addon(2) + 8Q(9) = 22
       // + ประเมินปัญหา(1)
       // over12 : 2Q(2) + 9Q(9) + 8Q(9) + ประเมินปัญหา(1) = 21
-      const totalQuestions = ageGroup === "under12" ? 23 : 21;
+      const totalQuestions = ageGroup === "phqa" ? 23 : 21;
       const currentQuestion = e - 1; // ลบ 1 เพื่อให้เริ่มจาก 0
 
       // คำนวณเปอร์เซ็นต์ความคืบหน้า (100/13 ≈ 7.7% ต่อข้อ)
@@ -753,7 +756,7 @@ export default function PHQAPage() {
     if (!ageGroup) return;
 
     const currentQuestion = parseInt(question, 10);
-    const q8Start = ageGroup === "under12" ? 14 : 12;
+    const q8Start = ageGroup === "phqa" ? 14 : 12;
     /** คีย์สุดท้ายของ 8Q: q1..q3, addon, q4..q8 (รวม 9 ขั้น) */
     const q8LastKey = q8Start + 8;
     const problemStepKey = q8LastKey + 1;
@@ -769,7 +772,7 @@ export default function PHQAPage() {
 
     // 2Q -> (PHQ-A หรือ 9Q)
     if (currentQuestion === 2) {
-      const isUnder12 = ageGroup === "under12";
+      const isUnder12 = ageGroup === "phqa";
 
       setPHQAShow(isUnder12);
       setPHQAAddonShow(false);
@@ -784,7 +787,7 @@ export default function PHQAPage() {
     }
 
     // under12: PHQ-A (3..11) -> PHQ-A Addon (12..13) -> 8Q (q8Start..q8LastKey)
-    if (ageGroup === "under12") {
+    if (ageGroup === "phqa") {
       if (currentQuestion >= 3 && currentQuestion < 11) {
         resetForNext(currentQuestion + 1);
 
@@ -822,7 +825,7 @@ export default function PHQAPage() {
     }
 
     // over12: 9Q (3..11) -> 8Q (q8Start..q8LastKey)
-    if (ageGroup === "over12") {
+    if (ageGroup === "nineq") {
       if (currentQuestion >= 3 && currentQuestion < 11) {
         resetForNext(currentQuestion + 1);
 
@@ -962,7 +965,7 @@ export default function PHQAPage() {
     let dataToSave: Record<string, unknown>;
     let scoreSum: number;
 
-    if (ageGroup === "under12") {
+    if (ageGroup === "phqa") {
       // ตรวจสอบ PHQ-A (PHQA)
       const phqaAnswers = Object.entries(phqa_data)
         .filter(([key]) => key.startsWith("q") && key !== "questions_MasterId")
@@ -1099,7 +1102,7 @@ export default function PHQAPage() {
       return;
     }
 
-    const q8Start = ageGroup === "under12" ? 14 : 12;
+    const q8Start = ageGroup === "phqa" ? 14 : 12;
     const q8LastKey = q8Start + 8;
     const problemStepKey = q8LastKey + 1;
     // จาก q4 กลับ: ถ้า q3=0 ไม่ได้ผ่าน addon — ข้ามกลับไป q3
@@ -1119,7 +1122,7 @@ export default function PHQAPage() {
     if (prevKey === 2) setCurrentAnswer(String(Q2_data.q2));
 
     // sync show flags ตาม key
-    if (ageGroup === "under12") {
+    if (ageGroup === "phqa") {
       setShowQ9(false);
       setShowQ8(prevKey >= 14 && prevKey <= q8LastKey);
       setShowProblem(prevKey === problemStepKey);
@@ -1329,7 +1332,7 @@ export default function PHQAPage() {
                           <div className="flex flex-col gap-1">
                             <div className="flex flex-col items-center gap-2">
                               <span className={`${selectedRisk?.textColor}`}>
-                                {ageGroup === "over12"
+                                {ageGroup === "nineq"
                                   ? selectedRisk?.text
                                   : calculationResult.result_text}
                               </span>
@@ -1604,7 +1607,7 @@ export default function PHQAPage() {
                       })
                     : showQ8
                       ? (() => {
-                          const q8Start = ageGroup === "under12" ? 14 : 12;
+                          const q8Start = ageGroup === "phqa" ? 14 : 12;
                           const q8AddonTabKey = q8Start + 3;
                           // คะแนนเมื่อเลือก "ใช่" ตามข้อ q1..q8 (ไม่รวม addon)
                           const yesWeights = [1, 2, 6, 8, 9, 5, 10, 4];
@@ -1754,7 +1757,7 @@ export default function PHQAPage() {
                       : showProblem
                         ? (() => {
                             const problemTabKey =
-                              ageGroup === "under12" ? "23" : "21";
+                              ageGroup === "phqa" ? "23" : "21";
 
                             return (
                               <Tab key={problemTabKey}>
@@ -1823,11 +1826,7 @@ export default function PHQAPage() {
           variant="solid"
           onPress={() => {
             const finalQuestionKey =
-              ageGroup === "under12"
-                ? "23"
-                : ageGroup === "over12"
-                  ? "21"
-                  : "13";
+              ageGroup === "phqa" ? "23" : ageGroup === "nineq" ? "21" : "13";
 
             if (question === finalQuestionKey) {
               SaveToDB();
@@ -1838,11 +1837,7 @@ export default function PHQAPage() {
         >
           {(() => {
             const finalQuestionKey =
-              ageGroup === "under12"
-                ? "23"
-                : ageGroup === "over12"
-                  ? "21"
-                  : "13";
+              ageGroup === "phqa" ? "23" : ageGroup === "nineq" ? "21" : "13";
 
             return question === finalQuestionKey ? "บันทึกผล" : "ถัดไป";
           })()}

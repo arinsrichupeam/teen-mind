@@ -1,4 +1,41 @@
-const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
+export const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+const THAI_MONTH_SHORT = [
+  "ม.ค.",
+  "ก.พ.",
+  "มี.ค.",
+  "เม.ย.",
+  "พ.ค.",
+  "มิ.ย.",
+  "ก.ค.",
+  "ส.ค.",
+  "ก.ย.",
+  "ต.ค.",
+  "พ.ย.",
+  "ธ.ค.",
+] as const;
+
+/** คืน YYYY-MM ตามเวลาไทย (UTC+7) */
+export function toThailandMonthKey(date: Date): string {
+  const th = new Date(date.getTime() + TH_OFFSET_MS);
+  const year = th.getUTCFullYear();
+  const month = String(th.getUTCMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
+/** แปลง monthKey (YYYY-MM ค.ศ.) เป็นป้ายกำกับเดือนไทย พ.ศ. เช่น "มิ.ย. 2569" */
+export function formatThaiMonthLabel(monthKey: string): string {
+  const [yearStr, monthStr] = monthKey.split("-");
+  const monthIndex = Number(monthStr) - 1;
+  const year = Number(yearStr);
+
+  if (monthIndex < 0 || monthIndex > 11 || !Number.isFinite(year)) {
+    return monthKey;
+  }
+
+  return `${THAI_MONTH_SHORT[monthIndex]} ${year + 543}`;
+}
 
 export type ParsedDateParts = {
   year: number;

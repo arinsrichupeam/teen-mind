@@ -21,7 +21,13 @@ import { useRouter } from "next/navigation";
 import { BirthdaySelect } from "@/components/birthday-select";
 import { LineIcon } from "@/components/icons";
 import { prefix, sex, gradeYearLevels } from "@/utils/data";
-import { validateCitizen, validateTel } from "@/utils/helper";
+import {
+  formatDateForDisplay,
+  validateBirthday,
+  validateBirthdayValue,
+  validateCitizen,
+  validateTel,
+} from "@/utils/helper";
 
 /** Profile ที่มีฟิลด์ชั้นปี (gradeYear) สำหรับฟอร์มลงทะเบียน */
 type ProfileWithGradeYear = Omit<Profile, "birthday"> & {
@@ -62,6 +68,8 @@ export const Step1 = ({
   const request = true;
   const [school, setSchool] = useState<School[]>([]);
   const [error, setError] = useState<string>("");
+  const [birthdayError, setBirthdayError] = useState<string>("");
+  const [gradeYearError, setGradeYearError] = useState<string>("");
   const [referentDuplicate, setReferentDuplicate] = useState(false);
   const [referentDuplicateHasLine, setReferentDuplicateHasLine] =
     useState(false);
@@ -79,9 +87,31 @@ export const Step1 = ({
   const onSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      const error = validateBirthdayValue(Result?.birthday ?? null);
+
+      if (error) {
+        setBirthdayError(error);
+
+        return;
+      }
+
+      setBirthdayError("");
+
+      const hasSchool = Result?.schoolId != null && Number(Result.schoolId) > 0;
+      const hasGradeYear =
+        Result?.gradeYear != null && Number(Result.gradeYear) > 0;
+
+      if (hasSchool && !hasGradeYear) {
+        setGradeYearError("กรุณาเลือกชั้นปี");
+
+        return;
+      }
+
+      setGradeYearError("");
       NextStep("Profile");
     },
-    [NextStep]
+    [NextStep, Result?.birthday, Result?.gradeYear, Result?.schoolId]
   );
 
   const validateCitizenId = async (value: string) => {
@@ -350,15 +380,28 @@ export const Step1 = ({
         onChange={HandleChange}
       />
       <BirthdaySelect
+        errorMessage={birthdayError}
+        isInvalid={!!birthdayError}
         isRequired={request}
         label="วันเกิด"
         labelPlacement="inside"
         size="sm"
         value={Result?.birthday}
         variant="faded"
-        onChange={(isoDate) =>
-          HandleChange({ target: { name: "birthday", value: isoDate } })
-        }
+        onChange={(isoDate) => {
+          if (!isoDate) {
+            setBirthdayError("กรุณาระบุวันเกิด");
+            HandleChange({ target: { name: "birthday", value: isoDate } });
+
+            return;
+          }
+
+          const thaiDate = formatDateForDisplay(`${isoDate}T12:00:00`);
+          const error = validateBirthday(thaiDate);
+
+          setBirthdayError(error);
+          HandleChange({ target: { name: "birthday", value: isoDate } });
+        }}
       />
       <div className="flex flex-row gap-4 w-full">
         <Input
@@ -433,6 +476,7 @@ export const Step1 = ({
           HandleChange({ target: { name: "school", value: schoolId } });
           if (schoolId === 0) {
             HandleChange({ target: { name: "gradeYear", value: "" } });
+            setGradeYearError("");
           }
         }}
       >
@@ -442,8 +486,9 @@ export const Step1 = ({
       </Autocomplete>
       {Result?.schoolId != null && Result.schoolId > 0 && (
         <Select
-          errorMessage="กรุณาเลือกชั้นปี"
-          isRequired={false}
+          isRequired
+          errorMessage={gradeYearError || "กรุณาเลือกชั้นปี"}
+          isInvalid={!!gradeYearError}
           label="ชั้นปี"
           labelPlacement="inside"
           name="gradeYear"
@@ -454,14 +499,15 @@ export const Step1 = ({
           }
           size="sm"
           variant="faded"
-          onChange={(e) =>
+          onChange={(e) => {
+            setGradeYearError("");
             HandleChange({
               target: {
                 name: "gradeYear",
                 value: e.target.value ? parseInt(e.target.value, 10) : "",
               },
-            } as React.ChangeEvent<HTMLSelectElement>)
-          }
+            } as React.ChangeEvent<HTMLSelectElement>);
+          }}
         >
           {gradeYearLevels.map((level) => (
             <SelectItem key={level.key}>{level.label}</SelectItem>

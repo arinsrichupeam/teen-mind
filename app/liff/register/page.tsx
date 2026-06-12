@@ -110,6 +110,22 @@ export default function RegisterPage() {
       return;
     }
 
+    const hasSchool =
+      currentProfile.schoolId != null && Number(currentProfile.schoolId) > 0;
+    const hasGradeYear =
+      currentProfile.gradeYear != null && Number(currentProfile.gradeYear) > 0;
+
+    if (hasSchool && !hasGradeYear) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "กรุณาเลือกชั้นปีเมื่อระบุสถานศึกษา",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
+
     const payload = {
       register_profile: { ...currentProfile, userId },
       register_address: currentAddress,

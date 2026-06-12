@@ -26,6 +26,27 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface RecalculateStats {
   totalQuestions: number;
+  ageCutoff: number;
+  mismatchSummary: {
+    wrongScale: number;
+    missingAddon: number;
+    missingAge: number;
+    total: number;
+  };
+  ageBreakdown: {
+    under18: number;
+    age18AndOver: number;
+    unspecified: number;
+  };
+  scaleByStructure: {
+    nineq: number;
+    phqa: number;
+  };
+  scaleByAge: {
+    phqa: number;
+    nineq: number;
+  };
+  resultWouldChange: number;
   resultStats: {
     result: string;
     count: number;
@@ -34,10 +55,17 @@ interface RecalculateStats {
     status: number;
     count: number;
   }[];
-  hnStats: {
-    empty: number;
-    filled: number;
-  };
+}
+
+type MismatchIssue = "wrong_scale_for_age" | "missing_addon" | "missing_age";
+
+interface RecalculateMismatch {
+  questionId: string;
+  profileId: string;
+  age: number | null;
+  issue: MismatchIssue;
+  previousResult: string;
+  newResult: string;
 }
 
 interface RecalculateResponse {
@@ -48,7 +76,44 @@ interface RecalculateResponse {
     success: number;
     error: number;
   };
+  mismatches?: RecalculateMismatch[];
+  mismatchSummary?: {
+    wrongScale: number;
+    missingAddon: number;
+    missingAge: number;
+  };
   errors?: string[];
+}
+
+const MISMATCH_LABELS: Record<MismatchIssue, string> = {
+  wrong_scale_for_age: "ชุดแบบประเมินไม่ตรงอายุ",
+  missing_addon: "ขาด PHQ-A Addon",
+  missing_age: "ไม่มีวันเกิด",
+};
+
+function exportMismatchesCsv(mismatches: RecalculateMismatch[]) {
+  const header = "questionId,profileId,age,issue,previousResult,newResult";
+  const rows = mismatches.map((m) =>
+    [
+      m.questionId,
+      m.profileId,
+      m.age ?? "",
+      m.issue,
+      m.previousResult,
+      m.newResult,
+    ].join(",")
+  );
+
+  const blob = new Blob([[header, ...rows].join("\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `assessment-mismatches-${Date.now()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function RecalculatePHQAPage() {
@@ -256,87 +321,261 @@ export default function RecalculatePHQAPage() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div>
-              <h3 className="text-xl font-semibold">คำนวณคะแนน PHQA ใหม่</h3>
+              <h3 className="text-xl font-semibold">
+                คำนวณคะแนน PHQ-A / 9Q ตามอายุ
+              </h3>
               <p className="text-sm text-gray-600">
-                จัดการและคำนวณข้อมูล PHQA ใหม่
+                อายุต่ำกว่า 18 ปีใช้เกณฑ์ PHQ-A · อายุ 18 ปีขึ้นไปใช้เกณฑ์ 9Q
               </p>
             </div>
           </div>
         </div>
 
-        {/* สถิติปัจจุบัน */}
+        {/* สถิติปัจจุบัน — สำหรับตัดสินใจ recalculate */}
         <Card className="w-full shadow-lg">
           <CardHeader className="flex gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
             <div className="flex flex-col">
               <p className="text-md font-semibold text-blue-800">
-                สถิติปัจจุบัน
+                สถิติปัจจุบัน (ก่อน recalculate)
               </p>
               <p className="text-small text-blue-600">
-                จำนวนแบบประเมินทั้งหมดที่มีข้อมูล PHQA
+                วิเคราะห์จากข้อมูลในฐานข้อมูล ณ ตอนนี้ — ยังไม่มีการแก้ไข
               </p>
             </div>
           </CardHeader>
           <CardBody className="p-6">
             {stats?.success && stats.data ? (
               <div className="space-y-6">
-                {/* สถิติรวม */}
-                <div className="flex items-center gap-2">
-                  <Card className="bg-gray-100 shadow-md">
+                {/* สรุปการตัดสินใจ */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="bg-default-50 border border-default-200 shadow-md">
                     <CardBody className="py-4 px-5">
                       <div className="flex items-center gap-3">
-                        <InformationCircleIcon className="size-6 text-gray-700" />
+                        <InformationCircleIcon className="size-6 text-default-600 shrink-0" />
                         <div>
-                          <span className="text-lg font-semibold">
-                            รวม {stats.data.totalQuestions} รายการ
-                          </span>
+                          <p className="text-xs text-default-500">
+                            แบบประเมินทั้งหมด
+                          </p>
+                          <p className="text-2xl font-semibold tabular-nums">
+                            {stats.data.totalQuestions.toLocaleString("th-TH")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardBody>
+                  </Card>
+
+                  <Card
+                    className={
+                      stats.data.resultWouldChange > 0
+                        ? "bg-warning-50 border border-warning-300 shadow-md"
+                        : "bg-success-50 border border-success-200 shadow-md"
+                    }
+                  >
+                    <CardBody className="py-4 px-5">
+                      <div className="flex items-center gap-3">
+                        <CalculatorIcon
+                          className={`size-6 shrink-0 ${
+                            stats.data.resultWouldChange > 0
+                              ? "text-warning-700"
+                              : "text-success-600"
+                          }`}
+                        />
+                        <div>
+                          <p className="text-xs text-default-600">
+                            ผลลัพธ์จะเปลี่ยนหลัง recalculate
+                          </p>
+                          <p className="text-2xl font-semibold tabular-nums">
+                            {stats.data.resultWouldChange.toLocaleString(
+                              "th-TH"
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </CardBody>
+                  </Card>
+
+                  <Card
+                    className={
+                      stats.data.mismatchSummary.total > 0
+                        ? "bg-danger-50 border border-danger-200 shadow-md"
+                        : "bg-success-50 border border-success-200 shadow-md"
+                    }
+                  >
+                    <CardBody className="py-4 px-5">
+                      <div className="flex items-center gap-3">
+                        <ExclamationTriangleIcon
+                          className={`size-6 shrink-0 ${
+                            stats.data.mismatchSummary.total > 0
+                              ? "text-danger-600"
+                              : "text-success-600"
+                          }`}
+                        />
+                        <div>
+                          <p className="text-xs text-default-600">
+                            โครงสร้างข้อมูลไม่ตรงอายุ
+                          </p>
+                          <p className="text-2xl font-semibold tabular-nums">
+                            {stats.data.mismatchSummary.total.toLocaleString(
+                              "th-TH"
+                            )}
+                          </p>
                         </div>
                       </div>
                     </CardBody>
                   </Card>
                 </div>
 
-                {/* สถิติสถานะ Re-calculate */}
-                <div>
-                  <h4 className="text-md font-semibold mb-4 flex items-center gap-3">
-                    <span className="font-semibold">สถานะการดำเนินการ</span>
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                    {stats.data.statusStats
-                      .sort((a, b) => a.status - b.status)
-                      .map((stat) => {
-                        const { bg, text, border } = getStatusColor(
-                          stat.status
-                        );
+                {stats.data.resultWouldChange > 0 ||
+                stats.data.mismatchSummary.total > 0 ? (
+                  <p className="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800">
+                    แนะนำให้รัน recalculate — มี{" "}
+                    {stats.data.resultWouldChange > 0
+                      ? `${stats.data.resultWouldChange.toLocaleString("th-TH")} รายที่ผลลัพธ์จะเปลี่ยน`
+                      : null}
+                    {stats.data.resultWouldChange > 0 &&
+                    stats.data.mismatchSummary.total > 0
+                      ? " และ "
+                      : null}
+                    {stats.data.mismatchSummary.total > 0
+                      ? `${stats.data.mismatchSummary.total.toLocaleString("th-TH")} รายที่โครงสร้างไม่ตรงเกณฑ์อายุ ${stats.data.ageCutoff} ปี`
+                      : null}
+                  </p>
+                ) : (
+                  <p className="rounded-lg border border-success-200 bg-success-50 px-3 py-2 text-sm text-success-800">
+                    ข้อมูลสอดคล้องกับเกณฑ์อายุ {stats.data.ageCutoff} ปีแล้ว —
+                    ไม่จำเป็นต้อง recalculate เว้นแต่ต้องการอัปเดตซ้ำ
+                  </p>
+                )}
 
-                        return (
-                          <Card
-                            key={stat.status}
-                            className={`${bg} ${border} shadow-lg`}
-                          >
-                            <CardBody className="py-5 px-4">
-                              <div className="flex flex-col items-center justify-center gap-2">
-                                <span
-                                  className={`text-xs font-medium text-center ${text}`}
-                                >
-                                  {getStatusText(stat.status)}
-                                </span>
-                                <span className="text-xl font-semibold">
-                                  {stat.count}
-                                </span>
-                              </div>
-                            </CardBody>
-                          </Card>
-                        );
-                      })}
+                {/* รายละเอียด mismatch */}
+                <div>
+                  <h4 className="text-md font-semibold mb-3">
+                    โครงสร้างข้อมูล vs เกณฑ์อายุ
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Card className="bg-warning-50/80 border border-warning-200">
+                      <CardBody className="py-3 px-4 text-center">
+                        <p className="text-2xl font-semibold tabular-nums text-warning-800">
+                          {stats.data.mismatchSummary.wrongScale}
+                        </p>
+                        <p className="text-xs text-warning-700">
+                          ชุดแบบไม่ตรงอายุ (มี 9Q แต่ &lt;18 หรือไม่มี 9Q แต่
+                          ≥18)
+                        </p>
+                      </CardBody>
+                    </Card>
+                    <Card className="bg-warning-50/80 border border-warning-200">
+                      <CardBody className="py-3 px-4 text-center">
+                        <p className="text-2xl font-semibold tabular-nums text-warning-800">
+                          {stats.data.mismatchSummary.missingAddon}
+                        </p>
+                        <p className="text-xs text-warning-700">
+                          อายุ &lt;18 แต่ไม่มี PHQ-A Addon
+                        </p>
+                      </CardBody>
+                    </Card>
+                    <Card className="bg-default-100 border border-default-200">
+                      <CardBody className="py-3 px-4 text-center">
+                        <p className="text-2xl font-semibold tabular-nums">
+                          {stats.data.mismatchSummary.missingAge}
+                        </p>
+                        <p className="text-xs text-default-600">
+                          ไม่มีวันเกิด (ใช้สเกลจากโครงสร้าง DB)
+                        </p>
+                      </CardBody>
+                    </Card>
                   </div>
                 </div>
 
-                {/* สถิติผลลัพธ์ */}
+                {/* ช่วงอายุ + ชุดแบบ */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-md font-semibold mb-3">
+                      ช่วงอายุ ณ วันทำแบบประเมิน
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Card className="bg-sky-50 border border-sky-200">
+                        <CardBody className="py-3 px-3 text-center">
+                          <p className="text-xl font-semibold tabular-nums text-sky-800">
+                            {stats.data.ageBreakdown.under18}
+                          </p>
+                          <p className="text-xs text-sky-700">
+                            ต่ำกว่า {stats.data.ageCutoff} ปี
+                            <br />
+                            <span className="text-default-500">
+                              ควรใช้ PHQ-A
+                            </span>
+                          </p>
+                        </CardBody>
+                      </Card>
+                      <Card className="bg-violet-50 border border-violet-200">
+                        <CardBody className="py-3 px-3 text-center">
+                          <p className="text-xl font-semibold tabular-nums text-violet-800">
+                            {stats.data.ageBreakdown.age18AndOver}
+                          </p>
+                          <p className="text-xs text-violet-700">
+                            {stats.data.ageCutoff} ปีขึ้นไป
+                            <br />
+                            <span className="text-default-500">ควรใช้ 9Q</span>
+                          </p>
+                        </CardBody>
+                      </Card>
+                      <Card className="bg-default-100 border border-default-200">
+                        <CardBody className="py-3 px-3 text-center">
+                          <p className="text-xl font-semibold tabular-nums">
+                            {stats.data.ageBreakdown.unspecified}
+                          </p>
+                          <p className="text-xs text-default-600">
+                            ไม่ระบุอายุ
+                          </p>
+                        </CardBody>
+                      </Card>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-md font-semibold mb-3">
+                      ชุดแบบในฐานข้อมูล (โครงสร้างจริง)
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Card className="bg-default-50 border border-default-200">
+                        <CardBody className="py-3 px-4 text-center">
+                          <p className="text-xl font-semibold tabular-nums">
+                            {stats.data.scaleByStructure.phqa}
+                          </p>
+                          <p className="text-xs text-default-600">
+                            ไม่มีแถว 9Q (PHQ-A path)
+                          </p>
+                        </CardBody>
+                      </Card>
+                      <Card className="bg-default-50 border border-default-200">
+                        <CardBody className="py-3 px-4 text-center">
+                          <p className="text-xl font-semibold tabular-nums">
+                            {stats.data.scaleByStructure.nineq}
+                          </p>
+                          <p className="text-xs text-default-600">
+                            มีแถว 9Q (9Q path)
+                          </p>
+                        </CardBody>
+                      </Card>
+                    </div>
+                    {stats.data.mismatchSummary.wrongScale > 0 && (
+                      <p className="mt-2 text-xs text-warning-700">
+                        ชุดแบบในฐานข้อมูลไม่ตรงกับช่วงอายุ{" "}
+                        {stats.data.mismatchSummary.wrongScale} ราย —
+                        recalculate จะปรับผลลัพธ์ตามเกณฑ์อายุ
+                        แต่ไม่ย้ายโครงสร้างข้อมูล
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ผลลัพธ์ที่เก็บอยู่ (ก่อน recalculate) */}
                 <div>
-                  <h4 className="text-md font-semibold mb-4 flex items-center gap-3">
-                    <span className="font-semibold">ผลลัพธ์การประเมิน</span>
+                  <h4 className="text-md font-semibold mb-3">
+                    ผลลัพธ์ที่เก็บอยู่ในฐานข้อมูล (ก่อน recalculate)
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 w-full">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {sortResultStats(stats.data.resultStats).map((stat) => {
                       let bgColor = "bg-gray-100";
                       let textColor = "text-gray-700";
@@ -344,45 +583,45 @@ export default function RecalculatePHQAPage() {
 
                       switch (stat.result) {
                         case "Green":
-                          bgColor = "bg-green-200";
+                          bgColor = "bg-green-100";
                           textColor = "text-green-700";
-                          borderColor = "border-green-300";
+                          borderColor = "border-green-200";
                           break;
                         case "Green-Low":
-                          bgColor = "bg-green-300";
+                          bgColor = "bg-green-50";
                           textColor = "text-green-600";
-                          borderColor = "border-green-400";
+                          borderColor = "border-green-200";
                           break;
                         case "Yellow":
-                          bgColor = "bg-warning-200";
+                          bgColor = "bg-warning-100";
                           textColor = "text-warning-700";
-                          borderColor = "border-warning-300";
+                          borderColor = "border-warning-200";
                           break;
                         case "Orange":
-                          bgColor = "bg-orange-200";
+                          bgColor = "bg-orange-100";
                           textColor = "text-orange-700";
-                          borderColor = "border-orange-300";
+                          borderColor = "border-orange-200";
                           break;
                         case "Red":
-                          bgColor = "bg-red-200";
+                          bgColor = "bg-red-100";
                           textColor = "text-danger-700";
-                          borderColor = "border-red-300";
+                          borderColor = "border-red-200";
                           break;
                       }
 
                       return (
                         <Card
                           key={stat.result}
-                          className={`${bgColor} ${borderColor} shadow-lg`}
+                          className={`${bgColor} ${borderColor}`}
                         >
-                          <CardBody className="py-5 px-4">
-                            <div className="flex flex-col items-center justify-center gap-2">
+                          <CardBody className="py-3 px-3">
+                            <div className="flex flex-col items-center gap-1">
                               <span
-                                className={`text-xs font-medium text-center ${textColor}`}
+                                className={`text-xs text-center ${textColor}`}
                               >
                                 {getResultText(stat.result)}
                               </span>
-                              <span className="text-xl font-semibold">
+                              <span className="text-lg font-semibold tabular-nums">
                                 {stat.count}
                               </span>
                             </div>
@@ -392,6 +631,40 @@ export default function RecalculatePHQAPage() {
                     })}
                   </div>
                 </div>
+
+                {/* สถานะติดตาม (ข้อมูลเสริม) */}
+                {stats.data.statusStats.length > 0 && (
+                  <details className="rounded-lg border border-default-200 bg-default-50 px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-medium text-default-700">
+                      สถานะการติดตาม (ไม่เกี่ยวกับการ recalculate คะแนน)
+                    </summary>
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {stats.data.statusStats
+                        .sort((a, b) => a.status - b.status)
+                        .map((stat) => {
+                          const { bg, text, border } = getStatusColor(
+                            stat.status
+                          );
+
+                          return (
+                            <Card
+                              key={stat.status}
+                              className={`${bg} ${border}`}
+                            >
+                              <CardBody className="py-3 px-3 text-center">
+                                <span className={`text-xs ${text} block mb-1`}>
+                                  {getStatusText(stat.status)}
+                                </span>
+                                <span className="text-lg font-semibold tabular-nums">
+                                  {stat.count}
+                                </span>
+                              </CardBody>
+                            </Card>
+                          );
+                        })}
+                    </div>
+                  </details>
+                )}
               </div>
             ) : (
               <div className="text-center text-default-500">
@@ -409,7 +682,7 @@ export default function RecalculatePHQAPage() {
                 คำนวณคะแนนและสถานะใหม่
               </p>
               <p className="text-small text-warning-600">
-                แยกการคำนวณคะแนน PHQA และการคำนวณสถานะ
+                คำนวณผล PHQ-A / 9Q ตามอายุ และอัปเดตสถานะติดตามแยกกัน
               </p>
             </div>
           </CardHeader>
@@ -482,7 +755,9 @@ export default function RecalculatePHQAPage() {
                   variant="flat"
                   onPress={handleRecalculate}
                 >
-                  {isRecalculating ? "กำลังคำนวณ..." : "คำนวณคะแนน PHQA ใหม่"}
+                  {isRecalculating
+                    ? "กำลังคำนวณ..."
+                    : "คำนวณคะแนน PHQ-A / 9Q ตามอายุ"}
                 </Button>
 
                 <Button
@@ -575,6 +850,82 @@ export default function RecalculatePHQAPage() {
                         </Card>
                       </div>
                     )}
+
+                    {recalculateResult.mismatchSummary && (
+                      <div className="mb-4 grid grid-cols-3 gap-3 text-center">
+                        <Card className="bg-warning-50 border border-warning-200">
+                          <CardBody className="py-3 px-2">
+                            <div className="text-lg font-semibold text-warning-700">
+                              {recalculateResult.mismatchSummary.wrongScale}
+                            </div>
+                            <div className="text-xs text-warning-700">
+                              ชุดแบบไม่ตรงอายุ
+                            </div>
+                          </CardBody>
+                        </Card>
+                        <Card className="bg-warning-50 border border-warning-200">
+                          <CardBody className="py-3 px-2">
+                            <div className="text-lg font-semibold text-warning-700">
+                              {recalculateResult.mismatchSummary.missingAddon}
+                            </div>
+                            <div className="text-xs text-warning-700">
+                              ขาด Addon
+                            </div>
+                          </CardBody>
+                        </Card>
+                        <Card className="bg-default-100 border border-default-200">
+                          <CardBody className="py-3 px-2">
+                            <div className="text-lg font-semibold">
+                              {recalculateResult.mismatchSummary.missingAge}
+                            </div>
+                            <div className="text-xs text-default-600">
+                              ไม่มีวันเกิด
+                            </div>
+                          </CardBody>
+                        </Card>
+                      </div>
+                    )}
+
+                    {recalculateResult.mismatches &&
+                      recalculateResult.mismatches.length > 0 && (
+                        <div className="mt-4">
+                          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-warning-700 flex items-center gap-2">
+                              <ExclamationTriangleIcon className="size-4" />
+                              รายการโครงสร้างข้อมูลไม่ตรงอายุ (
+                              {recalculateResult.mismatches.length} รายการ)
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              onPress={() =>
+                                exportMismatchesCsv(
+                                  recalculateResult.mismatches ?? []
+                                )
+                              }
+                            >
+                              ดาวน์โหลด CSV
+                            </Button>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto rounded-lg border border-warning-200 bg-warning-50/50 p-3">
+                            {recalculateResult.mismatches
+                              .slice(0, 50)
+                              .map((m) => (
+                                <p
+                                  key={m.questionId}
+                                  className="mb-1 text-xs text-default-700"
+                                >
+                                  {`• ${m.questionId} | อายุ ${m.age ?? "—"} | ${MISMATCH_LABELS[m.issue]} | ${m.previousResult} → ${m.newResult}`}
+                                </p>
+                              ))}
+                            {recalculateResult.mismatches.length > 50 && (
+                              <p className="text-xs text-default-500">
+                                แสดง 50 รายการแรก — ดาวน์โหลด CSV เพื่อดูทั้งหมด
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                     {recalculateResult.errors &&
                       recalculateResult.errors.length > 0 && (

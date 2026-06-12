@@ -1,4 +1,12 @@
-import { calculateAge, getNineQRiskLevel } from "@/utils/helper";
+import {
+  MAIN_ASSESSMENT_AGE_CUTOFF,
+  getMainAssessmentScaleFromAge,
+} from "@/lib/assessment-scale";
+import {
+  calculateAge,
+  getNineQRiskLevel,
+  getPhqaRiskLevel,
+} from "@/utils/helper";
 
 export type RiskCounts = {
   green: number;
@@ -13,12 +21,11 @@ export type RiskByAgeGroup = RiskCounts & { totalUsers: number };
 export type AgeSegmentStats = {
   label: string | null;
   totalRecipients: number;
-  age12to18: number;
-  ageOver18: number;
-  ageUnder12: number;
+  ageUnder18: number;
+  age18AndOver: number;
   ageUnspecified: number;
-  riskAge12to18: RiskByAgeGroup;
-  riskAgeOver18: RiskByAgeGroup;
+  riskAgeUnder18: RiskByAgeGroup;
+  riskAge18AndOver: RiskByAgeGroup;
 };
 
 export function getRiskCounts(result: string): RiskCounts {
@@ -82,15 +89,32 @@ function addRiskNineQ(target: RiskByAgeGroup, result: string) {
   addRisk(target, normalized);
 }
 
+function addRiskFromMainSum(
+  target: RiskByAgeGroup,
+  age: number,
+  mainSum: number | null
+) {
+  if (mainSum === null || Number.isNaN(mainSum)) return;
+
+  const scale = getMainAssessmentScaleFromAge(age);
+  const result =
+    scale === "9Q" ? getNineQRiskLevel(mainSum) : getPhqaRiskLevel(mainSum);
+
+  if (scale === "9Q") {
+    addRiskNineQ(target, result);
+  } else {
+    addRisk(target, result);
+  }
+}
+
 export function computeAgeSegmentStats(
   rows: AgeSegmentRow[],
   label: string | null
 ): AgeSegmentStats {
-  const riskAge12to18 = emptyRiskByAge();
-  const riskAgeOver18 = emptyRiskByAge();
-  let age12to18 = 0;
-  let ageOver18 = 0;
-  let ageUnder12 = 0;
+  const riskAgeUnder18 = emptyRiskByAge();
+  const riskAge18AndOver = emptyRiskByAge();
+  let ageUnder18 = 0;
+  let age18AndOver = 0;
   let ageUnspecified = 0;
 
   for (const row of rows) {
@@ -101,28 +125,23 @@ export function computeAgeSegmentStats(
       continue;
     }
 
-    if (age < 12) {
-      ageUnder12 += 1;
-    } else if (age >= 12 && age <= 18) {
-      age12to18 += 1;
-      addRisk(riskAge12to18, row.result);
-    } else if (age > 18) {
-      ageOver18 += 1;
-      if (row.mainSum !== null && !Number.isNaN(row.mainSum)) {
-        addRiskNineQ(riskAgeOver18, getNineQRiskLevel(row.mainSum));
-      }
+    if (age < MAIN_ASSESSMENT_AGE_CUTOFF) {
+      ageUnder18 += 1;
+      addRiskFromMainSum(riskAgeUnder18, age, row.mainSum);
+    } else {
+      age18AndOver += 1;
+      addRiskFromMainSum(riskAge18AndOver, age, row.mainSum);
     }
   }
 
   return {
     label,
     totalRecipients: rows.length,
-    age12to18,
-    ageOver18,
-    ageUnder12,
+    ageUnder18,
+    age18AndOver,
     ageUnspecified,
-    riskAge12to18,
-    riskAgeOver18,
+    riskAgeUnder18,
+    riskAge18AndOver,
   };
 }
 
@@ -131,10 +150,9 @@ export const emptyAgeSegmentStats = (
 ): AgeSegmentStats => ({
   label,
   totalRecipients: 0,
-  age12to18: 0,
-  ageOver18: 0,
-  ageUnder12: 0,
+  ageUnder18: 0,
+  age18AndOver: 0,
   ageUnspecified: 0,
-  riskAge12to18: emptyRiskByAge(),
-  riskAgeOver18: emptyRiskByAge(),
+  riskAgeUnder18: emptyRiskByAge(),
+  riskAge18AndOver: emptyRiskByAge(),
 });

@@ -92,36 +92,9 @@ export function AdminDashboardPageSkeleton() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-2">
-            <SectionTitleSkeleton />
-            <DashboardChartAreaSkeleton chartClassName="min-h-[280px]" />
-          </div>
-        </div>
-
         <div className="flex flex-col gap-2 mb-8">
           <div className="flex flex-col gap-2">
             <SectionTitleSkeleton />
-            <DashboardLast7DaysSkeleton />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="flex flex-col gap-2">
-            <SectionTitleSkeleton />
-            <DashboardDateRangeSlotSkeleton />
-            <DashboardChartAreaSkeleton />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <SectionTitleSkeleton />
-            <DashboardDateRangeSlotSkeleton />
-            <DashboardLast7DaysSkeleton />
-          </div>
-
-          <div className="flex flex-col gap-2 lg:col-span-2">
-            <SectionTitleSkeleton />
-            <DashboardDateRangeSlotSkeleton />
             <DashboardHeatmapSkeleton />
           </div>
         </div>

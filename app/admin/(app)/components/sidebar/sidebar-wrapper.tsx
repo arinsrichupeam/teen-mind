@@ -72,10 +72,10 @@ export const SidebarWrapper = () => {
                   title="หน้าหลัก"
                 />
                 <SidebarItem
-                  href="/admin/dashboard-age"
+                  href="/admin/dashboard-productivity"
                   icon={<ChartPieIcon className="size-6" />}
-                  isActive={pathname === "/admin/dashboard-age"}
-                  title="Dashboard"
+                  isActive={pathname === "/admin/dashboard-productivity"}
+                  title="ประสิทธิภาพการทำงาน"
                 />
                 <SidebarItem
                   href="/admin/question"

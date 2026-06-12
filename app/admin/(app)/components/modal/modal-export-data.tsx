@@ -141,7 +141,9 @@ export const ModalExportData = ({
         label: "วันที่เข้ารับบริการคัดกรอง",
         selected: true,
       },
-      { key: "phqa", label: "ระดับภาวะซึมเศร้า", selected: true },
+      { key: "phqa", label: "ผล 9Q/PHQ-A", selected: true },
+      { key: "q2Result", label: "ผล Q2", selected: true },
+      { key: "q8Result", label: "ผล Q8", selected: true },
       {
         key: "assessmentDate",
         label: "วันที่เข้ารับบริการพบนักจิตวิทยา",
@@ -473,6 +475,25 @@ export const ModalExportData = ({
       }
       case "phqa":
         return item.result_text || "-";
+      case "q2Result": {
+        if (Array.isArray(item.q2) && item.q2.length > 0) {
+          const q2Data = item.q2[0];
+          const hasRisk = q2Data.q1 === 1 || q2Data.q2 === 1;
+
+          return hasRisk ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง";
+        }
+
+        return "-";
+      }
+      case "q8Result": {
+        if (Array.isArray(item.q8) && item.q8.length > 0) {
+          const q8Score = Number(item.q8[0].sum ?? 0);
+
+          return q8Score > 0 ? "พบความเสี่ยง" : "ไม่พบความเสี่ยง";
+        }
+
+        return "-";
+      }
       case "assessmentDate":
         return item.schedule_telemed != null
           ? formatThaiDate(item.schedule_telemed)

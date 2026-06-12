@@ -28,18 +28,15 @@ import {
   teenMindProblems,
 } from "@/app/data";
 import {
-  calculateAge,
-  getPhqaRiskLevel,
-  getPhqaRiskText,
-  getNineQRiskLevel,
-  getNineQRiskText,
-} from "@/utils/helper";
+  type AssessmentFlowGroup,
+  calculateMainAssessmentResult,
+  getAssessmentFlowGroupFromAge,
+} from "@/lib/assessment-scale";
+import { calculateAge } from "@/utils/helper";
 
 const Q8_YES_WEIGHTS = [1, 2, 6, 8, 9, 5, 10, 4] as const;
 
 type StepType = "referent" | "q2" | "phqa" | "addon" | "q9" | "q8" | "problem";
-
-type AgeGroup = "under12" | "over12";
 
 const PROBLEM_KEYS = teenMindProblems.flatMap((section) =>
   section.items.map((item) => item.key)
@@ -87,8 +84,8 @@ function createEmptyFormData() {
   };
 }
 
-function getStepSequence(ageGroup: AgeGroup): StepType[] {
-  if (ageGroup === "under12") {
+function getStepSequence(ageGroup: AssessmentFlowGroup): StepType[] {
+  if (ageGroup === "phqa") {
     return ["referent", "q2", "phqa", "addon", "q8", "problem"];
   }
 
@@ -129,12 +126,11 @@ export const ModalAddQuestion = ({
   birthday,
   onSuccess,
 }: ModalAddQuestionProps) => {
-  const ageGroup = useMemo<AgeGroup>(() => {
-    if (!birthday) return "under12";
+  const ageGroup = useMemo<AssessmentFlowGroup>(() => {
+    if (!birthday) return "phqa";
     const age = calculateAge(String(birthday));
 
-    // อายุต่ำกว่า 18 ปี → PHQ-A + Addon, อายุ 18 ปีขึ้นไป → 9Q
-    return age < 18 ? "under12" : "over12";
+    return getAssessmentFlowGroupFromAge(age);
   }, [birthday]);
 
   const stepSequence = useMemo(() => getStepSequence(ageGroup), [ageGroup]);
@@ -218,7 +214,7 @@ export const ModalAddQuestion = ({
       return false;
     }
 
-    if (ageGroup === "under12") {
+    if (ageGroup === "phqa") {
       for (let i = 1; i <= 9; i++) {
         if (formData[`phqa_q${i}` as keyof typeof formData] === "") {
           return false;
@@ -318,7 +314,7 @@ export const ModalAddQuestion = ({
   };
 
   const handleSubmit = async () => {
-    if (ageGroup === "under12") {
+    if (ageGroup === "phqa") {
       for (let i = 1; i <= 9; i++) {
         const value = parseInt(
           formData[`phqa_q${i}` as keyof typeof formData] as string
@@ -396,7 +392,7 @@ export const ModalAddQuestion = ({
         },
       };
 
-      if (ageGroup === "under12") {
+      if (ageGroup === "phqa") {
         scoreSum = [
           parseInt(formData.phqa_q1),
           parseInt(formData.phqa_q2),
@@ -409,8 +405,10 @@ export const ModalAddQuestion = ({
           parseInt(formData.phqa_q9),
         ].reduce((sum, val) => sum + val, 0);
 
-        result = getPhqaRiskLevel(scoreSum);
-        result_text = getPhqaRiskText(scoreSum);
+        ({ result, result_text } = calculateMainAssessmentResult(
+          scoreSum,
+          "PHQA"
+        ));
 
         basePayload.result = result;
         basePayload.result_text = result_text;
@@ -443,8 +441,10 @@ export const ModalAddQuestion = ({
           parseInt(formData.q9_q9),
         ].reduce((sum, val) => sum + val, 0);
 
-        result = getNineQRiskLevel(scoreSum);
-        result_text = getNineQRiskText(scoreSum);
+        ({ result, result_text } = calculateMainAssessmentResult(
+          scoreSum,
+          "9Q"
+        ));
 
         basePayload.result = result;
         basePayload.result_text = result_text;
@@ -829,7 +829,7 @@ export const ModalAddQuestion = ({
               </div>
               <p className="text-xs text-default-500">
                 ชุดคำถามหลัก:{" "}
-                {ageGroup === "under12"
+                {ageGroup === "phqa"
                   ? "PHQ-A + Addon (อายุต่ำกว่า 18 ปี)"
                   : "9Q (อายุ 18 ปีขึ้นไป)"}
               </p>

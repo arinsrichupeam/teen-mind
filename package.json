@@ -6,7 +6,8 @@
   "dev": "next dev -p 3000",
   "build": "next build",
   "start": "next start",
-  "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
+  "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix",
+  "test": "tsx --test lib/**/*.test.ts"
  },
  "dependencies": {
   "@auth/prisma-adapter": "^2.7.4",

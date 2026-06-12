@@ -134,6 +134,7 @@ export const ModalEditProfile = ({
   const [isHnLoading, setIsHnLoading] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
   const [birthdayError, setBirthdayError] = useState<string>("");
+  const [gradeYearError, setGradeYearError] = useState<string>("");
   const [currentData, setCurrentData] = useState<ModalEditProfileData | null>(
     null
   );
@@ -271,6 +272,11 @@ export const ModalEditProfile = ({
         // เมื่อล้างสถานศึกษา ให้ล้างชั้นปีด้วย
         if (name === "school" && !value) {
           newData.gradeYear = "";
+          setGradeYearError("");
+        }
+
+        if (name === "gradeYear" && value) {
+          setGradeYearError("");
         }
 
         return newData;
@@ -530,6 +536,23 @@ export const ModalEditProfile = ({
       return;
     }
 
+    const hasSchool =
+      editProfileData.school && Number(editProfileData.school) > 0;
+    const hasGradeYear =
+      editProfileData.gradeYear && Number(editProfileData.gradeYear) > 0;
+
+    if (hasSchool && !hasGradeYear) {
+      setGradeYearError("กรุณาเลือกชั้นปี");
+      addToast({
+        title: "ข้อผิดพลาด",
+        description: "กรุณาเลือกชั้นปี",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    setGradeYearError("");
     setIsProfileSaving(true);
     try {
       const profileData = {
@@ -894,8 +917,10 @@ export const ModalEditProfile = ({
             </Autocomplete>
             {editProfileData.school && Number(editProfileData.school) > 0 && (
               <Select
+                isRequired
                 className="w-full"
-                isRequired={false}
+                errorMessage={gradeYearError || "กรุณาเลือกชั้นปี"}
+                isInvalid={!!gradeYearError}
                 label="ชั้นปี"
                 name="gradeYear"
                 placeholder="เลือกชั้นปี"

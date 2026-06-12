@@ -2,6 +2,7 @@ import { Address, Profile, EmergencyContact } from "@prisma/client";
 
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
+import { validateBirthdayValue } from "@/utils/helper";
 
 export async function GET() {
   return Response.json("GET request successful");
@@ -63,8 +64,10 @@ export async function POST(req: Request) {
   const birthdayValue = (profileRaw as { birthday?: string | Date | null })
     .birthday;
 
-  if (birthdayValue == null || String(birthdayValue).trim() === "") {
-    return Response.json({ error: "กรุณาระบุวันเกิด" }, { status: 400 });
+  const birthdayValidationError = validateBirthdayValue(birthdayValue);
+
+  if (birthdayValidationError) {
+    return Response.json({ error: birthdayValidationError }, { status: 400 });
   }
 
   const birthday =

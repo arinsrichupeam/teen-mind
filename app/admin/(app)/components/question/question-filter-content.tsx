@@ -53,11 +53,11 @@ const phqaStatusOptions = [
   { name: "พบความเสี่ยงรุนแรง", uid: "Red" },
 ];
 
-/** แยกชุดคำถามหลัก (9Q มีแถว q9; PHQ-A เด็กเล็กไม่มี q9) */
+/** แยกชุดคำถามหลักตามโครงสร้าง DB (9Q มีแถว q9; PHQ-A ไม่มี q9) — ไม่เท่ากับอายุโดยตรง */
 const mainScaleOptions = [
   { name: "ทุกชุดแบบประเมิน", uid: "all" },
-  { name: "9Q (อายุ 12 ปีขึ้นไป)", uid: "nineq" },
-  { name: "PHQ-A (ต่ำกว่า 12 ปี)", uid: "phqa" },
+  { name: "9Q", uid: "nineq" },
+  { name: "PHQ-A", uid: "phqa" },
 ];
 
 interface QuestionFilterContentProps {

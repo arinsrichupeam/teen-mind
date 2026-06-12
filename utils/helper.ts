@@ -177,6 +177,46 @@ export function validateBirthday(
   }
 }
 
+export function validateBirthdayValue(
+  value: string | Date | null | undefined,
+  minAge: number = 4,
+  maxAge: number = 100
+): string {
+  if (value == null || String(value).trim() === "") {
+    return "กรุณาระบุวันเกิด";
+  }
+
+  if (typeof value === "string" && value.includes("/")) {
+    return validateBirthday(value, minAge, maxAge);
+  }
+
+  let thaiDate: string;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return "รูปแบบวันเกิดไม่ถูกต้อง";
+    }
+
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+
+    thaiDate = `${day}/${month}/${year + 543}`;
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+
+    thaiDate = `${day}/${month}/${String(parseInt(year, 10) + 543)}`;
+  } else {
+    thaiDate = formatDateForDisplay(value);
+
+    if (!thaiDate) {
+      return "รูปแบบวันเกิดไม่ถูกต้อง";
+    }
+  }
+
+  return validateBirthday(thaiDate, minAge, maxAge);
+}
+
 // ฟังก์ชันคำนวณอายุจากวันเกิดถึงวันที่กำหนด (คำนวณจากปีเท่านั้น)
 export function calculateAge(
   birthday: string,

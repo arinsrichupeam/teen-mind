@@ -1,6 +1,7 @@
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
 import { getSession, requireAdmin } from "@/lib/get-session";
+import { validateBirthdayValue } from "@/utils/helper";
 
 export async function GET(
   req: Request,
@@ -173,6 +174,17 @@ export async function PUT(
     }
 
     const profileId = existingProfile.id;
+
+    if (body.birthday) {
+      const birthdayValidationError = validateBirthdayValue(body.birthday);
+
+      if (birthdayValidationError) {
+        return Response.json(
+          { success: false, message: birthdayValidationError },
+          { status: 400 }
+        );
+      }
+    }
 
     const rawSchoolId = body.schoolId;
     const normalizedSchoolId =

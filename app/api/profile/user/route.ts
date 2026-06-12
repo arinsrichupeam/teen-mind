@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
+import { validateBirthdayValue } from "@/utils/helper";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -82,6 +83,15 @@ export async function POST(req: Request) {
 
   try {
     const data = await req.json();
+
+    const birthdayValidationError = validateBirthdayValue(data.birthday);
+
+    if (birthdayValidationError) {
+      return NextResponse.json(
+        { error: birthdayValidationError },
+        { status: 400 }
+      );
+    }
 
     const newProfile = await prisma.profile.create({
       data: {

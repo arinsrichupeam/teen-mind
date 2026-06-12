@@ -110,6 +110,28 @@ export function isAllFollowUpRoundsComplete(
   );
 }
 
+/**
+ * คำนวณสถานะหลักของแบบประเมิน (ตรงกับ CalStatus ใน API)
+ * 0 = รอระบุ HN
+ * 1 = รอให้คำปรึกษา
+ * 2 = รอสรุปผลการให้คำปรึกษา
+ * 3 = เสร็จสิ้น
+ */
+export function calculateQuestionStatus(
+  q: QuestionsData | undefined
+): 0 | 1 | 2 | 3 {
+  if (!q) return 0;
+
+  const hn = q.profile?.hn ?? q.hn;
+
+  if (!hn || String(hn).trim() === "") return 0;
+
+  if (isAllFollowUpRoundsComplete(q)) return 3;
+  if (isConsultTelemedRoundComplete(q, 0)) return 2;
+
+  return 1;
+}
+
 /** สถานะติดตามครั้งที่ 1, 2, 3 สำหรับแสดงผลหรือ API */
 export function getFollowUpRoundStatuses(
   q: QuestionsData | undefined
