@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.1.0",
+    "date": "2026-06-16",
+    "changes": [
+      "เพิ่มแผนที่แสดงตำแหน่งผู้ใช้งานในหน้า Dashboard (Map View)",
+      "เพิ่มการค้นหา HN ใน ModalEditProfile เพื่อดึงข้อมูลผู้ป่วยจากระบบ HN",
+      "รองรับผู้ส่งต่อ (Referent) ในกระบวนการลงทะเบียนและ API routes ที่เกี่ยวข้อง",
+      "เพิ่มสถานะการเชื่อมต่อ LINE และฟีเจอร์ Reset LINE ใน User Detail Drawer",
+      "เปลี่ยน DatePicker เป็น BirthdaySelect ใน ModalEditProfile เพื่อประสบการณ์การใช้งานที่ดีขึ้น",
+      "ปรับปรุงการจัดการ date range ใน Admin Home และ logic การกรองข้อมูลคำถาม",
+      "ปรับปรุง validation และ error handling ใน modal components ต่าง ๆ"
+    ]
+  },
+  {
     "version": "2.0.7",
     "date": "2026-04-27",
     "changes": [

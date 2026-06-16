@@ -5,6 +5,7 @@ import {
   CreditCardIcon,
   HomeIcon,
   HomeModernIcon,
+  MapIcon,
   UserGroupIcon,
   UserIcon,
 } from "@heroicons/react/24/solid";
@@ -91,6 +92,12 @@ export const SidebarWrapper = () => {
                     title="เคสที่ดูแล"
                   />
                 )}
+                <SidebarItem
+                  href="/admin/map"
+                  icon={<MapIcon className="size-6" />}
+                  isActive={pathname === "/admin/map"}
+                  title="แผนที่"
+                />
                 {(profile.roleId === 2 || profile.roleId === 3) && (
                   <SidebarItem
                     href="/admin/user"

@@ -287,3 +287,45 @@ export interface TableSortDescriptor {
   column: Key;
   direction: "ascending" | "descending";
 }
+
+export type MapLocationProfile = {
+  id: string;
+  prefixId: string;
+  firstname: string;
+  lastname: string;
+  schoolName: string | null;
+};
+
+export type MapLocation = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  result: string;
+  result_text: string | null;
+  status: number;
+  createdAt: string;
+  profile: MapLocationProfile;
+};
+
+export type MapRiskSummary = {
+  Green: number;
+  "Green-Low": number;
+  Yellow: number;
+  Orange: number;
+  Red: number;
+};
+
+export type MapLocationsResponse = {
+  total: number;
+  summary: MapRiskSummary;
+  locations: MapLocation[];
+};
+
+export type MapViewMode = "markers" | "heatmap";
+
+export type MapFilterState = {
+  dateFrom: string;
+  dateTo: string;
+  school: string;
+  results: string[];
+};
