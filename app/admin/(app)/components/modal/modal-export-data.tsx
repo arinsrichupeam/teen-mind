@@ -55,15 +55,15 @@ export const ModalExportData = ({
   const [filters, setFilters] = useState<{
     dateFrom: string;
     dateTo: string;
-    school: string;
-    mainScale: "" | "nineq" | "phqa";
-    phqa: string[];
+    schools: string[];
+    ageGroup: "" | "under18" | "18plus";
+    result: string[];
   }>({
     dateFrom: "",
     dateTo: "",
-    school: "",
-    mainScale: "",
-    phqa: [],
+    schools: [],
+    ageGroup: "",
+    result: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
@@ -107,7 +107,24 @@ export const ModalExportData = ({
           }
         }
 
-        setSourceData(allQuestions);
+        // เก็บเฉพาะ record ล่าสุดต่อ 1 profile
+        const latestPerProfile = new Map<string, QuestionsData>();
+
+        for (const q of allQuestions) {
+          const pid = q.profile?.id;
+
+          if (!pid) continue;
+          const existing = latestPerProfile.get(pid);
+
+          if (
+            !existing ||
+            new Date(q.createdAt) > new Date(existing.createdAt)
+          ) {
+            latestPerProfile.set(pid, q);
+          }
+        }
+
+        setSourceData(Array.from(latestPerProfile.values()));
       } catch (error) {
         addToast({
           title: "เกิดข้อผิดพลาด",
@@ -132,6 +149,11 @@ export const ModalExportData = ({
       { key: "citizenId", label: "เลขบัตรประชาชน", selected: true },
       { key: "age", label: "อายุ", selected: true },
       { key: "sex", label: "เพศ", selected: true },
+      { key: "addrHouseNo", label: "บ้านเลขที่ (ที่อยู่)", selected: true },
+      { key: "addrVillageNo", label: "หมู่ (ที่อยู่)", selected: true },
+      { key: "addrSubdistrict", label: "แขวง/ตำบล (ที่อยู่)", selected: true },
+      { key: "addrDistrict", label: "เขต/อำเภอ (ที่อยู่)", selected: true },
+      { key: "addrProvince", label: "จังหวัด (ที่อยู่)", selected: true },
       { key: "insurance", label: "สิทธิ์การรักษา", selected: true },
       { key: "school", label: "โรงเรียน", selected: true },
       { key: "grade", label: "ระดับชั้น", selected: true },
@@ -243,6 +265,58 @@ export const ModalExportData = ({
     }
   );
 
+  // ดึงข้อมูลจังหวัดด้วย SWR
+  const { data: provinces, isLoading: provincesLoading } = useSWR(
+    "/api/data/provinces",
+    async (url) => {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error("Failed to fetch provinces");
+
+        return response.json();
+      } catch (error) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลจังหวัดได้: " + error,
+          color: "danger",
+        });
+
+        return [];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
+
+  // ดึงข้อมูลแขวง/ตำบลด้วย SWR
+  const { data: subdistricts, isLoading: subdistrictsLoading } = useSWR(
+    "/api/data/subdistricts",
+    async (url) => {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error("Failed to fetch subdistricts");
+
+        return response.json();
+      } catch (error) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลแขวง/ตำบลได้: " + error,
+          color: "danger",
+        });
+
+        return [];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
+
   // ดึงข้อมูล profile_admin ด้วย SWR
   const { data: profileAdmins, isLoading: profileAdminsLoading } = useSWR(
     "/api/profile/admin",
@@ -283,6 +357,32 @@ export const ModalExportData = ({
       return district ? district.nameInThai : `เขต ${districtId}`;
     },
     [districts, districtsLoading]
+  );
+
+  // ฟังก์ชันสำหรับหาชื่อจังหวัดจากรหัสจังหวัด
+  const getProvinceName = useCallback(
+    (provinceId: number): string => {
+      if (!provinces || provincesLoading) return `จังหวัด ${provinceId}`;
+      const province = provinces.find(
+        (p: { id: number; nameInThai?: string }) => p.id === provinceId
+      );
+
+      return province ? province.nameInThai : `จังหวัด ${provinceId}`;
+    },
+    [provinces, provincesLoading]
+  );
+
+  // ฟังก์ชันสำหรับหาชื่อแขวง/ตำบลจากรหัส
+  const getSubdistrictName = useCallback(
+    (subdistrictId: number): string => {
+      if (!subdistricts || subdistrictsLoading) return `ตำบล ${subdistrictId}`;
+      const subdistrict = subdistricts.find(
+        (s: { id: number; nameInThai?: string }) => s.id === subdistrictId
+      );
+
+      return subdistrict ? subdistrict.nameInThai : `ตำบล ${subdistrictId}`;
+    },
+    [subdistricts, subdistrictsLoading]
   );
 
   // ฟังก์ชันสำหรับหาชื่อนักจิตวิทยาจาก profile_admin
@@ -346,7 +446,7 @@ export const ModalExportData = ({
       });
     }
 
-    if (filters.school) {
+    if (filters.schools.length > 0) {
       filteredData = filteredData.filter((item: QuestionsData) => {
         const school = item.profile?.school;
         const schoolId =
@@ -354,20 +454,24 @@ export const ModalExportData = ({
             ? school.id?.toString()
             : undefined;
 
-        return schoolId === filters.school;
+        if (filters.schools.includes("__none__") && !schoolId) return true;
+
+        return !!schoolId && filters.schools.includes(schoolId);
       });
     }
 
-    if (filters.mainScale) {
+    if (filters.ageGroup) {
+      const expectedScale = filters.ageGroup === "under18" ? "phqa" : "nineq";
+
       filteredData = filteredData.filter(
-        (item: QuestionsData) => getMainScaleKey(item) === filters.mainScale
+        (item: QuestionsData) => getMainScaleKey(item) === expectedScale
       );
     }
 
-    if (filters.phqa && filters.phqa.length > 0) {
-      filteredData = filteredData.filter((item: QuestionsData) => {
-        return filters.phqa.includes(item.result_text);
-      });
+    if (filters.result.length > 0) {
+      filteredData = filteredData.filter((item: QuestionsData) =>
+        filters.result.includes(item.result)
+      );
     }
 
     return filteredData;
@@ -534,6 +638,25 @@ export const ModalExportData = ({
         }
 
         return "-";
+      case "addrHouseNo":
+        return item.profile?.address?.[0]?.houseNo || "-";
+      case "addrVillageNo":
+        return item.profile?.address?.[0]?.villageNo || "-";
+      case "addrSubdistrict": {
+        const sub = item.profile?.address?.[0]?.subdistrict;
+
+        return sub ? getSubdistrictName(sub) : "-";
+      }
+      case "addrDistrict": {
+        const addrDist = item.profile?.address?.[0]?.district;
+
+        return addrDist ? getDistrictName(addrDist) : "-";
+      }
+      case "addrProvince": {
+        const addrProv = item.profile?.address?.[0]?.province;
+
+        return addrProv ? getProvinceName(addrProv) : "-";
+      }
       default:
         return (item as Record<string, unknown>)[field] != null
           ? String((item as Record<string, unknown>)[field])
@@ -547,9 +670,9 @@ export const ModalExportData = ({
     setFilters({
       dateFrom: "",
       dateTo: "",
-      school: "",
-      mainScale: "",
-      phqa: [],
+      schools: [],
+      ageGroup: "",
+      result: [],
     });
     setCurrentPage(1);
 
@@ -673,22 +796,34 @@ export const ModalExportData = ({
     isExporting,
   ]);
 
-  // สร้างรายการ PHQA สำหรับ filter
-  const phqaOptions = useMemo(() => {
-    const scaleFiltered = filters.mainScale
-      ? sourceData.filter((item) => getMainScaleKey(item) === filters.mainScale)
-      : sourceData;
+  const RESULT_OPTIONS: Record<string, { value: string; label: string }[]> = {
+    under18: [
+      { value: "Green", label: "ไม่พบความเสี่ยง" },
+      { value: "Green-Low", label: "พบความเสี่ยงเล็กน้อย" },
+      { value: "Yellow", label: "พบความเสี่ยงปานกลาง" },
+      { value: "Orange", label: "พบความเสี่ยงมาก" },
+      { value: "Red", label: "พบความเสี่ยงรุนแรง" },
+    ],
+    "18plus": [
+      { value: "Green", label: "ไม่มีอาการ / น้อยมาก" },
+      { value: "Yellow", label: "ระดับน้อย" },
+      { value: "Orange", label: "ระดับปานกลาง" },
+      { value: "Red", label: "ระดับรุนแรง" },
+    ],
+    all: [
+      { value: "Green", label: "เขียว — ปกติ" },
+      { value: "Green-Low", label: "เขียวอ่อน — เล็กน้อย (PHQ-A)" },
+      { value: "Yellow", label: "เหลือง — ปานกลาง" },
+      { value: "Orange", label: "ส้ม — มาก" },
+      { value: "Red", label: "แดง — รุนแรง" },
+    ],
+  };
 
-    const uniquePhqa = Array.from(
-      new Set(
-        scaleFiltered
-          .map((item: QuestionsData) => item.result_text)
-          .filter(Boolean)
-      )
-    );
-
-    return uniquePhqa.sort();
-  }, [sourceData, filters.mainScale, getMainScaleKey]);
+  const resultOptions = useMemo(
+    () => RESULT_OPTIONS[filters.ageGroup || "all"],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters.ageGroup]
+  );
 
   const filteredData = getFilteredData();
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
@@ -757,50 +892,53 @@ export const ModalExportData = ({
                     />
                   </div>
 
-                  {/* ประเภทแบบประเมิน */}
+                  {/* ช่วงอายุ */}
                   <div>
-                    <label className="text-sm font-medium" htmlFor="mainScale">
-                      ประเภทแบบประเมิน
+                    <label className="text-sm font-medium" htmlFor="ageGroup">
+                      ช่วงอายุ
                     </label>
                     <Select
-                      placeholder="เลือกประเภทแบบประเมิน"
-                      selectedKeys={
-                        filters.mainScale ? [filters.mainScale] : []
-                      }
+                      placeholder="เลือกช่วงอายุ"
+                      selectedKeys={filters.ageGroup ? [filters.ageGroup] : []}
                       onSelectionChange={(keys) => {
                         const selectedKey = Array.from(keys)[0] as
                           | ""
-                          | "nineq"
-                          | "phqa"
+                          | "under18"
+                          | "18plus"
                           | undefined;
 
                         setFilters((prev) => ({
                           ...prev,
-                          mainScale: selectedKey || "",
-                          phqa: [],
+                          ageGroup: selectedKey || "",
+                          result: [],
                         }));
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectItem key="nineq">9Q</SelectItem>
-                      <SelectItem key="phqa">PHQ-A</SelectItem>
+                      <SelectItem key="under18">
+                        น้อยกว่า 18 ปี (PHQ-A)
+                      </SelectItem>
+                      <SelectItem key="18plus">18 ปีขึ้นไป (9Q)</SelectItem>
                     </Select>
                   </div>
 
-                  {/* โรงเรียน */}
+                  {/* โรงเรียน (multi-select) */}
                   <div>
-                    <label className="text-sm font-medium" htmlFor="school">
+                    <label className="text-sm font-medium" htmlFor="schools">
                       โรงเรียน
                     </label>
                     <Select
                       placeholder="เลือกโรงเรียน"
-                      selectedKeys={filters.school ? [filters.school] : []}
+                      selectedKeys={new Set(filters.schools)}
+                      selectionMode="multiple"
                       onSelectionChange={(keys) => {
-                        const selectedKey = Array.from(keys)[0] as string;
-
-                        handleFilterChange("school", selectedKey || "");
+                        handleFilterChange(
+                          "schools",
+                          Array.from(keys) as string[]
+                        );
                       }}
                     >
+                      <SelectItem key="__none__">ไม่ระบุ</SelectItem>
                       {schools?.map((school: { id: number; name: string }) => (
                         <SelectItem key={school.id.toString()}>
                           {school.name}
@@ -809,23 +947,24 @@ export const ModalExportData = ({
                     </Select>
                   </div>
 
-                  {/* ระดับภาวะซึมเศร้า */}
+                  {/* ระดับผลการประเมิน */}
                   <div>
-                    <label className="text-sm font-medium" htmlFor="phqa">
-                      ระดับภาวะซึมเศร้า
+                    <label className="text-sm font-medium" htmlFor="result">
+                      ระดับผลการประเมิน
                     </label>
                     <Select
                       placeholder="เลือกระดับ"
-                      selectedKeys={new Set(filters.phqa)}
+                      selectedKeys={new Set(filters.result)}
                       selectionMode="multiple"
                       onSelectionChange={(keys) => {
-                        const selectedKeys = Array.from(keys) as string[];
-
-                        handleFilterChange("phqa", selectedKeys);
+                        handleFilterChange(
+                          "result",
+                          Array.from(keys) as string[]
+                        );
                       }}
                     >
-                      {phqaOptions.map((phqa) => (
-                        <SelectItem key={phqa}>{phqa}</SelectItem>
+                      {resultOptions.map((opt) => (
+                        <SelectItem key={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </Select>
                   </div>
@@ -850,6 +989,8 @@ export const ModalExportData = ({
                   {selectedFields.length > 0 && availableFields.length > 0 ? (
                     schoolsLoading ||
                     districtsLoading ||
+                    provincesLoading ||
+                    subdistrictsLoading ||
                     profileAdminsLoading ? (
                       <div className="text-center py-8 text-gray-500">
                         <div className="flex items-center justify-center space-x-2">
@@ -888,10 +1029,20 @@ export const ModalExportData = ({
                               {selectedFields.map((field) => {
                                 const value = getFieldValue(item, field);
 
+                                const isLeftAlign = [
+                                  "name",
+                                  "emergencyContact",
+                                  "addrHouseNo",
+                                  "addrVillageNo",
+                                  "addrSubdistrict",
+                                  "addrDistrict",
+                                  "addrProvince",
+                                ].includes(field);
+
                                 return (
                                   <TableCell
                                     key={field}
-                                    className="text-center whitespace-nowrap"
+                                    className={`${isLeftAlign ? "text-left" : "text-center"} whitespace-nowrap`}
                                   >
                                     <div
                                       className="truncate"

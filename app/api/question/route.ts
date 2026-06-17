@@ -261,6 +261,17 @@ export async function GET(req: Request) {
                 screeningDate: true,
               },
             },
+            address: {
+              select: {
+                houseNo: true,
+                villageNo: true,
+                soi: true,
+                road: true,
+                province: true,
+                district: true,
+                subdistrict: true,
+              },
+            },
             emergency: {
               select: {
                 id: true,
