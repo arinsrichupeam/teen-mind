@@ -26,6 +26,9 @@ type UsageStatRow = {
   monthLabel: string;
   totalUse: number;
   totalUsers: number;
+  male: number;
+  female: number;
+  unspecified: number;
   green: number;
   greenLow: number;
   yellow: number;
@@ -143,6 +146,10 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
       acc.totalUse += row.totalUse;
       acc.totalUsers += row.totalUsers;
 
+      acc.male += row.male;
+      acc.female += row.female;
+      acc.unspecified += row.unspecified;
+
       acc.green += row.green;
       acc.greenLow += row.greenLow;
       acc.yellow += row.yellow;
@@ -154,6 +161,9 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
     {
       totalUse: 0,
       totalUsers: 0,
+      male: 0,
+      female: 0,
+      unspecified: 0,
       green: 0,
       greenLow: 0,
       yellow: 0,
@@ -174,6 +184,15 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
       </TableCell>
       <TableCell className="text-center whitespace-nowrap">
         {formatNumber(row.totalUsers)}
+      </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-blue-700">
+        {formatNumber(row.male)}
+      </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-pink-700">
+        {formatNumber(row.female)}
+      </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-default-500">
+        {formatNumber(row.unspecified)}
       </TableCell>
       <TableCell
         className="text-center whitespace-nowrap text-green-700 font-semibold cursor-pointer hover:underline"
@@ -302,6 +321,15 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
       <TableCell className="text-center whitespace-nowrap">
         {formatNumber(summary.totalUsers)}
       </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-blue-700 font-semibold">
+        {formatNumber(summary.male)}
+      </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-pink-700 font-semibold">
+        {formatNumber(summary.female)}
+      </TableCell>
+      <TableCell className="text-center whitespace-nowrap text-default-500 font-semibold">
+        {formatNumber(summary.unspecified)}
+      </TableCell>
       <TableCell className="text-center whitespace-nowrap text-green-700 font-semibold">
         {formatNumber(summary.green)}
       </TableCell>
@@ -353,6 +381,15 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
             <TableColumn>ปี-เดือน</TableColumn>
             <TableColumn className="text-center">เข้าใช้งาน</TableColumn>
             <TableColumn className="text-center">ผู้ทำแบบประเมิน</TableColumn>
+            <TableColumn className="text-center">
+              <span className="text-blue-700 font-semibold">ชาย</span>
+            </TableColumn>
+            <TableColumn className="text-center">
+              <span className="text-pink-700 font-semibold">หญิง</span>
+            </TableColumn>
+            <TableColumn className="text-center">
+              <span className="text-default-500 font-semibold">ไม่ระบุ</span>
+            </TableColumn>
             <TableColumn className="text-center">
               <span className="text-green-700 font-semibold">
                 ไม่พบความเสี่ยง

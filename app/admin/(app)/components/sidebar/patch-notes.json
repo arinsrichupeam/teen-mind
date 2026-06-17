@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.2.0",
+    "date": "2026-06-17",
+    "changes": [
+      "เพิ่มกราฟสถิติปัญหา (Problem Stats Chart) ในหน้า Dashboard แสดงจำนวนปัญหาแยกตามหมวดหมู่ เช่น ครอบครัว สังคม การเรียน การเงิน พฤติกรรม",
+      "เพิ่มตารางสถิติโรงเรียน (CardSchoolStats) แสดงจำนวนผู้ทำแบบประเมินและระดับความเสี่ยงแยกตามโรงเรียน",
+      "เพิ่มคอลัมน์แยกเพศ (ชาย / หญิง / ไม่ระบุ) ใน CardUsageStats เพื่อดูสัดส่วนผู้ทำแบบประเมินตามเพศในแต่ละเดือน",
+      "Refactor Admin Dashboard ให้ดึงข้อมูลผ่าน API endpoint ใหม่ /api/dashboard/overview แทนการ fetch คำถามทั้งหมดฝั่ง client เพื่อลด network load",
+      "เพิ่ม API endpoints ใหม่: /api/dashboard/overview, /api/dashboard/problems, /api/dashboard/school-stats รองรับ date range filter",
+      "ปรับ ConsultTelemedCharts ให้รับข้อมูลสำเร็จรูปจาก overview API แทนการคำนวณซ้ำฝั่ง client"
+    ]
+  },
+  {
     "version": "2.1.0",
     "date": "2026-06-16",
     "changes": [

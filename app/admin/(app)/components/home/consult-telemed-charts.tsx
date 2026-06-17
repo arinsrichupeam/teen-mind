@@ -1,131 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import type {
+  OverviewAgeGroup,
+  OverviewConsultStats,
+} from "@/lib/dashboard/overview";
 
 import { AgeSegmentRiskChart } from "../age-segment/age-segment-risk-chart";
 
-import { calculateQuestionStatus } from "@/lib/question-followup-rounds";
-import {
-  getRiskCounts,
-  type RiskByAgeGroup,
-} from "@/lib/dashboard/age-segment";
-import {
-  MAIN_ASSESSMENT_AGE_CUTOFF,
-  getMainAssessmentScaleFromAge,
-  getMainSumFromQuestion,
-} from "@/lib/assessment-scale";
-import { QuestionsData } from "@/types";
-import {
-  calculateAge,
-  getNineQRiskLevel,
-  getPhqaRiskLevel,
-} from "@/utils/helper";
-
-interface ConsultTelemedChartsProps {
-  questions: QuestionsData[];
-}
-
-type ConsultTelemedStats = {
-  total: number;
-  consult: {
-    /** เสร็จสิ้น — status === 3 */
-    completed: number;
-    /** รอสรุปผลการให้คำปรึกษา — status === 2 */
-    awaitingSummary: number;
-    /** รอให้คำปรึกษา — status === 1 */
-    awaitingConsult: number;
-    /** รอระบุ HN — status === 0 */
-    awaitingHn: number;
-  };
-};
-
 const formatNumber = (value: number) => value.toLocaleString("th-TH");
-
-function getScreeningDateForAge(q: QuestionsData): string | Date | undefined {
-  const school = q.profile?.school;
-
-  if (typeof school === "object" && school !== null) {
-    return school.screeningDate ?? undefined;
-  }
-
-  return undefined;
-}
-
-function getAgeYearsForQuestion(q: QuestionsData): number | null {
-  if (!q.profile?.birthday) return null;
-
-  const age = calculateAge(q.profile.birthday, getScreeningDateForAge(q));
-
-  return age;
-}
-
-function isAgeUnder18(q: QuestionsData): boolean {
-  const age = getAgeYearsForQuestion(q);
-
-  return age !== null && age < MAIN_ASSESSMENT_AGE_CUTOFF;
-}
-
-function isAge18AndOver(q: QuestionsData): boolean {
-  const age = getAgeYearsForQuestion(q);
-
-  return age !== null && age >= MAIN_ASSESSMENT_AGE_CUTOFF;
-}
-
-function getMainSumFromQuestionData(q: QuestionsData): number | null {
-  return getMainSumFromQuestion(q.q9?.[0]?.sum, q.phqa?.[0]?.sum);
-}
-
-function buildConsultTelemedStats(
-  filteredQuestions: QuestionsData[]
-): ConsultTelemedStats {
-  const statusOf = (q: QuestionsData) => calculateQuestionStatus(q);
-
-  return {
-    total: filteredQuestions.length,
-    consult: {
-      completed: filteredQuestions.filter((q) => statusOf(q) === 3).length,
-      awaitingSummary: filteredQuestions.filter((q) => statusOf(q) === 2)
-        .length,
-      awaitingConsult: filteredQuestions.filter((q) => statusOf(q) === 1)
-        .length,
-      awaitingHn: filteredQuestions.filter((q) => statusOf(q) === 0).length,
-    },
-  };
-}
-
-function buildRiskFromQuestions(questions: QuestionsData[]): RiskByAgeGroup {
-  const risk: RiskByAgeGroup = {
-    green: 0,
-    greenLow: 0,
-    yellow: 0,
-    orange: 0,
-    red: 0,
-    totalUsers: 0,
-  };
-
-  for (const q of questions) {
-    const age = getAgeYearsForQuestion(q);
-    const mainSum = getMainSumFromQuestionData(q);
-
-    if (age === null || mainSum === null || Number.isNaN(mainSum)) continue;
-
-    const scale = getMainAssessmentScaleFromAge(age);
-    const resultLevel =
-      scale === "9Q" ? getNineQRiskLevel(mainSum) : getPhqaRiskLevel(mainSum);
-    const normalized =
-      scale === "9Q" && resultLevel === "Green-Low" ? "Green" : resultLevel;
-    const c = getRiskCounts(normalized);
-
-    risk.green += c.green;
-    risk.greenLow += c.greenLow;
-    risk.yellow += c.yellow;
-    risk.orange += c.orange;
-    risk.red += c.red;
-    risk.totalUsers += 1;
-  }
-
-  return risk;
-}
 
 function CohortAtAGlanceCard({
   stats,
@@ -133,7 +15,7 @@ function CohortAtAGlanceCard({
   title,
   variant,
 }: {
-  stats: ConsultTelemedStats;
+  stats: OverviewConsultStats;
   subtitle: string;
   title: string;
   variant: "teen" | "adult";
@@ -178,6 +60,49 @@ function CohortAtAGlanceCard({
           <p className="text-3xl font-bold tabular-nums tracking-tight text-default-900">
             {formatNumber(stats.total)}
           </p>
+          <div className="mt-1 flex justify-end gap-2 text-xs">
+            <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">
+              <svg
+                className="h-3 w-3"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M9 2a5 5 0 1 0 0 10A5 5 0 0 0 9 2zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm8-2v2h2v2h-2v2h-2V6h-2V4h2V2h2zm-8 10c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z" />
+              </svg>
+              <span className="font-semibold">
+                {formatNumber(stats.gender.male)}
+              </span>
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-pink-100 px-2 py-0.5 text-pink-600">
+              <svg
+                className="h-3 w-3"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-5 11c0-1.33 2.67-4 5-4a7.2 7.2 0 0 1 1.43.15A3.49 3.49 0 0 0 13 14.5V16H7v-1zM13 14.5a2.5 2.5 0 0 1 5 0V15h-1v5h-3v-5h-1v-.5z" />
+              </svg>
+              <span className="font-semibold">
+                {formatNumber(stats.gender.female)}
+              </span>
+            </span>
+            {stats.gender.other > 0 && (
+              <span className="flex items-center gap-1 rounded-full bg-default-100 px-2 py-0.5 text-default-500">
+                <svg
+                  className="h-3 w-3"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 10c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z" />
+                </svg>
+                <span className="font-semibold">
+                  {formatNumber(stats.gender.other)}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -205,45 +130,20 @@ function CohortAtAGlanceCard({
   );
 }
 
-export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
-  const { under18Questions, age18AndOverQuestions, unclassifiedCount } =
-    useMemo(() => {
-      const under18: QuestionsData[] = [];
-      const age18AndOver: QuestionsData[] = [];
-      let other = 0;
+interface ConsultTelemedChartsProps {
+  under18: OverviewAgeGroup;
+  age18AndOver: OverviewAgeGroup;
+  unclassifiedCount: number;
+}
 
-      for (const q of questions) {
-        if (isAgeUnder18(q)) under18.push(q);
-        else if (isAge18AndOver(q)) age18AndOver.push(q);
-        else other++;
-      }
+export function ConsultTelemedCharts({
+  under18,
+  age18AndOver,
+  unclassifiedCount,
+}: ConsultTelemedChartsProps) {
+  const totalAll = under18.stats.total + age18AndOver.stats.total;
 
-      return {
-        under18Questions: under18,
-        age18AndOverQuestions: age18AndOver,
-        unclassifiedCount: other,
-      };
-    }, [questions]);
-
-  const under18Stats = useMemo(
-    () => buildConsultTelemedStats(under18Questions),
-    [under18Questions]
-  );
-  const age18AndOverStats = useMemo(
-    () => buildConsultTelemedStats(age18AndOverQuestions),
-    [age18AndOverQuestions]
-  );
-
-  const under18Risk = useMemo(
-    () => buildRiskFromQuestions(under18Questions),
-    [under18Questions]
-  );
-  const age18AndOverRisk = useMemo(
-    () => buildRiskFromQuestions(age18AndOverQuestions),
-    [age18AndOverQuestions]
-  );
-
-  if (!questions || questions.length === 0) {
+  if (totalAll === 0 && unclassifiedCount === 0) {
     return (
       <div className="text-center text-gray-500">
         ไม่มีข้อมูลการเข้าพบนักจิตวิทยา
@@ -261,13 +161,13 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <CohortAtAGlanceCard
-          stats={under18Stats}
+          stats={under18.stats}
           subtitle="สรุปสถานะการติดตามจากผู้ประเมินล่าสุดต่อคน"
           title="อายุต่ำกว่า 18 ปี"
           variant="teen"
         />
         <CohortAtAGlanceCard
-          stats={age18AndOverStats}
+          stats={age18AndOver.stats}
           subtitle="สรุปสถานะการติดตามจากผู้ประเมินล่าสุดต่อคน"
           title="อายุ 18 ปีขึ้นไป"
           variant="adult"
@@ -277,13 +177,13 @@ export function ConsultTelemedCharts({ questions }: ConsultTelemedChartsProps) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <AgeSegmentRiskChart
           assessmentScale="phqa"
-          risk={under18Risk}
+          risk={under18.risk}
           subtitle="เกณฑ์ผลการประเมินตามความเสี่ยง — PHQ-A"
           title="ผลการประเมินตามความเสี่ยง — อายุต่ำกว่า 18 ปี"
         />
         <AgeSegmentRiskChart
           assessmentScale="9q"
-          risk={age18AndOverRisk}
+          risk={age18AndOver.risk}
           subtitle="เกณฑ์ผลการประเมินตามความเสี่ยง — 9Q"
           title="ผลการประเมินตามความเสี่ยง — อายุ 18 ปีขึ้นไป"
         />

@@ -71,6 +71,9 @@ export async function GET() {
     monthLabel: string;
     totalUse: number;
     totalUsers: number;
+    male: number;
+    female: number;
+    unspecified: number;
     green: number;
     greenLow: number;
     yellow: number;
@@ -97,6 +100,15 @@ export async function GET() {
         },
       },
     });
+
+    const sexGroups = await prisma.profile.groupBy({
+      by: ["sex"],
+      where: { createdAt: { gte: start, lt: end } },
+      _count: { id: true },
+    });
+    const male = sexGroups.find((g) => g.sex === 1)?._count.id ?? 0;
+    const female = sexGroups.find((g) => g.sex === 2)?._count.id ?? 0;
+    const unspecified = sexGroups.find((g) => g.sex === 3)?._count.id ?? 0;
 
     const profilesWithQuestions = await prisma.profile.findMany({
       where: {
@@ -158,6 +170,9 @@ export async function GET() {
       monthLabel: THAI_MONTHS[cursorMonth],
       totalUse,
       totalUsers,
+      male,
+      female,
+      unspecified,
       green: riskCounts.green,
       greenLow: riskCounts.greenLow,
       yellow: riskCounts.yellow,
