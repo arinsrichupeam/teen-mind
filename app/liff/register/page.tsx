@@ -2,7 +2,7 @@
 
 import { Tab, Tabs } from "@heroui/tabs";
 import { Address, EmergencyContact, Profile } from "@prisma/client";
-import { useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "@heroui/alert";
@@ -14,6 +14,7 @@ import { Step3 } from "./components/step3";
 
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
+import { peekReferentRef, saveReferentRef } from "@/utils/referent-ref";
 
 type RegisterProfileState = Omit<Profile, "birthday"> & {
   gradeYear?: number | null;
@@ -85,6 +86,20 @@ export default function RegisterPage() {
   addressRef.current = address;
   emergencyRef.current = emergency;
 
+  // เก็บ ref จาก QR ลง sessionStorage ทันทีที่เข้าหน้านี้
+  // เพื่อให้รอดข้าม LINE OAuth redirect ที่ทิ้ง query string (auth-options redirect callback)
+  useEffect(() => {
+    if (ref) saveReferentRef(ref);
+  }, [ref]);
+
+  // แก้ dead-end: user ที่ยังไม่ได้ login เข้ามาหน้านี้โดยตรง (เช่นสแกน QR) จะ submit ไม่ได้
+  // พาไป LINE login ทันที — ref ถูกเก็บใน storage แล้ว จึงไม่หายระหว่างขั้นตอน OAuth
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      signIn("line");
+    }
+  }, [status]);
+
   useEffect(() => {
     if (status !== "loading" && status === "authenticated") {
       setProfile((prev) => ({
@@ -126,12 +141,15 @@ export default function RegisterPage() {
       return;
     }
 
+    // ref อาจมาจาก URL หรือ sessionStorage (กรณีรอดข้าม OAuth redirect มา)
+    const effectiveRef = ref || peekReferentRef();
+
     const payload = {
       register_profile: { ...currentProfile, userId },
       register_address: currentAddress,
       register_emergency: currentEmergency,
       registerForReferent: isReferentFlow,
-      referentRef: ref || undefined,
+      referentRef: effectiveRef || undefined,
     };
 
     try {
@@ -163,7 +181,7 @@ export default function RegisterPage() {
         setTimeout(() => {
           const refId =
             val.ref && typeof val.ref === "object" ? val.ref.id : val.ref;
-          const referentId = ref || refId;
+          const referentId = effectiveRef || refId;
           const youthProfileId = val.profile?.id ?? "";
           const params = new URLSearchParams();
 
@@ -180,7 +198,15 @@ export default function RegisterPage() {
         setShowAlert(true);
         setIsSubmitted(true);
         setTimeout(() => {
-          router.push("/liff/question");
+          // ลงทะเบียนโปรไฟล์ตัวเองแบบมี referral → พาไปทำแบบประเมินพร้อม ref
+          // เพื่อให้แบบประเมินถูกผูกกับ อสท. โดยไม่ต้องกรอกรหัสซ้ำ
+          if (effectiveRef) {
+            router.push(
+              `/liff/question/phqa?ref=${encodeURIComponent(effectiveRef)}`
+            );
+          } else {
+            router.push("/liff/question");
+          }
         }, 3000);
       }
     } catch (error) {

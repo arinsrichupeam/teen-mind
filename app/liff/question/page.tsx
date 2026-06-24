@@ -1,18 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
 import { Suspense } from "react";
 
 import { subtitle, title } from "@/components/primitives";
 import Loading from "@/app/loading";
+import { peekReferentRef } from "@/utils/referent-ref";
 
 export default function QuestionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const Submit = () => {
-    router.push("/liff/question/phqa");
+    // ส่ง ref (จาก URL หรือ storage) ต่อไปยังหน้าแบบประเมิน เพื่อไม่ให้ต้องกรอกรหัส อสท. ซ้ำ
+    const ref = searchParams.get("ref") || peekReferentRef();
+
+    router.push(
+      ref
+        ? `/liff/question/phqa?ref=${encodeURIComponent(ref)}`
+        : "/liff/question/phqa"
+    );
   };
 
   return (

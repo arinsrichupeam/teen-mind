@@ -14,68 +14,6 @@ import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 import { getNineQRiskLevel, getPhqaRiskLevel } from "@/utils/helper";
 
-function isNonEmpty(v: string | null | undefined): boolean {
-  return typeof v === "string" && v.trim().length > 0;
-}
-
-type QuestionRow = Awaited<
-  ReturnType<typeof prisma.questions_Master.findMany>
->[number] & {
-  profile: {
-    birthday: Date | null;
-    sex: number;
-    hn: string | null;
-    school: { screeningDate: Date | null } | null;
-  };
-  phqa: { sum: number }[];
-  q9: { sum: number }[];
-};
-
-function calcStatus(q: QuestionRow): 0 | 1 | 2 | 3 {
-  const hn = (q.profile as { hn: string | null }).hn;
-
-  if (!hn || hn.trim() === "") return 0;
-
-  const round1TelemedDone = Boolean(
-    q.schedule_telemed && isNonEmpty(q.consult)
-  );
-
-  if (!round1TelemedDone) return 1;
-
-  const round1SoapDone =
-    isNonEmpty(q.subjective) &&
-    isNonEmpty(q.objective) &&
-    isNonEmpty(q.assessment) &&
-    isNonEmpty(q.plan);
-  const round2TelemedDone = Boolean(
-    q.schedule_telemed2 && isNonEmpty(q.consult2)
-  );
-  const round2SoapDone =
-    isNonEmpty(q.subjective2) &&
-    isNonEmpty(q.objective2) &&
-    isNonEmpty(q.assessment2) &&
-    isNonEmpty(q.plan2);
-  const round3TelemedDone = Boolean(
-    q.schedule_telemed3 && isNonEmpty(q.consult3)
-  );
-  const round3SoapDone =
-    isNonEmpty(q.subjective3) &&
-    isNonEmpty(q.objective3) &&
-    isNonEmpty(q.assessment3) &&
-    isNonEmpty(q.plan3);
-
-  if (
-    round1SoapDone &&
-    round2TelemedDone &&
-    round2SoapDone &&
-    round3TelemedDone &&
-    round3SoapDone
-  )
-    return 3;
-
-  return 2;
-}
-
 function getAge(
   birthday: Date,
   screeningDate: Date | null,
@@ -116,29 +54,11 @@ export async function GET(req: NextRequest) {
       id: true,
       profileId: true,
       createdAt: true,
-      schedule_telemed: true,
-      consult: true,
-      schedule_telemed2: true,
-      consult2: true,
-      schedule_telemed3: true,
-      consult3: true,
-      subjective: true,
-      objective: true,
-      assessment: true,
-      plan: true,
-      subjective2: true,
-      objective2: true,
-      assessment2: true,
-      plan2: true,
-      subjective3: true,
-      objective3: true,
-      assessment3: true,
-      plan3: true,
+      status: true,
       profile: {
         select: {
           birthday: true,
           sex: true,
-          hn: true,
           school: { select: { screeningDate: true } },
         },
       },
@@ -167,7 +87,6 @@ export async function GET(req: NextRequest) {
     const profile = q.profile as {
       birthday: Date | null;
       sex: number;
-      hn: string | null;
       school: { screeningDate: Date | null } | null;
     };
 
@@ -178,7 +97,7 @@ export async function GET(req: NextRequest) {
 
     const screeningDate = profile.school?.screeningDate ?? null;
     const age = getAge(profile.birthday, screeningDate, q.createdAt);
-    const status = calcStatus(q as QuestionRow);
+    const status = q.status as 0 | 1 | 2 | 3;
     const sex = profile.sex;
 
     if (age < MAIN_ASSESSMENT_AGE_CUTOFF) {

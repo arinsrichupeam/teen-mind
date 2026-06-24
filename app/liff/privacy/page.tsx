@@ -18,11 +18,28 @@ import { Step1 } from "./components/step1";
 
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
+import { peekReferentRef } from "@/utils/referent-ref";
 
 export default function PrivacyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isReferentFlow = searchParams.get("referent") === "1";
+
+  // ส่ง ref (จาก URL หรือ storage) ต่อไปยังหน้า register เพื่อให้ลิงก์ใช้ debug/แชร์ได้
+  // (storage ครอบคลุมอยู่แล้ว แต่การมีใน URL ด้วยช่วยให้ flow ชัดเจน)
+  const buildRegisterHref = (): string => {
+    const params = new URLSearchParams();
+
+    if (isReferentFlow) params.set("referent", "1");
+
+    const ref = searchParams.get("ref") || peekReferentRef();
+
+    if (ref) params.set("ref", ref);
+
+    const query = params.toString();
+
+    return query ? `/liff/register?${query}` : "/liff/register";
+  };
   const [agree, setAgree] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -100,13 +117,7 @@ export default function PrivacyPage() {
                     color="primary"
                     radius="full"
                     variant="bordered"
-                    onPress={() =>
-                      router.push(
-                        isReferentFlow
-                          ? "/liff/register?referent=1"
-                          : "/liff/register"
-                      )
-                    }
+                    onPress={() => router.push(buildRegisterHref())}
                   >
                     เข้าใจแล้ว!
                   </Button>

@@ -29,6 +29,7 @@ import { subtitle, title } from "@/components/primitives";
 import { LocationData, ProblemPayload } from "@/types";
 import Loading from "@/app/loading";
 import { calculateAge } from "@/utils/helper";
+import { clearReferentRef, peekReferentRef } from "@/utils/referent-ref";
 import {
   type AssessmentFlowGroup,
   getAssessmentFlowGroupFromAge,
@@ -436,9 +437,12 @@ export default function PHQAPage() {
       setAgeGroup(null);
     }
 
-    // ตรวจสอบ QR code data
-    if (ref) {
-      setReferenceId(ref);
+    // ตรวจสอบ ref จาก QR — ใช้จาก URL ก่อน ถ้าไม่มีค่อยอ่านจาก sessionStorage
+    // เปิด modal ให้กรอกรหัส อสท. ก็ต่อเมื่อไม่พบ ref จากที่ไหนเลย
+    const effectiveRef = ref || peekReferentRef();
+
+    if (effectiveRef) {
+      setReferenceId(effectiveRef);
     } else {
       onOpen();
     }
@@ -1069,6 +1073,8 @@ export default function PHQAPage() {
       const responseData = await response.json();
 
       if (response.ok) {
+        // บันทึกแบบประเมินสำเร็จ — ล้าง ref ที่เก็บไว้ ไม่ให้ค้างไปปนการประเมินรอบถัดไปในแท็บเดิม
+        clearReferentRef();
         setCalculationResult({
           phqa_sum: scoreSum,
           result: responseData.data.result,

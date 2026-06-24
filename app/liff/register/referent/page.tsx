@@ -284,6 +284,7 @@ export default function ReferentPage() {
               setIsLoading(false);
             } else {
               HandleChange({ target: { name: "id", value: String(data) } });
+              generateQR(data);
               onOpen();
             }
           });
@@ -354,10 +355,10 @@ export default function ReferentPage() {
     formRef.current?.reset();
   }, []);
 
-  const generateQR = async () => {
+  const generateQR = async (referentId: number | string) => {
     try {
       const qrCodeUrl = await generateQRCode(
-        "https://liff.line.me/1656886344-OopvvNmA"
+        `https://liff.line.me/1656886344-OopvvNmA/liff/register?ref=${referentId}`
       );
 
       setQrCode(qrCodeUrl);
@@ -377,7 +378,6 @@ export default function ReferentPage() {
     GetvolunteerType();
     GetEmployeeType();
     GetAffiliation();
-    generateQR();
   }, [mode, onOpenModal2]);
 
   return (

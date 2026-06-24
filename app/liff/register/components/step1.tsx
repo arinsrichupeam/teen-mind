@@ -271,6 +271,14 @@ export const Step1 = ({
     HandleChange({ target: { name: "citizenId", value } });
   };
 
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    if (value.length > 0 && value.length < 13) {
+      setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
+    }
+  };
+
   useEffect(() => {
     fetch("/api/data/school")
       .then((res) => res.json())
@@ -299,6 +307,7 @@ export const Step1 = ({
         type="text"
         value={Result?.citizenId ?? ""}
         variant="faded"
+        onBlur={handleBlur}
         onChange={handleChange}
       />
       {isReferentFlow && referentDuplicate && !referentDuplicateHasLine ? (

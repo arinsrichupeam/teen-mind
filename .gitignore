@@ -41,3 +41,7 @@ next-env.d.ts
 
 # local documentation
 /docs
+
+#Claude
+CLAUDE.md
+.claude
