@@ -380,7 +380,7 @@ export const CardUsageStats = ({ data }: CardUsageStatsProps) => {
           <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
             <TableColumn>ปี-เดือน</TableColumn>
             <TableColumn className="text-center">เข้าใช้งาน</TableColumn>
-            <TableColumn className="text-center">ผู้ทำแบบประเมิน</TableColumn>
+            <TableColumn className="text-center">จำนวนแบบประเมิน</TableColumn>
             <TableColumn className="text-center">
               <span className="text-blue-700 font-semibold">ชาย</span>
             </TableColumn>

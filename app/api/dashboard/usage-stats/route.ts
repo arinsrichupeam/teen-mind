@@ -110,21 +110,15 @@ export async function GET() {
     const female = sexGroups.find((g) => g.sex === 2)?._count.id ?? 0;
     const unspecified = sexGroups.find((g) => g.sex === 3)?._count.id ?? 0;
 
-    const profilesWithQuestions = await prisma.profile.findMany({
-      where: {
-        createdAt: {
-          gte: start,
-          lt: end,
-        },
-        questions: {
-          some: {},
-        },
-      },
-      select: { id: true },
+    // ดึง questions ที่ทำในเดือนนั้น (อ้างอิง createdAt ของ questions_Master)
+    const questionsInMonth = await prisma.questions_Master.findMany({
+      where: { createdAt: { gte: start, lt: end } },
+      select: { profileId: true, result: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
     });
 
-    const totalUsers = profilesWithQuestions.length;
-
+    // นับ unique profiles ที่ทำแบบประเมินในเดือนนั้น และเลือก result ล่าสุดต่อ 1 profile
+    const seen = new Set<string>();
     const riskCounts = {
       green: 0,
       greenLow: 0,
@@ -133,37 +127,20 @@ export async function GET() {
       red: 0,
     };
 
-    if (totalUsers > 0) {
-      const profileIds = profilesWithQuestions.map((p) => p.id);
+    for (const q of questionsInMonth) {
+      if (seen.has(q.profileId)) continue;
+      seen.add(q.profileId);
 
-      // ดึงทุกคำตอบ/แบบประเมินของ profile ในเดือนนั้น แล้วเลือก "ล่าสุด" ต่อ 1 profile ด้วยการเรียง createdAt desc
-      const questions = await prisma.questions_Master.findMany({
-        where: { profileId: { in: profileIds } },
-        select: {
-          profileId: true,
-          result: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      const c = getRiskCounts(q.result);
 
-      const seen = new Set<string>();
-
-      for (const q of questions) {
-        if (seen.has(q.profileId)) continue;
-        seen.add(q.profileId);
-
-        const c = getRiskCounts(q.result);
-
-        riskCounts.green += c.green;
-        riskCounts.greenLow += c.greenLow;
-        riskCounts.yellow += c.yellow;
-        riskCounts.orange += c.orange;
-        riskCounts.red += c.red;
-      }
+      riskCounts.green += c.green;
+      riskCounts.greenLow += c.greenLow;
+      riskCounts.yellow += c.yellow;
+      riskCounts.orange += c.orange;
+      riskCounts.red += c.red;
     }
+
+    const totalUsers = questionsInMonth.length;
 
     usageStats.push({
       yearBe,

@@ -22,7 +22,7 @@ import {
   addToast,
   Progress,
 } from "@heroui/react";
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
@@ -52,6 +52,10 @@ export const ModalExportData = ({
 }: ExportModalProps) => {
   const [sourceData, setSourceData] = useState<QuestionsData[]>(data);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [dedupMode, setDedupMode] = useState<"none" | "profile_day" | "profile">(
+    "none"
+  );
+  const allQuestionsRef = useRef<QuestionsData[]>([]);
   const [filters, setFilters] = useState<{
     dateFrom: string;
     dateTo: string;
@@ -73,6 +77,35 @@ export const ModalExportData = ({
   useEffect(() => {
     setSourceData(data);
   }, [data]);
+
+  const applyDedup = useCallback(
+    (questions: QuestionsData[], mode: "none" | "profile_day" | "profile") => {
+      if (mode === "none") return questions;
+
+      const map = new Map<string, QuestionsData>();
+
+      for (const q of questions) {
+        const pid = q.profile?.id;
+
+        if (!pid) continue;
+        const key =
+          mode === "profile_day"
+            ? `${pid}_${new Date(q.createdAt).toISOString().split("T")[0]}`
+            : pid;
+        const existing = map.get(key);
+
+        if (
+          !existing ||
+          new Date(q.createdAt) > new Date(existing.createdAt)
+        ) {
+          map.set(key, q);
+        }
+      }
+
+      return Array.from(map.values());
+    },
+    []
+  );
 
   useEffect(() => {
     const fetchAllQuestionData = async () => {
@@ -107,24 +140,8 @@ export const ModalExportData = ({
           }
         }
 
-        // เก็บเฉพาะ record ล่าสุดต่อ 1 profile
-        const latestPerProfile = new Map<string, QuestionsData>();
-
-        for (const q of allQuestions) {
-          const pid = q.profile?.id;
-
-          if (!pid) continue;
-          const existing = latestPerProfile.get(pid);
-
-          if (
-            !existing ||
-            new Date(q.createdAt) > new Date(existing.createdAt)
-          ) {
-            latestPerProfile.set(pid, q);
-          }
-        }
-
-        setSourceData(Array.from(latestPerProfile.values()));
+        allQuestionsRef.current = allQuestions;
+        setSourceData(applyDedup(allQuestions, dedupMode));
       } catch (error) {
         addToast({
           title: "เกิดข้อผิดพลาด",
@@ -137,6 +154,13 @@ export const ModalExportData = ({
 
     fetchAllQuestionData();
   }, [isOpen, dataType]);
+
+  useEffect(() => {
+    if (allQuestionsRef.current.length > 0) {
+      setSourceData(applyDedup(allQuestionsRef.current, dedupMode));
+      setCurrentPage(1);
+    }
+  }, [dedupMode, applyDedup]);
 
   // กำหนดฟิลด์ที่สามารถ export ได้สำหรับข้อมูลแบบประเมิน
   const getAvailableFields = (): ExportField[] => {
@@ -425,24 +449,15 @@ export const ModalExportData = ({
     []
   );
 
-  const getMainScaleKey = useCallback(
-    (item: QuestionsData): "nineq" | "phqa" => {
-      return item.q9 != null && item.q9.length > 0 ? "nineq" : "phqa";
-    },
-    []
-  );
-
   // ฟังก์ชันสำหรับ filter ข้อมูล
   const getFilteredData = useCallback(() => {
     let filteredData = [...sourceData];
 
     if (filters.dateFrom && filters.dateTo) {
       filteredData = filteredData.filter((item: QuestionsData) => {
-        const itemDate = new Date(item.createdAt);
-        const fromDate = new Date(filters.dateFrom);
-        const toDate = new Date(filters.dateTo);
+        const itemDateStr = new Date(item.createdAt).toISOString().split("T")[0];
 
-        return itemDate >= fromDate && itemDate <= toDate;
+        return itemDateStr >= filters.dateFrom && itemDateStr <= filters.dateTo;
       });
     }
 
@@ -461,11 +476,18 @@ export const ModalExportData = ({
     }
 
     if (filters.ageGroup) {
-      const expectedScale = filters.ageGroup === "under18" ? "phqa" : "nineq";
+      filteredData = filteredData.filter((item: QuestionsData) => {
+        const school = item.profile?.school;
+        const screeningDate =
+          typeof school === "object" && school !== null
+            ? school.screeningDate
+            : undefined;
+        if (!item.profile?.birthday) return false;
 
-      filteredData = filteredData.filter(
-        (item: QuestionsData) => getMainScaleKey(item) === expectedScale
-      );
+        const age = calculateAge(item.profile.birthday, screeningDate);
+
+        return filters.ageGroup === "under18" ? age < 18 : age >= 18;
+      });
     }
 
     if (filters.result.length > 0) {
@@ -475,7 +497,7 @@ export const ModalExportData = ({
     }
 
     return filteredData;
-  }, [sourceData, filters, getMainScaleKey]);
+  }, [sourceData, filters]);
 
   const getFieldValue = (
     item: QuestionsData,
@@ -944,6 +966,34 @@ export const ModalExportData = ({
                           {school.name}
                         </SelectItem>
                       ))}
+                    </Select>
+                  </div>
+
+                  {/* การตัดข้อมูลซ้ำ */}
+                  <div>
+                    <label className="text-sm font-medium" htmlFor="dedupMode">
+                      การตัดข้อมูลซ้ำ
+                    </label>
+                    <Select
+                      selectedKeys={[dedupMode]}
+                      onSelectionChange={(keys) => {
+                        const val = Array.from(keys)[0] as
+                          | "none"
+                          | "profile_day"
+                          | "profile";
+
+                        if (val) setDedupMode(val);
+                      }}
+                    >
+                      <SelectItem key="none">
+                        ไม่กรองข้อมูลซ้ำ (แสดงทุกรายการ)
+                      </SelectItem>
+                      <SelectItem key="profile_day">
+                        1 รายการต่อคนต่อวัน (ล่าสุดในแต่ละวัน)
+                      </SelectItem>
+                      <SelectItem key="profile">
+                        แสดงเฉพาะครั้งล่าสุดต่อคน
+                      </SelectItem>
                     </Select>
                   </div>
 

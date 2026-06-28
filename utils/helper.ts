@@ -473,9 +473,9 @@ export const formatThaiDate = (dateString: string | Date): string => {
       "ธันวาคม",
     ];
 
-    const day = date.getDate();
-    const month = thaiMonths[date.getMonth()];
-    const year = date.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
+    const day = date.getUTCDate();
+    const month = thaiMonths[date.getUTCMonth()];
+    const year = date.getUTCFullYear() + 543;
 
     return `${day} ${month} ${year}`;
   } catch (error) {

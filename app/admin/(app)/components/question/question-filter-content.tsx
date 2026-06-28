@@ -40,13 +40,10 @@ const riskStatusOptions = [
 
 // ระดับจากคะแนน 9Q — ฟิลด์ result ตรงกับ getNineQRiskLevel (ไม่มี Green-Low)
 const nineqStatusOptions = [
-  {
-    name: "ไม่มีอาการของโรคซึมเศร้าหรือมีอาการของโรคซึมเศร้าระดับน้อยมาก",
-    uid: "Green",
-  },
-  { name: "มีอาการของโรคซึมเศร้า ระดับน้อย", uid: "Yellow" },
-  { name: "มีอาการของโรคซึมเศร้า ระดับปานกลาง", uid: "Orange" },
-  { name: "มีอาการของโรคซึมเศร้า ระดับรุนแรง", uid: "Red" },
+  { name: "ไม่มีอาการ / น้อยมาก", uid: "Green" },
+  { name: "ระดับน้อย", uid: "Yellow" },
+  { name: "ระดับปานกลาง", uid: "Orange" },
+  { name: "ระดับรุนแรง", uid: "Red" },
 ];
 
 // ระดับจากคะแนน PHQ-A — ฟิลด์ result ตรงกับ getPhqaRiskLevel
