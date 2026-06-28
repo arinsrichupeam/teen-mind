@@ -33,6 +33,33 @@ export async function GET() {
           createdAt: true,
           result: true,
           result_text: true,
+          q2: {
+            select: {
+              q1: true,
+              q2: true,
+            },
+          },
+          phqa: {
+            select: {
+              sum: true,
+            },
+          },
+          addon: {
+            select: {
+              q1: true,
+              q2: true,
+            },
+          },
+          q9: {
+            select: {
+              sum: true,
+            },
+          },
+          q8: {
+            select: {
+              sum: true,
+            },
+          },
           referent: {
             select: {
               id: true,

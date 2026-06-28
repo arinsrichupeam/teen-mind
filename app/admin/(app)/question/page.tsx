@@ -80,6 +80,7 @@ export default function QuestionPage() {
 
   // เพิ่ม state สำหรับ filter ใหม่
   const [schoolFilter, setSchoolFilter] = useState<string>("");
+  const [hiddenSchools, setHiddenSchools] = useState<Set<string>>(new Set());
   const [nineqResultFilter, setNineqResultFilter] = useState<Selection>(
     new Set([])
   );
@@ -173,6 +174,9 @@ export default function QuestionPage() {
         ? mainScaleFilter
         : "";
 
+    const excludeSchools =
+      hiddenSchools.size > 0 ? Array.from(hiddenSchools).join(",") : "";
+
     return {
       search: filterValue,
       status: statusKey,
@@ -184,6 +188,7 @@ export default function QuestionPage() {
       q8Risk,
       mainScale,
       referentCitizenId,
+      excludeSchools,
     };
   }, [
     filterValue,
@@ -196,6 +201,7 @@ export default function QuestionPage() {
     q8Filter,
     mainScaleFilter,
     referentCitizenId,
+    hiddenSchools,
   ]);
 
   const { data, mutate } = useSWR(
@@ -219,6 +225,8 @@ export default function QuestionPage() {
         if (key.mainScale) params.set("mainScale", key.mainScale);
         if (key.referentCitizenId)
           params.set("referentCitizenId", key.referentCitizenId);
+        if (key.excludeSchools)
+          params.set("excludeSchools", key.excludeSchools);
 
         const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },
@@ -282,6 +290,10 @@ export default function QuestionPage() {
   }, []);
   const setSchoolFilterAndResetPage = useCallback((s: string) => {
     setSchoolFilter(s);
+    setPage(1);
+  }, []);
+  const setHiddenSchoolsAndResetPage = useCallback((s: Set<string>) => {
+    setHiddenSchools(s);
     setPage(1);
   }, []);
   const setNineqResultFilterAndResetPage = useCallback((s: Selection) => {
@@ -680,6 +692,7 @@ export default function QuestionPage() {
         data={questionsList}
         filterValue={filterValue}
         filteredData={questionsList}
+        hiddenSchools={hiddenSchools}
         mainScaleFilter={mainScaleFilter}
         nineqResultFilter={nineqResultFilter}
         phqaResultFilter={phqaResultFilter}
@@ -687,6 +700,7 @@ export default function QuestionPage() {
         q8Filter={q8Filter}
         schoolFilter={schoolFilter}
         setAddonFilter={setAddonFilterAndResetPage}
+        setHiddenSchools={setHiddenSchoolsAndResetPage}
         setMainScaleFilter={setMainScaleFilterAndResetPage}
         setNineqResultFilter={setNineqResultFilterAndResetPage}
         setPhqaResultFilter={setPhqaResultFilterAndResetPage}
@@ -704,6 +718,8 @@ export default function QuestionPage() {
       onSearchChange,
       statusFilter,
       setStatusFilterAndResetPage,
+      hiddenSchools,
+      setHiddenSchoolsAndResetPage,
       schoolFilter,
       setSchoolFilterAndResetPage,
       nineqResultFilter,

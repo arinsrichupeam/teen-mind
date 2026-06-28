@@ -27,7 +27,14 @@ import { ModalAddQuestion } from "../../components/modal/modal-add-question";
 
 import { LineIcon } from "@/components/icons";
 import { prefix } from "@/utils/data";
-import { formatThaiDateTime, formatThaiDate } from "@/utils/helper";
+import {
+  formatThaiDateTime,
+  formatThaiDate,
+  getPhqaRiskLevel,
+  getPhqaRiskText,
+  getNineQRiskLevel,
+  getNineQRiskText,
+} from "@/utils/helper";
 
 interface Provinces {
   id: number;
@@ -64,6 +71,11 @@ interface UserData {
     createdAt: string;
     result: string;
     result_text?: string;
+    q2?: { q1: number; q2: number }[];
+    phqa?: { sum: number }[];
+    addon?: { q1: number; q2: number }[];
+    q9?: { sum: number }[];
+    q8?: { sum: number }[];
     referent?: {
       id: number;
       firstname: string;
@@ -225,6 +237,23 @@ export default function UserDetailDrawer({
       });
     } finally {
       setIsResettingLine(false);
+    }
+  };
+
+  const resultToColor = (
+    result: string
+  ): "success" | "warning" | "danger" | "default" => {
+    switch (result) {
+      case "Green":
+      case "Green-Low":
+        return "success";
+      case "Yellow":
+      case "Orange":
+        return "warning";
+      case "Red":
+        return "danger";
+      default:
+        return "default";
     }
   };
 
@@ -451,49 +480,126 @@ export default function UserDetailDrawer({
                     const formattedDate = formatThaiDateTime(
                       question.createdAt
                     );
-                    const getResultColor = (result: string) => {
-                      switch (result) {
-                        case "Green":
-                        case "Green-Low":
-                          return "success";
-                        case "Yellow":
-                        case "Orange":
-                          return "warning";
-                        case "Red":
-                          return "danger";
-                        default:
-                          return "default";
-                      }
-                    };
 
                     return (
                       <div
                         key={question.id}
-                        className="flex flex-col md:flex-row items-center justify-between gap-2 p-2 bg-default-100 rounded-md border border-default-200"
+                        className="flex flex-col md:flex-row items-start justify-between gap-2 p-2 bg-default-100 rounded-md border border-default-200"
                       >
-                        <div className="flex flex-col md:flex-row md:items-center flex-1 gap-2">
-                          <span className="text-sm text-default-600">
-                            {formattedDate}
-                          </span>
-                          <Chip
-                            className="text-sm"
-                            color={getResultColor(question.result)}
-                            size="sm"
-                            variant="flat"
-                          >
-                            {question.result_text || question.result}
-                          </Chip>
-                          {question.referent && (
-                            <span className="text-xs text-default-500">
-                              ผู้แนะนำ: {question.referent.firstname}{" "}
-                              {question.referent.lastname}
-                              {question.referent.affiliation && (
-                                <span className="ml-1">
-                                  ({question.referent.affiliation.name})
-                                </span>
-                              )}
+                        <div className="flex flex-col flex-1 gap-1">
+                          <div className="flex flex-col md:flex-row md:items-center gap-2">
+                            <span className="text-sm text-default-600">
+                              {formattedDate}
                             </span>
-                          )}
+                            {question.referent && (
+                              <span className="text-xs text-default-500">
+                                ผู้แนะนำ: {question.referent.firstname}{" "}
+                                {question.referent.lastname}
+                                {question.referent.affiliation && (
+                                  <span className="ml-1">
+                                    ({question.referent.affiliation.name})
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          {question.q2?.length ||
+                          question.phqa?.length ||
+                          question.addon?.length ||
+                          question.q9?.length ||
+                          question.q8?.length ? (
+                            <div className="flex flex-wrap gap-2 mt-0.5">
+                              {question.q2?.[0] &&
+                                (() => {
+                                  const score =
+                                    question.q2[0].q1 + question.q2[0].q2;
+
+                                  return (
+                                    <Chip
+                                      color={
+                                        score === 0 ? "success" : "warning"
+                                      }
+                                      size="sm"
+                                      variant="flat"
+                                    >
+                                      2Q: {score} คะแนน
+                                      {" · "}
+                                      {score === 0
+                                        ? "ไม่พบความเสี่ยง"
+                                        : "พบความเสี่ยง"}
+                                    </Chip>
+                                  );
+                                })()}
+                              {question.q9?.[0] ? (
+                                <Chip
+                                  color={resultToColor(
+                                    getNineQRiskLevel(question.q9[0].sum)
+                                  )}
+                                  size="sm"
+                                  variant="flat"
+                                >
+                                  9Q: {question.q9[0].sum} คะแนน
+                                  {" · "}
+                                  {getNineQRiskText(question.q9[0].sum)}
+                                </Chip>
+                              ) : (
+                                <>
+                                  {question.phqa?.[0] && (
+                                    <Chip
+                                      color={resultToColor(
+                                        getPhqaRiskLevel(question.phqa[0].sum)
+                                      )}
+                                      size="sm"
+                                      variant="flat"
+                                    >
+                                      PHQ-A: {question.phqa[0].sum} คะแนน
+                                      {" · "}
+                                      {getPhqaRiskText(question.phqa[0].sum)}
+                                    </Chip>
+                                  )}
+                                  {question.addon?.[0] &&
+                                    (() => {
+                                      const score =
+                                        question.addon[0].q1 +
+                                        question.addon[0].q2;
+
+                                      return (
+                                        <Chip
+                                          color={
+                                            score === 0 ? "success" : "warning"
+                                          }
+                                          size="sm"
+                                          variant="flat"
+                                        >
+                                          Addon: {score} คะแนน
+                                          {" · "}
+                                          {score === 0
+                                            ? "ไม่พบความเสี่ยง"
+                                            : "พบความเสี่ยง"}
+                                        </Chip>
+                                      );
+                                    })()}
+                                </>
+                              )}
+                              {question.q8?.[0] && (
+                                <Chip
+                                  color={
+                                    question.q8[0].sum > 0
+                                      ? "danger"
+                                      : "success"
+                                  }
+                                  size="sm"
+                                  variant="flat"
+                                >
+                                  8Q: {question.q8[0].sum} คะแนน
+                                  {" · "}
+                                  {question.q8[0].sum > 0
+                                    ? "พบความเสี่ยง"
+                                    : "ไม่พบความเสี่ยง"}
+                                </Chip>
+                              )}
+                            </div>
+                          ) : null}
                         </div>
                         {mode === "edit" && (
                           <Button

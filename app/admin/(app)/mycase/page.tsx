@@ -90,6 +90,7 @@ export default function MyCasePage() {
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
   const [q8Filter, setQ8Filter] = useState<Selection>(new Set([]));
   const [mainScaleFilter, setMainScaleFilter] = useState<string>("all");
+  const [hiddenSchools, setHiddenSchools] = useState<Set<string>>(new Set());
 
   const consultUserId = session?.user?.id ?? "";
 
@@ -134,6 +135,9 @@ export default function MyCasePage() {
         ? mainScaleFilter
         : "";
 
+    const excludeSchools =
+      hiddenSchools.size > 0 ? Array.from(hiddenSchools).join(",") : "";
+
     return {
       search: filterValue,
       status: statusKey,
@@ -144,6 +148,7 @@ export default function MyCasePage() {
       addonRisk,
       q8Risk,
       mainScale,
+      excludeSchools,
     };
   }, [
     filterValue,
@@ -155,6 +160,7 @@ export default function MyCasePage() {
     addonFilter,
     q8Filter,
     mainScaleFilter,
+    hiddenSchools,
   ]);
 
   const { data, mutate } = useSWR(
@@ -179,6 +185,7 @@ export default function MyCasePage() {
         if (key.addonRisk) params.set("addonRisk", key.addonRisk);
         if (key.q8Risk) params.set("q8Risk", key.q8Risk);
         if (key.mainScale) params.set("mainScale", key.mainScale);
+        if (key.excludeSchools) params.set("excludeSchools", key.excludeSchools);
 
         const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },
@@ -306,6 +313,10 @@ export default function MyCasePage() {
     setMainScaleFilter(s);
     setPage(1);
   }, []);
+  const setHiddenSchoolsAndResetPage = useCallback((s: Set<string>) => {
+    setHiddenSchools(s);
+    setPage(1);
+  }, []);
 
   const topContent = useMemo(
     () => (
@@ -314,6 +325,7 @@ export default function MyCasePage() {
         data={questionsList}
         filterValue={filterValue}
         filteredData={questionsList}
+        hiddenSchools={hiddenSchools}
         mainScaleFilter={mainScaleFilter}
         nineqResultFilter={nineqResultFilter}
         phqaResultFilter={phqaResultFilter}
@@ -321,6 +333,7 @@ export default function MyCasePage() {
         q8Filter={q8Filter}
         schoolFilter={schoolFilter}
         setAddonFilter={setAddonFilterAndResetPage}
+        setHiddenSchools={setHiddenSchoolsAndResetPage}
         setMainScaleFilter={setMainScaleFilterAndResetPage}
         setNineqResultFilter={setNineqResultFilterAndResetPage}
         setPhqaResultFilter={setPhqaResultFilterAndResetPage}
@@ -338,6 +351,8 @@ export default function MyCasePage() {
       onSearchChange,
       statusFilter,
       setStatusFilterAndResetPage,
+      hiddenSchools,
+      setHiddenSchoolsAndResetPage,
       schoolFilter,
       setSchoolFilterAndResetPage,
       nineqResultFilter,

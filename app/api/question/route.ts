@@ -46,6 +46,14 @@ function buildWhereFromQuery(url: URL) {
   const addonRisk = url.searchParams.get("addonRisk");
   const q8Risk = url.searchParams.get("q8Risk");
   const mainScale = url.searchParams.get("mainScale")?.trim() || "";
+  const excludeSchoolsParam =
+    url.searchParams.get("excludeSchools")?.trim() || "";
+  const excludeSchoolsArray = excludeSchoolsParam
+    ? excludeSchoolsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
   const statusArray =
     statusParam && statusParam !== "all"
@@ -96,6 +104,12 @@ function buildWhereFromQuery(url: URL) {
 
   if (statusArray.length > 0) {
     whereConditions.push({ status: { in: statusArray } });
+  }
+
+  if (excludeSchoolsArray.length > 0) {
+    whereConditions.push({
+      NOT: { profile: { school: { name: { in: excludeSchoolsArray } } } },
+    });
   }
 
   if (referentCitizenId) {

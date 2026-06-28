@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Input,
@@ -11,6 +11,9 @@ import {
   Chip,
   Autocomplete,
   AutocompleteItem,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
   Selection,
   addToast,
 } from "@heroui/react";
@@ -18,6 +21,8 @@ import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
   BuildingOfficeIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
@@ -79,6 +84,8 @@ interface QuestionFilterContentProps {
   setAddonFilter: (filter: Selection) => void;
   mainScaleFilter: string;
   setMainScaleFilter: (value: string) => void;
+  hiddenSchools: Set<string>;
+  setHiddenSchools: (schools: Set<string>) => void;
   data?: QuestionsData[];
   filteredData?: QuestionsData[];
   onDataUpdate?: () => void;
@@ -103,10 +110,14 @@ export function QuestionFilterContent({
   setAddonFilter,
   mainScaleFilter,
   setMainScaleFilter,
+  hiddenSchools,
+  setHiddenSchools,
   data,
   filteredData,
   // onDataUpdate,
 }: QuestionFilterContentProps) {
+  const [schoolSearch, setSchoolSearch] = useState("");
+
   // ดึงข้อมูลโรงเรียน
   const { data: schoolsData } = useSWR(
     "/api/data/school",
@@ -158,32 +169,127 @@ export function QuestionFilterContent({
               onValueChange={onSearchChange}
             />
 
-            <Autocomplete
-              classNames={{
-                base: "w-full shadow-sm",
-                selectorButton: "min-w-9 w-9",
-              }}
-              inputProps={{
-                classNames: {
-                  input: "text-small",
-                  inputWrapper: "min-h-9 h-9",
-                },
-              }}
-              placeholder="เลือกโรงเรียน"
-              selectedKey={schoolFilter}
-              size="sm"
-              startContent={
-                <BuildingOfficeIcon className="size-4 text-default-400" />
-              }
-              variant="bordered"
-              onSelectionChange={(key) => setSchoolFilter(key as string)}
-            >
-              {schoolsData?.map((school: { id: number; name: string }) => (
-                <AutocompleteItem key={school.name}>
-                  {school.name}
-                </AutocompleteItem>
-              ))}
-            </Autocomplete>
+            <div className="flex w-full items-center gap-1">
+              <Autocomplete
+                classNames={{
+                  base: "w-full shadow-sm",
+                  selectorButton: "min-w-9 w-9",
+                }}
+                inputProps={{
+                  classNames: {
+                    input: "text-small",
+                    inputWrapper: "min-h-9 h-9",
+                  },
+                }}
+                placeholder="เลือกโรงเรียน"
+                selectedKey={schoolFilter}
+                size="sm"
+                startContent={
+                  <BuildingOfficeIcon className="size-4 text-default-400" />
+                }
+                variant="bordered"
+                onSelectionChange={(key) => setSchoolFilter(key as string)}
+              >
+                {(
+                  schoolsData?.filter(
+                    (s: { id: number; name: string }) =>
+                      !hiddenSchools.has(s.name)
+                  ) ?? []
+                ).map((school: { id: number; name: string }) => (
+                  <AutocompleteItem key={school.name} textValue={school.name}>
+                    {school.name}
+                  </AutocompleteItem>
+                ))}
+              </Autocomplete>
+
+              <Popover placement="bottom-end">
+                <PopoverTrigger>
+                  <Button
+                    isIconOnly
+                    className="shrink-0"
+                    size="sm"
+                    variant="flat"
+                  >
+                    {hiddenSchools.size > 0 ? (
+                      <EyeSlashIcon className="size-4 text-warning-500" />
+                    ) : (
+                      <EyeIcon className="size-4 text-default-500" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0">
+                  <div className="flex w-64 flex-col">
+                    <div className="flex flex-col gap-1.5 border-b border-divider px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-default-600">
+                          แสดง/ซ่อนโรงเรียน
+                        </p>
+                        {hiddenSchools.size > 0 && (
+                          <button
+                            className="text-xs text-primary hover:underline"
+                            type="button"
+                            onClick={() => setHiddenSchools(new Set())}
+                          >
+                            แสดงทั้งหมด ({hiddenSchools.size})
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        className="w-full rounded border border-divider px-2 py-1 text-small outline-none focus:border-primary"
+                        placeholder="ค้นหาโรงเรียน..."
+                        type="text"
+                        value={schoolSearch}
+                        onChange={(e) => setSchoolSearch(e.target.value)}
+                      />
+                    </div>
+                    <ul className="max-h-60 overflow-y-auto py-1">
+                      {schoolsData
+                        ?.filter((s: { id: number; name: string }) =>
+                          s.name
+                            .toLowerCase()
+                            .includes(schoolSearch.toLowerCase())
+                        )
+                        .map((school: { id: number; name: string }) => {
+                          const isHidden = hiddenSchools.has(school.name);
+
+                          return (
+                            <li
+                              key={school.name}
+                              className="flex items-center justify-between gap-2 px-3 py-1.5 hover:bg-default-100"
+                            >
+                              <span
+                                className={`text-small ${isHidden ? "text-default-300 line-through" : "text-default-700"}`}
+                              >
+                                {school.name}
+                              </span>
+                              <button
+                                className="shrink-0 rounded p-0.5 text-default-400 hover:text-default-700"
+                                type="button"
+                                onClick={() => {
+                                  const next = new Set(hiddenSchools);
+
+                                  if (isHidden) {
+                                    next.delete(school.name);
+                                  } else {
+                                    next.add(school.name);
+                                  }
+                                  setHiddenSchools(next);
+                                }}
+                              >
+                                {isHidden ? (
+                                  <EyeSlashIcon className="size-3.5" />
+                                ) : (
+                                  <EyeIcon className="size-3.5" />
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* แถวที่ 2: ชุดคำถามหลัก + สถานะ + ระดับคะแนน + 2Q/8Q/Addon */}
@@ -665,6 +771,9 @@ export function QuestionFilterContent({
       addonFilter,
       mainScaleFilter,
       schoolsData,
+      hiddenSchools,
+      setHiddenSchools,
+      schoolSearch,
       setStatusFilter,
       setSchoolFilter,
       setNineqResultFilter,
