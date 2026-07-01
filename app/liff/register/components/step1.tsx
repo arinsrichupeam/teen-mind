@@ -77,6 +77,8 @@ export const Step1 = ({
   const [isLinkingLine, setIsLinkingLine] = useState(false);
   const [linkError, setLinkError] = useState("");
   const latestCitizenIdRef = useRef("");
+  const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isCheckingCitizenId, setIsCheckingCitizenId] = useState(false);
   const {
     isOpen: isLinkLineModalOpen,
     onOpen: onOpenLinkLineModal,
@@ -246,22 +248,32 @@ export const Step1 = ({
     [HandleChange]
   );
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
     if (!/^\d*$/.test(value)) {
       return;
     }
 
-    if (value.length === 13) {
-      const isValid = await validateCitizenId(value);
+    if (citizenIdTimerRef.current) {
+      clearTimeout(citizenIdTimerRef.current);
+      citizenIdTimerRef.current = null;
+    }
 
-      if (isValid) {
-        await searchAndSetHn(value);
-      } else {
-        HandleChange({ target: { name: "hn", value: "" } });
-      }
+    if (value.length === 13) {
+      setIsCheckingCitizenId(true);
+      citizenIdTimerRef.current = setTimeout(async () => {
+        setIsCheckingCitizenId(false);
+        const isValid = await validateCitizenId(value);
+
+        if (isValid) {
+          await searchAndSetHn(value);
+        } else {
+          HandleChange({ target: { name: "hn", value: "" } });
+        }
+      }, 500);
     } else {
+      setIsCheckingCitizenId(false);
       setError("");
       setReferentDuplicate(false);
       setReferentDuplicateHasLine(false);
@@ -287,6 +299,14 @@ export const Step1 = ({
       });
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (citizenIdTimerRef.current) {
+        clearTimeout(citizenIdTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Form
       className="flex flex-col gap-4 w-full text-start"
@@ -294,6 +314,7 @@ export const Step1 = ({
       onSubmit={onSubmit}
     >
       <Input
+        description={isCheckingCitizenId ? "กำลังตรวจสอบ..." : undefined}
         errorMessage={error}
         isInvalid={!!error}
         isRequired={request}
@@ -467,7 +488,7 @@ export const Step1 = ({
         labelPlacement="inside"
         menuTrigger="input"
         name="school"
-        placeholder="โรงเรียน"
+        placeholder="โรงเรียน (กรณีที่เป็นนักเรียน)"
         radius="md"
         scrollShadowProps={{
           isEnabled: false,

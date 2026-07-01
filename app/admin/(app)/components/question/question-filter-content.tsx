@@ -28,7 +28,7 @@ import useSWR from "swr";
 
 import { questionStatusOptions as options } from "../../data/optionData";
 import { ExportButton } from "../export-button";
-// import { StatusUpdateButton } from "../status-update-button";
+import { StatusUpdateButton } from "../status-update-button";
 
 import { QuestionsData } from "@/types";
 
@@ -111,7 +111,7 @@ export function QuestionFilterContent({
   setHiddenSchools,
   data,
   filteredData,
-  // onDataUpdate,
+  onDataUpdate,
 }: QuestionFilterContentProps) {
   const [schoolSearch, setSchoolSearch] = useState("");
 
@@ -535,9 +535,7 @@ export function QuestionFilterContent({
               </Button>
 
               {/* ปุ่มปรับสถานะ */}
-              {/* {data && (
-                <StatusUpdateButton data={data} onDataUpdate={onDataUpdate} />
-              )} */}
+              <StatusUpdateButton onDataUpdate={onDataUpdate} />
 
               {/* Export Button */}
               {data && <ExportButton data={data} />}

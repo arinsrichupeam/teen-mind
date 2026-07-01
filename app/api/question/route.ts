@@ -36,6 +36,13 @@ function buildWhereFromQuery(url: URL) {
   const search = url.searchParams.get("search")?.trim() || "";
   const statusParam = url.searchParams.get("status");
   const school = url.searchParams.get("school")?.trim() || "";
+  const schoolsParam = url.searchParams.get("schools")?.trim() || "";
+  const schoolsArray = schoolsParam
+    ? schoolsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
   const referentCitizenId =
     url.searchParams.get("referentCitizenId")?.trim() || "";
   const consultUserId = url.searchParams.get("consult")?.trim() || "";
@@ -95,6 +102,9 @@ function buildWhereFromQuery(url: URL) {
   }
   if (school) {
     profileConditions.push({ school: { name: school } });
+  }
+  if (schoolsArray.length > 0) {
+    profileConditions.push({ school: { name: { in: schoolsArray } } });
   }
   if (profileConditions.length === 1) {
     whereConditions.push({ profile: profileConditions[0] });

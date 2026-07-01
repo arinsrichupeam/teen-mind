@@ -8,16 +8,14 @@ import { useEffect, useState } from "react";
 
 import { ModalStatusUpdate } from "./modal/modal-status-update";
 
-import { ProfileAdminData, QuestionsData } from "@/types";
+import { ProfileAdminData } from "@/types";
 
 interface StatusUpdateButtonProps {
-  data: QuestionsData[];
-  showForAllRoles?: boolean; // ถ้าเป็น true จะแสดงสำหรับทุก role
+  showForAllRoles?: boolean;
   onDataUpdate?: () => void;
 }
 
 export const StatusUpdateButton = ({
-  data,
   showForAllRoles = false,
   onDataUpdate,
 }: StatusUpdateButtonProps) => {
@@ -26,63 +24,48 @@ export const StatusUpdateButton = ({
   const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
     null
   );
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   // ดึงข้อมูล admin profile จาก sessionStorage หรือ API
   useEffect(() => {
-    const getAdminProfile = () => {
-      // ตรวจสอบจาก sessionStorage ก่อน
+    const getAdminProfile = async () => {
       const storedProfile = sessionStorage.getItem("adminProfile");
 
       if (storedProfile) {
         setAdminProfile(JSON.parse(storedProfile));
+        setIsLoadingProfile(false);
 
         return;
       }
 
-      // ถ้าไม่มีใน sessionStorage ให้ดึงจาก API
-      const fetchAdminProfile = async () => {
-        if (session?.user?.id) {
-          try {
-            const response = await fetch(
-              `/api/profile/admin/${session.user.id}`
-            );
+      if (session?.user?.id) {
+        try {
+          const response = await fetch(`/api/profile/admin/${session.user.id}`);
 
-            if (response.ok) {
-              const profileData = await response.json();
+          if (response.ok) {
+            const profileData = await response.json();
 
-              setAdminProfile(profileData);
-              // บันทึกลง sessionStorage
-              sessionStorage.setItem(
-                "adminProfile",
-                JSON.stringify(profileData)
-              );
-            }
-          } catch (error) {
-            addToast({
-              title: "เกิดข้อผิดพลาด",
-              description: "ไม่สามารถดึงข้อมูลผู้ใช้งานได้" + error,
-              color: "danger",
-            });
+            setAdminProfile(profileData);
+            sessionStorage.setItem("adminProfile", JSON.stringify(profileData));
           }
+        } catch (error) {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: "ไม่สามารถดึงข้อมูลผู้ใช้งานได้" + error,
+            color: "danger",
+          });
+        } finally {
+          setIsLoadingProfile(false);
         }
-      };
-
-      fetchAdminProfile();
+      }
     };
 
     getAdminProfile();
   }, [session?.user?.id]);
 
-  // ตรวจสอบว่าเป็น admin หรือไม่ (roleId === 4 หรือ roleId === 3)
   const isAdmin = adminProfile?.roleId === 4 || adminProfile?.roleId === 3;
 
-  // แสดง loading state ขณะดึงข้อมูล profile
-  if (!adminProfile && !showForAllRoles) {
-    return null;
-  }
-
-  // ถ้าไม่ใช่ admin และไม่ได้ตั้งค่าให้แสดงสำหรับทุก role
-  if (!isAdmin && !showForAllRoles) {
+  if (!isLoadingProfile && !isAdmin && !showForAllRoles) {
     return null;
   }
 
@@ -91,9 +74,14 @@ export const StatusUpdateButton = ({
       <Button
         className="w-full sm:w-auto min-h-8 h-8 px-3 text-small shadow-sm"
         color="primary"
-        isDisabled={false}
+        isDisabled={isLoadingProfile}
+        isLoading={isLoadingProfile}
         size="sm"
-        startContent={<Cog6ToothIcon className="size-3.5 shrink-0" />}
+        startContent={
+          !isLoadingProfile ? (
+            <Cog6ToothIcon className="size-3.5 shrink-0" />
+          ) : undefined
+        }
         variant="bordered"
         onPress={onOpen}
       >
@@ -101,7 +89,6 @@ export const StatusUpdateButton = ({
       </Button>
 
       <ModalStatusUpdate
-        data={data}
         isOpen={isOpen}
         onClose={onClose}
         onDataUpdate={onDataUpdate}

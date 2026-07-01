@@ -19,11 +19,15 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Chip,
   addToast,
   Progress,
 } from "@heroui/react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import * as XLSX from "xlsx";
 import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
 
@@ -52,9 +56,9 @@ export const ModalExportData = ({
 }: ExportModalProps) => {
   const [sourceData, setSourceData] = useState<QuestionsData[]>(data);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [dedupMode, setDedupMode] = useState<"none" | "profile_day" | "profile">(
-    "none"
-  );
+  const [dedupMode, setDedupMode] = useState<
+    "none" | "profile_day" | "profile"
+  >("none");
   const allQuestionsRef = useRef<QuestionsData[]>([]);
   const [filters, setFilters] = useState<{
     dateFrom: string;
@@ -70,6 +74,7 @@ export const ModalExportData = ({
     result: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [schoolSearch, setSchoolSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const rowsPerPage = 10;
@@ -94,10 +99,7 @@ export const ModalExportData = ({
             : pid;
         const existing = map.get(key);
 
-        if (
-          !existing ||
-          new Date(q.createdAt) > new Date(existing.createdAt)
-        ) {
+        if (!existing || new Date(q.createdAt) > new Date(existing.createdAt)) {
           map.set(key, q);
         }
       }
@@ -455,7 +457,9 @@ export const ModalExportData = ({
 
     if (filters.dateFrom && filters.dateTo) {
       filteredData = filteredData.filter((item: QuestionsData) => {
-        const itemDateStr = new Date(item.createdAt).toISOString().split("T")[0];
+        const itemDateStr = new Date(item.createdAt)
+          .toISOString()
+          .split("T")[0];
 
         return itemDateStr >= filters.dateFrom && itemDateStr <= filters.dateTo;
       });
@@ -482,6 +486,7 @@ export const ModalExportData = ({
           typeof school === "object" && school !== null
             ? school.screeningDate
             : undefined;
+
         if (!item.profile?.birthday) return false;
 
         const age = calculateAge(item.profile.birthday, screeningDate);
@@ -766,18 +771,18 @@ export const ModalExportData = ({
       // สร้าง Excel file
       setExportProgress(90);
 
+      const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(processedData);
 
-      // ตั้งค่าความกว้างคอลัมน์
-      const colWidths = selectedFields.map((field) => {
-        const fieldLabel =
-          availableFields.find((f) => f.key === field)?.label || field;
+      const headers = selectedFields.map(
+        (field) => availableFields.find((f) => f.key === field)?.label || field
+      );
 
-        return { wch: Math.max(fieldLabel.length, 15) };
-      });
+      ws["!cols"] = headers.map((label) => ({
+        wch: Math.max(label.length + 4, 18),
+      }));
 
-      ws["!cols"] = colWidths;
       XLSX.utils.book_append_sheet(wb, ws, `${dataType}_data`);
 
       setExportProgress(95);
@@ -944,29 +949,143 @@ export const ModalExportData = ({
                     </Select>
                   </div>
 
-                  {/* โรงเรียน (multi-select) */}
+                  {/* โรงเรียน (multi-select with search) */}
                   <div>
                     <label className="text-sm font-medium" htmlFor="schools">
                       โรงเรียน
                     </label>
-                    <Select
-                      placeholder="เลือกโรงเรียน"
-                      selectedKeys={new Set(filters.schools)}
-                      selectionMode="multiple"
-                      onSelectionChange={(keys) => {
-                        handleFilterChange(
-                          "schools",
-                          Array.from(keys) as string[]
-                        );
-                      }}
-                    >
-                      <SelectItem key="__none__">ไม่ระบุ</SelectItem>
-                      {schools?.map((school: { id: number; name: string }) => (
-                        <SelectItem key={school.id.toString()}>
-                          {school.name}
-                        </SelectItem>
-                      ))}
-                    </Select>
+                    <Popover placement="bottom-start">
+                      <PopoverTrigger>
+                        <Button
+                          className="w-full justify-between font-normal"
+                          endContent={
+                            <ChevronDownIcon className="size-4 shrink-0 text-default-400" />
+                          }
+                          variant="bordered"
+                        >
+                          <span className="truncate text-left text-small text-default-500">
+                            {filters.schools.length > 0
+                              ? `เลือก ${filters.schools.length} โรงเรียน`
+                              : "เลือกโรงเรียน"}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-96 p-0">
+                        <div className="flex flex-col">
+                          <div className="border-b border-divider px-3 py-2">
+                            <input
+                              className="w-full rounded border border-divider px-2 py-1 text-small outline-none focus:border-primary"
+                              placeholder="ค้นหาโรงเรียน..."
+                              type="text"
+                              value={schoolSearch}
+                              onChange={(e) => setSchoolSearch(e.target.value)}
+                            />
+                          </div>
+                          {filters.schools.length > 0 && (
+                            <div className="flex justify-end border-b border-divider px-3 py-1">
+                              <button
+                                className="text-xs text-danger hover:underline"
+                                type="button"
+                                onClick={() =>
+                                  handleFilterChange("schools", [])
+                                }
+                              >
+                                ล้าง ({filters.schools.length})
+                              </button>
+                            </div>
+                          )}
+                          <ul
+                            aria-multiselectable="true"
+                            className="max-h-60 overflow-y-auto py-1"
+                            role="listbox"
+                          >
+                            {!schoolSearch && (
+                              <li
+                                aria-selected={filters.schools.includes(
+                                  "__none__"
+                                )}
+                                className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-default-100"
+                                role="option"
+                                onClick={() => {
+                                  const current = filters.schools;
+                                  const next = current.includes("__none__")
+                                    ? current.filter((s) => s !== "__none__")
+                                    : [...current, "__none__"];
+
+                                  handleFilterChange("schools", next);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    const current = filters.schools;
+                                    const next = current.includes("__none__")
+                                      ? current.filter((s) => s !== "__none__")
+                                      : [...current, "__none__"];
+
+                                    handleFilterChange("schools", next);
+                                  }
+                                }}
+                              >
+                                <input
+                                  readOnly
+                                  checked={filters.schools.includes("__none__")}
+                                  className="accent-primary"
+                                  type="checkbox"
+                                />
+                                <span className="text-small">ไม่ระบุ</span>
+                              </li>
+                            )}
+                            {schools
+                              ?.filter((s: { id: number; name: string }) =>
+                                s.name
+                                  .toLowerCase()
+                                  .includes(schoolSearch.toLowerCase())
+                              )
+                              .map((school: { id: number; name: string }) => {
+                                const key = school.id.toString();
+
+                                return (
+                                  <li
+                                    key={school.id}
+                                    aria-selected={filters.schools.includes(
+                                      key
+                                    )}
+                                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-default-100"
+                                    role="option"
+                                    onClick={() => {
+                                      const current = filters.schools;
+                                      const next = current.includes(key)
+                                        ? current.filter((s) => s !== key)
+                                        : [...current, key];
+
+                                      handleFilterChange("schools", next);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        const current = filters.schools;
+                                        const next = current.includes(key)
+                                          ? current.filter((s) => s !== key)
+                                          : [...current, key];
+
+                                        handleFilterChange("schools", next);
+                                      }
+                                    }}
+                                  >
+                                    <input
+                                      readOnly
+                                      checked={filters.schools.includes(key)}
+                                      className="accent-primary"
+                                      type="checkbox"
+                                    />
+                                    <span className="text-small">
+                                      {school.name}
+                                    </span>
+                                  </li>
+                                );
+                              })}
+                          </ul>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* การตัดข้อมูลซ้ำ */}
@@ -1019,6 +1138,50 @@ export const ModalExportData = ({
                     </Select>
                   </div>
                 </div>
+
+                {/* chips โรงเรียนที่เลือก */}
+                {filters.schools.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {filters.schools.includes("__none__") && (
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        onClose={() =>
+                          handleFilterChange(
+                            "schools",
+                            filters.schools.filter((s) => s !== "__none__")
+                          )
+                        }
+                      >
+                        ไม่ระบุ
+                      </Chip>
+                    )}
+                    {filters.schools
+                      .filter((s) => s !== "__none__")
+                      .map((key) => {
+                        const school = schools?.find(
+                          (s: { id: number; name: string }) =>
+                            s.id.toString() === key
+                        );
+
+                        return (
+                          <Chip
+                            key={key}
+                            size="sm"
+                            variant="flat"
+                            onClose={() =>
+                              handleFilterChange(
+                                "schools",
+                                filters.schools.filter((s) => s !== key)
+                              )
+                            }
+                          >
+                            {school?.name ?? key}
+                          </Chip>
+                        );
+                      })}
+                  </div>
+                )}
               </CardBody>
             </Card>
 

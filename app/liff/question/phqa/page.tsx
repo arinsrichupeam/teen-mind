@@ -1318,7 +1318,7 @@ export default function PHQAPage() {
             size="sm"
             onClose={() => {
               setCalculationResult(null);
-              router.push("/liff");
+              router.push(profileId ? "/liff/referent" : "/liff");
             }}
           >
             <ModalContent>
@@ -1384,7 +1384,7 @@ export default function PHQAPage() {
                       variant="solid"
                       onPress={() => {
                         setIsNavigating(true);
-                        router.push("/liff");
+                        router.push(profileId ? "/liff/referent" : "/liff");
                       }}
                     >
                       กลับหน้าหลัก

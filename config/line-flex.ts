@@ -48,29 +48,6 @@ export const GreenFlex: FlexMessage = {
             },
           ],
         },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษากดปุ่มด้านล่าง",
-              weight: "bold",
-              align: "center",
-              wrap: true,
-            },
-            {
-              type: "button",
-              action: {
-                type: "message",
-                label: "ขอรับคำปรึกษา",
-                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
-              },
-              style: "primary",
-            },
-          ],
-        },
       },
       {
         type: "bubble",
@@ -419,29 +396,6 @@ export const GreenLowFlex: FlexMessage = {
             {
               type: "separator",
               margin: "xxl",
-            },
-          ],
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "text",
-              text: "หากต้องการข้อมูลเพิ่มเติม หรือต้องการปรึกษา กดปุ่มด้านล่าง",
-              weight: "bold",
-              align: "center",
-              wrap: true,
-            },
-            {
-              type: "button",
-              action: {
-                type: "message",
-                label: "ขอรับคำปรึกษา",
-                text: "ขอรับคำปรึกษากับนักจิตวิทยา",
-              },
-              style: "primary",
             },
           ],
         },

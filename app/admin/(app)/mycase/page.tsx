@@ -185,7 +185,8 @@ export default function MyCasePage() {
         if (key.addonRisk) params.set("addonRisk", key.addonRisk);
         if (key.q8Risk) params.set("q8Risk", key.q8Risk);
         if (key.mainScale) params.set("mainScale", key.mainScale);
-        if (key.excludeSchools) params.set("excludeSchools", key.excludeSchools);
+        if (key.excludeSchools)
+          params.set("excludeSchools", key.excludeSchools);
 
         const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },

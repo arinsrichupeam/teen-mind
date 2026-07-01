@@ -6,6 +6,9 @@ import moment from "moment";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
+import "leaflet-defaulticon-compatibility";
 import {
   addToast,
   Autocomplete,
@@ -45,6 +48,22 @@ import {
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 
+import {
+  Addon,
+  Consultant,
+  Phqa,
+  Q8Data,
+  Questions2Q,
+  QuestionsData,
+} from "@/types";
+import { subtitle } from "@/components/primitives";
+import {
+  CONSULT_TELEMED_ROUNDS,
+  DISCHARGE_SUMMARY_ROUNDS,
+  FOLLOW_UP_ROUNDS,
+  isConsultTelemedRoundComplete,
+  isFollowUpRoundComplete,
+} from "@/lib/question-followup-rounds";
 import { safeParseDate, formatThaiDateTime } from "@/utils/helper";
 // eslint-disable-next-line import/order -- ไม่มีบรรทัดว่างภายในกลุ่ม import
 import { prefix } from "@/utils/data";
@@ -76,26 +95,6 @@ function toModalEditProfileData(
       : undefined,
   };
 }
-import "leaflet/dist/leaflet.css";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
-import "leaflet-defaulticon-compatibility";
-import {
-  Addon,
-  Consultant,
-  Phqa,
-  Q8Data,
-  Questions2Q,
-  QuestionsData,
-} from "@/types";
-import { subtitle } from "@/components/primitives";
-import {
-  CONSULT_TELEMED_ROUNDS,
-  DISCHARGE_SUMMARY_ROUNDS,
-  FOLLOW_UP_ROUNDS,
-  isConsultTelemedRoundComplete,
-  isFollowUpRoundComplete,
-} from "@/lib/question-followup-rounds";
-
 /** map ชื่อฟิลด์ schedule/consult → รอบ 0–2 */
 function roundIndexFromScheduleOrConsult(name: string): 0 | 1 | 2 | null {
   if (name === "schedule_telemed" || name === "consult") return 0;
@@ -1300,7 +1299,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
                             fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
                             height={100}
-                            loading="lazy"
+                            loading="eager"
                             src={
                               questionData?.profile?.user || data?.profile?.user
                                 ? questionData?.profile?.user?.image ||
@@ -1616,7 +1615,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
                             fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
                             height={100}
-                            loading="lazy"
+                            loading="eager"
                             src={
                               questionData?.profile?.user || data?.profile?.user
                                 ? questionData?.profile?.user?.image ||

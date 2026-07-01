@@ -60,6 +60,19 @@ export const MemberColumnsName = [
   { name: "", uid: "actions", align: "center" },
 ];
 
+export const ReportColumnsName = [
+  { name: "ชื่อ - สกุล", uid: "name", align: "start" },
+  { name: "อายุ", uid: "age", align: "center" },
+  { name: "โรงเรียน", uid: "school", align: "start" },
+  { name: "ชุดประเมิน", uid: "scale", align: "center" },
+  { name: "คะแนน", uid: "score", align: "center" },
+  { name: "ผลประเมิน", uid: "result", align: "center" },
+  { name: "2Q", uid: "2q", align: "center" },
+  { name: "8Q", uid: "addon", align: "center" },
+  { name: "วันที่ประเมิน", uid: "createdAt", align: "center" },
+  { name: "", uid: "actions", align: "center" },
+];
+
 export const SchoolListColumnsName = [
   { name: "ลำดับที่", uid: "id", align: "center" },
   { name: "ชื่อโรงเรียน", uid: "school", align: "start" },

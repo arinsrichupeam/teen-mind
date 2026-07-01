@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Districts, Provinces, Subdistricts } from "@prisma/client";
 import {
@@ -133,6 +133,8 @@ export const ModalEditProfile = ({
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [isHnLoading, setIsHnLoading] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
+  const [isCheckingCitizenId, setIsCheckingCitizenId] = useState(false);
+  const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [birthdayError, setBirthdayError] = useState<string>("");
   const [gradeYearError, setGradeYearError] = useState<string>("");
   const [currentData, setCurrentData] = useState<ModalEditProfileData | null>(
@@ -236,11 +238,22 @@ export const ModalEditProfile = ({
 
       // Validate citizenId ทั้งในโหมด create และ edit
       if (name === "citizenId") {
+        if (citizenIdTimerRef.current) {
+          clearTimeout(citizenIdTimerRef.current);
+          citizenIdTimerRef.current = null;
+        }
         if (value.length === 13) {
-          validateCitizenIdAsync(value);
+          setIsCheckingCitizenId(true);
+          setCitizenIdError("");
+          citizenIdTimerRef.current = setTimeout(() => {
+            setIsCheckingCitizenId(false);
+            validateCitizenIdAsync(value);
+          }, 500);
         } else if (value.length > 0) {
+          setIsCheckingCitizenId(false);
           setCitizenIdError("เลขบัตรประชาชนต้องมี 13 หลัก");
         } else {
+          setIsCheckingCitizenId(false);
           setCitizenIdError("");
         }
       }
@@ -746,6 +759,9 @@ export const ModalEditProfile = ({
             <p className="text-md font-bold">ข้อมูลส่วนตัว</p>
             <div className="flex flex-row gap-2">
               <Input
+                description={
+                  isCheckingCitizenId ? "กำลังตรวจสอบ..." : undefined
+                }
                 errorMessage={citizenIdError}
                 isInvalid={citizenIdError !== ""}
                 isRequired={true}

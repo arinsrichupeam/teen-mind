@@ -3,6 +3,7 @@ import {
   ChartPieIcon,
   ClipboardDocumentCheckIcon,
   CreditCardIcon,
+  DocumentChartBarIcon,
   HomeIcon,
   HomeModernIcon,
   MapIcon,
@@ -98,6 +99,14 @@ export const SidebarWrapper = () => {
                   isActive={pathname === "/admin/map"}
                   title="แผนที่"
                 />
+                {profile.roleId === 4 && (
+                  <SidebarItem
+                    href="/admin/report"
+                    icon={<DocumentChartBarIcon className="size-6" />}
+                    isActive={pathname === "/admin/report"}
+                    title="รายงาน"
+                  />
+                )}
                 {(profile.roleId === 2 || profile.roleId === 3) && (
                   <SidebarItem
                     href="/admin/user"

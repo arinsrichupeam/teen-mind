@@ -8,7 +8,7 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Affiliation, Employee_Type, Profile_Admin } from "@prisma/client";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -41,6 +41,7 @@ export default function RegisterPage() {
   const [request] = useState(true);
   const router = useRouter();
   const [error, setError] = useState<string>("");
+  const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
@@ -139,15 +140,21 @@ export default function RegisterPage() {
   };
 
   const HandleChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       if (e.target.name === "citizenId") {
         const value = e.target.value;
 
         if (value.length > 13) {
           return;
         }
+        if (citizenIdTimerRef.current) {
+          clearTimeout(citizenIdTimerRef.current);
+          citizenIdTimerRef.current = null;
+        }
         if (value.length === 13) {
-          await validateCitizenId(value);
+          citizenIdTimerRef.current = setTimeout(async () => {
+            await validateCitizenId(value);
+          }, 500);
         } else if (value.length > 0) {
           setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
         } else {
