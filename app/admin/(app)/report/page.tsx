@@ -63,7 +63,8 @@ import moment from "moment";
 import * as XLSX from "xlsx";
 
 import { prefix } from "@/utils/data";
-import { calculateAge, formatThaiDateTime } from "@/utils/helper";
+import { getAgeAtAssessment } from "@/lib/assessment-scale";
+import { formatThaiDateTime } from "@/utils/helper";
 import Loading from "@/app/loading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -235,9 +236,11 @@ function HistoryModal({
     typeof profile.school === "object" && profile.school !== null
       ? profile.school.screeningDate
       : undefined;
-  const age = profile.birthday
-    ? calculateAge(profile.birthday, screeningDate)
-    : null;
+  const age = getAgeAtAssessment(
+    profile.birthday,
+    screeningDate,
+    profile.latestDate ?? undefined
+  );
 
   const chartData = profile.history.map((entry, idx) => ({
     ...entry,
@@ -496,7 +499,11 @@ function PreviewExportModal({
       typeof p.school === "object" && p.school
         ? p.school.screeningDate
         : undefined;
-    const age = p.birthday ? calculateAge(p.birthday, screeningDate) : null;
+    const age = getAgeAtAssessment(
+      p.birthday,
+      screeningDate,
+      p.latestDate ?? undefined
+    );
 
     return {
       idx: i + 1,
@@ -910,7 +917,7 @@ export default function ReportPage() {
           return (
             <p className="text-small text-center">
               {item.birthday
-                ? `${calculateAge(item.birthday, screeningDate)} ปี`
+                ? `${getAgeAtAssessment(item.birthday, screeningDate, item.latestDate ?? undefined) ?? "-"} ปี`
                 : "-"}
             </p>
           );
@@ -1022,9 +1029,12 @@ export default function ReportPage() {
             typeof p.school === "object" && p.school !== null
               ? p.school.screeningDate
               : undefined;
-          const age = p.birthday
-            ? calculateAge(p.birthday, screeningDate)
-            : "-";
+          const age =
+            getAgeAtAssessment(
+              p.birthday,
+              screeningDate,
+              p.latestDate ?? undefined
+            ) ?? "-";
 
           const row: (string | number)[] = [
             idx + 1,

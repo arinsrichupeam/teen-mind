@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
+import {
+  filterProfileIdsByAgeRange,
+  normalizeReportAgeRange,
+} from "@/lib/report-age-range";
 import { prisma } from "@/utils/prisma";
 
 export async function GET(req: NextRequest) {
@@ -18,7 +22,9 @@ export async function GET(req: NextRequest) {
         .map((s) => s.trim())
         .filter(Boolean)
     : [];
-  const ageRange = url.searchParams.get("ageRange")?.trim() || "all";
+  const ageRange = normalizeReportAgeRange(
+    url.searchParams.get("ageRange")?.trim()
+  );
 
   const profileWhere: Record<string, unknown> = {};
 
@@ -34,21 +40,14 @@ export async function GET(req: NextRequest) {
 
   profileWhere.questions = { some: {} };
 
-  if (ageRange !== "all") {
-    const currentYear = new Date().getFullYear();
-
-    if (ageRange === "under18") {
-      profileWhere.birthday = { gte: new Date(`${currentYear - 17}-01-01`) };
-    } else if (ageRange === "18plus") {
-      profileWhere.birthday = { lt: new Date(`${currentYear - 17}-01-01`) };
-    }
-  }
-
   const matchingProfiles = await prisma.profile.findMany({
     where: profileWhere,
     select: { id: true },
   });
-  const matchingProfileIds = matchingProfiles.map((p) => p.id);
+  const matchingProfileIds = await filterProfileIdsByAgeRange(
+    matchingProfiles.map((p) => p.id),
+    ageRange
+  );
 
   if (matchingProfileIds.length === 0) {
     return NextResponse.json({ total: 0, repeatedCount: 0 });

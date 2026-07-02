@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
+import {
+  filterProfileIdsByAgeRange,
+  normalizeReportAgeRange,
+} from "@/lib/report-age-range";
 import { prisma } from "@/utils/prisma";
 
 function toThaiDateKey(date: Date): string {
@@ -30,7 +34,9 @@ export async function GET(req: NextRequest) {
         .map((s) => s.trim())
         .filter(Boolean)
     : [];
-  const ageRange = url.searchParams.get("ageRange")?.trim() || "all";
+  const ageRange = normalizeReportAgeRange(
+    url.searchParams.get("ageRange")?.trim()
+  );
   const repeatedOnly = url.searchParams.get("repeated") === "true";
   const sortBy = url.searchParams.get("sortBy") || "date"; // "date" | "name" | "count"
   const sortDir = url.searchParams.get("sortDir") || "desc"; // "asc" | "desc"
@@ -49,22 +55,15 @@ export async function GET(req: NextRequest) {
 
   profileWhere.questions = { some: {} };
 
-  if (ageRange !== "all") {
-    const currentYear = new Date().getFullYear();
-
-    if (ageRange === "under18") {
-      profileWhere.birthday = { gte: new Date(`${currentYear - 17}-01-01`) };
-    } else if (ageRange === "18plus") {
-      profileWhere.birthday = { lt: new Date(`${currentYear - 17}-01-01`) };
-    }
-  }
-
   // Step 1: Get all matching profiles (with names for sort)
   const matchingProfiles = await prisma.profile.findMany({
     where: profileWhere,
     select: { id: true, firstname: true, lastname: true },
   });
-  const matchingProfileIds = matchingProfiles.map((p) => p.id);
+  const matchingProfileIds = await filterProfileIdsByAgeRange(
+    matchingProfiles.map((p) => p.id),
+    ageRange
+  );
 
   if (matchingProfileIds.length === 0) {
     return NextResponse.json({
@@ -72,6 +71,12 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total: 0, totalPages: 0 },
     });
   }
+
+  const matchingProfilesById = new Map(
+    matchingProfiles
+      .filter((profile) => matchingProfileIds.includes(profile.id))
+      .map((profile) => [profile.id, profile])
+  );
 
   // Step 2: Filter to repeated-only if requested (≥ 2 different Thai Buddhist years)
   let filteredProfileIds = matchingProfileIds;
@@ -117,7 +122,7 @@ export async function GET(req: NextRequest) {
 
   // Build merged list for flexible sorting
   const profileNameMap = new Map(
-    matchingProfiles.map((p) => [
+    Array.from(matchingProfilesById.values()).map((p) => [
       p.id,
       { firstname: p.firstname, lastname: p.lastname },
     ])
