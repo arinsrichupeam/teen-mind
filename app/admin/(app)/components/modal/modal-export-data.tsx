@@ -31,9 +31,12 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { parseDate } from "@internationalized/date";
 import useSWR from "swr";
 
+import { questionStatusOptions } from "../../data/optionData";
+
 import { QuestionsData } from "@/types";
 import { gradeYearLevels, prefix } from "@/utils/data";
 import { formatThaiDate, calculateAge } from "@/utils/helper";
+import { calculateQuestionStatus } from "@/lib/question-followup-rounds";
 
 interface ExportField {
   key: string;
@@ -200,6 +203,7 @@ export const ModalExportData = ({
       { key: "followUpDate1", label: "วันที่ติดตามครั้งที่ 1", selected: true },
       { key: "followUpDate2", label: "วันที่ติดตามครั้งที่ 2", selected: true },
       { key: "followUpDate3", label: "วันที่ติดตามครั้งที่ 3", selected: true },
+      { key: "status", label: "สถานะแบบประเมิน", selected: true },
       {
         key: "referralUnit",
         label: "หน่วยบริการส่งต่อพบแพทย์",
@@ -635,6 +639,11 @@ export const ModalExportData = ({
         return item.follow_up2 != null ? formatThaiDate(item.follow_up2) : "-";
       case "followUpDate3":
         return item.follow_up3 != null ? formatThaiDate(item.follow_up3) : "-";
+      case "status": {
+        const status = item.status ?? calculateQuestionStatus(item);
+
+        return questionStatusOptions[status]?.name ?? "-";
+      }
       case "referralUnit":
         return (item as Record<string, unknown>).referralUnit != null
           ? String((item as Record<string, unknown>).referralUnit)
