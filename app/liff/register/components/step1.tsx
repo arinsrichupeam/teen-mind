@@ -79,6 +79,7 @@ export const Step1 = ({
   const latestCitizenIdRef = useRef("");
   const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCheckingCitizenId, setIsCheckingCitizenId] = useState(false);
+  const [hnLookupWarning, setHnLookupWarning] = useState("");
   const {
     isOpen: isLinkLineModalOpen,
     onOpen: onOpenLinkLineModal,
@@ -229,19 +230,23 @@ export const Step1 = ({
 
         if (!response.ok) {
           HandleChange({ target: { name: "hn", value: "" } });
-          if (response.status !== 401) {
-            setError(payload.error || "เกิดข้อผิดพลาดในการค้นหา HN");
-          }
+          setHnLookupWarning(
+            "ไม่สามารถค้นหา HN จากระบบโรงพยาบาลได้ในขณะนี้ สามารถลงทะเบียนต่อได้"
+          );
 
           return;
         }
 
+        setHnLookupWarning("");
         HandleChange({
           target: { name: "hn", value: payload.hn?.trim() || "" },
         });
       } catch {
         if (latestCitizenIdRef.current === citizenId) {
           HandleChange({ target: { name: "hn", value: "" } });
+          setHnLookupWarning(
+            "ไม่สามารถค้นหา HN จากระบบโรงพยาบาลได้ในขณะนี้ สามารถลงทะเบียนต่อได้"
+          );
         }
       }
     },
@@ -269,12 +274,14 @@ export const Step1 = ({
         if (isValid) {
           await searchAndSetHn(value);
         } else {
+          setHnLookupWarning("");
           HandleChange({ target: { name: "hn", value: "" } });
         }
       }, 500);
     } else {
       setIsCheckingCitizenId(false);
       setError("");
+      setHnLookupWarning("");
       setReferentDuplicate(false);
       setReferentDuplicateHasLine(false);
       HandleChange({ target: { name: "hn", value: "" } });
@@ -314,7 +321,9 @@ export const Step1 = ({
       onSubmit={onSubmit}
     >
       <Input
-        description={isCheckingCitizenId ? "กำลังตรวจสอบ..." : undefined}
+        description={
+          isCheckingCitizenId ? "กำลังตรวจสอบ..." : hnLookupWarning || undefined
+        }
         errorMessage={error}
         isInvalid={!!error}
         isRequired={request}
