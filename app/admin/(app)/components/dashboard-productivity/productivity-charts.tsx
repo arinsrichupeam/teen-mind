@@ -19,6 +19,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { PRODUCTIVITY_STATUS } from "./productivity-status-labels";
+
 type Props = {
   psychologists: PsychologistProductivityRow[];
   monthlyTrend: MonthlyProductivityPoint[];
@@ -26,13 +28,15 @@ type Props = {
 
 const formatNumber = (value: number) => value.toLocaleString("th-TH");
 
+const { awaitingConsult, awaitingSummary, completed } = PRODUCTIVITY_STATUS;
+
 export function ProductivityCharts({ psychologists, monthlyTrend }: Props) {
   const topPsychologists = psychologists.slice(0, 8).map((p) => ({
     name: p.name.length > 18 ? `${p.name.slice(0, 16)}…` : p.name,
     fullName: p.name,
-    completed: p.completedSessions,
-    assigned: p.assignedSessions,
-    pending: p.soapPending + p.telemedPending,
+    awaitingConsult: p.status1,
+    awaitingSummary: p.status2,
+    completed: p.status3,
   }));
 
   return (
@@ -40,10 +44,10 @@ export function ProductivityCharts({ psychologists, monthlyTrend }: Props) {
       <Card className="border border-default-200 shadow-sm">
         <CardHeader className="flex flex-col items-start gap-1 pb-0">
           <h3 className="text-lg font-semibold">
-            อันดับนักจิตวิทยา (ครั้งให้คำปรึกษาเสร็จสิ้น)
+            อันดับนักจิตวิทยา (ตามสถานะเคส)
           </h3>
           <p className="text-xs text-default-500">
-            แสดง 8 อันดับแรก เรียงตามจำนวนครั้งที่สรุปผลครบ
+            แสดง 8 อันดับแรก เรียงตามจำนวนเคสที่{completed}
           </p>
         </CardHeader>
         <CardBody>
@@ -77,16 +81,25 @@ export function ProductivityCharts({ psychologists, monthlyTrend }: Props) {
                 />
                 <Legend />
                 <Bar
-                  dataKey="completed"
-                  fill="#22c55e"
-                  name="เสร็จสิ้น"
+                  dataKey="awaitingConsult"
+                  fill="#f59e0b"
+                  name={awaitingConsult}
                   radius={[0, 4, 4, 0]}
+                  stackId="status"
                 />
                 <Bar
-                  dataKey="pending"
-                  fill="#f59e0b"
-                  name="รอดำเนินการ"
+                  dataKey="awaitingSummary"
+                  fill="#3b82f6"
+                  name={awaitingSummary}
                   radius={[0, 4, 4, 0]}
+                  stackId="status"
+                />
+                <Bar
+                  dataKey="completed"
+                  fill="#22c55e"
+                  name={completed}
+                  radius={[0, 4, 4, 0]}
+                  stackId="status"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -127,7 +140,7 @@ export function ProductivityCharts({ psychologists, monthlyTrend }: Props) {
                 <Line
                   dataKey="assigned"
                   dot={{ r: 3 }}
-                  name="ครั้งที่มอบหมาย"
+                  name="รอบที่มอบหมาย"
                   stroke="#3b82f6"
                   strokeWidth={2}
                   type="monotone"
@@ -135,7 +148,7 @@ export function ProductivityCharts({ psychologists, monthlyTrend }: Props) {
                 <Line
                   dataKey="completed"
                   dot={{ r: 3 }}
-                  name="เสร็จสิ้น"
+                  name={`รอบ${completed}`}
                   stroke="#22c55e"
                   strokeWidth={2}
                   type="monotone"

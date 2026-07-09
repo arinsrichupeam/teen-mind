@@ -15,16 +15,6 @@ import { ProfileSchool, QuestionsData } from "@/types";
 import { prefix } from "@/utils/data";
 import { formatThaiDateTime, calculateAge } from "@/utils/helper";
 
-function getSchoolScreeningDate(
-  school: ProfileSchool
-): Date | string | null | undefined {
-  return typeof school === "object" &&
-    school !== null &&
-    "screeningDate" in school
-    ? school.screeningDate
-    : undefined;
-}
-
 function getSchoolName(school: ProfileSchool): string {
   if (typeof school === "string") return school;
 
@@ -77,13 +67,7 @@ export const RenderCell = ({
     case "age":
       return (
         <div>
-          <span>
-            {calculateAge(
-              data.profile.birthday,
-              getSchoolScreeningDate(data.profile.school)
-            )}{" "}
-            ปี
-          </span>
+          <span>{calculateAge(data.profile.birthday, data.createdAt)} ปี</span>
         </div>
       );
     case "school":

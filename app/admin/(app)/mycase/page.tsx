@@ -31,7 +31,7 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  DocumentTextIcon,
+  PlusCircleIcon,
   DevicePhoneMobileIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
@@ -90,6 +90,7 @@ export default function MyCasePage() {
   const [addonFilter, setAddonFilter] = useState<Selection>(new Set([]));
   const [q8Filter, setQ8Filter] = useState<Selection>(new Set([]));
   const [mainScaleFilter, setMainScaleFilter] = useState<string>("all");
+  const [referentTypeFilter, setReferentTypeFilter] = useState<string>("all");
   const [hiddenSchools, setHiddenSchools] = useState<Set<string>>(new Set());
 
   const consultUserId = session?.user?.id ?? "";
@@ -134,6 +135,10 @@ export default function MyCasePage() {
       mainScaleFilter === "nineq" || mainScaleFilter === "phqa"
         ? mainScaleFilter
         : "";
+    const referentType =
+      referentTypeFilter === "outreach" || referentTypeFilter === "self"
+        ? referentTypeFilter
+        : "";
 
     const excludeSchools =
       hiddenSchools.size > 0 ? Array.from(hiddenSchools).join(",") : "";
@@ -148,6 +153,7 @@ export default function MyCasePage() {
       addonRisk,
       q8Risk,
       mainScale,
+      referentType,
       excludeSchools,
     };
   }, [
@@ -160,6 +166,7 @@ export default function MyCasePage() {
     addonFilter,
     q8Filter,
     mainScaleFilter,
+    referentTypeFilter,
     hiddenSchools,
   ]);
 
@@ -185,6 +192,7 @@ export default function MyCasePage() {
         if (key.addonRisk) params.set("addonRisk", key.addonRisk);
         if (key.q8Risk) params.set("q8Risk", key.q8Risk);
         if (key.mainScale) params.set("mainScale", key.mainScale);
+        if (key.referentType) params.set("referentType", key.referentType);
         if (key.excludeSchools)
           params.set("excludeSchools", key.excludeSchools);
 
@@ -314,6 +322,10 @@ export default function MyCasePage() {
     setMainScaleFilter(s);
     setPage(1);
   }, []);
+  const setReferentTypeFilterAndResetPage = useCallback((s: string) => {
+    setReferentTypeFilter(s);
+    setPage(1);
+  }, []);
   const setHiddenSchoolsAndResetPage = useCallback((s: Set<string>) => {
     setHiddenSchools(s);
     setPage(1);
@@ -332,6 +344,7 @@ export default function MyCasePage() {
         phqaResultFilter={phqaResultFilter}
         q2Filter={q2Filter}
         q8Filter={q8Filter}
+        referentTypeFilter={referentTypeFilter}
         schoolFilter={schoolFilter}
         setAddonFilter={setAddonFilterAndResetPage}
         setHiddenSchools={setHiddenSchoolsAndResetPage}
@@ -340,6 +353,7 @@ export default function MyCasePage() {
         setPhqaResultFilter={setPhqaResultFilterAndResetPage}
         setQ2Filter={setQ2FilterAndResetPage}
         setQ8Filter={setQ8FilterAndResetPage}
+        setReferentTypeFilter={setReferentTypeFilterAndResetPage}
         setSchoolFilter={setSchoolFilterAndResetPage}
         setStatusFilter={setStatusFilterAndResetPage}
         statusFilter={statusFilter}
@@ -366,6 +380,8 @@ export default function MyCasePage() {
       setAddonFilterAndResetPage,
       mainScaleFilter,
       setMainScaleFilterAndResetPage,
+      referentTypeFilter,
+      setReferentTypeFilterAndResetPage,
       q8Filter,
       setQ8FilterAndResetPage,
       questionsList,
@@ -508,10 +524,10 @@ export default function MyCasePage() {
 
           return (
             <div className="flex items-center gap-2">
-              {item.profile.userId ? (
-                <DevicePhoneMobileIcon className="size-5 text-success-500" />
+              {item.referentId ? (
+                <PlusCircleIcon className="size-5 text-danger-500" />
               ) : (
-                <DocumentTextIcon className="size-5 text-primary-500" />
+                <DevicePhoneMobileIcon className="size-5 text-primary-500" />
               )}
               <p className="text-bold text-small">
                 {prefixLabel} {item.profile?.firstname || ""}{" "}
@@ -519,24 +535,17 @@ export default function MyCasePage() {
               </p>
             </div>
           );
-        case "age": {
-          const school = item.profile?.school;
-          const screeningDate =
-            typeof school === "object" && school !== null
-              ? school.screeningDate
-              : undefined;
-
+        case "age":
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
                 {item.profile?.birthday
-                  ? calculateAge(item.profile.birthday, screeningDate)
+                  ? calculateAge(item.profile.birthday, item.createdAt)
                   : "-"}{" "}
                 ปี
               </p>
             </div>
           );
-        }
         case "school": {
           const school = item.profile?.school;
           const schoolName =

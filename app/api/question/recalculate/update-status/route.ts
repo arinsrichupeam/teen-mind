@@ -28,6 +28,9 @@ interface QuestionForStatus {
   plan?: string | null;
   plan2?: string | null;
   plan3?: string | null;
+  unreachable?: boolean | null;
+  unreachable2?: boolean | null;
+  unreachable3?: boolean | null;
 }
 
 function calculateStatus(question: QuestionForStatus) {

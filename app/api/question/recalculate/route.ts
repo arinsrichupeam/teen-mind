@@ -95,7 +95,6 @@ export async function POST() {
 
         const age = getAgeAtAssessment(
           question.profile?.birthday,
-          question.profile?.school?.screeningDate,
           question.createdAt
         );
 

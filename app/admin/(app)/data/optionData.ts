@@ -3,7 +3,15 @@ export const questionStatusOptions = [
   { name: "รอให้คำปรึกษา", uid: "1" },
   { name: "รอสรุปผลการให้คำปรึกษา", uid: "2" },
   { name: "เสร็จสิ้น", uid: "3" },
-];
+] as const;
+
+/** Label สถานะแบบประเมิน — ใช้ร่วมกันทั้งหน้า productivity / filter */
+export const QUESTION_STATUS_LABEL = {
+  0: questionStatusOptions[0].name,
+  1: questionStatusOptions[1].name,
+  2: questionStatusOptions[2].name,
+  3: questionStatusOptions[3].name,
+} as const;
 
 export const userStatusOptions = [
   { name: "ใช้งาน", uid: "1" },

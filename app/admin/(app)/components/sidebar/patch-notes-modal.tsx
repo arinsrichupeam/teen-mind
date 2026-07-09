@@ -21,6 +21,7 @@ interface PatchNoteCardProps {
   date?: string;
   changes: string[];
   featured?: boolean;
+  showCurrentVersionChip?: boolean;
 }
 
 function PatchNoteCard({
@@ -28,6 +29,7 @@ function PatchNoteCard({
   date,
   changes,
   featured,
+  showCurrentVersionChip,
 }: PatchNoteCardProps) {
   if (featured) {
     return (
@@ -37,6 +39,11 @@ function PatchNoteCard({
           <Chip color="primary" size="sm" variant="flat">
             ล่าสุด
           </Chip>
+          {showCurrentVersionChip ? (
+            <Chip color="secondary" size="sm" variant="flat">
+              Current Version
+            </Chip>
+          ) : null}
         </div>
         {date ? (
           <p className="mt-1 text-xs text-default-500">วันที่อัปเดต: {date}</p>
@@ -52,7 +59,14 @@ function PatchNoteCard({
 
   return (
     <div className="rounded-xl border border-default-200 bg-content1 p-4">
-      <h3 className="text-base font-semibold text-default-700">v{version}</h3>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h3 className="text-base font-semibold text-default-700">v{version}</h3>
+        {showCurrentVersionChip ? (
+          <Chip color="secondary" size="sm" variant="flat">
+            Current Version
+          </Chip>
+        ) : null}
+      </div>
       {date ? (
         <p className="mt-1 text-xs text-default-400">วันที่อัปเดต: {date}</p>
       ) : null}
@@ -69,12 +83,17 @@ export function PatchNotesModal({
   isOpen,
   onOpenChange,
 }: PatchNotesModalProps) {
-  const allPatchNotes = patchNotes as PatchNoteItem[];
-  const latestPatchNote =
-    allPatchNotes.find((item) => item.version === packageJson.version) ??
-    allPatchNotes[0];
+  const allPatchNotes = [...(patchNotes as PatchNoteItem[])];
+  const sortedPatchNotes = allPatchNotes.sort((a, b) =>
+    b.version.localeCompare(a.version, undefined, { numeric: true })
+  );
+  const currentVersion = packageJson.version;
+  const latestPatchNote = sortedPatchNotes[0];
+  const hasCurrentVersionPatchNote = sortedPatchNotes.some(
+    (item) => item.version === currentVersion
+  );
 
-  const olderPatchNotes = allPatchNotes.filter(
+  const olderPatchNotes = sortedPatchNotes.filter(
     (item) => item.version !== latestPatchNote?.version
   );
 
@@ -91,12 +110,21 @@ export function PatchNotesModal({
           <p className="text-sm text-default-500">
             รายการอัปเดตของระบบ Teen Mind ในแต่ละเวอร์ชัน
           </p>
+          {!hasCurrentVersionPatchNote ? (
+            <p className="text-xs text-warning-600 dark:text-warning-400">
+              ระบบกำลังใช้งาน v{currentVersion} แต่ยังไม่มีบันทึก Patch Note
+              ของเวอร์ชันนี้ (แสดงรายการล่าสุดแทน)
+            </p>
+          ) : null}
           <div className="space-y-3">
             {latestPatchNote ? (
               <PatchNoteCard
                 featured
                 changes={latestPatchNote.changes}
                 date={latestPatchNote.date}
+                showCurrentVersionChip={
+                  latestPatchNote.version === currentVersion
+                }
                 version={latestPatchNote.version}
               />
             ) : null}
@@ -116,6 +144,7 @@ export function PatchNotesModal({
                     key={patch.version}
                     changes={patch.changes}
                     date={patch.date}
+                    showCurrentVersionChip={patch.version === currentVersion}
                     version={patch.version}
                   />
                 ))}

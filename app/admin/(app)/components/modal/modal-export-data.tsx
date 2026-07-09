@@ -35,8 +35,11 @@ import { questionStatusOptions } from "../../data/optionData";
 
 import { QuestionsData } from "@/types";
 import { gradeYearLevels, prefix } from "@/utils/data";
-import { formatThaiDate, calculateAge } from "@/utils/helper";
-import { calculateQuestionStatus } from "@/lib/question-followup-rounds";
+import { formatThaiDate, calculateAge, formatAgeYMD } from "@/utils/helper";
+import {
+  calculateQuestionStatus,
+  isRoundUnreachable,
+} from "@/lib/question-followup-rounds";
 
 interface ExportField {
   key: string;
@@ -197,12 +200,79 @@ export const ModalExportData = ({
       { key: "q8Result", label: "ผล Q8", selected: true },
       {
         key: "assessmentDate",
-        label: "วันที่เข้ารับบริการพบนักจิตวิทยา",
+        label: "วันที่พบนักจิตวิทยา (รอบที่ 1)",
         selected: true,
       },
-      { key: "followUpDate1", label: "วันที่ติดตามครั้งที่ 1", selected: true },
-      { key: "followUpDate2", label: "วันที่ติดตามครั้งที่ 2", selected: true },
-      { key: "followUpDate3", label: "วันที่ติดตามครั้งที่ 3", selected: true },
+      {
+        key: "visitDate2",
+        label: "วันที่พบนักจิตวิทยา (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "visitDate3",
+        label: "วันที่พบนักจิตวิทยา (รอบที่ 3)",
+        selected: true,
+      },
+      {
+        key: "unreachable1",
+        label: "ติดต่อไม่ได้ (รอบที่ 1)",
+        selected: true,
+      },
+      {
+        key: "unreachable2",
+        label: "ติดต่อไม่ได้ (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "unreachable3",
+        label: "ติดต่อไม่ได้ (รอบที่ 3)",
+        selected: true,
+      },
+      {
+        key: "contactAttemptDate1",
+        label: "วันที่พยายามติดต่อ (รอบที่ 1)",
+        selected: true,
+      },
+      {
+        key: "contactAttemptDate2",
+        label: "วันที่พยายามติดต่อ (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "contactAttemptDate3",
+        label: "วันที่พยายามติดต่อ (รอบที่ 3)",
+        selected: true,
+      },
+      {
+        key: "nextContactDate1",
+        label: "นัดติดต่อครั้งถัดไป (รอบที่ 1)",
+        selected: true,
+      },
+      {
+        key: "nextContactDate2",
+        label: "นัดติดต่อครั้งถัดไป (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "nextContactDate3",
+        label: "นัดติดต่อครั้งถัดไป (รอบที่ 3)",
+        selected: true,
+      },
+      {
+        key: "followUpDate1",
+        label: "นัดพบครั้งถัดไป (รอบที่ 1)",
+        selected: true,
+      },
+      {
+        key: "followUpDate2",
+        label: "นัดพบครั้งถัดไป (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "followUpDate3",
+        label: "นัดพบครั้งถัดไป (รอบที่ 3)",
+        selected: true,
+      },
       { key: "status", label: "สถานะแบบประเมิน", selected: true },
       {
         key: "referralUnit",
@@ -216,7 +286,22 @@ export const ModalExportData = ({
       },
       {
         key: "consultName",
-        label: "นักจิตวิทยา",
+        label: "นักจิตวิทยา (รอบที่ 1)",
+        selected: true,
+      },
+      {
+        key: "consultName2",
+        label: "นักจิตวิทยา (รอบที่ 2)",
+        selected: true,
+      },
+      {
+        key: "consultName3",
+        label: "นักจิตวิทยา (รอบที่ 3)",
+        selected: true,
+      },
+      {
+        key: "closeCaseReason",
+        label: "เหตุผลปิดเคส",
         selected: true,
       },
       {
@@ -485,15 +570,9 @@ export const ModalExportData = ({
 
     if (filters.ageGroup) {
       filteredData = filteredData.filter((item: QuestionsData) => {
-        const school = item.profile?.school;
-        const screeningDate =
-          typeof school === "object" && school !== null
-            ? school.screeningDate
-            : undefined;
-
         if (!item.profile?.birthday) return false;
 
-        const age = calculateAge(item.profile.birthday, screeningDate);
+        const age = calculateAge(item.profile.birthday, item.createdAt);
 
         return filters.ageGroup === "under18" ? age < 18 : age >= 18;
       });
@@ -507,6 +586,9 @@ export const ModalExportData = ({
 
     return filteredData;
   }, [sourceData, filters]);
+
+  const formatDateOrDash = (value: Date | string | null | undefined) =>
+    value != null ? formatThaiDate(value) : "-";
 
   const getFieldValue = (
     item: QuestionsData,
@@ -535,17 +617,10 @@ export const ModalExportData = ({
         return `${prefixLabel} ${item.profile?.firstname || ""} ${item.profile?.lastname || ""}`;
       case "citizenId":
         return item.profile?.citizenId;
-      case "age": {
-        const school = item.profile?.school;
-        const screeningDate =
-          typeof school === "object" && school !== null
-            ? school.screeningDate
-            : undefined;
-
+      case "age":
         return item.profile?.birthday
-          ? calculateAge(item.profile.birthday, screeningDate)
+          ? formatAgeYMD(item.profile.birthday, item.createdAt)
           : "-";
-      }
       case "sex": {
         const sex = String(item.profile?.sex ?? "");
 
@@ -630,15 +705,59 @@ export const ModalExportData = ({
         return "-";
       }
       case "assessmentDate":
-        return item.schedule_telemed != null
-          ? formatThaiDate(item.schedule_telemed)
+        return isRoundUnreachable(item, 0)
+          ? "-"
+          : formatDateOrDash(item.schedule_telemed);
+      case "visitDate2":
+        return isRoundUnreachable(item, 1)
+          ? "-"
+          : formatDateOrDash(item.schedule_telemed2);
+      case "visitDate3":
+        return isRoundUnreachable(item, 2)
+          ? "-"
+          : formatDateOrDash(item.schedule_telemed3);
+      case "unreachable1":
+        return isRoundUnreachable(item, 0) ? "ใช่" : "ไม่ใช่";
+      case "unreachable2":
+        return isRoundUnreachable(item, 1) ? "ใช่" : "ไม่ใช่";
+      case "unreachable3":
+        return isRoundUnreachable(item, 2) ? "ใช่" : "ไม่ใช่";
+      case "contactAttemptDate1":
+        return isRoundUnreachable(item, 0)
+          ? formatDateOrDash(item.schedule_telemed)
+          : "-";
+      case "contactAttemptDate2":
+        return isRoundUnreachable(item, 1)
+          ? formatDateOrDash(item.schedule_telemed2)
+          : "-";
+      case "contactAttemptDate3":
+        return isRoundUnreachable(item, 2)
+          ? formatDateOrDash(item.schedule_telemed3)
+          : "-";
+      case "nextContactDate1":
+        return isRoundUnreachable(item, 0)
+          ? formatDateOrDash(item.follow_up)
+          : "-";
+      case "nextContactDate2":
+        return isRoundUnreachable(item, 1)
+          ? formatDateOrDash(item.follow_up2)
+          : "-";
+      case "nextContactDate3":
+        return isRoundUnreachable(item, 2)
+          ? formatDateOrDash(item.follow_up3)
           : "-";
       case "followUpDate1":
-        return item.follow_up != null ? formatThaiDate(item.follow_up) : "-";
+        return isRoundUnreachable(item, 0)
+          ? "-"
+          : formatDateOrDash(item.follow_up);
       case "followUpDate2":
-        return item.follow_up2 != null ? formatThaiDate(item.follow_up2) : "-";
+        return isRoundUnreachable(item, 1)
+          ? "-"
+          : formatDateOrDash(item.follow_up2);
       case "followUpDate3":
-        return item.follow_up3 != null ? formatThaiDate(item.follow_up3) : "-";
+        return isRoundUnreachable(item, 2)
+          ? "-"
+          : formatDateOrDash(item.follow_up3);
       case "status": {
         const status = item.status ?? calculateQuestionStatus(item);
 
@@ -657,6 +776,12 @@ export const ModalExportData = ({
         return "-";
       case "consultName":
         return item.consult ? getConsultName(item.consult) : "-";
+      case "consultName2":
+        return item.consult2 ? getConsultName(item.consult2) : "-";
+      case "consultName3":
+        return item.consult3 ? getConsultName(item.consult3) : "-";
+      case "closeCaseReason":
+        return item.close_case_reason?.trim() || "-";
       case "studentPhone":
         return item.profile?.tel || "-";
       case "emergencyContact":

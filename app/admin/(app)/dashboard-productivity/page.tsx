@@ -12,6 +12,7 @@ import { ProductivityPsychologistTable } from "../components/dashboard-productiv
 import { ProductivitySummaryCards } from "../components/dashboard-productivity/productivity-summary-cards";
 
 import Loading from "@/app/loading";
+import { lastNDaysInThailand } from "@/lib/dashboard/parse-dashboard-date";
 
 const fetchPsychologistProductivity = async (params?: {
   dateFrom?: string;
@@ -43,7 +44,7 @@ export default function PsychologistProductivityDashboardPage() {
   const [dateRange, setDateRange] = useState<{
     start?: string;
     end?: string;
-  }>({});
+  }>(() => lastNDaysInThailand(30));
 
   const { data, isLoading } = useQuery({
     queryKey: ["psychologist-productivity", dateRange.start, dateRange.end],
@@ -70,6 +71,9 @@ export default function PsychologistProductivityDashboardPage() {
             <h1 className="text-2xl font-semibold">
               ประสิทธิภาพการทำงานของนักจิตวิทยา
             </h1>
+            {data.label ? (
+              <p className="text-sm text-default-500">{data.label}</p>
+            ) : null}
           </header>
 
           <section className="flex flex-col gap-2">

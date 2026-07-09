@@ -2,15 +2,22 @@ import type { FollowUpRoundTrackingStatus, QuestionsData } from "@/types";
 
 /** Consultant & Telemedicine ต่อรอบ (ตรงกับ schema questions_master) */
 export const CONSULT_TELEMED_ROUNDS = [
-  { schedule: "schedule_telemed", consult: "consult", label: "รอบที่ 1" },
+  {
+    schedule: "schedule_telemed",
+    consult: "consult",
+    unreachable: "unreachable",
+    label: "รอบที่ 1",
+  },
   {
     schedule: "schedule_telemed2",
     consult: "consult2",
+    unreachable: "unreachable2",
     label: "รอบที่ 2",
   },
   {
     schedule: "schedule_telemed3",
     consult: "consult3",
+    unreachable: "unreachable3",
     label: "รอบที่ 3",
   },
 ] as const;
@@ -54,12 +61,40 @@ function isNonEmptyText(v: unknown): boolean {
   return typeof v === "string" && v.trim().length > 0;
 }
 
-/** รอบที่มีวันนัด + ผู้ให้คำปรึกษา */
+/** รอบที่ถูกทำเครื่องหมาย "ติดต่อไม่ได้" (ไม่นับเป็นการพบจริง) */
+export function isRoundUnreachable(
+  q: QuestionsData | undefined,
+  roundIndex: 0 | 1 | 2
+): boolean {
+  if (!q) return false;
+
+  const round = CONSULT_TELEMED_ROUNDS[roundIndex];
+
+  return Boolean(q[round.unreachable as keyof QuestionsData]);
+}
+
+/** รอบติดต่อไม่ได้ที่บันทึกวันที่พยายามติดต่อแล้ว */
+export function isUnreachableRoundDocumented(
+  q: QuestionsData | undefined,
+  roundIndex: 0 | 1 | 2
+): boolean {
+  if (!q || !isRoundUnreachable(q, roundIndex)) return false;
+
+  const round = CONSULT_TELEMED_ROUNDS[roundIndex];
+  const sched = q[round.schedule as keyof QuestionsData];
+
+  return Boolean(sched);
+}
+
+/** รอบที่มีวันนัด + ผู้ให้คำปรึกษา (รอบที่ "ติดต่อไม่ได้" ไม่นับเป็นการพบจริง) */
 export function isConsultTelemedRoundComplete(
   q: QuestionsData | undefined,
   roundIndex: 0 | 1 | 2
 ): boolean {
   if (!q) return false;
+
+  // รอบที่ติดต่อไม่ได้ไม่ถือเป็นการพบจริง แม้จะมีวันที่/ผู้ให้คำปรึกษา
+  if (isRoundUnreachable(q, roundIndex)) return false;
 
   const round = CONSULT_TELEMED_ROUNDS[roundIndex];
   const sched = q[round.schedule as keyof QuestionsData];
@@ -138,6 +173,7 @@ export function getFollowUpRoundStatuses(
 ): FollowUpRoundTrackingStatus[] {
   return ([0, 1, 2] as const).map((idx) => {
     const round = (idx + 1) as 1 | 2 | 3;
+    const unreachable = isRoundUnreachable(q, idx);
     const consultTelemedComplete = isConsultTelemedRoundComplete(q, idx);
     const dischargeSoapComplete = isDischargeSoapRoundComplete(q, idx);
     const complete = consultTelemedComplete && dischargeSoapComplete;
@@ -145,10 +181,15 @@ export function getFollowUpRoundStatuses(
     return {
       round,
       complete,
-      statusLabel: complete ? "ครบแล้ว" : "ยังไม่ครบ",
+      statusLabel: unreachable
+        ? "ติดต่อไม่ได้"
+        : complete
+          ? "ครบแล้ว"
+          : "ยังไม่ครบ",
       title: `สถานะติดตามครั้งที่ ${round}`,
       consultTelemedComplete,
       dischargeSoapComplete,
+      unreachable,
     };
   });
 }

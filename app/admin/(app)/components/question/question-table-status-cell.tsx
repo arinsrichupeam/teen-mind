@@ -39,7 +39,9 @@ export function QuestionTableStatusCell({ row }: { row: QuestionsData }) {
           <Chip
             key={r.round}
             className="h-6 min-w-0 px-1.5 whitespace-nowrap"
-            color={r.complete ? "success" : "default"}
+            color={
+              r.unreachable ? "danger" : r.complete ? "success" : "default"
+            }
             size="sm"
             title={`${r.title}: ${r.statusLabel}`}
             variant="flat"

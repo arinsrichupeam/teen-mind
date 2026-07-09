@@ -35,6 +35,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Switch,
   Tab,
   Tabs,
   Textarea,
@@ -63,6 +64,8 @@ import {
   FOLLOW_UP_ROUNDS,
   isConsultTelemedRoundComplete,
   isFollowUpRoundComplete,
+  isRoundUnreachable,
+  isUnreachableRoundDocumented,
 } from "@/lib/question-followup-rounds";
 import { safeParseDate, formatThaiDateTime } from "@/utils/helper";
 // eslint-disable-next-line import/order -- ไม่มีบรรทัดว่างภายในกลุ่ม import
@@ -104,6 +107,16 @@ function roundIndexFromScheduleOrConsult(name: string): 0 | 1 | 2 | null {
   return null;
 }
 
+function isConsultRoundSaved(
+  q: QuestionsData | undefined,
+  roundIndex: 0 | 1 | 2
+): boolean {
+  return (
+    isConsultTelemedRoundComplete(q, roundIndex) ||
+    isUnreachableRoundDocumented(q, roundIndex)
+  );
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -143,9 +156,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   const [consultantRoundSaved, setConsultantRoundSaved] = useState<
     [boolean, boolean, boolean]
   >([
-    isConsultTelemedRoundComplete(data, 0),
-    isConsultTelemedRoundComplete(data, 1),
-    isConsultTelemedRoundComplete(data, 2),
+    isConsultRoundSaved(data, 0),
+    isConsultRoundSaved(data, 1),
+    isConsultRoundSaved(data, 2),
   ]);
   const [consultationSaved, setConsultationSaved] = useState(false);
   const [followUpRoundTab, setFollowUpRoundTab] = useState("r1");
@@ -501,10 +514,59 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
   type ChangeEventLike =
     | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    | { target: { name: string; value: string | number | null } };
+    | { target: { name: string; value: string | number | boolean | null } };
 
   const HandleChange = (e: ChangeEventLike) => {
     const { name, value } = e.target;
+
+    if (
+      name === "unreachable" ||
+      name === "unreachable2" ||
+      name === "unreachable3"
+    ) {
+      const boolVal = value === true || value === "true";
+
+      const roundIdx = roundIndexFromScheduleOrConsult(
+        name === "unreachable"
+          ? "consult"
+          : name === "unreachable2"
+            ? "consult2"
+            : "consult3"
+      );
+
+      setQuestionData((prev) => {
+        if (!boolVal && roundIdx !== null) {
+          const round = CONSULT_TELEMED_ROUNDS[roundIdx];
+          const followRound = FOLLOW_UP_ROUNDS[roundIdx];
+
+          return {
+            ...prev,
+            [name]: boolVal,
+            [round.schedule]: null,
+            [followRound.followUp]: null,
+          };
+        }
+
+        return { ...prev, [name]: boolVal };
+      });
+
+      if (roundIdx !== null) {
+        setConsultantRoundSaved((prev) => {
+          const next: [boolean, boolean, boolean] = [...prev];
+
+          next[roundIdx] = false;
+
+          return next;
+        });
+      }
+
+      if (mode === "edit-consultation") {
+        setConsultationSaved(false);
+      }
+
+      return;
+    }
+
     const valueStr = value != null ? String(value) : "";
 
     if (
@@ -621,6 +683,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           follow_up: questionData.follow_up,
           follow_up2: questionData.follow_up2,
           follow_up3: questionData.follow_up3,
+          unreachable: questionData.unreachable,
+          unreachable2: questionData.unreachable2,
+          unreachable3: questionData.unreachable3,
           status: questionData.status,
           q2: questionData.q2,
           phqa: questionData.phqa,
@@ -705,7 +770,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return false;
       }
 
-      if (!questionData.schedule_telemed) {
+      if (isRoundUnreachable(questionData, 0)) {
+        if (!questionData.schedule_telemed) {
+          setIsError(true);
+          setConsultValidationRound(0);
+          setError("กรุณาระบุวันที่พยายามติดต่อ");
+
+          return false;
+        }
+      } else if (!questionData.schedule_telemed) {
         setIsError(true);
         setConsultValidationRound(0);
         setError("กรุณาเลือกวันนัด Telemedicine");
@@ -976,7 +1049,23 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       return;
     }
 
-    if (!isConsultTelemedRoundComplete(questionData, roundIndex)) {
+    const unreachable = isRoundUnreachable(questionData, roundIndex);
+
+    if (unreachable) {
+      const round = CONSULT_TELEMED_ROUNDS[roundIndex];
+      const sched = questionData[round.schedule as keyof QuestionsData];
+
+      if (!sched) {
+        setError("กรุณาระบุวันที่พยายามติดต่อก่อนบันทึก");
+        addToast({
+          title: "แจ้งเตือน",
+          description: "กรุณาระบุวันที่พยายามติดต่อก่อนบันทึก",
+          color: "warning",
+        });
+
+        return;
+      }
+    } else if (!isConsultTelemedRoundComplete(questionData, roundIndex)) {
       setError("กรุณากรอกวันที่พบนักจิตวิทยาและผู้ให้คำปรึกษาให้ครบก่อนบันทึก");
       addToast({
         title: "แจ้งเตือน",
@@ -1013,7 +1102,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
         addToast({
           title: "Success",
-          description: "บันทึกผู้ให้คำปรึกษาสำเร็จ",
+          description: unreachable
+            ? "บันทึกข้อมูลการติดต่อไม่ได้สำเร็จ"
+            : "บันทึกผู้ให้คำปรึกษาสำเร็จ",
           color: "success",
         });
 
@@ -1113,9 +1204,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     if (data) {
       setQuestionData(data);
       setConsultantRoundSaved([
-        isConsultTelemedRoundComplete(data, 0),
-        isConsultTelemedRoundComplete(data, 1),
-        isConsultTelemedRoundComplete(data, 2),
+        isConsultRoundSaved(data, 0),
+        isConsultRoundSaved(data, 1),
+        isConsultRoundSaved(data, 2),
       ]);
     }
   }, [data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
@@ -1124,9 +1215,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
   useEffect(() => {
     if (isOpen && data) {
       setConsultantRoundSaved([
-        isConsultTelemedRoundComplete(data, 0),
-        isConsultTelemedRoundComplete(data, 1),
-        isConsultTelemedRoundComplete(data, 2),
+        isConsultRoundSaved(data, 0),
+        isConsultRoundSaved(data, 1),
+        isConsultRoundSaved(data, 2),
       ]);
       setConsultationSaved(false);
       if (mode === "edit-consultation") {
@@ -1160,9 +1251,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       // Reset ข้อมูลเมื่อ drawer เปิดเฉพาะเมื่อเป็นข้อมูลใหม่
       setQuestionData(data);
       setConsultantRoundSaved([
-        isConsultTelemedRoundComplete(data, 0),
-        isConsultTelemedRoundComplete(data, 1),
-        isConsultTelemedRoundComplete(data, 2),
+        isConsultRoundSaved(data, 0),
+        isConsultRoundSaved(data, 1),
+        isConsultRoundSaved(data, 2),
       ]);
       // ล้าง error state
       setError(null);
@@ -1212,10 +1303,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         size="5xl"
         onClose={onClose}
       >
-        <DrawerContent>
+        <DrawerContent className="flex h-full max-h-[100dvh] flex-col">
           {(onClose) => (
-            <Form onReset={onClose} onSubmit={handleSubmit}>
-              <DrawerHeader className="w-full">
+            <Form
+              className="flex min-h-0 flex-1 flex-col"
+              onReset={onClose}
+              onSubmit={handleSubmit}
+            >
+              <DrawerHeader className="w-full shrink-0">
                 <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm items-start lg:items-center">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">วันที่ประเมิน:</span>
@@ -1287,7 +1382,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   {error}
                 </div>
               )}
-              <DrawerBody className="w-full">
+              <DrawerBody className="w-full min-h-0 flex-1 overflow-y-auto">
                 {mode !== "edit-questionnaire" ? (
                   <div className="flex flex-col sm:flex-row gap-5 mx-auto justify-center w-full">
                     <>
@@ -1883,6 +1978,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       q,
                                       idx as 0 | 1 | 2
                                     );
+                                  const isUnreachable = isRoundUnreachable(
+                                    q,
+                                    idx as 0 | 1 | 2
+                                  );
 
                                   return (
                                     <Tab
@@ -1903,6 +2002,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       }
                                     >
                                       <div className="mt-2 flex flex-col gap-4">
+                                        {isUnreachable && (
+                                          <Chip
+                                            color="danger"
+                                            size="sm"
+                                            variant="flat"
+                                          >
+                                            ติดต่อไม่ได้ (ไม่นับเป็นการพบจริง)
+                                          </Chip>
+                                        )}
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                                           <DatePicker
                                             showMonthAndYearPickers
@@ -1910,21 +2018,63 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                               schedVal
                                             )}
                                             isDisabled={true}
-                                            label="วันที่พบนักจิตวิทยา"
+                                            label={
+                                              isUnreachable
+                                                ? "วันที่พยายามติดต่อ"
+                                                : "วันที่พบนักจิตวิทยา"
+                                            }
                                             labelPlacement="outside"
                                             name={round.schedule}
                                             selectorButtonPlacement="start"
                                             variant="bordered"
                                           />
+                                          {isUnreachable ? (
+                                            <DatePicker
+                                              showMonthAndYearPickers
+                                              defaultValue={parseDateForPicker(
+                                                followUpVal
+                                              )}
+                                              isDisabled={true}
+                                              label="นัดติดต่อครั้งถัดไป"
+                                              labelPlacement="outside"
+                                              name={
+                                                FOLLOW_UP_ROUNDS[idx].followUp
+                                              }
+                                              selectorButtonPlacement="start"
+                                              variant="bordered"
+                                            />
+                                          ) : (
+                                            <Autocomplete
+                                              defaultItems={Consultant}
+                                              defaultSelectedKey={
+                                                consultVal ?? undefined
+                                              }
+                                              isDisabled={true}
+                                              label="ผู้ให้คำปรึกษา"
+                                              labelPlacement="outside"
+                                              placeholder="เลือกผู้ให้คำปรึกษา"
+                                              radius="md"
+                                              variant="bordered"
+                                            >
+                                              {(item) => (
+                                                <AutocompleteItem key={item.id}>
+                                                  {item.name}
+                                                </AutocompleteItem>
+                                              )}
+                                            </Autocomplete>
+                                          )}
+                                        </div>
+
+                                        {isUnreachable && (
                                           <Autocomplete
                                             defaultItems={Consultant}
                                             defaultSelectedKey={
                                               consultVal ?? undefined
                                             }
                                             isDisabled={true}
-                                            label="ผู้ให้คำปรึกษา"
+                                            label="ผู้รับผิดชอบติดต่อ"
                                             labelPlacement="outside"
-                                            placeholder="เลือกผู้ให้คำปรึกษา"
+                                            placeholder="เลือกผู้รับผิดชอบ"
                                             radius="md"
                                             variant="bordered"
                                           >
@@ -1934,7 +2084,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                               </AutocompleteItem>
                                             )}
                                           </Autocomplete>
-                                        </div>
+                                        )}
 
                                         <Divider className="bg-default-200" />
 
@@ -2014,21 +2164,23 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                             placeholder="หมายเหตุเพิ่มเติม"
                                             variant="bordered"
                                           />
-                                          <DatePicker
-                                            showMonthAndYearPickers
-                                            className="max-w-xs"
-                                            defaultValue={parseDateForPicker(
-                                              followUpVal
-                                            )}
-                                            isDisabled={true}
-                                            label="นัดพบครั้งถัดไป"
-                                            labelPlacement="outside"
-                                            name={
-                                              FOLLOW_UP_ROUNDS[idx].followUp
-                                            }
-                                            selectorButtonPlacement="start"
-                                            variant="bordered"
-                                          />
+                                          {!isUnreachable && (
+                                            <DatePicker
+                                              showMonthAndYearPickers
+                                              className="max-w-xs"
+                                              defaultValue={parseDateForPicker(
+                                                followUpVal
+                                              )}
+                                              isDisabled={true}
+                                              label="นัดพบครั้งถัดไป"
+                                              labelPlacement="outside"
+                                              name={
+                                                FOLLOW_UP_ROUNDS[idx].followUp
+                                              }
+                                              selectorButtonPlacement="start"
+                                              variant="bordered"
+                                            />
+                                          )}
                                         </div>
                                       </div>
                                     </Tab>
@@ -2102,8 +2254,14 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       q,
                                       idx as 0 | 1 | 2
                                     );
+                                  const isUnreachable = isRoundUnreachable(
+                                    q,
+                                    idx as 0 | 1 | 2
+                                  );
                                   const soapSectionLocked =
-                                    soapDisabled || !consultantRoundSaved[idx];
+                                    soapDisabled ||
+                                    !consultantRoundSaved[idx] ||
+                                    isUnreachable;
 
                                   return (
                                     <Tab
@@ -2124,15 +2282,47 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       }
                                     >
                                       <div className="mt-2 flex flex-col gap-4">
+                                        <div className="flex flex-col gap-1 rounded-medium border border-default-200 bg-content2/40 p-3">
+                                          <Switch
+                                            color="danger"
+                                            isDisabled={isLocked}
+                                            isSelected={isUnreachable}
+                                            name={round.unreachable}
+                                            size="sm"
+                                            onValueChange={(selected) =>
+                                              HandleChange({
+                                                target: {
+                                                  name: round.unreachable,
+                                                  value: selected,
+                                                },
+                                              })
+                                            }
+                                          >
+                                            <span className="text-small font-medium">
+                                              ติดต่อผู้รับบริการไม่ได้
+                                            </span>
+                                          </Switch>
+                                          <span className="text-tiny text-default-500">
+                                            ทำเครื่องหมายเมื่อไม่สามารถติดต่อผู้รับบริการได้
+                                            ระบุวันที่พยายามติดต่อและนัดครั้งถัดไปได้
+                                            (ไม่นับเป็นการพบจริง)
+                                          </span>
+                                        </div>
+
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                                           <DatePicker
+                                            key={`${round.schedule}-${isUnreachable}-${schedVal?.toString() ?? ""}`}
                                             showMonthAndYearPickers
                                             defaultValue={parseDateForPicker(
                                               schedVal
                                             )}
                                             isDisabled={isLocked}
                                             isRequired={!isLocked}
-                                            label="วันที่พบนักจิตวิทยา"
+                                            label={
+                                              isUnreachable
+                                                ? "วันที่พยายามติดต่อ"
+                                                : "วันที่พบนักจิตวิทยา"
+                                            }
                                             labelPlacement="outside"
                                             name={round.schedule}
                                             selectorButtonPlacement="start"
@@ -2148,6 +2338,102 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                               });
                                             }}
                                           />
+                                          {isUnreachable ? (
+                                            <DatePicker
+                                              key={`${FOLLOW_UP_ROUNDS[idx].followUp}-${followUpVal?.toString() ?? ""}`}
+                                              showMonthAndYearPickers
+                                              defaultValue={parseDateForPicker(
+                                                followUpVal
+                                              )}
+                                              isDisabled={isLocked}
+                                              label="นัดติดต่อครั้งถัดไป"
+                                              labelPlacement="outside"
+                                              name={
+                                                FOLLOW_UP_ROUNDS[idx].followUp
+                                              }
+                                              selectorButtonPlacement="start"
+                                              variant="bordered"
+                                              onChange={(date) => {
+                                                HandleChange({
+                                                  target: {
+                                                    name: FOLLOW_UP_ROUNDS[idx]
+                                                      .followUp,
+                                                    value: date
+                                                      ? date.toString()
+                                                      : "",
+                                                  },
+                                                });
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
+                                              <Autocomplete
+                                                className="min-w-0 flex-1"
+                                                defaultItems={Consultant}
+                                                defaultSelectedKey={
+                                                  consultVal ?? undefined
+                                                }
+                                                errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
+                                                isDisabled={isLocked}
+                                                isInvalid={
+                                                  isError &&
+                                                  consultValidationRound === idx
+                                                }
+                                                isRequired={!isLocked}
+                                                label="ผู้ให้คำปรึกษา"
+                                                labelPlacement="outside"
+                                                placeholder="เลือกผู้ให้คำปรึกษา"
+                                                radius="md"
+                                                variant="bordered"
+                                                onSelectionChange={(val) =>
+                                                  HandleChange({
+                                                    target: {
+                                                      name: round.consult,
+                                                      value:
+                                                        val != null
+                                                          ? String(val)
+                                                          : null,
+                                                    },
+                                                  })
+                                                }
+                                              >
+                                                {(item) => (
+                                                  <AutocompleteItem
+                                                    key={item.id}
+                                                  >
+                                                    {item.name}
+                                                  </AutocompleteItem>
+                                                )}
+                                              </Autocomplete>
+                                              <Button
+                                                className="w-full shrink-0 md:w-auto"
+                                                color={
+                                                  consultantRoundSaved[idx]
+                                                    ? "success"
+                                                    : "primary"
+                                                }
+                                                isDisabled={
+                                                  consultantLoading ||
+                                                  consultantRoundSaved[idx]
+                                                }
+                                                isLoading={consultantLoading}
+                                                type="button"
+                                                variant="flat"
+                                                onPress={() =>
+                                                  handleSaveConsultant(
+                                                    idx as 0 | 1 | 2
+                                                  )
+                                                }
+                                              >
+                                                {consultantRoundSaved[idx]
+                                                  ? "บันทึกแล้ว"
+                                                  : "บันทึกผู้ให้คำปรึกษา"}
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {isUnreachable && (
                                           <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
                                             <Autocomplete
                                               className="min-w-0 flex-1"
@@ -2155,16 +2441,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                               defaultSelectedKey={
                                                 consultVal ?? undefined
                                               }
-                                              errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
                                               isDisabled={isLocked}
-                                              isInvalid={
-                                                isError &&
-                                                consultValidationRound === idx
-                                              }
-                                              isRequired={!isLocked}
-                                              label="ผู้ให้คำปรึกษา"
+                                              label="ผู้รับผิดชอบติดต่อ"
                                               labelPlacement="outside"
-                                              placeholder="เลือกผู้ให้คำปรึกษา"
+                                              placeholder="เลือกผู้รับผิดชอบ (ไม่บังคับ)"
                                               radius="md"
                                               variant="bordered"
                                               onSelectionChange={(val) =>
@@ -2207,21 +2487,31 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                             >
                                               {consultantRoundSaved[idx]
                                                 ? "บันทึกแล้ว"
-                                                : "บันทึกผู้ให้คำปรึกษา"}
+                                                : "บันทึกการติดต่อ"}
                                             </Button>
                                           </div>
-                                        </div>
+                                        )}
 
                                         <Divider className="bg-default-200" />
 
                                         {!soapDisabled &&
-                                          !consultantRoundSaved[idx] && (
+                                          !consultantRoundSaved[idx] &&
+                                          !isUnreachable && (
                                             <p className="text-small text-default-500">
                                               กรุณากรอกวันที่พบและผู้ให้คำปรึกษา
                                               แล้วกด
                                               &quot;บันทึกผู้ให้คำปรึกษา&quot;
                                               ก่อนกรอก Discharge Summary
                                               ด้านล่าง
+                                            </p>
+                                          )}
+                                        {!soapDisabled &&
+                                          !consultantRoundSaved[idx] &&
+                                          isUnreachable && (
+                                            <p className="text-small text-default-500">
+                                              กรุณาระบุวันที่พยายามติดต่อ แล้วกด
+                                              &quot;บันทึกการติดต่อ&quot;
+                                              (สามารถระบุนัดติดต่อครั้งถัดไปได้)
                                             </p>
                                           )}
 
@@ -2355,32 +2645,34 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                               })
                                             }
                                           />
-                                          <DatePicker
-                                            showMonthAndYearPickers
-                                            className="max-w-xs"
-                                            defaultValue={parseDateForPicker(
-                                              followUpVal
-                                            )}
-                                            isDisabled={soapSectionLocked}
-                                            label="นัดพบครั้งถัดไป"
-                                            labelPlacement="outside"
-                                            name={
-                                              FOLLOW_UP_ROUNDS[idx].followUp
-                                            }
-                                            selectorButtonPlacement="start"
-                                            variant="bordered"
-                                            onChange={(date) => {
-                                              HandleChange({
-                                                target: {
-                                                  name: FOLLOW_UP_ROUNDS[idx]
-                                                    .followUp,
-                                                  value: date
-                                                    ? date.toString()
-                                                    : "",
-                                                },
-                                              });
-                                            }}
-                                          />
+                                          {!isUnreachable && (
+                                            <DatePicker
+                                              showMonthAndYearPickers
+                                              className="max-w-xs"
+                                              defaultValue={parseDateForPicker(
+                                                followUpVal
+                                              )}
+                                              isDisabled={soapSectionLocked}
+                                              label="นัดพบครั้งถัดไป"
+                                              labelPlacement="outside"
+                                              name={
+                                                FOLLOW_UP_ROUNDS[idx].followUp
+                                              }
+                                              selectorButtonPlacement="start"
+                                              variant="bordered"
+                                              onChange={(date) => {
+                                                HandleChange({
+                                                  target: {
+                                                    name: FOLLOW_UP_ROUNDS[idx]
+                                                      .followUp,
+                                                    value: date
+                                                      ? date.toString()
+                                                      : "",
+                                                  },
+                                                });
+                                              }}
+                                            />
+                                          )}
                                         </div>
                                       </div>
                                     </Tab>
@@ -2396,7 +2688,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   </div>
                 )}
               </DrawerBody>
-              <DrawerFooter className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-default-200 bg-content1/40 px-4 py-3 sm:px-6">
+              <DrawerFooter className="sticky bottom-0 z-10 flex w-full shrink-0 flex-wrap items-center justify-end gap-2 border-t border-default-200 bg-content1 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] sm:px-6">
                 <Button color="danger" variant="light" onPress={onClose}>
                   ปิด
                 </Button>
@@ -2428,7 +2720,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     color={consultationSaved ? "success" : "primary"}
                     isDisabled={
                       consultationLoading ||
-                      !questionData?.consult ||
+                      (!questionData?.consult &&
+                        !questionData?.unreachable &&
+                        !questionData?.unreachable2 &&
+                        !questionData?.unreachable3) ||
                       consultationSaved
                     }
                     isLoading={consultationLoading}

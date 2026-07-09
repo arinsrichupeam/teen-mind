@@ -20,6 +20,8 @@ export type FollowUpRoundTrackingStatus = {
   title: string;
   consultTelemedComplete: boolean;
   dischargeSoapComplete: boolean;
+  /** รอบนี้ถูกทำเครื่องหมาย "ติดต่อไม่ได้" (ไม่นับเป็นการพบจริง) */
+  unreachable: boolean;
 };
 
 export type QuestionsData = {
@@ -51,6 +53,10 @@ export type QuestionsData = {
   follow_up: Date | null;
   follow_up2?: Date | null;
   follow_up3?: Date | null;
+  /** ติดต่อไม่ได้ต่อรอบ — ไม่นับเป็นการพบจริงและไม่เลื่อนสถานะ */
+  unreachable?: boolean | null;
+  unreachable2?: boolean | null;
+  unreachable3?: boolean | null;
   consult: string;
   consult2?: string | null;
   consult3?: string | null;

@@ -19,6 +19,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { BirthdaySelect } from "@/components/birthday-select";
+import { liffPopoverProps } from "@/utils/liff-popover-props";
 import { LineIcon } from "@/components/icons";
 import { prefix, sex, gradeYearLevels } from "@/utils/data";
 import {
@@ -316,7 +317,7 @@ export const Step1 = ({
 
   return (
     <Form
-      className="flex flex-col gap-4 w-full text-start"
+      className="flex flex-col gap-3 sm:gap-4 w-full min-w-0 text-start"
       validationBehavior="native"
       onSubmit={onSubmit}
     >
@@ -352,9 +353,9 @@ export const Step1 = ({
           กลับไปค้นหาผู้รับการประเมิน
         </Button>
       ) : null}
-      <div className="flex flex-row gap-4 w-full">
+      <div className="flex flex-row gap-2 sm:gap-4 w-full min-w-0">
         <Select
-          className="max-w-xs"
+          className="flex-1 basis-0"
           errorMessage="กรุณาเลือกคำนำหน้า"
           isDisabled={false}
           isRequired={request}
@@ -362,6 +363,7 @@ export const Step1 = ({
           labelPlacement="inside"
           name="prefix"
           placeholder="คำนำหน้า"
+          popoverProps={liffPopoverProps}
           radius="md"
           selectedKeys={Result?.prefixId ? [Result.prefixId.toString()] : []}
           size="sm"
@@ -373,7 +375,7 @@ export const Step1 = ({
           ))}
         </Select>
         <Select
-          className="max-w-xs"
+          className="flex-1 basis-0"
           errorMessage="กรุณาเลือกเพศ"
           isDisabled={false}
           isRequired={request}
@@ -381,6 +383,7 @@ export const Step1 = ({
           labelPlacement="inside"
           name="sex"
           placeholder="เพศ"
+          popoverProps={liffPopoverProps}
           radius="md"
           selectedKeys={Result?.sex ? [Result.sex.toString()] : []}
           size="sm"
@@ -442,8 +445,9 @@ export const Step1 = ({
           HandleChange({ target: { name: "birthday", value: isoDate } });
         }}
       />
-      <div className="flex flex-row gap-4 w-full">
+      <div className="flex flex-row gap-2 sm:gap-4 w-full min-w-0">
         <Input
+          className="flex-1 min-w-0"
           errorMessage="กรุณากรอกเชื้อชาติ"
           isRequired={request}
           label="เชื้อชาติ"
@@ -457,6 +461,7 @@ export const Step1 = ({
           onChange={HandleChange}
         />
         <Input
+          className="flex-1 min-w-0"
           errorMessage="กรุณากรอกสัญชาติ"
           isRequired={request}
           label="สัญชาติ"
@@ -490,6 +495,7 @@ export const Step1 = ({
         onChange={HandleChange}
       />
       <Autocomplete
+        className="w-full"
         defaultItems={school}
         errorMessage="กรุณากรอกสถานศึกษา"
         isRequired={false}
@@ -498,6 +504,7 @@ export const Step1 = ({
         menuTrigger="input"
         name="school"
         placeholder="โรงเรียน (กรณีที่เป็นนักเรียน)"
+        popoverProps={liffPopoverProps}
         radius="md"
         scrollShadowProps={{
           isEnabled: false,
@@ -532,6 +539,7 @@ export const Step1 = ({
           labelPlacement="inside"
           name="gradeYear"
           placeholder="เลือกชั้นปี"
+          popoverProps={liffPopoverProps}
           radius="md"
           selectedKeys={
             Result?.gradeYear != null ? [Result.gradeYear.toString()] : []

@@ -34,7 +34,7 @@ export const Step3 = ({
 
   return (
     <Form
-      className="flex flex-col gap-4 text-start"
+      className="flex flex-col gap-3 sm:gap-4 w-full min-w-0 text-start"
       validationBehavior="native"
       onSubmit={onSubmit}
     >
@@ -50,8 +50,9 @@ export const Step3 = ({
         variant="faded"
         onChange={HandleChange}
       />
-      <div className="flex flex-row gap-4 w-full">
+      <div className="flex flex-row gap-2 sm:gap-4 w-full min-w-0">
         <Input
+          className="flex-1 min-w-0"
           errorMessage="กรุณากรอกเบอร์โทรศัพท์"
           isRequired={request}
           label="เบอร์โทรศัพท์"
@@ -68,6 +69,7 @@ export const Step3 = ({
           onChange={HandleChange}
         />
         <Input
+          className="flex-1 min-w-0"
           errorMessage="กรุณากรอกความสัมพันธ์"
           isRequired={request}
           label="ความสัมพันธ์"

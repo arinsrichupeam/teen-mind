@@ -62,6 +62,12 @@ const mainScaleOptions = [
   { name: "PHQ-A", uid: "phqa" },
 ];
 
+const referentTypeOptions = [
+  { name: "ทั้งหมด", uid: "all" },
+  { name: "ออกหน่วย", uid: "outreach" },
+  { name: "ทำมาเอง", uid: "self" },
+];
+
 interface QuestionFilterContentProps {
   filterValue: string;
   onSearchChange: (value?: string) => void;
@@ -81,6 +87,8 @@ interface QuestionFilterContentProps {
   setAddonFilter: (filter: Selection) => void;
   mainScaleFilter: string;
   setMainScaleFilter: (value: string) => void;
+  referentTypeFilter: string;
+  setReferentTypeFilter: (value: string) => void;
   hiddenSchools: Set<string>;
   setHiddenSchools: (schools: Set<string>) => void;
   data?: QuestionsData[];
@@ -107,6 +115,8 @@ export function QuestionFilterContent({
   setAddonFilter,
   mainScaleFilter,
   setMainScaleFilter,
+  referentTypeFilter,
+  setReferentTypeFilter,
   hiddenSchools,
   setHiddenSchools,
   data,
@@ -327,6 +337,42 @@ export function QuestionFilterContent({
                 </DropdownMenu>
               </Dropdown>
 
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
+                    color="primary"
+                    endContent={
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    }
+                    size="sm"
+                    variant="flat"
+                  >
+                    ที่มาเคส:{" "}
+                    {referentTypeOptions.find(
+                      (o) => o.uid === referentTypeFilter
+                    )?.name ?? "ทั้งหมด"}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  disallowEmptySelection
+                  aria-label="Referent type filter"
+                  selectedKeys={new Set([referentTypeFilter])}
+                  selectionMode="single"
+                  onSelectionChange={(keys) => {
+                    const first = Array.from(keys as Set<string>)[0];
+
+                    if (first) setReferentTypeFilter(first);
+                  }}
+                >
+                  {referentTypeOptions.map((opt) => (
+                    <DropdownItem key={opt.uid} className="capitalize">
+                      {opt.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+
               {/* สถานะทั่วไป */}
               <Dropdown>
                 <DropdownTrigger>
@@ -482,36 +528,11 @@ export function QuestionFilterContent({
                 </DropdownMenu>
               </Dropdown>
 
-              {/* PHQ-A Addon (2 ข้อ — ไม่ใช่ 8Q) */}
+              {/* PHQ-A Addon filter is temporarily disabled
               <Dropdown>
-                <DropdownTrigger>
-                  <Button
-                    className="w-full sm:w-auto min-h-8 h-8 min-w-0 px-3 text-small shadow-sm"
-                    color="primary"
-                    endContent={
-                      <ChevronDownIcon className="size-3.5 shrink-0" />
-                    }
-                    size="sm"
-                    variant="flat"
-                  >
-                    PHQ-A Addon
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu
-                  disallowEmptySelection
-                  aria-label="PHQ-A Addon Filter"
-                  closeOnSelect={false}
-                  selectedKeys={addonFilter}
-                  selectionMode="multiple"
-                  onSelectionChange={setAddonFilter}
-                >
-                  {riskStatusOptions.map((status) => (
-                    <DropdownItem key={status.uid} className="capitalize">
-                      {status.name}
-                    </DropdownItem>
-                  ))}
-                </DropdownMenu>
+                ...
               </Dropdown>
+              */}
 
               {/* Clear All Filters */}
               <Button
@@ -529,6 +550,7 @@ export function QuestionFilterContent({
                   setQ8Filter(new Set([]));
                   setAddonFilter(new Set([]));
                   setMainScaleFilter("all");
+                  setReferentTypeFilter("all");
                 }}
               >
                 ล้าง Filter
@@ -547,6 +569,7 @@ export function QuestionFilterContent({
         {(filterValue ||
           schoolFilter ||
           mainScaleFilter !== "all" ||
+          referentTypeFilter !== "all" ||
           (statusFilter as Set<string>).size > 0 ||
           (nineqResultFilter as Set<string>).size > 0 ||
           (phqaResultFilter as Set<string>).size > 0 ||
@@ -581,6 +604,20 @@ export function QuestionFilterContent({
                 ชุดหลัก:{" "}
                 {mainScaleOptions.find((o) => o.uid === mainScaleFilter)
                   ?.name ?? mainScaleFilter}
+              </Chip>
+            )}
+
+            {referentTypeFilter !== "all" && (
+              <Chip
+                className="text-xs"
+                color="secondary"
+                size="sm"
+                variant="flat"
+                onClose={() => setReferentTypeFilter("all")}
+              >
+                แหล่งที่มา:{" "}
+                {referentTypeOptions.find((o) => o.uid === referentTypeFilter)
+                  ?.name ?? referentTypeFilter}
               </Chip>
             )}
 
@@ -723,33 +760,12 @@ export function QuestionFilterContent({
                 );
               })}
 
-            {/* PHQ-A Addon */}
+            {/* PHQ-A Addon chip is temporarily disabled
             {(addonFilter as Set<string>).size > 0 &&
               Array.from(addonFilter as Set<string>).map((addon) => {
-                const addonOption = riskStatusOptions.find(
-                  (opt) => opt.uid === addon
-                );
-
-                return (
-                  <Chip
-                    key={addon}
-                    className="text-xs"
-                    color="default"
-                    size="sm"
-                    variant="flat"
-                    onClose={() => {
-                      const newAddonFilter = new Set(
-                        addonFilter as Set<string>
-                      );
-
-                      newAddonFilter.delete(addon);
-                      setAddonFilter(newAddonFilter);
-                    }}
-                  >
-                    PHQ-A Addon: {addonOption?.name}
-                  </Chip>
-                );
+                ...
               })}
+            */}
           </div>
         )}
       </div>
@@ -765,6 +781,7 @@ export function QuestionFilterContent({
       q8Filter,
       addonFilter,
       mainScaleFilter,
+      referentTypeFilter,
       schoolsData,
       hiddenSchools,
       setHiddenSchools,
@@ -777,6 +794,7 @@ export function QuestionFilterContent({
       setQ8Filter,
       setAddonFilter,
       setMainScaleFilter,
+      setReferentTypeFilter,
       data,
       filteredData,
     ]

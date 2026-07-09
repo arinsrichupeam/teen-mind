@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  computePsychologistProductivity,
-  emptyPsychologistProductivityStats,
-} from "@/lib/dashboard/psychologist-productivity";
+import { computePsychologistProductivity } from "@/lib/dashboard/psychologist-productivity";
 import {
   formatThaiDateLabel,
   parseDateParam,
@@ -51,12 +48,15 @@ export async function GET(req: Request) {
           { consult: { not: null } },
           { consult2: { not: null } },
           { consult3: { not: null } },
+          { result: "Red" },
         ],
       },
       select: {
         id: true,
         profileId: true,
+        status: true,
         createdAt: true,
+        result: true,
         consult: true,
         consult2: true,
         consult3: true,
@@ -75,6 +75,9 @@ export async function GET(req: Request) {
         objective3: true,
         assessment3: true,
         plan3: true,
+        unreachable: true,
+        unreachable2: true,
+        unreachable3: true,
       },
     }),
     prisma.profile_Admin.findMany({
@@ -86,17 +89,6 @@ export async function GET(req: Request) {
       },
     }),
   ]);
-
-  const hasAssignedConsult = questions.some(
-    (q) =>
-      (q.consult && q.consult.trim() !== "") ||
-      (q.consult2 && q.consult2.trim() !== "") ||
-      (q.consult3 && q.consult3.trim() !== "")
-  );
-
-  if (!hasAssignedConsult) {
-    return NextResponse.json(emptyPsychologistProductivityStats(label));
-  }
 
   const adminLookup = new Map(
     admins.map((admin) => [

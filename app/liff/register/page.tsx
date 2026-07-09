@@ -330,9 +330,9 @@ export default function RegisterPage() {
   );
 
   return (
-    <section className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
+    <section className="flex flex-col w-full max-w-xl min-w-0 mx-auto min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-4 sm:px-6 md:px-8 py-8 md:py-10">
       <Suspense fallback={<Loading />}>
-        <div className="flex items-center my-3 absolute top-5 right-5">
+        <div className="flex items-center my-3 absolute top-4 right-4 sm:top-5 sm:right-5 max-w-[calc(100%-2rem)]">
           <Alert
             color={"success"}
             isVisible={showAlert}
@@ -340,11 +340,17 @@ export default function RegisterPage() {
             variant="faded"
           />
         </div>
-        <div className="flex flex-col gap-5">
-          <h1 className={title()}>ลงทะเบียน</h1>
-          <div className="flex flex-col w-full min-h-[calc(100vh_-_350px)]">
+        <div className="flex flex-col gap-5 w-full min-w-0">
+          <h1 className={title({ size: "sm" })}>ลงทะเบียน</h1>
+          <div className="flex flex-col w-full min-w-0 min-h-[calc(100vh_-_350px)]">
             <Tabs
               aria-label="Options"
+              classNames={{
+                base: "w-full",
+                tabList: "w-full gap-0 sm:gap-2",
+                tab: "text-xs sm:text-sm px-1 sm:px-3",
+                panel: "w-full pt-4",
+              }}
               color="primary"
               fullWidth={true}
               selectedKey={selected}

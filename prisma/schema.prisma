@@ -227,6 +227,10 @@ model Questions_Master {
   follow_up         DateTime?
   follow_up2        DateTime?
   follow_up3        DateTime?
+  // ติดต่อไม่ได้ต่อรอบ — รอบที่ถูกทำเครื่องหมายจะไม่นับเป็นการพบจริงและไม่เลื่อนสถานะ
+  unreachable       Boolean                @default(false)
+  unreachable2      Boolean                @default(false)
+  unreachable3      Boolean                @default(false)
   status            Int                    @default(0)
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt

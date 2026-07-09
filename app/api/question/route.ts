@@ -53,6 +53,7 @@ function buildWhereFromQuery(url: URL) {
   const addonRisk = url.searchParams.get("addonRisk");
   const q8Risk = url.searchParams.get("q8Risk");
   const mainScale = url.searchParams.get("mainScale")?.trim() || "";
+  const referentType = url.searchParams.get("referentType")?.trim() || "";
   const excludeSchoolsParam =
     url.searchParams.get("excludeSchools")?.trim() || "";
   const excludeSchoolsArray = excludeSchoolsParam
@@ -130,6 +131,12 @@ function buildWhereFromQuery(url: URL) {
 
   if (consultUserId) {
     whereConditions.push({ consult: consultUserId });
+  }
+
+  if (referentType === "outreach") {
+    whereConditions.push({ referentId: { not: null } });
+  } else if (referentType === "self") {
+    whereConditions.push({ referentId: null });
   }
 
   const hasSplitMainResult =
@@ -264,6 +271,9 @@ export async function GET(req: Request) {
         follow_up: true,
         follow_up2: true,
         follow_up3: true,
+        unreachable: true,
+        unreachable2: true,
+        unreachable3: true,
         profile: {
           select: {
             id: true,
@@ -451,10 +461,7 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
-    const age = getAgeAtAssessment(
-      profile.birthday,
-      profile.school?.screeningDate
-    );
+    const age = getAgeAtAssessment(profile.birthday, new Date());
 
     if (age === null) {
       throw new Error("ไม่พบวันเกิดสำหรับกำหนดชุดแบบประเมิน");
@@ -796,6 +803,9 @@ export async function PUT(req: Request) {
         follow_up: question.follow_up,
         follow_up2: question.follow_up2,
         follow_up3: question.follow_up3,
+        unreachable: Boolean(question.unreachable),
+        unreachable2: Boolean(question.unreachable2),
+        unreachable3: Boolean(question.unreachable3),
         status: CalStatus(question),
         result: result,
         result_text: result_text,
@@ -995,15 +1005,8 @@ function getMainScreeningData(question: QuestionsData): {
   const phqaRow = question.phqa?.[0];
   const sum = getMainSumFromQuestion(q9Row?.sum, phqaRow?.sum) ?? 0;
 
-  const school = question.profile?.school;
-  const screeningDate =
-    typeof school === "object" && school !== null
-      ? school.screeningDate
-      : undefined;
-
   const age = getAgeAtAssessment(
     question.profile?.birthday,
-    screeningDate,
     question.createdAt
   );
 

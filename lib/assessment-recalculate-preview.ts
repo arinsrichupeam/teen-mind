@@ -105,7 +105,6 @@ export function buildRecalculatePreview(
 
     const age = getAgeAtAssessment(
       question.profile?.birthday,
-      question.profile?.school?.screeningDate,
       question.createdAt
     );
 
@@ -187,7 +186,6 @@ export function listRecalculateMismatches(
 
     const age = getAgeAtAssessment(
       question.profile?.birthday,
-      question.profile?.school?.screeningDate,
       question.createdAt
     );
 

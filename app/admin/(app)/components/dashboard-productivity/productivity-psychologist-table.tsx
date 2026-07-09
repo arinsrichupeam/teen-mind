@@ -12,6 +12,8 @@ import {
   TableRow,
 } from "@heroui/react";
 
+import { PRODUCTIVITY_STATUS } from "./productivity-status-labels";
+
 type Props = {
   rows: PsychologistProductivityRow[];
   periodLabel?: string | null;
@@ -19,15 +21,23 @@ type Props = {
 
 const formatNumber = (value: number) => value.toLocaleString("th-TH");
 
+const {
+  awaitingConsult,
+  awaitingSummary,
+  completed,
+  unreachable,
+  completionRate,
+} = PRODUCTIVITY_STATUS;
+
 const columns = [
   { key: "rank", label: "#", align: "center" as const },
   { key: "name", label: "นักจิตวิทยา" },
   { key: "activeCases", label: "เคส", align: "center" as const },
-  { key: "assignedSessions", label: "มอบหมาย", align: "center" as const },
-  { key: "completedSessions", label: "เสร็จสิ้น", align: "center" as const },
-  { key: "soapPending", label: "รอสรุป", align: "center" as const },
-  { key: "telemedPending", label: "รอนัด", align: "center" as const },
-  { key: "completionRate", label: "อัตรา", align: "center" as const },
+  { key: "status1", label: awaitingConsult, align: "center" as const },
+  { key: "status2", label: awaitingSummary, align: "center" as const },
+  { key: "status3", label: completed, align: "center" as const },
+  { key: "unreachable", label: unreachable, align: "center" as const },
+  { key: "completionRate", label: completionRate, align: "center" as const },
 ];
 
 const completionChipColor = (rate: number) => {
@@ -41,7 +51,7 @@ const sumField = (
   items: PsychologistProductivityRow[],
   key: keyof Pick<
     PsychologistProductivityRow,
-    "assignedSessions" | "completedSessions" | "soapPending" | "telemedPending"
+    "unreachable" | "status1" | "status2" | "status3"
   >
 ) => items.reduce((sum, row) => sum + row[key], 0);
 
@@ -55,10 +65,11 @@ export function ProductivityPsychologistTable({ rows, periodLabel }: Props) {
   }
 
   const totals = {
-    assigned: sumField(rows, "assignedSessions"),
-    completed: sumField(rows, "completedSessions"),
-    soapPending: sumField(rows, "soapPending"),
-    telemedPending: sumField(rows, "telemedPending"),
+    cases: rows.reduce((sum, row) => sum + row.activeCases, 0),
+    status1: sumField(rows, "status1"),
+    status2: sumField(rows, "status2"),
+    status3: sumField(rows, "status3"),
+    unreachable: sumField(rows, "unreachable"),
   };
 
   const heading = periodLabel ?? "ข้อมูลทั้งหมด";
@@ -72,16 +83,19 @@ export function ProductivityPsychologistTable({ rows, periodLabel }: Props) {
 
         <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
           <Chip size="sm" variant="flat">
-            มอบหมาย {formatNumber(totals.assigned)}
-          </Chip>
-          <Chip color="success" size="sm" variant="flat">
-            เสร็จ {formatNumber(totals.completed)}
+            เคส {formatNumber(totals.cases)}
           </Chip>
           <Chip color="warning" size="sm" variant="flat">
-            รอสรุป {formatNumber(totals.soapPending)}
+            {awaitingConsult} {formatNumber(totals.status1)}
           </Chip>
           <Chip color="primary" size="sm" variant="flat">
-            รอนัด {formatNumber(totals.telemedPending)}
+            {awaitingSummary} {formatNumber(totals.status2)}
+          </Chip>
+          <Chip color="success" size="sm" variant="flat">
+            {completed} {formatNumber(totals.status3)}
+          </Chip>
+          <Chip color="danger" size="sm" variant="flat">
+            {unreachable} {formatNumber(totals.unreachable)}
           </Chip>
         </div>
       </div>
@@ -120,17 +134,17 @@ export function ProductivityPsychologistTable({ rows, periodLabel }: Props) {
                 <TableCell className="tabular-nums text-center">
                   {formatNumber(row.activeCases)}
                 </TableCell>
-                <TableCell className="tabular-nums text-center">
-                  {formatNumber(row.assignedSessions)}
-                </TableCell>
-                <TableCell className="tabular-nums text-center text-success-600 font-medium">
-                  {formatNumber(row.completedSessions)}
-                </TableCell>
                 <TableCell className="tabular-nums text-center text-warning-600">
-                  {formatNumber(row.soapPending)}
+                  {formatNumber(row.status1)}
                 </TableCell>
                 <TableCell className="tabular-nums text-center text-primary-600">
-                  {formatNumber(row.telemedPending)}
+                  {formatNumber(row.status2)}
+                </TableCell>
+                <TableCell className="tabular-nums text-center text-success-600">
+                  {formatNumber(row.status3)}
+                </TableCell>
+                <TableCell className="tabular-nums text-center text-danger-500">
+                  {formatNumber(row.unreachable)}
                 </TableCell>
                 <TableCell className="text-center">
                   <Chip

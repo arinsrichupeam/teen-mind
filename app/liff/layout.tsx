@@ -14,7 +14,7 @@ export default function AboutLayout({
   const appVersion = packageJson.version;
 
   return (
-    <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden">
+    <div className="relative flex flex-col min-h-screen w-full overflow-x-clip">
       <header className="absolute top-0 left-0 right-0 w-full flex justify-end px-4 py-3 !bg-transparent z-10">
         <ProfileAvatar />
       </header>

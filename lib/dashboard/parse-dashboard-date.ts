@@ -106,6 +106,39 @@ export function todayInThailandParts(): ParsedDateParts {
   };
 }
 
+/** คืน YYYY-MM-DD จาก ParsedDateParts */
+export function formatDateParam(parts: ParsedDateParts): string {
+  const month = String(parts.monthIndex + 1).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+
+  return `${parts.year}-${month}-${day}`;
+}
+
+/**
+ * ช่วง 30 วันล่าสุดตามเวลาไทย (รวมวันนี้ = ย้อนหลัง 29 วันถึงวันนี้)
+ */
+export function lastNDaysInThailand(days: number): {
+  start: string;
+  end: string;
+} {
+  const today = todayInThailandParts();
+  const startUtc = Date.UTC(
+    today.year,
+    today.monthIndex,
+    today.day - (days - 1)
+  );
+  const start = new Date(startUtc);
+
+  return {
+    start: formatDateParam({
+      year: start.getUTCFullYear(),
+      monthIndex: start.getUTCMonth(),
+      day: start.getUTCDate(),
+    }),
+    end: formatDateParam(today),
+  };
+}
+
 export function formatThaiDateLabel(parts: ParsedDateParts): string {
   const d = new Date(Date.UTC(parts.year, parts.monthIndex, parts.day));
 
