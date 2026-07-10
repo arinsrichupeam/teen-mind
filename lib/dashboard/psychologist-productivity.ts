@@ -10,6 +10,7 @@ import {
   isDischargeSoapRoundComplete,
   isRoundUnreachable,
 } from "@/lib/question-followup-rounds";
+import { isLegacyDateOnlyUtc } from "@/utils/helper";
 
 export type PsychologistMonthlyDetailRow = {
   monthKey: string;
@@ -175,20 +176,24 @@ const emptyRedCase24hAccess = (): RedCase24hAccessSummary => ({
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
-/** ชั่วโมงจากคัดกรอง → พบนักจิตรอบ 1 (null ถ้ายังไม่พบ / ข้อมูลไม่ครบ) */
+/** ข้ามเคสที่บันทึกวันพบแบบไม่มีเวลา (legacy date-only) — คำนวณ SLA 24 ชม. ไม่ได้ */
+const isLegacyScheduleTelemed = (question: QuestionLike) => {
+  if (!question.schedule_telemed) return false;
+
+  return isLegacyDateOnlyUtc(toDate(question.schedule_telemed));
+};
+
+/** ชั่วโมงจากคัดกรอง → พบนักจิตรอบ 1 (null ถ้ายังไม่พบ / ข้อมูลไม่ครบ / ไม่มีเวลา) */
 export function getRedCaseAccessDelayHours(
   question: QuestionLike
 ): number | null {
   if (question.result !== "Red") return null;
   if (!question.schedule_telemed) return null;
-  const normalizedStatus = normalizeQuestionStatus(question.status);
+  if (isLegacyScheduleTelemed(question)) return null;
 
-  if (normalizedStatus !== null && normalizedStatus < 2) return null;
-  if (normalizedStatus === null) {
-    const qData = toQuestionData(question);
+  const qData = toQuestionData(question);
 
-    if (!isConsultTelemedRoundComplete(qData, 0)) return null;
-  }
+  if (!isConsultTelemedRoundComplete(qData, 0)) return null;
 
   const createdAt = toDate(question.createdAt);
   const sessionDate = toDate(question.schedule_telemed);
@@ -212,6 +217,7 @@ const computeRedCase24hAccess = (
 ): RedCase24hAccessSummary => {
   const redCases = questions.filter((q) => {
     if (q.result !== "Red") return false;
+    if (isLegacyScheduleTelemed(q)) return false;
     if (!dateRange) return true;
 
     const screenedAt = toDate(q.createdAt);

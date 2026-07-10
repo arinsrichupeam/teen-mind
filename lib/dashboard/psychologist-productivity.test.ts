@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   computePsychologistProductivity,
+  getRedCaseAccessDelayHours,
   isRedCaseReachedWithin24h,
   type QuestionLike,
 } from "./psychologist-productivity";
@@ -77,6 +78,32 @@ describe("isRedCaseReachedWithin24h", () => {
       false
     );
   });
+
+  it("excludes legacy date-only schedule from 24h access metric", () => {
+    const screenedAt = new Date("2025-06-11T03:54:04.678Z");
+    const legacySchedule = new Date("2025-06-11T00:00:00.000Z");
+
+    assert.equal(
+      isRedCaseReachedWithin24h(
+        baseQuestion({
+          id: "q-legacy-same-day",
+          createdAt: screenedAt,
+          schedule_telemed: legacySchedule,
+        })
+      ),
+      false
+    );
+    assert.equal(
+      getRedCaseAccessDelayHours(
+        baseQuestion({
+          id: "q-legacy-same-day",
+          createdAt: screenedAt,
+          schedule_telemed: legacySchedule,
+        })
+      ),
+      null
+    );
+  });
 });
 
 describe("computePsychologistProductivity redCase24hAccess", () => {
@@ -125,5 +152,37 @@ describe("computePsychologistProductivity redCase24hAccess", () => {
     // (4h + 48h) / 2 = 26h — ไม่นับเคสที่ยังไม่พบ
     assert.equal(stats.summary.redCase24hAccess.reached, 2);
     assert.equal(stats.summary.redCase24hAccess.avgAccessHours, 26);
+  });
+
+  it("excludes legacy date-only schedules from total red case count", () => {
+    const questions: QuestionLike[] = [
+      baseQuestion({
+        id: "red-with-time",
+        createdAt: new Date("2026-07-01T08:00:00.000Z"),
+        schedule_telemed: new Date("2026-07-01T12:00:00.000Z"),
+      }),
+      baseQuestion({
+        id: "red-legacy-only",
+        createdAt: new Date("2026-07-02T08:00:00.000Z"),
+        schedule_telemed: new Date("2026-07-02T00:00:00.000Z"),
+      }),
+    ];
+
+    const stats = computePsychologistProductivity(
+      questions,
+      new Map([
+        ["admin-1", { prefixId: 1, firstname: "Test", lastname: "User" }],
+      ]),
+      new Map([["1", "นาย"]]),
+      "ทดสอบ",
+      {
+        startUtc: new Date("2026-07-01T00:00:00.000Z"),
+        endUtc: new Date("2026-07-05T00:00:00.000Z"),
+      }
+    );
+
+    assert.equal(stats.summary.redCase24hAccess.total, 1);
+    assert.equal(stats.summary.redCase24hAccess.within24h, 1);
+    assert.equal(stats.summary.redCase24hAccess.rate, 100);
   });
 });
