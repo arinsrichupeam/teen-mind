@@ -1,5 +1,116 @@
 import moment from "moment";
-import { parseDate } from "@internationalized/date";
+import { parseDate, parseDateTime } from "@internationalized/date";
+
+const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+const THAI_MONTHS_FULL = [
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
+] as const;
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/** ข้อมูลเก่าที่บันทึกแค่วันที่ (UTC เที่ยงคืน) */
+export function isLegacyDateOnlyUtc(date: Date): boolean {
+  return (
+    date.getUTCHours() === 0 &&
+    date.getUTCMinutes() === 0 &&
+    date.getUTCSeconds() === 0 &&
+    date.getUTCMilliseconds() === 0
+  );
+}
+
+/** แปลงค่า DB → CalendarDateTime สำหรับ DatePicker (granularity minute) ตามเวลาไทย */
+export const safeParseDateTimeForPicker = (
+  dateValue: unknown
+): ReturnType<typeof parseDateTime> | undefined => {
+  if (!dateValue) return undefined;
+
+  try {
+    const date = new Date(dateValue as string | Date);
+
+    if (isNaN(date.getTime()) || date.getUTCFullYear() <= 1900) {
+      return undefined;
+    }
+
+    if (isLegacyDateOnlyUtc(date)) {
+      const year = date.getUTCFullYear();
+      const month = date.getUTCMonth() + 1;
+      const day = date.getUTCDate();
+
+      return parseDateTime(`${year}-${pad2(month)}-${pad2(day)}T09:00`);
+    }
+
+    const th = new Date(date.getTime() + TH_OFFSET_MS);
+    const year = th.getUTCFullYear();
+    const month = th.getUTCMonth() + 1;
+    const day = th.getUTCDate();
+    const hour = th.getUTCHours();
+    const minute = th.getUTCMinutes();
+
+    return parseDateTime(
+      `${year}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}`
+    );
+  } catch {
+    return undefined;
+  }
+};
+
+/** แปลงค่าจาก DatePicker → Date UTC สำหรับเก็บใน DB (ตีความเป็นเวลาไทย) */
+export const dateTimePickerValueToDate = (value: string): Date | null => {
+  if (!value) return null;
+
+  try {
+    const parsed = parseDateTime(value);
+    const thailandAsUtcMs = Date.UTC(
+      parsed.year,
+      parsed.month - 1,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      0,
+      0
+    );
+
+    return new Date(thailandAsUtcMs - TH_OFFSET_MS);
+  } catch {
+    return null;
+  }
+};
+
+/** แสดงวันที่และเวลาในเขตเวลาไทย (UTC+7) */
+export const formatThaiDateTimeAtThailand = (
+  dateString: string | Date
+): string => {
+  if (!dateString) return "-";
+
+  try {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) return "-";
+
+    const th = new Date(date.getTime() + TH_OFFSET_MS);
+    const day = th.getUTCDate();
+    const month = THAI_MONTHS_FULL[th.getUTCMonth()];
+    const year = th.getUTCFullYear() + 543;
+    const hours = pad2(th.getUTCHours());
+    const minutes = pad2(th.getUTCMinutes());
+
+    return `${day} ${month} ${year} ${hours}:${minutes} น.`;
+  } catch {
+    return "-";
+  }
+};
 
 export function CheckPHQAStatus(val: number) {
   switch (true) {

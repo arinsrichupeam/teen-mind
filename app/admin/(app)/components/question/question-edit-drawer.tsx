@@ -48,6 +48,7 @@ import {
 } from "../modal/modal-edit-profile";
 
 import { QuestionDetailDrawer } from "./question-detail-drawer";
+import { ConsultScheduleDateTimePicker } from "./consult-schedule-datetime-picker";
 
 import {
   Addon,
@@ -67,7 +68,11 @@ import {
   isRoundUnreachable,
   isUnreachableRoundDocumented,
 } from "@/lib/question-followup-rounds";
-import { safeParseDate, formatThaiDateTime } from "@/utils/helper";
+import {
+  safeParseDate,
+  formatThaiDateTime,
+  dateTimePickerValueToDate,
+} from "@/utils/helper";
 // eslint-disable-next-line import/order -- ไม่มีบรรทัดว่างภายในกลุ่ม import
 import { prefix } from "@/utils/data";
 
@@ -583,7 +588,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     ) {
       setQuestionData((prev) => ({
         ...prev,
-        [name]: valueStr ? new Date(valueStr) : null,
+        [name]: valueStr ? dateTimePickerValueToDate(valueStr) : null,
       }));
     } else if (
       name === "follow_up" ||
@@ -1066,11 +1071,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         return;
       }
     } else if (!isConsultTelemedRoundComplete(questionData, roundIndex)) {
-      setError("กรุณากรอกวันที่พบนักจิตวิทยาและผู้ให้คำปรึกษาให้ครบก่อนบันทึก");
+      setError("กรุณากรอกวันที่ เวลา และผู้ให้คำปรึกษาให้ครบก่อนบันทึก");
       addToast({
         title: "แจ้งเตือน",
-        description:
-          "กรุณากรอกวันที่พบนักจิตวิทยาและผู้ให้คำปรึกษาให้ครบก่อนบันทึก",
+        description: "กรุณากรอกวันที่ เวลา และผู้ให้คำปรึกษาให้ครบก่อนบันทึก",
         color: "warning",
       });
 
@@ -2012,21 +2016,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                           </Chip>
                                         )}
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                                          <DatePicker
-                                            showMonthAndYearPickers
-                                            defaultValue={parseDateForPicker(
-                                              schedVal
-                                            )}
+                                          <ConsultScheduleDateTimePicker
                                             isDisabled={true}
                                             label={
                                               isUnreachable
-                                                ? "วันที่พยายามติดต่อ"
-                                                : "วันที่พบนักจิตวิทยา"
+                                                ? "วันที่และเวลาที่พยายามติดต่อ"
+                                                : "วันที่และเวลาพบนักจิตวิทยา"
                                             }
-                                            labelPlacement="outside"
                                             name={round.schedule}
-                                            selectorButtonPlacement="start"
-                                            variant="bordered"
+                                            value={schedVal}
                                           />
                                           {isUnreachable ? (
                                             <DatePicker
@@ -2310,30 +2308,21 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                                          <DatePicker
-                                            key={`${round.schedule}-${isUnreachable}-${schedVal?.toString() ?? ""}`}
-                                            showMonthAndYearPickers
-                                            defaultValue={parseDateForPicker(
-                                              schedVal
-                                            )}
+                                          <ConsultScheduleDateTimePicker
                                             isDisabled={isLocked}
                                             isRequired={!isLocked}
                                             label={
                                               isUnreachable
-                                                ? "วันที่พยายามติดต่อ"
-                                                : "วันที่พบนักจิตวิทยา"
+                                                ? "วันที่และเวลาที่พยายามติดต่อ"
+                                                : "วันที่และเวลาพบนักจิตวิทยา"
                                             }
-                                            labelPlacement="outside"
                                             name={round.schedule}
-                                            selectorButtonPlacement="start"
-                                            variant="bordered"
-                                            onChange={(date) => {
+                                            value={schedVal}
+                                            onChange={(fieldName, value) => {
                                               HandleChange({
                                                 target: {
-                                                  name: round.schedule,
-                                                  value: date
-                                                    ? date.toString()
-                                                    : "",
+                                                  name: fieldName,
+                                                  value,
                                                 },
                                               });
                                             }}

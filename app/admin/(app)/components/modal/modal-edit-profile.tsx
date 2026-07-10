@@ -941,7 +941,9 @@ export const ModalEditProfile = ({
                 name="gradeYear"
                 placeholder="เลือกชั้นปี"
                 selectedKeys={
-                  editProfileData.gradeYear ? [editProfileData.gradeYear] : []
+                  editProfileData.gradeYear
+                    ? new Set([editProfileData.gradeYear])
+                    : new Set<string>()
                 }
                 size="sm"
                 variant="bordered"
@@ -952,7 +954,9 @@ export const ModalEditProfile = ({
                 }}
               >
                 {gradeYearLevels.map((level) => (
-                  <SelectItem key={String(level.key)}>{level.label}</SelectItem>
+                  <SelectItem key={String(level.key)} textValue={level.label}>
+                    {level.label}
+                  </SelectItem>
                 ))}
               </Select>
             )}

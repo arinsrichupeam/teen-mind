@@ -35,7 +35,12 @@ import { questionStatusOptions } from "../../data/optionData";
 
 import { QuestionsData } from "@/types";
 import { gradeYearLevels, prefix } from "@/utils/data";
-import { formatThaiDate, calculateAge, formatAgeYMD } from "@/utils/helper";
+import {
+  formatThaiDate,
+  calculateAge,
+  formatAgeYMD,
+  formatThaiDateTimeAtThailand,
+} from "@/utils/helper";
 import {
   calculateQuestionStatus,
   isRoundUnreachable,
@@ -590,6 +595,9 @@ export const ModalExportData = ({
   const formatDateOrDash = (value: Date | string | null | undefined) =>
     value != null ? formatThaiDate(value) : "-";
 
+  const formatDateTimeOrDash = (value: Date | string | null | undefined) =>
+    value != null ? formatThaiDateTimeAtThailand(value) : "-";
+
   const getFieldValue = (
     item: QuestionsData,
     field: string
@@ -707,15 +715,15 @@ export const ModalExportData = ({
       case "assessmentDate":
         return isRoundUnreachable(item, 0)
           ? "-"
-          : formatDateOrDash(item.schedule_telemed);
+          : formatDateTimeOrDash(item.schedule_telemed);
       case "visitDate2":
         return isRoundUnreachable(item, 1)
           ? "-"
-          : formatDateOrDash(item.schedule_telemed2);
+          : formatDateTimeOrDash(item.schedule_telemed2);
       case "visitDate3":
         return isRoundUnreachable(item, 2)
           ? "-"
-          : formatDateOrDash(item.schedule_telemed3);
+          : formatDateTimeOrDash(item.schedule_telemed3);
       case "unreachable1":
         return isRoundUnreachable(item, 0) ? "ใช่" : "ไม่ใช่";
       case "unreachable2":
@@ -724,15 +732,15 @@ export const ModalExportData = ({
         return isRoundUnreachable(item, 2) ? "ใช่" : "ไม่ใช่";
       case "contactAttemptDate1":
         return isRoundUnreachable(item, 0)
-          ? formatDateOrDash(item.schedule_telemed)
+          ? formatDateTimeOrDash(item.schedule_telemed)
           : "-";
       case "contactAttemptDate2":
         return isRoundUnreachable(item, 1)
-          ? formatDateOrDash(item.schedule_telemed2)
+          ? formatDateTimeOrDash(item.schedule_telemed2)
           : "-";
       case "contactAttemptDate3":
         return isRoundUnreachable(item, 2)
-          ? formatDateOrDash(item.schedule_telemed3)
+          ? formatDateTimeOrDash(item.schedule_telemed3)
           : "-";
       case "nextContactDate1":
         return isRoundUnreachable(item, 0)

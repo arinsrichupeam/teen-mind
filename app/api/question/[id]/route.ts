@@ -69,6 +69,8 @@ export async function GET(
           citizenId: true,
           tel: true,
           hn: true,
+          schoolId: true,
+          gradeYear: true,
           school: {
             select: {
               id: true,
