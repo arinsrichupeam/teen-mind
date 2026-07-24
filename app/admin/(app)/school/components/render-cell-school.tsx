@@ -1,12 +1,17 @@
 import React from "react";
 import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
-import { Districts, School } from "@prisma/client";
+import { Districts, School, School_Screening } from "@prisma/client";
 import { Chip } from "@heroui/react";
 
 import { formatThaiDate } from "@/utils/helper";
+import { formatScreeningPeriodSummary } from "@/lib/school-screening";
+
+type SchoolWithScreenings = School & {
+  screenings?: School_Screening[];
+};
 
 interface Props {
-  data: School;
+  data: SchoolWithScreenings;
   columnKey: string | React.Key;
   index: number;
   district: Districts[];
@@ -21,7 +26,6 @@ export const SchoolRenderCell = ({
   district,
   viewSchool,
   editSchool,
-  // deleteSchool,
 }: Props) => {
   // @ts-ignore
   const cellValue = data[columnKey];
@@ -51,7 +55,11 @@ export const SchoolRenderCell = ({
       return (
         <div>
           <span>
-            {data.screeningDate ? formatThaiDate(data.screeningDate) : "-"}
+            {formatScreeningPeriodSummary(
+              data.screenings,
+              formatThaiDate,
+              data.screeningDate
+            )}
           </span>
         </div>
       );
@@ -82,11 +90,6 @@ export const SchoolRenderCell = ({
               <PencilIcon className="size-6 text-warning-400" />
             </button>
           </div>
-          {/* <div>
-            <button>
-              <TrashIcon className="size-6 text-danger-500" />
-            </button>
-          </div> */}
         </div>
       );
     default:

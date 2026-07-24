@@ -11,6 +11,7 @@ import {
 } from "@/lib/dashboard/parse-dashboard-date";
 import { MAIN_ASSESSMENT_AGE_CUTOFF } from "@/lib/assessment-scale";
 import { requireAdmin } from "@/lib/get-session";
+import { resolveSchoolScreeningDate } from "@/lib/school-screening";
 import { prisma } from "@/utils/prisma";
 import { getNineQRiskLevel, getPhqaRiskLevel } from "@/utils/helper";
 
@@ -59,7 +60,15 @@ export async function GET(req: NextRequest) {
         select: {
           birthday: true,
           sex: true,
-          school: { select: { screeningDate: true } },
+          school: {
+            select: {
+              screeningDate: true,
+              screenings: {
+                select: { round: true, startDate: true, endDate: true },
+                orderBy: { round: "asc" },
+              },
+            },
+          },
         },
       },
       phqa: { select: { sum: true }, take: 1, orderBy: { id: "asc" } },
@@ -87,7 +96,14 @@ export async function GET(req: NextRequest) {
     const profile = q.profile as {
       birthday: Date | null;
       sex: number;
-      school: { screeningDate: Date | null } | null;
+      school: {
+        screeningDate: Date | null;
+        screenings: {
+          round: number;
+          startDate: Date;
+          endDate: Date | null;
+        }[];
+      } | null;
     };
 
     if (!profile.birthday) {
@@ -95,7 +111,11 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    const screeningDate = profile.school?.screeningDate ?? null;
+    const screeningDate = resolveSchoolScreeningDate(
+      profile.school?.screenings,
+      q.createdAt,
+      profile.school?.screeningDate ?? null
+    );
     const age = getAge(profile.birthday, screeningDate, q.createdAt);
     const status = q.status as 0 | 1 | 2 | 3;
     const sex = profile.sex;

@@ -25,6 +25,28 @@ describe("report-age-range", () => {
     assert.equal(age, 14);
   });
 
+  it("prefers matching screening period over legacy date", () => {
+    const age = getProfileAgeForReport(
+      new Date("2010-05-01"),
+      new Date("2024-08-01"),
+      new Date("2026-06-06"),
+      [
+        {
+          round: 1,
+          startDate: new Date("2025-06-01"),
+          endDate: new Date("2025-06-03"),
+        },
+        {
+          round: 2,
+          startDate: new Date("2026-06-05"),
+          endDate: new Date("2026-06-07"),
+        },
+      ]
+    );
+
+    assert.equal(age, 16);
+  });
+
   it("falls back to latest assessment date when screeningDate is missing", () => {
     const age = getProfileAgeForReport(
       new Date("2008-03-15"),

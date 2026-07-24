@@ -375,14 +375,27 @@ model Questions_8Q {
 }
 
 model School {
-  id            Int       @id @default(autoincrement())
+  id            Int                @id @default(autoincrement())
   name          String
   districtId    Int
   status        Boolean
   screeningDate DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   profile       Profile[]
+  screenings    School_Screening[]
+}
+
+model School_Screening {
+  id        Int       @id @default(autoincrement())
+  schoolId  Int
+  round     Int
+  startDate DateTime
+  endDate   DateTime?
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, round])
+  @@index([schoolId])
 }
 
 model Referent {

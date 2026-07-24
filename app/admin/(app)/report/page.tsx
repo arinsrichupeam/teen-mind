@@ -64,10 +64,17 @@ import * as XLSX from "xlsx";
 
 import { prefix } from "@/utils/data";
 import { getAgeAtAssessment } from "@/lib/assessment-scale";
+import { resolveSchoolScreeningDate } from "@/lib/school-screening";
 import { formatThaiDateTime } from "@/utils/helper";
 import Loading from "@/app/loading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type SchoolScreening = {
+  round: number;
+  startDate: string;
+  endDate?: string | null;
+};
 
 type HistoryEntry = {
   id: string;
@@ -88,7 +95,12 @@ type IndividualProfile = {
   citizenId: string | null;
   birthday: string;
   userId: string | null;
-  school: { id: number; name: string; screeningDate?: string | null } | null;
+  school: {
+    id: number;
+    name: string;
+    screeningDate?: string | null;
+    screenings?: SchoolScreening[];
+  } | null;
   assessmentCount: number;
   latestResult: string | null;
   latestResultText: string | null;
@@ -96,6 +108,20 @@ type IndividualProfile = {
   latestDate: string | null;
   history: HistoryEntry[];
 };
+
+function getProfileAge(
+  birthday: string | null | undefined,
+  school: IndividualProfile["school"],
+  assessmentDate?: string | null
+) {
+  const resolved = resolveSchoolScreeningDate(
+    school?.screenings,
+    assessmentDate,
+    school?.screeningDate
+  );
+
+  return getAgeAtAssessment(birthday, resolved, assessmentDate ?? undefined);
+}
 
 interface School {
   id: number;
@@ -232,14 +258,10 @@ function HistoryModal({
   const fullName =
     `${prefixLabel} ${profile.firstname} ${profile.lastname}`.trim();
 
-  const screeningDate =
-    typeof profile.school === "object" && profile.school !== null
-      ? profile.school.screeningDate
-      : undefined;
-  const age = getAgeAtAssessment(
+  const age = getProfileAge(
     profile.birthday,
-    screeningDate,
-    profile.latestDate ?? undefined
+    typeof profile.school === "object" ? profile.school : null,
+    profile.latestDate
   );
 
   const chartData = profile.history.map((entry, idx) => ({
@@ -495,14 +517,10 @@ function PreviewExportModal({
       `${prefixMap.get(String(p.prefixId)) ?? ""} ${p.firstname} ${p.lastname}`.trim();
     const school =
       typeof p.school === "object" && p.school ? p.school.name : "-";
-    const screeningDate =
-      typeof p.school === "object" && p.school
-        ? p.school.screeningDate
-        : undefined;
-    const age = getAgeAtAssessment(
+    const age = getProfileAge(
       p.birthday,
-      screeningDate,
-      p.latestDate ?? undefined
+      typeof p.school === "object" ? p.school : null,
+      p.latestDate
     );
 
     return {
@@ -909,15 +927,10 @@ export default function ReportPage() {
           );
         }
         case "age": {
-          const screeningDate =
-            typeof item.school === "object" && item.school !== null
-              ? item.school.screeningDate
-              : undefined;
-
           return (
             <p className="text-small text-center">
               {item.birthday
-                ? `${getAgeAtAssessment(item.birthday, screeningDate, item.latestDate ?? undefined) ?? "-"} ปี`
+                ? `${getProfileAge(item.birthday, item.school, item.latestDate) ?? "-"} ปี`
                 : "-"}
             </p>
           );
@@ -1025,15 +1038,11 @@ export default function ReportPage() {
             typeof p.school === "object" && p.school !== null
               ? p.school.name
               : "-";
-          const screeningDate =
-            typeof p.school === "object" && p.school !== null
-              ? p.school.screeningDate
-              : undefined;
           const age =
-            getAgeAtAssessment(
+            getProfileAge(
               p.birthday,
-              screeningDate,
-              p.latestDate ?? undefined
+              typeof p.school === "object" ? p.school : null,
+              p.latestDate
             ) ?? "-";
 
           const row: (string | number)[] = [

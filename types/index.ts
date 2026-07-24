@@ -91,7 +91,16 @@ export interface User {
 /** รูป school จาก API (object) หรือ string */
 export type ProfileSchool =
   | string
-  | { id: number; name: string; screeningDate?: Date | string | null };
+  | {
+      id: number;
+      name: string;
+      screeningDate?: Date | string | null;
+      screenings?: {
+        round: number;
+        startDate: Date | string;
+        endDate?: Date | string | null;
+      }[];
+    };
 
 export interface Profile {
   id: string;

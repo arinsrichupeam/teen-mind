@@ -24,7 +24,7 @@ import {
   addToast,
   DatePicker,
 } from "@heroui/react";
-import { School, Districts } from "@prisma/client";
+import { School, Districts, School_Screening } from "@prisma/client";
 import {
   ChangeEvent,
   Suspense,
@@ -45,6 +45,16 @@ import { TableSortDescriptor } from "@/types";
 import { safeParseDateForPicker } from "@/utils/helper";
 import Loading from "@/app/loading";
 
+type SchoolWithScreenings = School & {
+  screenings?: School_Screening[];
+};
+
+type ScreeningFormRow = {
+  round: number;
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
 function toDatePickerValue(
   val: Date | string | null | undefined
 ): import("@internationalized/date").CalendarDate | null | undefined {
@@ -55,7 +65,39 @@ function toDatePickerValue(
     : undefined;
 }
 
-const schoolInitValue: School = {
+function screeningsFromSchool(
+  school: SchoolWithScreenings
+): ScreeningFormRow[] {
+  const rows = (school.screenings ?? [])
+    .slice()
+    .sort((a, b) => a.round - b.round)
+    .map((s) => ({
+      round: s.round,
+      startDate: s.startDate ? new Date(s.startDate) : null,
+      endDate: s.endDate ? new Date(s.endDate) : null,
+    }));
+
+  if (rows.length === 0 && school.screeningDate) {
+    return [
+      {
+        round: 1,
+        startDate: new Date(school.screeningDate),
+        endDate: new Date(school.screeningDate),
+      },
+    ];
+  }
+
+  if (rows.length === 0) {
+    return [
+      { round: 1, startDate: null, endDate: null },
+      { round: 2, startDate: null, endDate: null },
+    ];
+  }
+
+  return rows;
+}
+
+const schoolInitValue: SchoolWithScreenings = {
   name: "",
   id: 0,
   districtId: 0,
@@ -63,13 +105,18 @@ const schoolInitValue: School = {
   screeningDate: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  screenings: [],
 };
 
 export default function SchoolListPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [schoolList, setSchoolList] = useState<School[]>([]);
+  const [schoolList, setSchoolList] = useState<SchoolWithScreenings[]>([]);
   const [districtData, setDistrictData] = useState<Districts[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<School>(schoolInitValue);
+  const [selectedSchool, setSelectedSchool] =
+    useState<SchoolWithScreenings>(schoolInitValue);
+  const [screeningRows, setScreeningRows] = useState<ScreeningFormRow[]>(
+    screeningsFromSchool(schoolInitValue)
+  );
   const [mode, setMode] = useState("View");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -110,36 +157,48 @@ export default function SchoolListPage() {
     });
   }, [sortDescriptor, items]);
 
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
   const onRowsPerPageChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(parseInt(e.target.value));
       setPages(Math.ceil(filteredSchoolList.length / parseInt(e.target.value)));
       setPage(1);
     },
-    [pages, items, filteredSchoolList]
+    [filteredSchoolList]
   );
 
-  const onRowViewPress = useCallback((schoolId: string | number) => {
-    fetch("/api/data/school/" + schoolId)
-      .then((res) => res.json())
-      .then((val) => {
-        setSelectedSchool(val[0]);
-        setMode("View");
-        onOpen();
-      });
-  }, []);
+  const openSchoolModal = useCallback(
+    (school: SchoolWithScreenings, nextMode: string) => {
+      setSelectedSchool(school);
+      setScreeningRows(screeningsFromSchool(school));
+      setMode(nextMode);
+      onOpen();
+    },
+    [onOpen]
+  );
 
-  const onRowEditPress = useCallback((schoolId: string | number) => {
-    fetch("/api/data/school/" + schoolId)
-      .then((res) => res.json())
-      .then((val) => {
-        setSelectedSchool(val[0]);
-        setMode("Edit");
-        onOpen();
-      });
-  }, []);
+  const onRowViewPress = useCallback(
+    (schoolId: string | number) => {
+      fetch("/api/data/school/" + schoolId)
+        .then((res) => res.json())
+        .then((val) => {
+          openSchoolModal(val[0], "View");
+        });
+    },
+    [openSchoolModal]
+  );
 
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const onRowEditPress = useCallback(
+    (schoolId: string | number) => {
+      fetch("/api/data/school/" + schoolId)
+        .then((res) => res.json())
+        .then((val) => {
+          openSchoolModal(val[0], "Edit");
+        });
+    },
+    [openSchoolModal]
+  );
 
   const bottomContent = useMemo(() => {
     return (
@@ -177,11 +236,18 @@ export default function SchoolListPage() {
         </div>
       </div>
     );
-  }, [items.length, page, pages]);
+  }, [
+    filteredSchoolList.length,
+    page,
+    pages,
+    rowsPerPage,
+    onRowsPerPageChange,
+  ]);
 
   const CreateSchool = () => {
     setMode("Create");
     setSelectedSchool(schoolInitValue);
+    setScreeningRows(screeningsFromSchool(schoolInitValue));
     onOpen();
   };
 
@@ -201,26 +267,68 @@ export default function SchoolListPage() {
 
       setSelectedSchool((prev) => ({
         ...prev,
-        [name]:
-          name === "screeningDate"
-            ? value instanceof Date
-              ? value
-              : value
-                ? new Date(String(value))
-                : null
-            : name === "status"
-              ? Boolean(value)
-              : value,
+        [name]: name === "status" ? Boolean(value) : value,
       }));
     },
     []
   );
 
+  const updateScreeningRow = useCallback(
+    (index: number, field: "startDate" | "endDate", value: Date | null) => {
+      setScreeningRows((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+      );
+    },
+    []
+  );
+
+  const addScreeningRound = useCallback(() => {
+    setScreeningRows((prev) => {
+      const nextRound =
+        prev.length === 0 ? 1 : Math.max(...prev.map((r) => r.round)) + 1;
+
+      return [...prev, { round: nextRound, startDate: null, endDate: null }];
+    });
+  }, []);
+
+  const removeScreeningRound = useCallback((index: number) => {
+    setScreeningRows((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+
+      return next.map((row, i) => ({ ...row, round: i + 1 }));
+    });
+  }, []);
+
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      const data = JSON.stringify({ school_data: selectedSchool });
+      const validScreenings = screeningRows
+        .filter((row) => row.startDate != null)
+        .map((row, index) => ({
+          round: index + 1,
+          startDate: row.startDate,
+          endDate: row.endDate ?? row.startDate,
+        }));
+
+      if (validScreenings.length === 0) {
+        addToast({
+          title: "กรุณากรอกวันที่คัดกรอง",
+          color: "danger",
+          description: "ต้องมีอย่างน้อย 1 รอบคัดกรอง",
+          timeout: 2500,
+        });
+
+        return;
+      }
+
+      const payload = {
+        ...selectedSchool,
+        screeningDate: validScreenings[0]?.startDate ?? null,
+        screenings: validScreenings,
+      };
+
+      const data = JSON.stringify({ school_data: payload });
 
       await fetch("/api/data/school", {
         method: "POST",
@@ -241,28 +349,8 @@ export default function SchoolListPage() {
         }
       });
     },
-    [selectedSchool]
+    [selectedSchool, screeningRows]
   );
-
-  // const GetSchool = useCallback(async () => {
-  //   await fetch("/api/data/school")
-  //     .then((res) => res.json())
-  //     .then((val) => {
-  //       setSchoolList(val);
-  //       setPages(Math.ceil(val.length / rowsPerPage));
-  //     });
-  // }, [schoolList]);
-
-  // const GetDistricts = useCallback(
-  //   async (id: number) => {
-  //     await fetch("/api/data/districts/" + id)
-  //       .then((res) => res.json())
-  //       .then((val) => {
-  //         setDistrictData(val);
-  //       });
-  //   },
-  //   [districtData]
-  // );
 
   const GetData = useCallback(async () => {
     await fetch("/api/data/districts/1")
@@ -276,9 +364,9 @@ export default function SchoolListPage() {
       .then((val) => {
         setSchoolList(val);
         setPages(Math.ceil(val.length / rowsPerPage));
-        setSearchQuery(""); // รีเซ็ตการค้นหาเมื่อโหลดข้อมูลใหม่
+        setSearchQuery("");
       });
-  }, [districtData, schoolList]);
+  }, [rowsPerPage]);
 
   useEffect(() => {
     if (status !== "loading") {
@@ -310,6 +398,7 @@ export default function SchoolListPage() {
             isOpen={isOpen}
             placement="center"
             radius="lg"
+            size="2xl"
             onOpenChange={onOpenChange}
           >
             <ModalContent>
@@ -318,7 +407,7 @@ export default function SchoolListPage() {
                   <ModalHeader className="flex flex-col gap-1">
                     {mode === "Create" ? "เพิ่มโรงเรียน" : "แก้ไขโรงเรียน"}
                   </ModalHeader>
-                  <ModalBody className="flex w-full">
+                  <ModalBody className="flex w-full gap-4">
                     <Input
                       isRequired
                       errorMessage="กรุณากรอกชื่อโรงเรียน"
@@ -352,33 +441,75 @@ export default function SchoolListPage() {
                         </AutocompleteItem>
                       )}
                     </Autocomplete>
-                    <DatePicker
-                      isRequired
-                      showMonthAndYearPickers
-                      defaultValue={toDatePickerValue(
-                        selectedSchool.screeningDate ?? undefined
-                      )}
-                      label="วันที่คัดกรอง"
-                      labelPlacement="outside"
-                      variant="bordered"
-                      onChange={(date) => {
-                        if (date) {
-                          schoolChange({
-                            target: {
-                              name: "screeningDate",
-                              value: new Date(date.toString()),
-                            },
-                          });
-                        } else {
-                          schoolChange({
-                            target: {
-                              name: "screeningDate",
-                              value: null,
-                            },
-                          });
-                        }
-                      }}
-                    />
+
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          วันที่คัดกรอง (หลายรอบ/หลายปี)
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          onPress={addScreeningRound}
+                        >
+                          เพิ่มรอบ
+                        </Button>
+                      </div>
+                      {screeningRows.map((row, index) => (
+                        <div
+                          key={`screening-${row.round}-${index}`}
+                          className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto] gap-3 items-end border border-default-200 rounded-lg p-3"
+                        >
+                          <div className="text-sm text-default-500 pb-2">
+                            รอบที่ {index + 1}
+                          </div>
+                          <DatePicker
+                            key={`start-${selectedSchool.id}-${mode}-${index}`}
+                            showMonthAndYearPickers
+                            defaultValue={toDatePickerValue(
+                              row.startDate ?? undefined
+                            )}
+                            isRequired={index === 0}
+                            label="วันเริ่ม"
+                            labelPlacement="outside"
+                            variant="bordered"
+                            onChange={(date) => {
+                              updateScreeningRow(
+                                index,
+                                "startDate",
+                                date ? new Date(date.toString()) : null
+                              );
+                            }}
+                          />
+                          <DatePicker
+                            key={`end-${selectedSchool.id}-${mode}-${index}`}
+                            showMonthAndYearPickers
+                            defaultValue={toDatePickerValue(
+                              row.endDate ?? undefined
+                            )}
+                            label="วันสิ้นสุด"
+                            labelPlacement="outside"
+                            variant="bordered"
+                            onChange={(date) => {
+                              updateScreeningRow(
+                                index,
+                                "endDate",
+                                date ? new Date(date.toString()) : null
+                              );
+                            }}
+                          />
+                          <Button
+                            isDisabled={screeningRows.length <= 1}
+                            size="sm"
+                            variant="light"
+                            onPress={() => removeScreeningRound(index)}
+                          >
+                            ลบ
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
                     <Switch
                       isSelected={selectedSchool.status}
                       name="status"
@@ -410,7 +541,6 @@ export default function SchoolListPage() {
             </ModalContent>
           </Modal>
 
-          {/* บน */}
           <div className="flex flex-col items-start gap-4">
             <h3 className="text-lg font-semibold">จัดการโรงเรียน</h3>
 
@@ -453,7 +583,6 @@ export default function SchoolListPage() {
             </div>
           </div>
 
-          {/* ล่าง */}
           <div className="text-nowrap">
             <Table
               isHeaderSticky

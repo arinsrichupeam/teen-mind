@@ -9,6 +9,11 @@ export async function GET(
     where: {
       id: parseInt(id),
     },
+    include: {
+      screenings: {
+        orderBy: { round: "asc" },
+      },
+    },
   });
 
   return Response.json(data);

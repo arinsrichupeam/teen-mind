@@ -169,7 +169,17 @@ export async function GET(req: NextRequest) {
   const profiles = await prisma.profile.findMany({
     where: { id: { in: pageProfileIds } },
     include: {
-      school: { select: { id: true, name: true, screeningDate: true } },
+      school: {
+        select: {
+          id: true,
+          name: true,
+          screeningDate: true,
+          screenings: {
+            select: { round: true, startDate: true, endDate: true },
+            orderBy: { round: "asc" },
+          },
+        },
+      },
       questions: {
         orderBy: { createdAt: "desc" },
         select: {

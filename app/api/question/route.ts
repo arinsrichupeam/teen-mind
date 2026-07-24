@@ -293,6 +293,14 @@ export async function GET(req: Request) {
                 name: true,
                 districtId: true,
                 screeningDate: true,
+                screenings: {
+                  select: {
+                    round: true,
+                    startDate: true,
+                    endDate: true,
+                  },
+                  orderBy: { round: "asc" },
+                },
               },
             },
             address: {

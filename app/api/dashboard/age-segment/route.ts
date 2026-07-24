@@ -12,6 +12,7 @@ import {
   todayInThailandParts,
 } from "@/lib/dashboard/parse-dashboard-date";
 import { requireAdmin } from "@/lib/get-session";
+import { resolveSchoolScreeningDate } from "@/lib/school-screening";
 import { prisma } from "@/utils/prisma";
 
 export async function GET(req: Request) {
@@ -74,7 +75,15 @@ export async function GET(req: Request) {
       profile: {
         select: {
           birthday: true,
-          school: { select: { screeningDate: true } },
+          school: {
+            select: {
+              screeningDate: true,
+              screenings: {
+                select: { round: true, startDate: true, endDate: true },
+                orderBy: { round: "asc" },
+              },
+            },
+          },
         },
       },
     },
@@ -92,7 +101,11 @@ export async function GET(req: Request) {
 
     return {
       birthday: q.profile.birthday,
-      screeningDate: q.profile.school?.screeningDate ?? null,
+      screeningDate: resolveSchoolScreeningDate(
+        q.profile.school?.screenings,
+        q.createdAt,
+        q.profile.school?.screeningDate ?? null
+      ),
       questionCreatedAt: q.createdAt,
       result: q.result,
       mainSum,

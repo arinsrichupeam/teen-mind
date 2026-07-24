@@ -25,6 +25,8 @@ import {
   Chip,
   addToast,
   Progress,
+  Switch,
+  Divider,
 } from "@heroui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
@@ -33,18 +35,38 @@ import useSWR from "swr";
 
 import { questionStatusOptions } from "../../data/optionData";
 
-import { QuestionsData } from "@/types";
+import { QuestionsData, ProfileSchool } from "@/types";
 import { gradeYearLevels, prefix } from "@/utils/data";
 import {
   formatThaiDate,
   calculateAge,
-  formatAgeYMD,
   formatThaiDateTimeAtThailand,
+  formatDateForDisplay,
+  formatAgeYMD,
 } from "@/utils/helper";
 import {
   calculateQuestionStatus,
   isRoundUnreachable,
 } from "@/lib/question-followup-rounds";
+import { getScreeningStartByRound } from "@/lib/school-screening";
+
+function formatExportDate(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const isoDate = new Date(value).toISOString().split("T")[0];
+
+  return formatDateForDisplay(`${isoDate}T12:00:00`) || "";
+}
+
+function getSchoolScreenings(school: ProfileSchool | null | undefined) {
+  if (typeof school === "object" && school !== null) {
+    return {
+      screenings: school.screenings,
+      legacy: school.screeningDate ?? null,
+    };
+  }
+
+  return { screenings: undefined, legacy: null };
+}
 
 interface ExportField {
   key: string;
@@ -57,6 +79,57 @@ interface ExportModalProps {
   onClose: () => void;
   data: QuestionsData[];
   dataType: "question" | "user" | "school" | "volunteer";
+}
+
+const ADDRESS_FIELD_KEYS = [
+  "addrHouseNo",
+  "addrVillageNo",
+  "addrSubdistrict",
+  "addrDistrict",
+  "addrProvince",
+] as const;
+
+const UNREACHABLE_FIELD_KEYS = [
+  "unreachable1",
+  "unreachable2",
+  "unreachable3",
+] as const;
+
+const CONTACT_ATTEMPT_FIELD_KEYS = [
+  "contactAttemptDate1",
+  "contactAttemptDate2",
+  "contactAttemptDate3",
+] as const;
+
+/** แปลง index คอลัมน์ (0-based) เป็นตัวอักษร Excel เช่น 0→A, 26→AA */
+function excelColLetter(index: number): string {
+  let n = index;
+  let s = "";
+
+  while (n >= 0) {
+    s = String.fromCharCode((n % 26) + 65) + s;
+    n = Math.floor(n / 26) - 1;
+  }
+
+  return s;
+}
+
+/**
+ * สูตร Excel คำนวณอายุ ปี เดือน วัน
+ * รองรับทั้งค่าวันที่ Excel (ปี พ.ศ. ที่ Excel แปลงอัตโนมัติ) และข้อความ dd/mm/พ.ศ.
+ */
+function buildAgeAtDateExcelFormula(
+  birthdayRef: string,
+  assessDateRef: string
+): string {
+  // แปลง พ.ศ. → ค.ศ. (ถ้าปี >= 2400 ถือว่าเป็น พ.ศ.)
+  const toCE = (ref: string) =>
+    `IF(ISNUMBER(${ref}),DATE(YEAR(${ref})-IF(YEAR(${ref})>=2400,543,0),MONTH(${ref}),DAY(${ref})),DATE(VALUE(RIGHT(TRIM(${ref}),4))-543,VALUE(MID(${ref},FIND("/",${ref})+1,FIND("/",${ref},FIND("/",${ref})+1)-FIND("/",${ref})-1)),VALUE(LEFT(${ref},FIND("/",${ref})-1))))`;
+
+  const b = toCE(birthdayRef);
+  const a = toCE(assessDateRef);
+
+  return `IF(OR(${birthdayRef}="",${birthdayRef}="-",${assessDateRef}=""),"",DATEDIF(${b},${a},"Y")&" ปี "&DATEDIF(${b},${a},"YM")&" เดือน "&DATEDIF(${b},${a},"MD")&" วัน")`;
 }
 
 export const ModalExportData = ({
@@ -88,6 +161,10 @@ export const ModalExportData = ({
   const [schoolSearch, setSchoolSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [includeAddress, setIncludeAddress] = useState(false);
+  const [includeUnreachable, setIncludeUnreachable] = useState(false);
+  const [includeContactAttempt, setIncludeContactAttempt] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
   const rowsPerPage = 10;
 
   useEffect(() => {
@@ -184,7 +261,28 @@ export const ModalExportData = ({
       { key: "hospitalName", label: "ชื่อหน่วยบริการ", selected: true },
       { key: "name", label: "ชื่อ-สกุล ผู้รับบริการ", selected: true },
       { key: "citizenId", label: "เลขบัตรประชาชน", selected: true },
-      { key: "age", label: "อายุ", selected: true },
+      { key: "birthday", label: "วันเกิด", selected: true },
+      { key: "currentAge", label: "อายุปัจจุบัน", selected: true },
+      {
+        key: "assessmentRoundDate1",
+        label: "วันที่ประเมินครั้งที่ 1",
+        selected: true,
+      },
+      {
+        key: "ageAtAssessment1",
+        label: "อายุ ณ วันที่ประเมินครั้งที่ 1",
+        selected: true,
+      },
+      {
+        key: "assessmentRoundDate2",
+        label: "วันที่ประเมินครั้งที่ 2",
+        selected: true,
+      },
+      {
+        key: "ageAtAssessment2",
+        label: "อายุ ณ วันที่ประเมินครั้งที่ 2",
+        selected: true,
+      },
       { key: "sex", label: "เพศ", selected: true },
       { key: "addrHouseNo", label: "บ้านเลขที่ (ที่อยู่)", selected: true },
       { key: "addrVillageNo", label: "หมู่ (ที่อยู่)", selected: true },
@@ -323,6 +421,41 @@ export const ModalExportData = ({
   };
 
   const availableFields = useMemo(() => getAvailableFields(), [dataType]);
+
+  const exportFields = useMemo(
+    () =>
+      selectedFields.filter((key) => {
+        if (
+          !includeAddress &&
+          ADDRESS_FIELD_KEYS.includes(
+            key as (typeof ADDRESS_FIELD_KEYS)[number]
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          !includeUnreachable &&
+          UNREACHABLE_FIELD_KEYS.includes(
+            key as (typeof UNREACHABLE_FIELD_KEYS)[number]
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          !includeContactAttempt &&
+          CONTACT_ATTEMPT_FIELD_KEYS.includes(
+            key as (typeof CONTACT_ATTEMPT_FIELD_KEYS)[number]
+          )
+        ) {
+          return false;
+        }
+
+        return true;
+      }),
+    [selectedFields, includeAddress, includeUnreachable, includeContactAttempt]
+  );
 
   // ตั้งค่าเริ่มต้นสำหรับ selectedFields ทันทีเมื่อ availableFields มีข้อมูล
   useEffect(() => {
@@ -625,10 +758,38 @@ export const ModalExportData = ({
         return `${prefixLabel} ${item.profile?.firstname || ""} ${item.profile?.lastname || ""}`;
       case "citizenId":
         return item.profile?.citizenId;
-      case "age":
+      case "birthday": {
+        if (!item.profile?.birthday) return "-";
+        const isoDate = new Date(item.profile.birthday)
+          .toISOString()
+          .split("T")[0];
+
+        return formatDateForDisplay(`${isoDate}T12:00:00`) || "-";
+      }
+      case "currentAge":
         return item.profile?.birthday
-          ? formatAgeYMD(item.profile.birthday, item.createdAt)
+          ? formatAgeYMD(item.profile.birthday)
           : "-";
+      case "assessmentRoundDate1": {
+        const { screenings, legacy } = getSchoolScreenings(
+          item.profile?.school
+        );
+        const date = getScreeningStartByRound(screenings, 1, legacy);
+
+        return formatExportDate(date);
+      }
+      case "assessmentRoundDate2": {
+        const { screenings, legacy } = getSchoolScreenings(
+          item.profile?.school
+        );
+        const date = getScreeningStartByRound(screenings, 2, legacy);
+
+        return formatExportDate(date);
+      }
+      case "ageAtAssessment1":
+      case "ageAtAssessment2":
+        // คำนวณด้วยสูตร Excel ตอน export
+        return "";
       case "sex": {
         const sex = String(item.profile?.sex ?? "");
 
@@ -836,6 +997,10 @@ export const ModalExportData = ({
   const handleClose = useCallback(() => {
     // Clear ข้อมูลทั้งหมด
     setSelectedFields([]);
+    setIncludeAddress(false);
+    setIncludeUnreachable(false);
+    setIncludeContactAttempt(false);
+    setIsFilterOpen(true);
     setFilters({
       dateFrom: "",
       dateTo: "",
@@ -889,7 +1054,7 @@ export const ModalExportData = ({
         const processedBatch = batch.map((item: QuestionsData) => {
           const row: Record<string, string | number> = {};
 
-          selectedFields.forEach((field) => {
+          exportFields.forEach((field) => {
             const fieldLabel =
               availableFields.find((f) => f.key === field)?.label || field;
 
@@ -917,13 +1082,49 @@ export const ModalExportData = ({
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(processedData);
 
-      const headers = selectedFields.map(
+      const headers = exportFields.map(
         (field) => availableFields.find((f) => f.key === field)?.label || field
       );
 
       ws["!cols"] = headers.map((label) => ({
         wch: Math.max(label.length + 4, 18),
       }));
+
+      // ใส่สูตร Excel คำนวณอายุ ณ วันที่ประเมินครั้งที่ 1, 2
+      const birthdayIdx = exportFields.indexOf("birthday");
+      const assess1Idx = exportFields.indexOf("assessmentRoundDate1");
+      const assess2Idx = exportFields.indexOf("assessmentRoundDate2");
+      const age1Idx = exportFields.indexOf("ageAtAssessment1");
+      const age2Idx = exportFields.indexOf("ageAtAssessment2");
+      const dataRowCount = processedData.length;
+
+      for (let r = 0; r < dataRowCount; r++) {
+        const excelRow = r + 2; // แถว 1 = header
+
+        if (age1Idx >= 0 && birthdayIdx >= 0 && assess1Idx >= 0) {
+          const cellAddr = `${excelColLetter(age1Idx)}${excelRow}`;
+
+          ws[cellAddr] = {
+            t: "s",
+            f: buildAgeAtDateExcelFormula(
+              `${excelColLetter(birthdayIdx)}${excelRow}`,
+              `${excelColLetter(assess1Idx)}${excelRow}`
+            ),
+          };
+        }
+
+        if (age2Idx >= 0 && birthdayIdx >= 0 && assess2Idx >= 0) {
+          const cellAddr = `${excelColLetter(age2Idx)}${excelRow}`;
+
+          ws[cellAddr] = {
+            t: "s",
+            f: buildAgeAtDateExcelFormula(
+              `${excelColLetter(birthdayIdx)}${excelRow}`,
+              `${excelColLetter(assess2Idx)}${excelRow}`
+            ),
+          };
+        }
+      }
 
       XLSX.utils.book_append_sheet(wb, ws, `${dataType}_data`);
 
@@ -957,7 +1158,7 @@ export const ModalExportData = ({
       setExportProgress(0);
     }
   }, [
-    selectedFields,
+    exportFields,
     filters,
     availableFields,
     handleClose,
@@ -1003,6 +1204,30 @@ export const ModalExportData = ({
     return filteredData.slice(start, end);
   }, [filteredData, currentPage]);
 
+  const hasActiveFilters = useMemo(
+    () =>
+      Boolean(
+        filters.dateFrom ||
+          filters.dateTo ||
+          filters.schools.length > 0 ||
+          filters.ageGroup ||
+          filters.result.length > 0
+      ),
+    [filters]
+  );
+
+  const clearFilters = useCallback(() => {
+    setFilters({
+      dateFrom: "",
+      dateTo: "",
+      schools: [],
+      ageGroup: "",
+      result: [],
+    });
+    setSchoolSearch("");
+    setCurrentPage(1);
+  }, []);
+
   return (
     <Modal
       hideCloseButton
@@ -1021,192 +1246,251 @@ export const ModalExportData = ({
           <h3 className="text-lg font-semibold">Export ข้อมูล</h3>
         </ModalHeader>
         <ModalBody className="h-full overflow-hidden">
-          <div className="h-full flex flex-col space-y-4">
+          <div className="flex h-full min-h-0 flex-col gap-3">
             {/* Filter Options */}
-            <Card>
-              <CardBody>
-                <h4 className="font-medium mb-3">ตัวกรองข้อมูล</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* ช่วงวันที่ */}
-                  <div className="lg:col-span-1">
-                    <label className="text-sm font-medium" htmlFor="dateRange">
-                      ช่วงวันที่
-                    </label>
-                    <DateRangePicker
-                      value={
-                        filters.dateFrom && filters.dateTo
-                          ? {
-                              start: parseDate(filters.dateFrom),
-                              end: parseDate(filters.dateTo),
-                            }
-                          : null
-                      }
-                      onChange={(range) => {
-                        if (!range) {
-                          handleFilterChange("dateFrom", "");
-                          handleFilterChange("dateTo", "");
-
-                          return;
-                        }
-
-                        handleFilterChange(
-                          "dateFrom",
-                          range.start ? range.start.toString() : ""
-                        );
-                        handleFilterChange(
-                          "dateTo",
-                          range.end ? range.end.toString() : ""
-                        );
-                      }}
+            <Card className="shrink-0 border border-default-200 shadow-sm">
+              <CardBody className="gap-3 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    className="flex items-center gap-2 text-left"
+                    type="button"
+                    onClick={() => setIsFilterOpen((open) => !open)}
+                  >
+                    <ChevronDownIcon
+                      className={`size-4 shrink-0 text-default-500 transition-transform ${
+                        isFilterOpen ? "rotate-0" : "-rotate-90"
+                      }`}
                     />
-                  </div>
-
-                  {/* ช่วงอายุ */}
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="ageGroup">
-                      ช่วงอายุ
-                    </label>
-                    <Select
-                      placeholder="เลือกช่วงอายุ"
-                      selectedKeys={filters.ageGroup ? [filters.ageGroup] : []}
-                      onSelectionChange={(keys) => {
-                        const selectedKey = Array.from(keys)[0] as
-                          | ""
-                          | "under18"
-                          | "18plus"
-                          | undefined;
-
-                        setFilters((prev) => ({
-                          ...prev,
-                          ageGroup: selectedKey || "",
-                          result: [],
-                        }));
-                        setCurrentPage(1);
+                    <div>
+                      <h4 className="font-medium leading-tight">
+                        ตัวกรองข้อมูล
+                      </h4>
+                      <p className="text-tiny text-default-500">
+                        พบ {filteredData.length.toLocaleString()} รายการ
+                        {includeAddress ||
+                        includeUnreachable ||
+                        includeContactAttempt
+                          ? " · ปรับคอลัมน์แล้ว"
+                          : ""}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                    <Switch
+                      classNames={{
+                        base: "max-w-fit items-center",
+                        label: "text-small whitespace-nowrap pl-1",
                       }}
+                      isSelected={includeAddress}
+                      size="sm"
+                      onValueChange={setIncludeAddress}
                     >
-                      <SelectItem key="under18">
-                        น้อยกว่า 18 ปี (PHQ-A)
-                      </SelectItem>
-                      <SelectItem key="18plus">18 ปีขึ้นไป (9Q)</SelectItem>
-                    </Select>
+                      ที่อยู่
+                    </Switch>
+                    <Switch
+                      classNames={{
+                        base: "max-w-fit items-center",
+                        label: "text-small whitespace-nowrap pl-1",
+                      }}
+                      isSelected={includeUnreachable}
+                      size="sm"
+                      onValueChange={setIncludeUnreachable}
+                    >
+                      ติดต่อไม่ได้
+                    </Switch>
+                    <Switch
+                      classNames={{
+                        base: "max-w-fit items-center",
+                        label: "text-small whitespace-nowrap pl-1",
+                      }}
+                      isSelected={includeContactAttempt}
+                      size="sm"
+                      onValueChange={setIncludeContactAttempt}
+                    >
+                      วันที่พยายามติดต่อ
+                    </Switch>
+                    {hasActiveFilters && (
+                      <Button
+                        color="danger"
+                        size="sm"
+                        variant="light"
+                        onPress={clearFilters}
+                      >
+                        ล้างตัวกรอง
+                      </Button>
+                    )}
                   </div>
+                </div>
 
-                  {/* โรงเรียน (multi-select with search) */}
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="schools">
-                      โรงเรียน
-                    </label>
-                    <Popover placement="bottom-start">
-                      <PopoverTrigger>
-                        <Button
-                          className="w-full justify-between font-normal"
-                          endContent={
-                            <ChevronDownIcon className="size-4 shrink-0 text-default-400" />
+                {isFilterOpen && (
+                  <>
+                    <Divider />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                      <DateRangePicker
+                        className="xl:col-span-1"
+                        label="ช่วงวันที่"
+                        labelPlacement="outside"
+                        size="sm"
+                        value={
+                          filters.dateFrom && filters.dateTo
+                            ? {
+                                start: parseDate(filters.dateFrom),
+                                end: parseDate(filters.dateTo),
+                              }
+                            : null
+                        }
+                        onChange={(range) => {
+                          if (!range) {
+                            handleFilterChange("dateFrom", "");
+                            handleFilterChange("dateTo", "");
+
+                            return;
                           }
-                          variant="bordered"
-                        >
-                          <span className="truncate text-left text-small text-default-500">
-                            {filters.schools.length > 0
-                              ? `เลือก ${filters.schools.length} โรงเรียน`
-                              : "เลือกโรงเรียน"}
-                          </span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-96 p-0">
-                        <div className="flex flex-col">
-                          <div className="border-b border-divider px-3 py-2">
-                            <input
-                              className="w-full rounded border border-divider px-2 py-1 text-small outline-none focus:border-primary"
-                              placeholder="ค้นหาโรงเรียน..."
-                              type="text"
-                              value={schoolSearch}
-                              onChange={(e) => setSchoolSearch(e.target.value)}
-                            />
-                          </div>
-                          {filters.schools.length > 0 && (
-                            <div className="flex justify-end border-b border-divider px-3 py-1">
-                              <button
-                                className="text-xs text-danger hover:underline"
-                                type="button"
-                                onClick={() =>
-                                  handleFilterChange("schools", [])
-                                }
-                              >
-                                ล้าง ({filters.schools.length})
-                              </button>
-                            </div>
-                          )}
-                          <ul
-                            aria-multiselectable="true"
-                            className="max-h-60 overflow-y-auto py-1"
-                            role="listbox"
-                          >
-                            {!schoolSearch && (
-                              <li
-                                aria-selected={filters.schools.includes(
-                                  "__none__"
-                                )}
-                                className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-default-100"
-                                role="option"
-                                onClick={() => {
-                                  const current = filters.schools;
-                                  const next = current.includes("__none__")
-                                    ? current.filter((s) => s !== "__none__")
-                                    : [...current, "__none__"];
 
-                                  handleFilterChange("schools", next);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    const current = filters.schools;
-                                    const next = current.includes("__none__")
-                                      ? current.filter((s) => s !== "__none__")
-                                      : [...current, "__none__"];
+                          handleFilterChange(
+                            "dateFrom",
+                            range.start ? range.start.toString() : ""
+                          );
+                          handleFilterChange(
+                            "dateTo",
+                            range.end ? range.end.toString() : ""
+                          );
+                        }}
+                      />
 
-                                    handleFilterChange("schools", next);
-                                  }
-                                }}
-                              >
+                      <Select
+                        label="ช่วงอายุ"
+                        labelPlacement="outside"
+                        placeholder="ทุกช่วงอายุ"
+                        selectedKeys={
+                          filters.ageGroup ? [filters.ageGroup] : []
+                        }
+                        size="sm"
+                        onSelectionChange={(keys) => {
+                          const selectedKey = Array.from(keys)[0] as
+                            | ""
+                            | "under18"
+                            | "18plus"
+                            | undefined;
+
+                          setFilters((prev) => ({
+                            ...prev,
+                            ageGroup: selectedKey || "",
+                            result: [],
+                          }));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectItem key="under18">
+                          น้อยกว่า 18 ปี (PHQ-A)
+                        </SelectItem>
+                        <SelectItem key="18plus">18 ปีขึ้นไป (9Q)</SelectItem>
+                      </Select>
+
+                      <Select
+                        label="การตัดข้อมูลซ้ำ"
+                        labelPlacement="outside"
+                        selectedKeys={[dedupMode]}
+                        size="sm"
+                        onSelectionChange={(keys) => {
+                          const val = Array.from(keys)[0] as
+                            | "none"
+                            | "profile_day"
+                            | "profile";
+
+                          if (val) setDedupMode(val);
+                        }}
+                      >
+                        <SelectItem key="none">
+                          ไม่กรองข้อมูลซ้ำ (แสดงทุกรายการ)
+                        </SelectItem>
+                        <SelectItem key="profile_day">
+                          1 รายการต่อคนต่อวัน (ล่าสุดในแต่ละวัน)
+                        </SelectItem>
+                        <SelectItem key="profile">
+                          แสดงเฉพาะครั้งล่าสุดต่อคน
+                        </SelectItem>
+                      </Select>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-tiny text-foreground">
+                          โรงเรียน
+                        </span>
+                        <Popover placement="bottom-start">
+                          <PopoverTrigger>
+                            <Button
+                              className="h-8 w-full justify-between font-normal"
+                              endContent={
+                                <ChevronDownIcon className="size-4 shrink-0 text-default-400" />
+                              }
+                              size="sm"
+                              variant="bordered"
+                            >
+                              <span className="truncate text-left text-small text-default-500">
+                                {filters.schools.length > 0
+                                  ? `เลือก ${filters.schools.length} โรงเรียน`
+                                  : "ทุกโรงเรียน"}
+                              </span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-96 p-0">
+                            <div className="flex flex-col">
+                              <div className="border-b border-divider px-3 py-2">
                                 <input
-                                  readOnly
-                                  checked={filters.schools.includes("__none__")}
-                                  className="accent-primary"
-                                  type="checkbox"
+                                  className="w-full rounded border border-divider px-2 py-1 text-small outline-none focus:border-primary"
+                                  placeholder="ค้นหาโรงเรียน..."
+                                  type="text"
+                                  value={schoolSearch}
+                                  onChange={(e) =>
+                                    setSchoolSearch(e.target.value)
+                                  }
                                 />
-                                <span className="text-small">ไม่ระบุ</span>
-                              </li>
-                            )}
-                            {schools
-                              ?.filter((s: { id: number; name: string }) =>
-                                s.name
-                                  .toLowerCase()
-                                  .includes(schoolSearch.toLowerCase())
-                              )
-                              .map((school: { id: number; name: string }) => {
-                                const key = school.id.toString();
-
-                                return (
+                              </div>
+                              {filters.schools.length > 0 && (
+                                <div className="flex justify-end border-b border-divider px-3 py-1">
+                                  <button
+                                    className="text-xs text-danger hover:underline"
+                                    type="button"
+                                    onClick={() =>
+                                      handleFilterChange("schools", [])
+                                    }
+                                  >
+                                    ล้าง ({filters.schools.length})
+                                  </button>
+                                </div>
+                              )}
+                              <ul
+                                aria-multiselectable="true"
+                                className="max-h-60 overflow-y-auto py-1"
+                                role="listbox"
+                              >
+                                {!schoolSearch && (
                                   <li
-                                    key={school.id}
                                     aria-selected={filters.schools.includes(
-                                      key
+                                      "__none__"
                                     )}
                                     className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-default-100"
                                     role="option"
                                     onClick={() => {
                                       const current = filters.schools;
-                                      const next = current.includes(key)
-                                        ? current.filter((s) => s !== key)
-                                        : [...current, key];
+                                      const next = current.includes("__none__")
+                                        ? current.filter(
+                                            (s) => s !== "__none__"
+                                          )
+                                        : [...current, "__none__"];
 
                                       handleFilterChange("schools", next);
                                     }}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
                                         const current = filters.schools;
-                                        const next = current.includes(key)
-                                          ? current.filter((s) => s !== key)
-                                          : [...current, key];
+                                        const next = current.includes(
+                                          "__none__"
+                                        )
+                                          ? current.filter(
+                                              (s) => s !== "__none__"
+                                            )
+                                          : [...current, "__none__"];
 
                                         handleFilterChange("schools", next);
                                       }
@@ -1214,134 +1498,163 @@ export const ModalExportData = ({
                                   >
                                     <input
                                       readOnly
-                                      checked={filters.schools.includes(key)}
+                                      checked={filters.schools.includes(
+                                        "__none__"
+                                      )}
                                       className="accent-primary"
                                       type="checkbox"
                                     />
-                                    <span className="text-small">
-                                      {school.name}
-                                    </span>
+                                    <span className="text-small">ไม่ระบุ</span>
                                   </li>
-                                );
-                              })}
-                          </ul>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                                )}
+                                {schools
+                                  ?.filter((s: { id: number; name: string }) =>
+                                    s.name
+                                      .toLowerCase()
+                                      .includes(schoolSearch.toLowerCase())
+                                  )
+                                  .map(
+                                    (school: { id: number; name: string }) => {
+                                      const key = school.id.toString();
 
-                  {/* การตัดข้อมูลซ้ำ */}
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="dedupMode">
-                      การตัดข้อมูลซ้ำ
-                    </label>
-                    <Select
-                      selectedKeys={[dedupMode]}
-                      onSelectionChange={(keys) => {
-                        const val = Array.from(keys)[0] as
-                          | "none"
-                          | "profile_day"
-                          | "profile";
+                                      return (
+                                        <li
+                                          key={school.id}
+                                          aria-selected={filters.schools.includes(
+                                            key
+                                          )}
+                                          className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-default-100"
+                                          role="option"
+                                          onClick={() => {
+                                            const current = filters.schools;
+                                            const next = current.includes(key)
+                                              ? current.filter((s) => s !== key)
+                                              : [...current, key];
 
-                        if (val) setDedupMode(val);
-                      }}
-                    >
-                      <SelectItem key="none">
-                        ไม่กรองข้อมูลซ้ำ (แสดงทุกรายการ)
-                      </SelectItem>
-                      <SelectItem key="profile_day">
-                        1 รายการต่อคนต่อวัน (ล่าสุดในแต่ละวัน)
-                      </SelectItem>
-                      <SelectItem key="profile">
-                        แสดงเฉพาะครั้งล่าสุดต่อคน
-                      </SelectItem>
-                    </Select>
-                  </div>
+                                            handleFilterChange("schools", next);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (
+                                              e.key === "Enter" ||
+                                              e.key === " "
+                                            ) {
+                                              const current = filters.schools;
+                                              const next = current.includes(key)
+                                                ? current.filter(
+                                                    (s) => s !== key
+                                                  )
+                                                : [...current, key];
 
-                  {/* ระดับผลการประเมิน */}
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="result">
-                      ระดับผลการประเมิน
-                    </label>
-                    <Select
-                      placeholder="เลือกระดับ"
-                      selectedKeys={new Set(filters.result)}
-                      selectionMode="multiple"
-                      onSelectionChange={(keys) => {
-                        handleFilterChange(
-                          "result",
-                          Array.from(keys) as string[]
-                        );
-                      }}
-                    >
-                      {resultOptions.map((opt) => (
-                        <SelectItem key={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
+                                              handleFilterChange(
+                                                "schools",
+                                                next
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <input
+                                            readOnly
+                                            checked={filters.schools.includes(
+                                              key
+                                            )}
+                                            className="accent-primary"
+                                            type="checkbox"
+                                          />
+                                          <span className="text-small">
+                                            {school.name}
+                                          </span>
+                                        </li>
+                                      );
+                                    }
+                                  )}
+                              </ul>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                {/* chips โรงเรียนที่เลือก */}
-                {filters.schools.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {filters.schools.includes("__none__") && (
-                      <Chip
+                      <Select
+                        label="ระดับผลการประเมิน"
+                        labelPlacement="outside"
+                        placeholder="ทุกระดับ"
+                        selectedKeys={new Set(filters.result)}
+                        selectionMode="multiple"
                         size="sm"
-                        variant="flat"
-                        onClose={() =>
+                        onSelectionChange={(keys) => {
                           handleFilterChange(
-                            "schools",
-                            filters.schools.filter((s) => s !== "__none__")
-                          )
-                        }
+                            "result",
+                            Array.from(keys) as string[]
+                          );
+                        }}
                       >
-                        ไม่ระบุ
-                      </Chip>
-                    )}
-                    {filters.schools
-                      .filter((s) => s !== "__none__")
-                      .map((key) => {
-                        const school = schools?.find(
-                          (s: { id: number; name: string }) =>
-                            s.id.toString() === key
-                        );
+                        {resultOptions.map((opt) => (
+                          <SelectItem key={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </Select>
+                    </div>
 
-                        return (
+                    {filters.schools.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {filters.schools.includes("__none__") && (
                           <Chip
-                            key={key}
                             size="sm"
                             variant="flat"
                             onClose={() =>
                               handleFilterChange(
                                 "schools",
-                                filters.schools.filter((s) => s !== key)
+                                filters.schools.filter((s) => s !== "__none__")
                               )
                             }
                           >
-                            {school?.name ?? key}
+                            ไม่ระบุ
                           </Chip>
-                        );
-                      })}
-                  </div>
+                        )}
+                        {filters.schools
+                          .filter((s) => s !== "__none__")
+                          .map((key) => {
+                            const school = schools?.find(
+                              (s: { id: number; name: string }) =>
+                                s.id.toString() === key
+                            );
+
+                            return (
+                              <Chip
+                                key={key}
+                                size="sm"
+                                variant="flat"
+                                onClose={() =>
+                                  handleFilterChange(
+                                    "schools",
+                                    filters.schools.filter((s) => s !== key)
+                                  )
+                                }
+                              >
+                                {school?.name ?? key}
+                              </Chip>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </>
                 )}
               </CardBody>
             </Card>
 
             {/* ตัวอย่างตาราง */}
-            <Card className="flex-1">
-              <CardBody className="h-full flex flex-col">
-                <div className="flex justify-between items-center mb-3">
+            <Card className="min-h-0 flex-1">
+              <CardBody className="flex h-full min-h-0 flex-col gap-2 py-3">
+                <div className="flex shrink-0 items-center justify-between">
                   <h4 className="font-medium">ตัวอย่างข้อมูลที่จะ Export</h4>
                   {filteredData.length > 0 && (
                     <span className="text-sm text-gray-600">
                       แสดง {(currentPage - 1) * rowsPerPage + 1}-
                       {Math.min(currentPage * rowsPerPage, filteredData.length)}{" "}
-                      จาก {filteredData.length} รายการ
+                      จาก {filteredData.length.toLocaleString()} รายการ
                     </span>
                   )}
                 </div>
-                <div className="flex-1 overflow-y-auto border shadow-sm rounded-lg max-h-[400px]">
-                  {selectedFields.length > 0 && availableFields.length > 0 ? (
+                <div className="min-h-0 flex-1 overflow-auto rounded-lg border shadow-sm">
+                  {exportFields.length > 0 && availableFields.length > 0 ? (
                     schoolsLoading ||
                     districtsLoading ||
                     provincesLoading ||
@@ -1361,7 +1674,7 @@ export const ModalExportData = ({
                         selectionMode="none"
                       >
                         <TableHeader>
-                          {selectedFields.map((field) => {
+                          {exportFields.map((field) => {
                             const fieldLabel =
                               availableFields.find((f) => f.key === field)
                                 ?.label || field;
@@ -1381,7 +1694,7 @@ export const ModalExportData = ({
                         <TableBody>
                           {paginatedData.map((item, index) => (
                             <TableRow key={item.id || index}>
-                              {selectedFields.map((field) => {
+                              {exportFields.map((field) => {
                                 const value = getFieldValue(item, field);
 
                                 const isLeftAlign = [
@@ -1424,7 +1737,7 @@ export const ModalExportData = ({
                   )}
                 </div>
                 {filteredData.length > 0 && (
-                  <div className="flex justify-center pt-4">
+                  <div className="flex shrink-0 justify-center pt-1">
                     <Pagination
                       isCompact
                       showControls
@@ -1436,7 +1749,7 @@ export const ModalExportData = ({
                   </div>
                 )}
 
-                {selectedFields.length > 0 &&
+                {exportFields.length > 0 &&
                   filteredData.length === 0 &&
                   !schoolsLoading && (
                     <div className="text-center py-8 text-gray-500">
