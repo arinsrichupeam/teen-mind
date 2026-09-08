@@ -118,10 +118,18 @@ export function mapLegacyAdminStatus(
 
 /** Map AdminStatus → legacy UI number. */
 export function mapAdminStatusToLegacyNumber(
-  status: AdminStatus | string | null | undefined
+  status: AdminStatus | string | number | null | undefined
 ): number {
-  if (status === AdminStatus.APPROVED || status === "APPROVED") return 1;
-  if (status === AdminStatus.DISABLED || status === "DISABLED") return 3;
+  if (status === AdminStatus.APPROVED || status === "APPROVED" || status === 1) {
+    return 1;
+  }
+  if (status === AdminStatus.DISABLED || status === "DISABLED" || status === 3) {
+    return 3;
+  }
+  if (status === 2) {
+    // legacy "ไม่ใช้งาน" bucket used by some UIs
+    return 3;
+  }
 
   return 0;
 }

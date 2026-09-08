@@ -1,7 +1,10 @@
 import { ProfileAdminData } from "@/types";
 import { prisma } from "@/utils/prisma";
 import { requireAdmin } from "@/lib/get-session";
-import { mapLegacyAdminStatus } from "@/lib/legacy-value-mapping";
+import {
+  mapAdminStatusToLegacyNumber,
+  mapLegacyAdminStatus,
+} from "@/lib/legacy-value-mapping";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -32,7 +35,14 @@ export async function GET() {
     },
   });
 
-  return Response.json(data);
+  // Members / consultant dropdown still key off legacy status ints (1=ใช้งาน)
+  return Response.json(
+    data.map((row) => ({
+      ...row,
+      status: mapAdminStatusToLegacyNumber(row.status),
+      agency: row.healthcareFacility?.name ?? null,
+    }))
+  );
 }
 
 export async function POST(req: Request) {

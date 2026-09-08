@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { Sex, ScreeningResult } from "@prisma/client";
+import { AdminStatus, Sex, ScreeningResult } from "@prisma/client";
 
 import {
+  mapAdminStatusToLegacyNumber,
   mapLegacyRiskColorToScreeningResult,
   mapLegacySexToSex,
 } from "./legacy-value-mapping";
@@ -70,5 +71,13 @@ describe("mapLegacySexToSex", () => {
     assert.equal(mapLegacySexToSex(0), Sex.UNSPECIFIED);
     assert.equal(mapLegacySexToSex(3), Sex.UNSPECIFIED);
     assert.equal(mapLegacySexToSex("x"), Sex.UNSPECIFIED);
+  });
+});
+
+describe("mapAdminStatusToLegacyNumber", () => {
+  it("maps APPROVED / 1 to 1 for consultant dropdown filters", () => {
+    assert.equal(mapAdminStatusToLegacyNumber(AdminStatus.APPROVED), 1);
+    assert.equal(mapAdminStatusToLegacyNumber("APPROVED"), 1);
+    assert.equal(mapAdminStatusToLegacyNumber(1), 1);
   });
 });

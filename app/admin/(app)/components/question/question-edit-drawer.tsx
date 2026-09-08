@@ -50,6 +50,7 @@ import {
 import { QuestionDetailDrawer } from "./question-detail-drawer";
 import { ConsultScheduleDateTimePicker } from "./consult-schedule-datetime-picker";
 
+import { mapAdminStatusToLegacyNumber } from "@/lib/legacy-value-mapping";
 import {
   Addon,
   Consultant,
@@ -228,9 +229,13 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       if (!res.ok) throw new Error("Failed to fetch consultant list");
 
       const val = await res.json();
-      const consult = val.filter(
-        (x: { status: number; role: { id: number } }) =>
-          x.status === 1 && x.role.id === 3
+      const consult = (Array.isArray(val) ? val : []).filter(
+        (x: { status: number | string; role?: { id: number }; roleId?: number }) => {
+          const legacyStatus = mapAdminStatusToLegacyNumber(x.status);
+          const roleId = x.role?.id ?? x.roleId;
+
+          return legacyStatus === 1 && roleId === 3;
+        }
       );
 
       if (consult.length > 0) {
@@ -246,12 +251,17 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
             }) => ({
               id: item.userId ?? item.id,
               name:
-                [item.firstName ?? item.firstname, item.lastName ?? item.lastname]
+                [
+                  item.firstName ?? item.firstname,
+                  item.lastName ?? item.lastname,
+                ]
                   .filter(Boolean)
                   .join(" ") || "",
             })
           )
         );
+      } else {
+        setConsultant([]);
       }
     } catch (err) {
       setError(
