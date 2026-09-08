@@ -18,3 +18,5 @@ Do **not** use `prisma db push` while `legacy_*` tables exist — Prisma will tr
 
 - V2 tables are empty; `legacy_*` hold source rows for ETL (`scripts/migrate-legacy-data.js`, ticket #53).
 - Migration marked applied: `20260907120000_parallel_v2_beside_legacy`
+- Staging smoke checklist: `scripts/staging-smoke-v2.md` (#61)
+- Drop parked legacy (human gate only): `scripts/sql/drop-legacy-tables.sql`
