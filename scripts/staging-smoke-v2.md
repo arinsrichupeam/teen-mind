@@ -4,10 +4,16 @@ Run against **staging** (`teenmind-v3-staging` or current staging `DATABASE_URL`
 
 ## Preconditions
 
-- [ ] App built/deployed from branch with Case/TreatmentNote cutover
-- [ ] Staging DB has v2 tables populated (ETL already applied, or staging-only data)
-- [ ] `npm run build` and `npm test` green on the deployed commit
-- [ ] LINE / NextAuth env vars point at staging
+- [x] App built/deployed from branch with Case/TreatmentNote cutover (`teenmind-dev-v3`)
+- [x] Staging DB has v2 tables populated (`teenmind-v3-staging`, Case count ~12k; **no** `legacy_*` — drop N/A)
+- [x] `npm run build` and `npm test` green on the deployed commit
+- [ ] LINE / NextAuth env vars point at staging (human confirm on deployed host)
+
+## Agent DB smoke (`npx tsx scripts/smoke-v2-db.ts`)
+
+- [x] Required v2 tables present
+- [x] Sample Case maps to legacy `q2` / Green…Red / status 0–3
+- [x] Status filter where (follow-up chip → CaseStatus/HN) runs without Prisma error
 
 ## LIFF
 
