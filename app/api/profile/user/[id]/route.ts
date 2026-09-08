@@ -1,6 +1,7 @@
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
 import { getSession, requireAdmin } from "@/lib/get-session";
+import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
 import { validateBirthdayValue } from "@/utils/helper";
 
 export async function GET(
@@ -39,25 +40,24 @@ export async function GET(
             id: true,
             prefixId: true,
             sex: true,
-            firstname: true,
-            lastname: true,
-            birthday: true,
+            firstName: true,
+            lastName: true,
+            birthDate: true,
             ethnicity: true,
             nationality: true,
             hn: true,
-            tel: true,
-            address: true,
+            phone: true,
+            addresses: true,
             citizenId: true,
             schoolId: true,
             gradeYear: true,
             school: true,
-            emergency: true,
-            questions: {
+            emergencyContacts: true,
+            cases: {
               select: {
                 createdAt: true,
                 result: true,
-                result_text: true,
-                phqa: {
+                questionsPhqa: {
                   select: { sum: true },
                 },
               },
@@ -75,10 +75,32 @@ export async function GET(
 
     // ดึง referent (ที่จำเป็นต้องใช้ใน response) แยกจาก LINE sync
     let referent = null;
-    const profileRecord = profile.profile?.[0];
+    const profileRecord = profile.profile;
+
+    // LIFF / types ยังคาด profile เป็น array + questions/address/emergency ชื่อเดิม
+    const profileForClient = profileRecord
+      ? [
+          {
+            ...profileRecord,
+            questions: profileRecord.cases ?? [],
+            address: profileRecord.addresses ?? [],
+            emergency: profileRecord.emergencyContacts ?? [],
+          },
+        ]
+      : [];
+
+    const profilePayload = {
+      id: profile.id,
+      image: profile.image,
+      name: profile.name,
+      accounts: profile.accounts,
+      profile: profileForClient,
+      // liff/page.tsx เช็ค val.questions ที่ top-level
+      questions: profileRecord?.cases ?? [],
+    };
 
     if (profileRecord?.citizenId) {
-      referent = await prisma.referent.findFirst({
+      referent = await prisma.volunteer.findFirst({
         where: { citizenId: profileRecord.citizenId },
       });
     }
@@ -114,10 +136,10 @@ export async function GET(
     }
 
     if (referent) {
-      return Response.json({ ...profile, referent });
+      return Response.json({ ...profilePayload, referent });
     }
 
-    return Response.json(profile);
+    return Response.json(profilePayload);
   } catch (err) {
     return Response.json({
       error: err,
@@ -142,7 +164,7 @@ export async function PUT(
 
     let existingProfile = await prisma.profile.findFirst({
       where: { userId: idParam },
-      include: { address: true, emergency: true },
+      include: { addresses: true, emergencyContacts: true },
     });
 
     if (existingProfile) {
@@ -162,7 +184,7 @@ export async function PUT(
 
       existingProfile = await prisma.profile.findUnique({
         where: { id: idParam },
-        include: { address: true, emergency: true },
+        include: { addresses: true, emergencyContacts: true },
       });
     }
 
@@ -175,8 +197,8 @@ export async function PUT(
 
     const profileId = existingProfile.id;
 
-    if (body.birthday) {
-      const birthdayValidationError = validateBirthdayValue(body.birthday);
+    if (body.birthDate) {
+      const birthdayValidationError = validateBirthdayValue(body.birthDate);
 
       if (birthdayValidationError) {
         return Response.json(
@@ -201,13 +223,13 @@ export async function PUT(
         hn: body.hn ?? undefined,
         citizenId: body.citizenId,
         prefixId: Number(body.prefixId),
-        sex: Number(body.sex),
-        firstname: body.firstname,
-        lastname: body.lastname,
-        birthday: body.birthday ? new Date(body.birthday) : undefined,
+        sex: mapLegacySexToSex(body.sex),
+        firstName: body.firstName,
+        lastName: body.lastName,
+        birthDate: body.birthDate ? new Date(body.birthDate) : undefined,
         ethnicity: body.ethnicity,
         nationality: body.nationality,
-        tel: body.tel,
+        phone: body.phone,
         schoolId: normalizedSchoolId,
         gradeYear:
           normalizedSchoolId == null
@@ -218,20 +240,20 @@ export async function PUT(
       },
     });
 
-    const addressPayload = body.address;
+    const addressPayload = body.addresses;
     const addressUpdate =
       addressPayload != null
-        ? existingProfile.address.length > 0
+        ? existingProfile.addresses.length > 0
           ? prisma.address.update({
-              where: { id: existingProfile.address[0].id },
+              where: { id: existingProfile.addresses[0].id },
               data: {
                 houseNo: String(addressPayload.houseNo ?? ""),
                 villageNo: String(addressPayload.villageNo ?? ""),
                 soi: String(addressPayload.soi ?? ""),
                 road: String(addressPayload.road ?? ""),
-                subdistrict: Number(addressPayload.subdistrict) || 0,
-                district: Number(addressPayload.district) || 0,
-                province: Number(addressPayload.province) || 0,
+                subdistrictId: Number(addressPayload.subdistrictId) || 0,
+                districtId: Number(addressPayload.districtId) || 0,
+                provinceId: Number(addressPayload.provinceId) || 0,
               },
             })
           : prisma.address.create({
@@ -241,22 +263,22 @@ export async function PUT(
                 villageNo: String(addressPayload.villageNo ?? ""),
                 soi: String(addressPayload.soi ?? ""),
                 road: String(addressPayload.road ?? ""),
-                subdistrict: Number(addressPayload.subdistrict) || 0,
-                district: Number(addressPayload.district) || 0,
-                province: Number(addressPayload.province) || 0,
+                subdistrictId: Number(addressPayload.subdistrictId) || 0,
+                districtId: Number(addressPayload.districtId) || 0,
+                provinceId: Number(addressPayload.provinceId) || 0,
               },
             })
         : Promise.resolve();
 
-    const emergencyPayload = body.emergency;
+    const emergencyPayload = body.emergencyContacts;
     const emergencyUpdate =
       emergencyPayload != null
-        ? existingProfile.emergency.length > 0
+        ? existingProfile.emergencyContacts.length > 0
           ? prisma.emergencyContact.update({
-              where: { id: existingProfile.emergency[0].id },
+              where: { id: existingProfile.emergencyContacts[0].id },
               data: {
                 name: String(emergencyPayload.name ?? ""),
-                tel: String(emergencyPayload.tel ?? ""),
+                phone: String(emergencyPayload.phone ?? ""),
                 relation: String(emergencyPayload.relation ?? ""),
               },
             })
@@ -264,7 +286,7 @@ export async function PUT(
               data: {
                 profileId,
                 name: String(emergencyPayload.name ?? ""),
-                tel: String(emergencyPayload.tel ?? ""),
+                phone: String(emergencyPayload.phone ?? ""),
                 relation: String(emergencyPayload.relation ?? ""),
               },
             })
@@ -273,22 +295,14 @@ export async function PUT(
     await Promise.all([addressUpdate, emergencyUpdate]);
 
     if (body.hn && body.hn !== "") {
-      await prisma.questions_Master.updateMany({
-        where: {
-          profileId,
-          status: 0,
-        },
-        data: {
-          status: 1,
-        },
-      });
+      // HN is on Profile; CaseStatus no longer tracks "awaiting HN" (legacy 0→1).
     }
 
     const finalProfile = await prisma.profile.findUnique({
       where: { id: profileId },
       include: {
-        address: true,
-        emergency: true,
+        addresses: true,
+        emergencyContacts: true,
         school: true,
       },
     });

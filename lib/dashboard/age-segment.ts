@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import {
   MAIN_ASSESSMENT_AGE_CUTOFF,
   getMainAssessmentScaleFromAge,
@@ -30,14 +31,19 @@ export type AgeSegmentStats = {
 
 export function getRiskCounts(result: string): RiskCounts {
   switch (result) {
+    case ScreeningResult.NEGATIVE:
     case "Green":
       return { green: 1, greenLow: 0, yellow: 0, orange: 0, red: 0 };
+    case ScreeningResult.POSITIVE_LOW:
     case "Green-Low":
       return { green: 0, greenLow: 1, yellow: 0, orange: 0, red: 0 };
+    case ScreeningResult.POSITIVE_MODERATE:
     case "Yellow":
       return { green: 0, greenLow: 0, yellow: 1, orange: 0, red: 0 };
+    case ScreeningResult.POSITIVE_HIGH:
     case "Orange":
       return { green: 0, greenLow: 0, yellow: 0, orange: 1, red: 0 };
+    case ScreeningResult.POSITIVE_SEVERE:
     case "Red":
       return { green: 0, greenLow: 0, yellow: 0, orange: 0, red: 1 };
     default:
@@ -55,7 +61,7 @@ const emptyRiskByAge = (): RiskByAgeGroup => ({
 });
 
 export type AgeSegmentRow = {
-  birthday: Date;
+  birthDate: Date;
   screeningDate: Date | null;
   questionCreatedAt: Date;
   result: string;
@@ -64,11 +70,11 @@ export type AgeSegmentRow = {
 };
 
 function getAgeYears(row: AgeSegmentRow): number | null {
-  if (!row.birthday) return null;
+  if (!row.birthDate) return null;
 
   const targetDate = row.screeningDate ?? row.questionCreatedAt;
 
-  return calculateAge(row.birthday.toISOString(), targetDate);
+  return calculateAge(row.birthDate.toISOString(), targetDate);
 }
 
 function addRisk(target: RiskByAgeGroup, result: string) {
@@ -84,7 +90,7 @@ function addRisk(target: RiskByAgeGroup, result: string) {
 
 /** เกณฑ์ 9Q ไม่มี Green-Low — รวมเข้า Green หากพบในข้อมูล */
 function addRiskNineQ(target: RiskByAgeGroup, result: string) {
-  const normalized = result === "Green-Low" ? "Green" : result;
+  const normalized = result === ScreeningResult.POSITIVE_LOW ? "Green" : result;
 
   addRisk(target, normalized);
 }

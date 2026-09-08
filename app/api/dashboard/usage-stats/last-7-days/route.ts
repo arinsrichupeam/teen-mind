@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
@@ -31,15 +32,15 @@ const parseDateParam = (dateParam: string | null) => {
 
 const getRiskCounts = (result: string) => {
   switch (result) {
-    case "Green":
+    case ScreeningResult.NEGATIVE:
       return { green: 1, greenLow: 0, yellow: 0, orange: 0, red: 0 };
-    case "Green-Low":
+    case ScreeningResult.POSITIVE_LOW:
       return { green: 0, greenLow: 1, yellow: 0, orange: 0, red: 0 };
-    case "Yellow":
+    case ScreeningResult.POSITIVE_MODERATE:
       return { green: 0, greenLow: 0, yellow: 1, orange: 0, red: 0 };
-    case "Orange":
+    case ScreeningResult.POSITIVE_HIGH:
       return { green: 0, greenLow: 0, yellow: 0, orange: 1, red: 0 };
-    case "Red":
+    case ScreeningResult.POSITIVE_SEVERE:
       return { green: 0, greenLow: 0, yellow: 0, orange: 0, red: 1 };
     default:
       return { green: 0, greenLow: 0, yellow: 0, orange: 0, red: 0 };
@@ -150,7 +151,7 @@ export async function GET(req: Request) {
     const profilesWithQuestions = await prisma.profile.findMany({
       where: {
         createdAt: { gte: start, lt: end },
-        questions: { some: {} },
+        cases: { some: {} },
       },
       select: { id: true },
     });
@@ -167,7 +168,7 @@ export async function GET(req: Request) {
     if (totalUsers > 0) {
       const profileIds = profilesWithQuestions.map((p) => p.id);
 
-      const latestByProfile = await prisma.questions_Master.groupBy({
+      const latestByProfile = await prisma.case.groupBy({
         by: ["profileId"],
         where: { profileId: { in: profileIds } },
         _max: { createdAt: true },
@@ -181,7 +182,7 @@ export async function GET(req: Request) {
         })
         .filter(Boolean);
 
-      const latestQuestions = await prisma.questions_Master.findMany({
+      const latestQuestions = await prisma.case.findMany({
         where: {
           OR: orConditions as Array<{
             profileId: string;

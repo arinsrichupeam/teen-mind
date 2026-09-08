@@ -20,15 +20,15 @@ export async function POST(req: Request) {
       return Response.json({ error: "ไม่พบ questionId" }, { status: 400 });
     }
 
-    const question = await prisma.questions_Master.findUnique({
+    const question = await prisma.case.findUnique({
       where: { id: questionId },
       select: {
         id: true,
         profile: {
           select: {
             userId: true,
-            firstname: true,
-            lastname: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     }
 
     const fullName =
-      `${question.profile.firstname ?? ""} ${question.profile.lastname ?? ""}`.trim();
+      `${question.profile.firstName ?? ""} ${question.profile.lastName ?? ""}`.trim();
 
     const hnRegisterUrl = "https://register-hn.rpphosp.go.th/";
     const message =

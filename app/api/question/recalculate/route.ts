@@ -1,4 +1,4 @@
-import { Questions_PHQA } from "@prisma/client";
+import { QuestionPhqa } from "@prisma/client";
 
 import {
   type AssessmentMismatchIssue,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/assessment-scale";
 import { buildRecalculatePreview } from "@/lib/assessment-recalculate-preview";
 import { requireAdmin } from "@/lib/get-session";
+import { mapLegacyRiskColorToScreeningResult } from "@/lib/legacy-value-mapping";
 import { prisma } from "@/utils/prisma";
 
 export type RecalculateMismatch = {
@@ -21,7 +22,7 @@ export type RecalculateMismatch = {
   newResult: string;
 };
 
-function calculateSum(phqa_data: Questions_PHQA) {
+function calculateSum(phqa_data: QuestionPhqa) {
   return (
     phqa_data.q1 +
     phqa_data.q2 +
@@ -54,11 +55,11 @@ export async function POST() {
   }
 
   try {
-    const allQuestions = await prisma.questions_Master.findMany({
+    const allQuestions = await prisma.case.findMany({
       include: {
-        phqa: true,
-        q9: true,
-        addon: true,
+        questionsPhqa: true,
+        questions9Q: true,
+        questionsPhqaAddon: true,
         profile: {
           include: {
             school: { select: { screeningDate: true } },
@@ -66,7 +67,7 @@ export async function POST() {
         },
       },
       where: {
-        phqa: {
+        questionsPhqa: {
           some: {},
         },
       },
@@ -85,16 +86,16 @@ export async function POST() {
 
     for (const question of allQuestions) {
       try {
-        if (!question.phqa || question.phqa.length === 0) continue;
+        if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
 
-        const hasQ9Row = Array.isArray(question.q9) && question.q9.length > 0;
+        const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
         const hasPhqaAddon =
-          Array.isArray(question.addon) && question.addon.length > 0;
-        const sourceData = hasQ9Row ? question.q9[0] : question.phqa[0];
+          Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
+        const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
         const previousResult = question.result ?? "";
 
         const age = getAgeAtAssessment(
-          question.profile?.birthday,
+          question.profile?.birthDate,
           question.createdAt
         );
 
@@ -104,12 +105,13 @@ export async function POST() {
         if (issue === "missing_addon") mismatchSummary.missingAddon += 1;
         if (issue === "missing_age") mismatchSummary.missingAge += 1;
 
-        const newSum = calculateSum(sourceData as Questions_PHQA);
+        const newSum = calculateSum(sourceData as QuestionPhqa);
         const scale = resolveScale(age, hasQ9Row);
-        const { result, result_text } = calculateMainAssessmentResult(
+        const { result: riskColor } = calculateMainAssessmentResult(
           newSum,
           scale
         );
+        const result = mapLegacyRiskColorToScreeningResult(riskColor);
 
         if (issue !== "ok") {
           mismatches.push({
@@ -118,14 +120,14 @@ export async function POST() {
             age,
             issue,
             previousResult,
-            newResult: result,
+            newResult: riskColor,
           });
         }
 
         await prisma.$transaction([
-          prisma.questions_PHQA.updateMany({
+          prisma.questionPhqa.updateMany({
             where: {
-              questions_MasterId: question.id,
+              caseId: question.id,
             },
             data: {
               sum: newSum,
@@ -133,9 +135,9 @@ export async function POST() {
           }),
           ...(hasQ9Row
             ? [
-                prisma.questions_9Q.updateMany({
+                prisma.question9Q.updateMany({
                   where: {
-                    questions_MasterId: question.id,
+                    caseId: question.id,
                   },
                   data: {
                     sum: newSum,
@@ -143,13 +145,12 @@ export async function POST() {
                 }),
               ]
             : []),
-          prisma.questions_Master.update({
+          prisma.case.update({
             where: {
               id: question.id,
             },
             data: {
               result,
-              result_text,
             },
           }),
         ]);
@@ -198,25 +199,25 @@ export async function GET() {
   }
 
   try {
-    const allQuestions = await prisma.questions_Master.findMany({
+    const allQuestions = await prisma.case.findMany({
       select: {
         id: true,
         profileId: true,
         result: true,
         status: true,
         createdAt: true,
-        phqa: true,
-        q9: true,
-        addon: { select: { id: true } },
+        questionsPhqa: true,
+        questions9Q: true,
+        questionsPhqaAddon: { select: { id: true } },
         profile: {
           select: {
-            birthday: true,
+            birthDate: true,
             school: { select: { screeningDate: true } },
           },
         },
       },
       where: {
-        phqa: {
+        questionsPhqa: {
           some: {},
         },
       },

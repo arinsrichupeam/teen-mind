@@ -32,7 +32,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Affiliation, Profile_Admin } from "@prisma/client";
+import { Affiliation, ProfileAdmin } from "@prisma/client";
 
 import { ModalUserProfile } from "../components/modal/modal-user-profile";
 import { questionStatusOptions as options } from "../data/optionData";
@@ -53,16 +53,16 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   name: "",
   citizenId: "",
   prefixId: 0,
-  firstname: "",
-  lastname: "",
-  tel: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
   affiliationId: 0,
-  agency: "",
+  healthcareFacilityId: "",
   employeeTypeId: 0,
-  professional: "",
+  profession: "",
   license: "",
   status: 0,
-  alert: false,
+  receiveAlert: false,
   createdAt: "",
   updatedAt: "",
   roleId: 0,
@@ -76,7 +76,7 @@ export default function MemberPage() {
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [profileAdminList, setProfileAdminList] = useState<Profile_Admin[]>([]);
+  const [profileAdminList, setProfileAdminList] = useState<ProfileAdmin[]>([]);
   const [affiliationList, setAffiliationList] = useState<Affiliation[]>([]);
 
   const [page, setPage] = useState(1);
@@ -98,9 +98,9 @@ export default function MemberPage() {
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter(
         (val) =>
-          val.firstname.toLowerCase().includes(filterValue.toLowerCase()) ||
-          val.lastname.toLowerCase().includes(filterValue.toLowerCase()) ||
-          `${val.firstname} ${val.lastname}`
+          val.firstName.toLowerCase().includes(filterValue.toLowerCase()) ||
+          val.lastName.toLowerCase().includes(filterValue.toLowerCase()) ||
+          `${val.firstName} ${val.lastName}`
             .toLowerCase()
             .includes(filterValue.toLowerCase())
       );
@@ -125,9 +125,9 @@ export default function MemberPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: Profile_Admin, b: Profile_Admin) => {
-      const first = a[sortDescriptor.column as keyof Profile_Admin] as number;
-      const second = b[sortDescriptor.column as keyof Profile_Admin] as number;
+    return [...items].sort((a: ProfileAdmin, b: ProfileAdmin) => {
+      const first = a[sortDescriptor.column as keyof ProfileAdmin] as number;
+      const second = b[sortDescriptor.column as keyof ProfileAdmin] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;

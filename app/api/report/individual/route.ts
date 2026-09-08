@@ -45,20 +45,20 @@ export async function GET(req: NextRequest) {
 
   if (search) {
     profileWhere.OR = [
-      { firstname: { contains: search } },
-      { lastname: { contains: search } },
+      { firstName: { contains: search } },
+      { lastName: { contains: search } },
     ];
   }
   if (schools.length > 0) {
     profileWhere.school = { name: { in: schools } };
   }
 
-  profileWhere.questions = { some: {} };
+  profileWhere.cases = { some: {} };
 
   // Step 1: Get all matching profiles (with names for sort)
   const matchingProfiles = await prisma.profile.findMany({
     where: profileWhere,
-    select: { id: true, firstname: true, lastname: true },
+    select: { id: true, firstName: true, lastName: true },
   });
   const matchingProfileIds = await filterProfileIdsByAgeRange(
     matchingProfiles.map((p) => p.id),
@@ -82,11 +82,12 @@ export async function GET(req: NextRequest) {
   let filteredProfileIds = matchingProfileIds;
 
   if (repeatedOnly) {
-    const allAssessments = await prisma.questions_Master.findMany({
+    const allAssessments = await prisma.case.findMany({
       where: {
         profileId: { in: matchingProfileIds },
       },
-      select: { profileId: true, createdAt: true },
+      select: {
+      treatmentNotes: true, profileId: true, createdAt: true },
     });
     const yearsByProfile = new Map<string, Set<number>>();
 
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Step 3: Group by profileId to get latest date and raw count
-  const grouped = await prisma.questions_Master.groupBy({
+  const grouped = await prisma.case.groupBy({
     by: ["profileId"],
     where: {
       profileId: { in: filteredProfileIds },
@@ -124,21 +125,21 @@ export async function GET(req: NextRequest) {
   const profileNameMap = new Map(
     Array.from(matchingProfilesById.values()).map((p) => [
       p.id,
-      { firstname: p.firstname, lastname: p.lastname },
+      { firstName: p.firstName, lastName: p.lastName },
     ])
   );
   const mergedList = grouped.map((g) => ({
     profileId: g.profileId,
     maxDate: g._max.createdAt?.getTime() ?? 0,
     rawCount: g._count.id,
-    firstname: profileNameMap.get(g.profileId)?.firstname ?? "",
-    lastname: profileNameMap.get(g.profileId)?.lastname ?? "",
+    firstName: profileNameMap.get(g.profileId)?.firstName ?? "",
+    lastName: profileNameMap.get(g.profileId)?.lastName ?? "",
   }));
 
   if (sortBy === "name") {
     mergedList.sort((a, b) => {
-      const nameA = `${a.firstname} ${a.lastname}`;
-      const nameB = `${b.firstname} ${b.lastname}`;
+      const nameA = `${a.firstName} ${a.lastName}`;
+      const nameB = `${b.firstName} ${b.lastName}`;
       const cmp = nameA.localeCompare(nameB, "th");
 
       return sortDir === "asc" ? cmp : -cmp;
@@ -180,17 +181,16 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      questions: {
+      cases: {
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
           createdAt: true,
           result: true,
-          result_text: true,
-          phqa: { select: { sum: true } },
-          q9: { select: { sum: true } },
-          q2: { select: { q1: true, q2: true } },
-          q8: { select: { sum: true } },
+          questionsPhqa: { select: { sum: true } },
+          questions9Q: { select: { sum: true } },
+          questions2Q: { select: { q1: true, q2: true } },
+          questions8Q: { select: { sum: true } },
         },
       },
     },
@@ -202,9 +202,9 @@ export async function GET(req: NextRequest) {
     .map((id) => profileMap.get(id))
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .map((profile) => {
-      const byDay = new Map<string, (typeof profile.questions)[0]>();
+      const byDay = new Map<string, (typeof profile.cases)[0]>();
 
-      for (const q of profile.questions) {
+      for (const q of profile.cases) {
         const dayKey = toThaiDateKey(new Date(q.createdAt));
 
         if (!byDay.has(dayKey)) byDay.set(dayKey, q);
@@ -212,18 +212,18 @@ export async function GET(req: NextRequest) {
 
       const history = Array.from(byDay.values())
         .map((q) => {
-          const isNineQ = Array.isArray(q.q9) && q.q9.length > 0;
+          const isNineQ = Array.isArray(q.questions9Q) && q.questions9Q.length > 0;
           const score = isNineQ
-            ? Number(q.q9![0].sum)
-            : Array.isArray(q.phqa) && q.phqa.length > 0
-              ? Number(q.phqa[0].sum)
+            ? Number(q.questions9Q![0].sum)
+            : Array.isArray(q.questionsPhqa) && q.questionsPhqa.length > 0
+              ? Number(q.questionsPhqa[0].sum)
               : null;
           const q2Risk =
-            Array.isArray(q.q2) && q.q2.length > 0
-              ? q.q2[0].q1 === 1 || q.q2[0].q2 === 1
+            Array.isArray(q.questions2Q) && q.questions2Q.length > 0
+              ? q.questions2Q[0].q1 === 1 || q.questions2Q[0].q2 === 1
               : null;
           const q8Score =
-            Array.isArray(q.q8) && q.q8.length > 0 ? Number(q.q8[0].sum) : null;
+            Array.isArray(q.questions8Q) && q.questions8Q.length > 0 ? Number(q.questions8Q[0].sum) : null;
 
           return {
             id: q.id,
@@ -231,7 +231,6 @@ export async function GET(req: NextRequest) {
             scale: isNineQ ? "9Q" : "PHQ-A",
             score,
             result: q.result,
-            result_text: q.result_text,
             q2Risk,
             q8Score,
           };
@@ -245,15 +244,15 @@ export async function GET(req: NextRequest) {
       return {
         profileId: profile.id,
         prefixId: profile.prefixId,
-        firstname: profile.firstname,
-        lastname: profile.lastname,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         citizenId: profile.citizenId ?? null,
-        birthday: profile.birthday,
+        birthDate: profile.birthDate,
         userId: profile.userId ?? null,
         school: profile.school,
         assessmentCount: history.length,
         latestResult: latest?.result ?? null,
-        latestResultText: latest?.result_text ?? null,
+        latestResultText: null,
         latestScore: latest?.score ?? null,
         latestDate: latest?.date ?? null,
         history,

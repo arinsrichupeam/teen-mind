@@ -1,9 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// MySQL DATETIME ไม่มี TZ — เก็บ/ตีความเป็น UTC ที่แอป
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,58 +8,134 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Sex {
+  MALE
+  FEMALE
+  UNSPECIFIED
+}
+
+enum CaseStatus {
+  PENDING
+  IN_PROGRESS
+  TRANSFER_PENDING // รอปลายทางยืนยันรับ / ปฏิเสธ
+  CLOSED
+}
+
+enum CaseTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum FacilityStatus {
+  INACTIVE
+  ACTIVE
+}
+
+enum AdminStatus {
+  PENDING
+  APPROVED
+  DISABLED
+}
+
+// คนละชุดกับ Case.result (ผลคัดกรอง) — ความเสี่ยงตามนักจิตบน TreatmentNote
+// NONE = ประเมินแล้วไม่เสี่ยง; null = ไม่ประเมิน (คนละความหมาย)
+enum PsychRisk {
+  NONE
+  LOW
+  MODERATE
+  HIGH
+}
+
+// ผลคัดกรองสรุปล่าสุดของ Case (analytics / filter)
+enum ScreeningResult {
+  NEGATIVE
+  POSITIVE_LOW
+  POSITIVE_MODERATE
+  POSITIVE_HIGH
+  POSITIVE_SEVERE // Red — distinct from Orange (POSITIVE_HIGH); see ADR 0002
+  INCOMPLETE
+}
+
+// ชุดแบบประเมินของเคส — ตั้งตอนสร้าง ไม่เปลี่ยนกลางทาง
+enum AssessmentPackage {
+  BURNOUT // MBI-GS
+  DEPRESSION // 2Q → (9Q/8Q) → Problem
+  FULL // MBI-GS → depression path
+}
+
+// write actions เท่านั้น — ไม่ log VIEW; อ่านได้เฉพาะ central admin (บังคับที่แอป)
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  STATUS_CHANGE
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  VOLUNTEER
+  SYSTEM
+}
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([expires])
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
+// Auth (แอป enforce) — ThaiD เป็นทางเลือกเท่ากันทั้งสองฝั่ง:
+//   Profile      — สมัคร/login: Line | ThaiD (Account.provider); ThaiD → prefill Profile
+//   ProfileAdmin  — สมัคร/login: ThaiD | username/password; ThaiD → prefill ProfileAdmin (citizenId = pid)
+// passwordHash optional สำหรับ Profile; admin ที่เลือก password ต้องมี username+hash (บังคับที่แอป)
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  username      String?         @unique
-  email         String?         @unique
-  emailVerified DateTime?
-  image         String?         @db.Text
-  accounts      Account[]
-  sessions      Session[]
-  profile       Profile[]
-  profile_admin Profile_Admin[]
+  id                 String         @id @default(cuid())
+  name               String?
+  username           String?        @unique @db.VarChar(100)
+  passwordHash       String?        @db.VarChar(255) // argon2id / bcrypt only — never plaintext
+  mustChangePassword Boolean        @default(false)
+  email              String?        @unique
+  emailVerified      DateTime?
+  image              String?        @db.Text
+  accounts           Account[]
+  sessions           Session[]
+  profile            Profile?
+  profileAdmins      ProfileAdmin[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// OAuth/OIDC link — provider เช่น "line" | "thaid"; providerAccountId = OIDC sub (ไม่ใช้ pid)
+// ThaiD: เทียบ pid ↔ Profile.citizenId / ProfileAdmin.citizenId ที่แอปเมื่อสมัครหรือ link
 model Account {
-  id                       String  @id @default(cuid())
-  userId                   String  @unique
-  type                     String
-  provider                 String
-  providerAccountId        String
-  refresh_token            String? @db.Text
-  access_token             String? @db.Text
-  expires_at               Int?
-  token_type               String?
-  scope                    String?
-  id_token                 String? @db.Text
-  session_state            String?
-  refresh_token_expires_in Int?
-  user                     User?   @relation(fields: [userId], references: [id])
+  id                    String  @id @default(cuid())
+  userId                String // 1 user → N providers (NextAuth/Auth.js)
+  type                  String
+  provider              String
+  providerAccountId     String
+  refreshToken          String? @db.Text
+  accessToken           String? @db.Text
+  expiresAt             Int?
+  tokenType             String?
+  scope                 String?
+  idToken               String? @db.Text
+  sessionState          String?
+  refreshTokenExpiresIn Int?
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,213 +144,361 @@ model Account {
   @@index([userId])
 }
 
-model Profile {
-  id          String   @id @default(cuid())
-  userId      String?  @unique
-  citizenId   String   @unique
-  prefixId    Int
-  sex         Int
-  firstname   String
-  lastname    String
-  birthday    DateTime
-  ethnicity   String
-  nationality String
-  tel         String
-  hn          String?
+model Prefix {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
 
-  address   Address[]
-  emergency EmergencyContact[]
-  questions Questions_Master[]
+  profiles      Profile[]
+  profileAdmins ProfileAdmin[]
+  volunteers    Volunteer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school School? @relation(fields: [schoolId], references: [id])
-
-  schoolId  Int?
-  gradeYear Int? // ชั้นปี (แสดงเมื่อเลือกสถานศึกษา) 1-6 ป.1-ป.6, 7-12 ม.1-ม.6
-
-  @@index([userId])
 }
 
-model Profile_Admin {
-  id             String        @id @default(cuid())
-  userId         String
-  citizenId      String        @unique
-  prefixId       Int
-  firstname      String
-  lastname       String
-  tel            String?
-  affiliationId  Int
-  agency         String
-  employeeTypeId Int
-  professional   String?
-  license        String?
-  status         Int           @default(3)
-  alert          Boolean       @default(false)
-  roleId         Int           @default(3)
-  role           Roles         @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  affiliation    Affiliation   @relation(fields: [affiliationId], references: [id])
-  employeeType   Employee_Type @relation(fields: [employeeTypeId], references: [id])
+model Profile {
+  id          String   @id @default(cuid())
+  // auth delete ต้องไม่ลบ clinical graph — SetNull แล้ว soft-disable User
+  userId      String?  @unique
+  // PII: encrypt at rest (KMS / column encrypt); format 13 หลักบังคับที่แอป
+  citizenId   String   @unique @db.VarChar(13)
+  prefixId    Int
+  sex         Sex
+  firstName   String   @db.VarChar(100)
+  lastName    String   @db.VarChar(100)
+  birthDate   DateTime
+  ethnicity   String   @db.VarChar(50)
+  nationality String   @db.VarChar(50)
+  phone       String   @db.VarChar(20)
+  hn          String?  @db.VarChar(50)
+
+  // ข้อมูลสิทธิการรักษาจาก API สปสช. (NHSO)
+  mainInsclCode  String?   @db.VarChar(20) // รหัสสิทธิหลัก (เช่น UCS, SSS, WEL)
+  mainInsclName  String?   @db.VarChar(150) // ชื่อสิทธิหลัก (เช่น สิทธิหลักประกันสุขภาพแห่งชาติ)
+  subInsclCode   String?   @db.VarChar(20) // รหัสสิทธิย่อย
+  subInsclName   String?   @db.VarChar(150) // ชื่อสิทธิย่อย
+  hmainCode      String?   @db.VarChar(10) // รหัสโรงพยาบาลหลักตามสิทธิ สปสช.
+  hmainName      String?   @db.VarChar(200) // ชื่อโรงพยาบาลหลัก
+  hsubCode       String?   @db.VarChar(10) // รหัสโรงพยาบาลปฐมภูมิตามสิทธิ สปสช.
+  hsubName       String?   @db.VarChar(200) // ชื่อโรงพยาบาลปฐมภูมิ
+  nhsoVerifiedAt DateTime? // วันเวลาที่ตรวจสอบสิทธิล่าสุดกับ สปสช.
+
+  addresses         Address[]
+  emergencyContacts EmergencyContact[]
+  cases             Case[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId], map: "admin_userId_fkey")
+  prefix             Prefix              @relation(fields: [prefixId], references: [id], onDelete: Restrict)
+  user               User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  school             School?             @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  healthcareFacility HealthcareFacility? @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+
+  schoolId             Int?
+  gradeYear            Int?
+  // หน่วยงานที่ผู้ใช้เลือกต้องการรักษา (ตอนสมัคร)
+  healthcareFacilityId String?
+
+  @@index([prefixId])
+  @@index([schoolId])
+  @@index([healthcareFacilityId])
+  @@index([mainInsclCode])
+}
+
+// สมัคร/login: ThaiD (ทางเลือก) | username/password — ดู User comment
+model ProfileAdmin {
+  id                   String             @id @default(cuid())
+  userId               String
+  // PII: encrypt at rest (KMS / column encrypt); format 13 หลักบังคับที่แอป; ถ้าใช้ ThaiD ต้องตรง pid
+  citizenId            String             @unique @db.VarChar(13)
+  prefixId             Int
+  firstName            String             @db.VarChar(100)
+  lastName             String             @db.VarChar(100)
+  phone                String?            @db.VarChar(20)
+  affiliationId        Int
+  employeeTypeId       Int
+  profession           String?            @db.VarChar(100)
+  license              String?            @db.VarChar(50)
+  status               AdminStatus        @default(PENDING)
+  receiveAlert         Boolean            @default(false)
+  roleId               Int // require explicit role — ไม่ใช้ magic default
+  // หน่วยงาน = HealthcareFacility (ไม่เก็บชื่อซ้ำเป็น free-text)
+  // required — กัน MySQL UNIQUE+NULL ที่อนุญาตหลายแถว facility=null ต่อ user
+  healthcareFacilityId String
+  prefix               Prefix             @relation(fields: [prefixId], references: [id], onDelete: Restrict)
+  role                 Role               @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  affiliation          Affiliation        @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
+  employeeType         EmployeeType       @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
+  healthcareFacility   HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  treatmentNotes       TreatmentNote[]
+  assignedCases        Case[]             @relation("CaseAssignee")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, healthcareFacilityId])
+  @@index([userId])
+  @@index([prefixId])
+  @@index([healthcareFacilityId, status])
+  @@index([status, createdAt])
+  @@index([affiliationId])
+  @@index([employeeTypeId])
+  @@index([roleId])
 }
 
 model Address {
-  id          String  @id @default(cuid())
-  profileId   String
-  houseNo     String
-  villageNo   String
-  soi         String
-  road        String
-  province    Int
-  district    Int
-  subdistrict Int
-  profile     Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id            String  @id @default(cuid())
+  profileId     String
+  houseNo       String  @db.VarChar(50)
+  villageNo     String? @db.VarChar(50)
+  soi           String? @db.VarChar(100)
+  road          String? @db.VarChar(100)
+  postalCode    String? @db.VarChar(5)
+  // App invariant (validateGeoHierarchy): district.provinceId == provinceId
+  //                                      subdistrict.districtId == districtId
+  // denorm IDs ไว้ filter — MySQL ไม่ enforce composite hierarchy FK
+  provinceId    Int
+  districtId    Int
+  subdistrictId Int
 
-  @@index([profileId], map: "Address_profileId_fkey")
+  profile     Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  province    Province    @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  district    District    @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  subdistrict Subdistrict @relation(fields: [subdistrictId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([subdistrictId])
 }
 
-model Roles {
-  id            Int             @id @default(autoincrement())
-  name          String
-  profile_admin Profile_Admin[]
+model Role {
+  id            Int            @id @default(autoincrement())
+  code          String         @unique @db.VarChar(50) // e.g. SUPERADMIN, ADMIN, STAFF
+  name          String         @unique @db.VarChar(100)
+  profileAdmins ProfileAdmin[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EmergencyContact {
   id        String  @id @default(cuid())
   profileId String
-  name      String
-  tel       String
-  relation  String
+  name      String  @db.VarChar(100)
+  phone     String  @db.VarChar(20)
+  relation  String  @db.VarChar(50)
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@index([profileId], map: "Emergency_profileId_fkey")
-}
-
-model Provinces {
-  id         Int         @id
-  code       Int         @unique(map: "UX_Provinces_Code")
-  nameInThai String      @db.VarChar(150)
-  districts  Districts[]
-}
-
-model Districts {
-  id           Int            @id
-  code         Int            @unique(map: "UX_Districts_Code")
-  nameInThai   String         @db.VarChar(150)
-  provinceId   Int
-  zoneId       Int?
-  subdistricts Subdistricts[]
-  provinces    Provinces?     @relation(fields: [provincesId], references: [id])
-  provincesId  Int?
-
-  @@index([zoneId], map: "FK_Districts_Zone")
-  @@index([provinceId], map: "IX_Districts_ProvinceId")
-}
-
-model Subdistricts {
-  id         Int       @id
-  code       Int       @unique(map: "UX_Subdistricts_Code")
-  nameInThai String    @db.VarChar(150)
-  districtId Int
-  districts  Districts @relation(fields: [districtId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Subdistricts_Districts")
-
-  @@index([districtId], map: "IX_Subdistricts_DistrictId")
-}
-
-model Questions_Master {
-  id                String                 @id @default(cuid())
-  profileId         String
-  referentId        Int?
-  consult           String?
-  consult2          String?
-  consult3          String?
-  latitude          Decimal?               @db.Decimal(10, 7)
-  longitude         Decimal?               @db.Decimal(10, 7)
-  result            String
-  result_text       String?
-  schedule_telemed  DateTime?
-  schedule_telemed2 DateTime?
-  schedule_telemed3 DateTime?
-  subjective        String?                @db.Text
-  objective         String?                @db.Text
-  assessment        String?                @db.Text
-  plan              String?                @db.Text
-  // Discharge Summary (SOAP + หมายเหตุ) รอบ 1–3 — สอดคล้อง lib/question-followup-rounds DISCHARGE_SUMMARY_ROUNDS
-  note              String?                @db.Text
-  note2             String?                @db.Text
-  note3             String?                @db.Text
-  close_case_reason String?                @db.Text
-  subjective2       String?                @db.Text
-  subjective3       String?                @db.Text
-  objective2        String?                @db.Text
-  objective3        String?                @db.Text
-  assessment2       String?                @db.Text
-  assessment3       String?                @db.Text
-  plan2             String?                @db.Text
-  plan3             String?                @db.Text
-  follow_up         DateTime?
-  follow_up2        DateTime?
-  follow_up3        DateTime?
-  // ติดต่อไม่ได้ต่อรอบ — รอบที่ถูกทำเครื่องหมายจะไม่นับเป็นการพบจริงและไม่เลื่อนสถานะ
-  unreachable       Boolean                @default(false)
-  unreachable2      Boolean                @default(false)
-  unreachable3      Boolean                @default(false)
-  status            Int                    @default(0)
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  q2                Questions_2Q[]
-  phqa              Questions_PHQA[]
-  addon             Questions_PHQA_Addon[]
-  // เวอร์ชันแบบประเมินอื่น (แยกโมเดลเฉพาะชุดคำถาม)
-  q9                Questions_9Q[]
-  q8                Questions_8Q[]
-  problem           Questions_Problem[]
-  referent          Referent?              @relation(fields: [referentId], references: [id])
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  // User    User?   @relation(fields: [userId], references: [id])
-  // userId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([profileId])
 }
 
-model Questions_Problem {
-  id                 String  @id @default(cuid())
-  questions_MasterId String? @unique
+model Province {
+  id         Int                  @id
+  code       Int                  @unique
+  nameInThai String               @db.VarChar(150)
+  districts  District[]
+  addresses  Address[]
+  facilities HealthcareFacility[]
 
-  // ปัญหาเรื่องครอบครัว
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model District {
+  id           Int                  @id
+  code         Int                  @unique
+  nameInThai   String               @db.VarChar(150)
+  provinceId   Int
+  zoneId       Int?
+  subdistricts Subdistrict[]
+  province     Province             @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  zone         Zone?                @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  addresses    Address[]
+  schools      School[]
+  facilities   HealthcareFacility[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([zoneId])
+  @@index([provinceId])
+}
+
+model Subdistrict {
+  id         Int                  @id
+  code       Int                  @unique
+  nameInThai String               @db.VarChar(150)
+  districtId Int
+  district   District             @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  addresses  Address[]
+  facilities HealthcareFacility[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([districtId])
+}
+
+// Multi-round ใต้เคสเดียว (round ร่วม TreatmentNote + แบบประเมิน); result = สรุปล่าสุด; หลัง CLOSED → Case ใหม่
+// status: PENDING (รอผู้ดูแลรับ) → IN_PROGRESS → CLOSED; ส่งต่อ = TRANSFER_PENDING
+// healthcareFacilityId = หน่วยงาน; assigneeAdminId = นักจิตผู้รับ (ว่างได้ตอน PENDING)
+// รับส่งต่อแล้ว → PENDING ที่ปลายทาง (มีหน่วยงาน ไม่มี assignee) จน claim
+// transferToFacilityId = รอปลายทางยืนยันรับ/ปฏิเสธ
+model Case {
+  id                   String            @id @default(cuid())
+  profileId            String
+  healthcareFacilityId String?
+  assigneeAdminId      String?
+  transferToFacilityId String?
+  transferNote         String?           @db.Text
+  transferRequestedAt  DateTime?
+  volunteerId          Int?
+  schoolScreeningId    Int?
+  latitude             Decimal?          @db.Decimal(10, 7)
+  longitude            Decimal?          @db.Decimal(10, 7)
+  package              AssessmentPackage @default(FULL)
+  result               ScreeningResult
+  closeCaseReason      String?           @db.Text
+  status               CaseStatus        @default(PENDING)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  treatmentNotes     TreatmentNote[]
+  questions2Q        Question2Q[]
+  questionsPhqa      QuestionPhqa[]
+  questionsPhqaAddon QuestionPhqaAddon[]
+  questions9Q        Question9Q[]
+  questions8Q        Question8Q[]
+  questionsMbiGs     QuestionMbiGs[]
+  questionsProblem   QuestionProblem[]
+  volunteer          Volunteer?          @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
+  schoolScreening    SchoolScreening?    @relation(fields: [schoolScreeningId], references: [id], onDelete: SetNull)
+  healthcareFacility HealthcareFacility? @relation("CaseOwner", fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  transferToFacility HealthcareFacility? @relation("CaseTransferPending", fields: [transferToFacilityId], references: [id], onDelete: Restrict)
+  assigneeAdmin      ProfileAdmin?       @relation("CaseAssignee", fields: [assigneeAdminId], references: [id], onDelete: SetNull)
+  transfers          CaseTransfer[]
+  feedback           CaseFeedback?
+
+  // Restrict — ลบ Profile ต้องไม่ cascade ลบประวัติคลินิก (notes / questionnaire ยัง Cascade จาก Case)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([profileId, status, createdAt])
+  @@index([healthcareFacilityId, status])
+  @@index([transferToFacilityId, status])
+  @@index([assigneeAdminId, status])
+  @@index([status, updatedAt])
+  @@index([result, status])
+  @@index([volunteerId])
+  @@index([schoolScreeningId])
+}
+
+// ประเมินความพึงพอใจหลังรับบริการ/ปิดเคส (1-to-1 กับ Case)
+model CaseFeedback {
+  id            String   @id @default(cuid())
+  caseId        String   @unique
+  overallRating Int // คะแนนภาพรวม (1 - 5)
+  serviceRating Int? // คะแนนด้านการให้บริการ/นักจิต (1 - 5)
+  systemRating  Int? // คะแนนด้านระบบ/แอปพลิเคชัน (1 - 5)
+  comment       String?  @db.Text // ข้อเสนอแนะเพิ่มเติม
+  submittedAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([overallRating])
+  @@index([submittedAt])
+}
+
+// ประวัติส่งต่อเคส (ขอ → รับ/ปฏิเสธ); Case.transferTo* = คำขอค้างปัจจุบันเท่านั้น
+model CaseTransfer {
+  id             String             @id @default(cuid())
+  caseId         String
+  fromFacilityId String?
+  toFacilityId   String
+  status         CaseTransferStatus @default(PENDING)
+  requestNote    String?            @db.Text
+  responseNote   String?            @db.Text
+  requestedAt    DateTime           @default(now())
+  respondedAt    DateTime?
+
+  case         Case                @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromFacility HealthcareFacility? @relation("TransferFrom", fields: [fromFacilityId], references: [id], onDelete: Restrict)
+  toFacility   HealthcareFacility  @relation("TransferTo", fields: [toFacilityId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, requestedAt])
+  @@index([toFacilityId, status, requestedAt])
+  @@index([fromFacilityId, status, requestedAt])
+  @@index([status, requestedAt])
+}
+
+model TreatmentNote {
+  id            String        @id @default(cuid())
+  caseId        String
+  round         Int
+  authorAdminId String?
+  authorAdmin   ProfileAdmin? @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
+
+  consult         String?   @db.VarChar(100)
+  scheduleTelemed DateTime?
+  unreachable     Boolean   @default(false)
+
+  subjective String?    @db.Text
+  objective  String?    @db.Text
+  assessment String?    @db.Text
+  plan       String?    @db.Text
+  note       String?    @db.Text
+  psychRisk  PsychRisk? // optional — นัดที่ไม่ประเมินคลินิกเว้นว่างได้
+
+  followUp DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, round])
+  @@index([authorAdminId])
+}
+
+// คะแนน/flag: bounds บังคับที่แอป (validateQuestionnaireScores); MySQL CHECK เพิ่มใน migration ถ้าต้องการ
+model QuestionProblem {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+
   familyRelation      Int @default(0)
   familyStudyPressure Int @default(0)
   familyConflict      Int @default(0)
   familyAbuse         Int @default(0)
   familyLoss          Int @default(0)
 
-  // ความสัมพันธ์/สังคม
   socialFriendIssue Int @default(0)
   socialBullying    Int @default(0)
   socialBreakup     Int @default(0)
   socialTeacher     Int @default(0)
   socialAssault     Int @default(0)
 
-  // การเรียน
-  studyStress        Int @default(0)
-  studyNoMotivation  Int @default(0)
-  studyBurnout       Int @default(0)
-  studyTimeManage    Int @default(0)
-  studyHomeworkLoad  Int @default(0)
-  studyExamAnxiety   Int @default(0)
+  studyStress       Int @default(0)
+  studyNoMotivation Int @default(0)
+  studyBurnout      Int @default(0)
+  studyTimeManage   Int @default(0)
+  studyHomeworkLoad Int @default(0)
+  studyExamAnxiety  Int @default(0)
 
-  // การเงิน
   financeFamilyIssue Int @default(0)
 
-  // พฤติกรรม/การใช้ชีวิต
   lifestyleSocialMediaOveruse Int @default(0)
   lifestyleGamingAddiction    Int @default(0)
   lifestyleSubstanceUse       Int @default(0)
@@ -289,161 +508,340 @@ model Questions_Problem {
 
   sum Int @default(0)
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
-model Questions_2Q {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int
-  q2                 Int
+model Question2Q {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+  q1     Int // 0–1 (app + CHECK)
+  q2     Int // 0–1
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
-model Questions_PHQA {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int
-  q2                 Int
-  q3                 Int
-  q4                 Int
-  q5                 Int
-  q6                 Int
-  q7                 Int
-  q8                 Int
-  q9                 Int
-  sum                Int
+model QuestionPhqa {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+  q1     Int // 0–3
+  q2     Int
+  q3     Int
+  q4     Int
+  q5     Int
+  q6     Int
+  q7     Int
+  q8     Int
+  q9     Int
+  sum    Int
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
-model Questions_PHQA_Addon {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int
-  q2                 Int
+model QuestionPhqaAddon {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+  q1     Int // 0–1
+  q2     Int // 0–1
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
-model Questions_9Q {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int     @default(0)
-  q2                 Int     @default(0)
-  q3                 Int     @default(0)
-  q4                 Int     @default(0)
-  q5                 Int     @default(0)
-  q6                 Int     @default(0)
-  q7                 Int     @default(0)
-  q8                 Int     @default(0)
-  q9                 Int     @default(0)
-  sum                Int     @default(0)
+model Question9Q {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+  q1     Int    @default(0) // 0–3
+  q2     Int    @default(0)
+  q3     Int    @default(0)
+  q4     Int    @default(0)
+  q5     Int    @default(0)
+  q6     Int    @default(0)
+  q7     Int    @default(0)
+  q8     Int    @default(0)
+  q9     Int    @default(0)
+  sum    Int    @default(0)
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
-model Questions_8Q {
-  id                 String  @id @default(cuid())
-  questions_MasterId String?
-  q1                 Int     @default(0)
-  q2                 Int     @default(0)
-  q3                 Int     @default(0)
-  q4                 Int     @default(0)
-  q5                 Int     @default(0)
-  q6                 Int     @default(0)
-  q7                 Int     @default(0)
-  q8                 Int     @default(0)
-  // คำถามต่อเนื่อง (สำหรับกรณีตอบข้อที่เกี่ยวกับการคิดฆ่าตัวตาย)
-  q8Addon            Int     @default(0)
-  sum                Int     @default(0)
+model Question8Q {
+  id      String @id @default(cuid())
+  caseId  String
+  round   Int
+  q1      Int    @default(0) // 0–3
+  q2      Int    @default(0)
+  q3      Int    @default(0)
+  q4      Int    @default(0)
+  q5      Int    @default(0)
+  q6      Int    @default(0)
+  q7      Int    @default(0)
+  q8      Int    @default(0)
+  q8Addon Int    @default(0) // follow-up เมื่อตอบข้อคิดฆ่าตัวตาย
+  sum     Int    @default(0)
 
-  Questions_Master Questions_Master? @relation(fields: [questions_MasterId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  @@index([questions_MasterId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
+}
+
+// MBI-GS: เก็บคำตอบ + คะแนนย่อยเท่านั้น — ไม่เก็บข้อคำถาม (ลิขสิทธิ์ Mind Garden)
+// q1–q16 เรียงตามแบบที่ได้สิทธิ์; map → มิติ ทำที่แอปตาม scoring key ในคู่มือ
+// ไม่มี sum รวม — แปลผลแยก 3 มิติ (exhaustion / cynicism / professionalEfficacy)
+model QuestionMbiGs {
+  id     String @id @default(cuid())
+  caseId String
+  round  Int
+
+  q1  Int @default(0) // 0–6 frequency
+  q2  Int @default(0)
+  q3  Int @default(0)
+  q4  Int @default(0)
+  q5  Int @default(0)
+  q6  Int @default(0)
+  q7  Int @default(0)
+  q8  Int @default(0)
+  q9  Int @default(0)
+  q10 Int @default(0)
+  q11 Int @default(0)
+  q12 Int @default(0)
+  q13 Int @default(0)
+  q14 Int @default(0)
+  q15 Int @default(0)
+  q16 Int @default(0)
+
+  // subscale sums (แอปคำนวณจาก item map ในคู่มือ); mean = sum / nItems
+  exhaustion           Int @default(0) // 5 items → 0–30
+  cynicism             Int @default(0) // 5 items → 0–30
+  professionalEfficacy Int @default(0) // 6 items → 0–36
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([caseId, round])
 }
 
 model School {
-  id            Int                @id @default(autoincrement())
-  name          String
+  id            Int               @id @default(autoincrement())
+  name          String            @db.VarChar(200)
   districtId    Int
-  status        Boolean
+  status        Boolean           @default(true) // active/inactive only
   screeningDate DateTime?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  profile       Profile[]
-  screenings    School_Screening[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  profiles      Profile[]
+  screenings    SchoolScreening[]
+  district      District          @relation(fields: [districtId], references: [id], onDelete: Restrict)
+
+  @@index([districtId])
 }
 
-model School_Screening {
+// โรงพยาบาล / ศูนย์บริการสาธารณสุข (= หน่วยงาน)
+model HealthcareFacility {
+  id            String         @id @default(cuid())
+  name          String         @db.VarChar(200)
+  address       String?        @db.Text
+  // App invariant (validateGeoHierarchy): same as Address
+  provinceId    Int
+  districtId    Int
+  subdistrictId Int
+  latitude      Decimal?       @db.Decimal(10, 7)
+  longitude     Decimal?       @db.Decimal(10, 7)
+  affiliationId Int
+  zoneId        Int? // null = ยังไม่จัดเข้า zone
+  status        FacilityStatus @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  province          Province       @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  district          District       @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  subdistrict       Subdistrict    @relation(fields: [subdistrictId], references: [id], onDelete: Restrict)
+  affiliation       Affiliation    @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
+  zone              Zone?          @relation("ZoneMembers", fields: [zoneId], references: [id], onDelete: SetNull)
+  facilitatedZones  Zone[]         @relation("ZoneFacilitator")
+  units             FacilityUnit[]
+  profiles          Profile[]
+  profileAdmins     ProfileAdmin[]
+  volunteers        Volunteer[]
+  cases             Case[]         @relation("CaseOwner")
+  incomingTransfers Case[]         @relation("CaseTransferPending")
+  transfersFrom     CaseTransfer[] @relation("TransferFrom")
+  transfersTo       CaseTransfer[] @relation("TransferTo")
+
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([subdistrictId])
+  @@index([affiliationId])
+  @@index([zoneId])
+  @@index([status])
+}
+
+// เขต / โซน — แม่ zone = facilitatorFacilityId (1 ต่อ zone)
+model Zone {
+  id                    Int                 @id @default(autoincrement())
+  name                  String              @unique @db.VarChar(100)
+  status                Boolean             @default(true)
+  facilitatorFacilityId String?             @unique
+  facilitatorFacility   HealthcareFacility? @relation("ZoneFacilitator", fields: [facilitatorFacilityId], references: [id], onDelete: SetNull)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  districts  District[]
+  facilities HealthcareFacility[] @relation("ZoneMembers")
+}
+
+// หน่วยงานย่อย ของโรงพยาบาล / ศบส.
+model FacilityUnit {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @db.VarChar(200)
+  healthcareFacilityId String
+  status               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  healthcareFacility HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Cascade)
+
+  @@unique([healthcareFacilityId, name])
+  @@index([healthcareFacilityId])
+}
+
+model SchoolScreening {
   id        Int       @id @default(autoincrement())
   schoolId  Int
   round     Int
   startDate DateTime
   endDate   DateTime?
   school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  cases     Case[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([schoolId, round])
-  @@index([schoolId])
 }
 
-model Referent {
-  id                Int                @id @default(autoincrement())
-  citizenId         String             @unique
-  prefixId          Int
-  firstname         String
-  lastname          String
-  email             String
-  tel               String
-  volunteer_type_id Int
-  employee_type_id  Int
-  affiliation_id    Int
-  agency            String
-  status            Boolean
-  volunteer_type    Volunteer_Type     @relation(fields: [volunteer_type_id], references: [id])
-  employee_type     Employee_Type      @relation(fields: [employee_type_id], references: [id])
-  affiliation       Affiliation        @relation(fields: [affiliation_id], references: [id])
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  questions_master  Questions_Master[]
+model Volunteer {
+  id                   Int                @id @default(autoincrement())
+  // PII: encrypt at rest (KMS / column encrypt); format 13 หลักบังคับที่แอป
+  citizenId            String             @unique @db.VarChar(13)
+  prefixId             Int
+  firstName            String             @db.VarChar(100)
+  lastName             String             @db.VarChar(100)
+  email                String             @unique @db.VarChar(255)
+  phone                String             @db.VarChar(20)
+  volunteerTypeId      Int
+  employeeTypeId       Int
+  affiliationId        Int
+  // หน่วยงาน = HealthcareFacility (ไม่เก็บชื่อซ้ำเป็น free-text)
+  healthcareFacilityId String
+  status               Boolean            @default(true)
+  prefix               Prefix             @relation(fields: [prefixId], references: [id], onDelete: Restrict)
+  volunteerType        VolunteerType      @relation(fields: [volunteerTypeId], references: [id], onDelete: Restrict)
+  employeeType         EmployeeType       @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
+  affiliation          Affiliation        @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
+  healthcareFacility   HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  cases                Case[]
+
+  @@index([prefixId])
+  @@index([volunteerTypeId])
+  @@index([employeeTypeId])
+  @@index([affiliationId])
+  @@index([healthcareFacilityId])
 }
 
+// สังกัด
 model Affiliation {
-  id            Int             @id @default(autoincrement())
-  name          String
-  status        Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  referent      Referent[]
-  Profile_Admin Profile_Admin[]
+  id            Int                  @id @default(autoincrement())
+  name          String               @unique @db.VarChar(200)
+  status        Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  volunteers    Volunteer[]
+  profileAdmins ProfileAdmin[]
+  facilities    HealthcareFacility[]
 }
 
-model Employee_Type {
-  id            Int             @id @default(autoincrement())
-  name          String
-  status        Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  referent      Referent[]
-  Profile_Admin Profile_Admin[]
+model EmployeeType {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique @db.VarChar(100)
+  status        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  volunteers    Volunteer[]
+  profileAdmins ProfileAdmin[]
 }
 
-model Volunteer_Type {
-  id        Int        @id @default(autoincrement())
-  name      String
-  status    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  referent  Referent[]
+model VolunteerType {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique @db.VarChar(100)
+  status     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  volunteers Volunteer[]
+}
+
+// Append-only audit — ไม่ FK ไป entity (log ต้องอยู่หลังลบตัวตน)
+// Retention 90 วัน: ลบ/archive ที่แอป (job); ไม่ soft-delete แถว log
+// diff/meta ห้ามใส่ password / token; PII (citizenId) mask ที่แอป
+model AuditLog {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+
+  actorType  AuditActorType
+  actorId    String?        @db.VarChar(64)
+  actorLabel String?        @db.VarChar(200)
+
+  action     AuditAction
+  entityType String      @db.VarChar(50)
+  entityId   String?     @db.VarChar(64)
+
+  caseId     String? @db.VarChar(64)
+  profileId  String? @db.VarChar(64)
+  facilityId String? @db.VarChar(64)
+
+  summary String @db.VarChar(500)
+  diff    Json?
+  meta    Json?
+
+  @@index([occurredAt])
+  @@index([entityType, entityId])
+  @@index([actorId, occurredAt])
+  @@index([caseId, occurredAt])
+  @@index([profileId, occurredAt])
+  @@index([facilityId, occurredAt])
+  @@index([action, occurredAt])
 }

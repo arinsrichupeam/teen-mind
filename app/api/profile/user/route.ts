@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
+import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
 import { prisma } from "@/utils/prisma";
 import { validateBirthdayValue } from "@/utils/helper";
 
@@ -15,62 +16,60 @@ export async function GET() {
     select: {
       id: true,
       userId: true,
-      firstname: true,
-      lastname: true,
+      firstName: true,
+      lastName: true,
       prefixId: true,
       sex: true,
-      birthday: true,
+      birthDate: true,
       ethnicity: true,
       nationality: true,
       hn: true,
       citizenId: true,
-      tel: true,
+      phone: true,
       school: true,
       gradeYear: true,
-      questions: {
+      cases: {
         select: {
           id: true,
           createdAt: true,
           result: true,
-          result_text: true,
-          q2: {
+          questions2Q: {
             select: {
               q1: true,
               q2: true,
             },
           },
-          phqa: {
+          questionsPhqa: {
             select: {
               sum: true,
             },
           },
-          addon: {
+          questionsPhqaAddon: {
             select: {
               q1: true,
               q2: true,
             },
           },
-          q9: {
+          questions9Q: {
             select: {
               sum: true,
             },
           },
-          q8: {
+          questions8Q: {
             select: {
               sum: true,
             },
           },
-          referent: {
+          volunteer: {
             select: {
               id: true,
-              firstname: true,
-              lastname: true,
+              firstName: true,
+              lastName: true,
               affiliation: {
                 select: {
                   name: true,
                 },
               },
-              agency: true,
             },
           },
         },
@@ -78,8 +77,8 @@ export async function GET() {
           createdAt: "desc",
         },
       },
-      address: true,
-      emergency: true,
+      addresses: true,
+      emergencyContacts: true,
       user: {
         select: {
           name: true,
@@ -111,7 +110,7 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    const birthdayValidationError = validateBirthdayValue(data.birthday);
+    const birthdayValidationError = validateBirthdayValue(data.birthDate);
 
     if (birthdayValidationError) {
       return NextResponse.json(
@@ -125,37 +124,37 @@ export async function POST(req: Request) {
         hn: data.hn || "",
         citizenId: data.citizenId,
         prefixId: data.prefixId,
-        sex: parseInt(data.sex) || 1,
-        firstname: data.firstname,
-        lastname: data.lastname,
-        birthday: data.birthday,
+        sex: mapLegacySexToSex(data.sex),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        birthDate: data.birthDate,
         ethnicity: data.ethnicity,
         nationality: data.nationality,
-        tel: data.tel,
+        phone: data.phone,
         schoolId: data.schoolId || null,
-        address: {
+        addresses: {
           create: {
-            houseNo: data.address.houseNo,
-            villageNo: data.address.villageNo,
-            soi: data.address.soi,
-            road: data.address.road,
-            subdistrict: data.address.subdistrict,
-            district: data.address.district,
-            province: data.address.province,
+            houseNo: data.addresses.houseNo,
+            villageNo: data.addresses.villageNo,
+            soi: data.addresses.soi,
+            road: data.addresses.road,
+            subdistrictId: data.addresses.subdistrictId,
+            districtId: data.addresses.districtId,
+            provinceId: data.addresses.provinceId,
           },
         },
-        emergency: {
+        emergencyContacts: {
           create: {
-            name: data.emergency.name,
-            tel: data.emergency.tel,
-            relation: data.emergency.relation,
+            name: data.emergencyContacts.name,
+            phone: data.emergencyContacts.phone,
+            relation: data.emergencyContacts.relation,
           },
         },
       },
       include: {
         school: true,
-        address: true,
-        emergency: true,
+        addresses: true,
+        emergencyContacts: true,
       },
     });
 
@@ -186,15 +185,7 @@ export async function PATCH(req: Request) {
       });
 
       // อัปเดตเฉพาะ question ที่มี status = 0 ให้เป็น 1 เมื่อมีการอัปเดต HN
-      await prisma.questions_Master.updateMany({
-        where: {
-          profileId: data.id,
-          status: 0,
-        },
-        data: {
-          status: 1,
-        },
-      });
+      // HN is on Profile; CaseStatus no longer tracks "awaiting HN" (legacy 0→1).
     }
 
     return new Response("Success");

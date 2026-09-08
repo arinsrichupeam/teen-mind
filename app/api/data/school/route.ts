@@ -80,12 +80,12 @@ export async function POST(req: Request) {
       },
     });
 
-    await tx.school_Screening.deleteMany({
+    await tx.schoolScreening.deleteMany({
       where: { schoolId: upserted.id },
     });
 
     if (screenings.length > 0) {
-      await tx.school_Screening.createMany({
+      await tx.schoolScreening.createMany({
         data: screenings.map((s) => ({
           schoolId: upserted.id,
           round: s.round,

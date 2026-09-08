@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   );
   const endUtc = new Date(startUtc.getTime() + safeDays * 24 * 60 * 60 * 1000);
 
-  const records = await prisma.questions_Master.findMany({
+  const records = await prisma.case.findMany({
     where: {
       createdAt: {
         gte: startUtc,

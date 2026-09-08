@@ -68,8 +68,8 @@ export type QuestionsData = {
   referent: {
     id: number;
     citizenId: string;
-    firstname: string;
-    lastname: string;
+    firstName: string;
+    lastName: string;
   } | null;
   phqa: Phqa[];
   q2: Questions2Q[];
@@ -105,15 +105,15 @@ export type ProfileSchool =
 export interface Profile {
   id: string;
   userId?: string;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   prefixId: string;
   sex: string;
-  birthday: string;
+  birthDate: string;
   ethnicity: string;
   nationality: string;
   citizenId: string;
-  tel: string;
+  phone: string;
   school: ProfileSchool;
   gradeYear?: number | null;
   hn: string;
@@ -127,14 +127,14 @@ export interface Address {
   villageNo: string;
   soi: string;
   road: string;
-  subdistrict: number;
-  district: number;
-  province: number;
+  subdistrictId: number;
+  districtId: number;
+  provinceId: number;
 }
 
 export interface Emergency {
   name: string;
-  tel: string;
+  phone: string;
   relation: string;
 }
 
@@ -271,16 +271,21 @@ export interface ProfileAdminData {
   name: string;
   citizenId: string;
   prefixId: number;
-  firstname: string;
-  lastname: string;
-  tel: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
   affiliationId: number;
-  agency: string;
+  /** @deprecated use healthcareFacilityId */
+  agency?: string;
+  healthcareFacilityId?: string;
   employeeTypeId: number;
-  professional: string;
+  /** @deprecated use profession */
+  professional?: string;
+  profession?: string;
   license: string;
-  status: number;
-  alert: boolean;
+  /** AdminStatus enum or legacy 0/1/3 for UI */
+  status: number | string;
+  receiveAlert: boolean;
   createdAt: string;
   updatedAt: string;
   roleId: number;
@@ -306,8 +311,8 @@ export interface TableSortDescriptor {
 export type MapLocationProfile = {
   id: string;
   prefixId: string;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   schoolName: string | null;
 };
 

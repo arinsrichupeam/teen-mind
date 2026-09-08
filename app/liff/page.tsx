@@ -15,11 +15,11 @@ export default function LiffHome() {
       res.json().then((val) => {
         if (val === null) {
           signOut();
-        } else if (val.profile.length === 0) {
+        } else if (!val.profile?.length) {
           // send to register
           router.push("/liff/privacy");
         } else {
-          if (val.questions?.length === 0) {
+          if (!val.questions?.length) {
             router.push("/liff/question");
           } else {
             router.push("/liff/question/list");

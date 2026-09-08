@@ -201,19 +201,19 @@ export function getDaysInMonth(month: number, year: number): number {
 
 // ฟังก์ชัน validate วันเกิด
 export function validateBirthday(
-  birthday: string,
+  birthDate: string,
   minAge: number = 4,
   maxAge: number = 100
 ): string {
-  if (!birthday || birthday === "") {
+  if (!birthDate || birthDate === "") {
     return "กรุณาระบุวันเกิด";
   }
 
-  if (!birthday.includes("/")) {
+  if (!birthDate.includes("/")) {
     return "รูปแบบวันเกิดไม่ถูกต้อง กรุณากรอกในรูปแบบ dd/mm/yyyy";
   }
 
-  const parts = birthday.split("/");
+  const parts = birthDate.split("/");
 
   if (parts.length !== 3) {
     return "รูปแบบวันเกิดไม่ถูกต้อง กรุณากรอกในรูปแบบ dd/mm/yyyy";
@@ -336,21 +336,21 @@ export type AgeParts = {
 
 /** คำนวณอายุเป็นปี เดือน วัน จากวันเกิดถึงวันที่กำหนด */
 export function calculateAgeParts(
-  birthday: string,
+  birthDate: string,
   targetDate?: string | Date | null
 ): AgeParts {
-  if (!birthday) return { years: 0, months: 0, days: 0 };
+  if (!birthDate) return { years: 0, months: 0, days: 0 };
 
-  const birthDate = new Date(birthday);
+  const birth = new Date(birthDate);
   const target = targetDate ? new Date(targetDate) : new Date();
 
-  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(target.getTime())) {
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(target.getTime())) {
     return { years: 0, months: 0, days: 0 };
   }
 
-  let years = target.getFullYear() - birthDate.getFullYear();
-  let months = target.getMonth() - birthDate.getMonth();
-  let days = target.getDate() - birthDate.getDate();
+  let years = target.getFullYear() - birth.getFullYear();
+  let months = target.getMonth() - birth.getMonth();
+  let days = target.getDate() - birth.getDate();
 
   if (days < 0) {
     months -= 1;
@@ -376,20 +376,20 @@ export function calculateAgeParts(
 }
 
 export function formatAgeYMD(
-  birthday: string,
+  birthDate: string,
   targetDate?: string | Date | null
 ): string {
-  const { years, months, days } = calculateAgeParts(birthday, targetDate);
+  const { years, months, days } = calculateAgeParts(birthDate, targetDate);
 
   return `${years} ปี ${months} เดือน ${days} วัน`;
 }
 
 /** คำนวณอายุเต็มปีจากวันเกิดถึงวันที่กำหนด (คำนึงถึงเดือนและวัน) */
 export function calculateAge(
-  birthday: string,
+  birthDate: string,
   targetDate?: string | Date | null
 ): number {
-  return calculateAgeParts(birthday, targetDate).years;
+  return calculateAgeParts(birthDate, targetDate).years;
 }
 
 // ฟังก์ชันแปลงวันที่จากปี พ.ศ. เป็นปี ค.ศ. สำหรับบันทึก
@@ -506,14 +506,14 @@ export function validateEmail(email: string): string {
   return "กรอกอีเมลไม่ถูกต้อง";
 }
 
-export function validateTel(tel: string): string {
-  if (tel === "") {
+export function validateTel(phone: string): string {
+  if (phone === "") {
     return "กรุณากรอกเบอร์โทรศัพท์";
   }
 
   const isValidTel = /^0[689]\d{8}$/;
 
-  if (tel.match(isValidTel)) {
+  if (phone.match(isValidTel)) {
     return "";
   }
 
@@ -701,8 +701,8 @@ export function calculateGradeLevel(age: number): string {
 }
 
 // ฟังก์ชันคำนวณระดับชั้นจากวันเกิด
-export function calculateGradeLevelFromBirthday(birthday: string): string {
-  const age = calculateAge(birthday);
+export function calculateGradeLevelFromBirthday(birthDate: string): string {
+  const age = calculateAge(birthDate);
 
   return calculateGradeLevel(age);
 }

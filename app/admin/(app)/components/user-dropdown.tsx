@@ -97,9 +97,9 @@ export const UserDropdown = () => {
               className="cursor-pointer"
               description={profile?.agency}
               name={
-                (profile ? profile.firstname : "") +
+                (profile ? profile.firstName : "") +
                 " " +
-                (profile ? profile.lastname : "")
+                (profile ? profile.lastName : "")
               }
             />
           </DropdownTrigger>

@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 import {
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const questions = await prisma.questions_Master.findMany({
+  const questions = await prisma.case.findMany({
     where: {
       ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
       profile: { schoolId: { not: null } },
@@ -90,11 +91,11 @@ export async function GET(req: NextRequest) {
     const stat = schoolMap.get(schoolName)!;
 
     stat.total++;
-    if (q.result === "Green") stat.green++;
-    else if (q.result === "Green-Low") stat.greenLow++;
-    else if (q.result === "Yellow") stat.yellow++;
-    else if (q.result === "Orange") stat.orange++;
-    else if (q.result === "Red") stat.red++;
+    if (q.result === ScreeningResult.NEGATIVE) stat.green++;
+    else if (q.result === ScreeningResult.POSITIVE_LOW) stat.greenLow++;
+    else if (q.result === ScreeningResult.POSITIVE_MODERATE) stat.yellow++;
+    else if (q.result === ScreeningResult.POSITIVE_HIGH) stat.orange++;
+    else if (q.result === ScreeningResult.POSITIVE_SEVERE) stat.red++;
   }
 
   const schools = Array.from(schoolMap.values()).sort(

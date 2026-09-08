@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Address, Districts, Provinces, Subdistricts } from "@prisma/client";
+import { Address, District, Province, Subdistrict } from "@prisma/client";
 import { Form } from "@heroui/form";
 import { Input } from "@heroui/input";
 import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
@@ -14,7 +14,7 @@ type StepName = "Profile" | "Address" | "Emergency";
 interface Step2Props {
   NextStep: (val: StepName) => void;
   BackStep: (val: StepName) => void;
-  Result: Address | undefined;
+  Result: Partial<Address> | undefined;
   HandleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
@@ -55,24 +55,24 @@ export const Step2 = ({
   onCancel,
 }: Step2Props) => {
   const request = true;
-  const [province, setProvince] = useState<Provinces[]>([]);
-  const [district, setDistrict] = useState<Districts[]>([]);
-  const [subDistrict, setSubDistrict] = useState<Subdistricts[]>([]);
+  const [province, setProvince] = useState<Province[]>([]);
+  const [district, setDistrict] = useState<District[]>([]);
+  const [subDistrict, setSubDistrict] = useState<Subdistrict[]>([]);
   const [isProvinceLoading, setIsProvinceLoading] = useState(true);
   const [isDistrictLoading, setIsDistrictLoading] = useState(false);
   const [isSubDistrictLoading, setIsSubDistrictLoading] = useState(false);
   const [provinceLoadError, setProvinceLoadError] = useState(false);
 
-  const selectedProvinceId = parseGeoId(Result?.province);
-  const selectedDistrictId = parseGeoId(Result?.district);
-  const selectedSubdistrictId = parseGeoId(Result?.subdistrict);
+  const selectedProvinceId = parseGeoId(Result?.provinceId);
+  const selectedDistrictId = parseGeoId(Result?.districtId);
+  const selectedSubdistrictId = parseGeoId(Result?.subdistrictId);
 
   const reloadProvinces = useCallback(async () => {
     setIsProvinceLoading(true);
     setProvinceLoadError(false);
 
     try {
-      const provinces = await fetchGeoList<Provinces>("/api/data/provinces");
+      const provinces = await fetchGeoList<Province>("/api/data/provinces");
 
       setProvince(provinces);
     } catch (error) {
@@ -93,15 +93,15 @@ export const Step2 = ({
 
   useEffect(() => {
     let cancelled = false;
-    const initialProvinceId = parseGeoId(Result?.province);
-    const initialDistrictId = parseGeoId(Result?.district);
+    const initialProvinceId = parseGeoId(Result?.provinceId);
+    const initialDistrictId = parseGeoId(Result?.districtId);
 
     const loadInitialData = async () => {
       setIsProvinceLoading(true);
       setProvinceLoadError(false);
 
       try {
-        const provinces = await fetchGeoList<Provinces>("/api/data/provinces");
+        const provinces = await fetchGeoList<Province>("/api/data/provinces");
 
         if (cancelled) return;
 
@@ -110,7 +110,7 @@ export const Step2 = ({
         if (initialProvinceId) {
           setIsDistrictLoading(true);
           try {
-            const districts = await fetchGeoList<Districts>(
+            const districts = await fetchGeoList<District>(
               `/api/data/districts/${initialProvinceId}`
             );
 
@@ -121,7 +121,7 @@ export const Step2 = ({
             if (initialDistrictId) {
               setIsSubDistrictLoading(true);
               try {
-                const subdistricts = await fetchGeoList<Subdistricts>(
+                const subdistricts = await fetchGeoList<Subdistrict>(
                   `/api/data/subdistricts/${initialDistrictId}`
                 );
 
@@ -195,7 +195,7 @@ export const Step2 = ({
 
     setIsDistrictLoading(true);
     try {
-      const districts = await fetchGeoList<Districts>(
+      const districts = await fetchGeoList<District>(
         `/api/data/districts/${id}`
       );
 
@@ -247,7 +247,7 @@ export const Step2 = ({
 
     setIsSubDistrictLoading(true);
     try {
-      const subdistricts = await fetchGeoList<Subdistricts>(
+      const subdistricts = await fetchGeoList<Subdistrict>(
         `/api/data/subdistricts/${id}`
       );
 
@@ -328,7 +328,7 @@ export const Step2 = ({
           placeholder="หมู่ที่"
           radius="md"
           size="sm"
-          value={Result?.villageNo}
+          value={Result?.villageNo ?? ""}
           variant="faded"
           onChange={HandleChange}
         />
@@ -340,7 +340,7 @@ export const Step2 = ({
         placeholder="ซอย"
         radius="md"
         size="sm"
-        value={Result?.soi}
+        value={Result?.soi ?? ""}
         variant="faded"
         onChange={HandleChange}
       />
@@ -351,7 +351,7 @@ export const Step2 = ({
         placeholder="ถนน"
         radius="md"
         size="sm"
-        value={Result?.road}
+        value={Result?.road ?? ""}
         variant="faded"
         onChange={HandleChange}
       />

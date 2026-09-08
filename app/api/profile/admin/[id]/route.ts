@@ -2,6 +2,7 @@ import { ProfileAdminData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
 import { getSession, requireAdmin } from "@/lib/get-session";
+import { mapAdminStatusToLegacyNumber } from "@/lib/legacy-value-mapping";
 
 export async function GET(
   req: Request,
@@ -69,34 +70,40 @@ export async function GET(
           providerAccountId: true,
         },
       },
-      profile_admin: {
+      profileAdmins: {
         include: {
           role: true,
+          healthcareFacility: {
+            select: { id: true, name: true },
+          },
         },
       },
     },
   });
 
-  if (profile?.profile_admin.length != 0) {
+  if (profile && profile.profileAdmins.length > 0) {
+    const admin = profile.profileAdmins[0];
     const result: ProfileAdminData = {
-      id: profile?.profile_admin[0].id as string,
-      userId: profile?.profile_admin[0].userId as string,
-      providerAccountId: profile?.accounts[0].providerAccountId as string,
-      image: profile?.image as string,
-      name: profile?.name as string,
-      citizenId: profile?.profile_admin[0].citizenId as string,
-      prefixId: profile?.profile_admin[0].prefixId as number,
-      firstname: profile?.profile_admin[0].firstname as string,
-      lastname: profile?.profile_admin[0].lastname as string,
-      tel: profile?.profile_admin[0].tel as string,
-      affiliationId: profile?.profile_admin[0].affiliationId as number,
-      agency: profile?.profile_admin[0].agency as string,
-      employeeTypeId: profile?.profile_admin[0].employeeTypeId as number,
-      professional: profile?.profile_admin[0].professional as string,
-      license: profile?.profile_admin[0].license as string,
-      status: profile?.profile_admin[0].status as number,
-      alert: profile?.profile_admin[0].alert as boolean,
-      roleId: profile?.profile_admin[0].roleId as number,
+      id: admin.id as string,
+      userId: admin.userId as string,
+      providerAccountId: profile.accounts[0]?.providerAccountId as string,
+      image: profile.image as string,
+      name: profile.name as string,
+      citizenId: admin.citizenId as string,
+      prefixId: admin.prefixId as number,
+      firstName: admin.firstName as string,
+      lastName: admin.lastName as string,
+      phone: (admin.phone as string) ?? "",
+      affiliationId: admin.affiliationId as number,
+      healthcareFacilityId: admin.healthcareFacilityId,
+      agency: admin.healthcareFacility?.name ?? "",
+      employeeTypeId: admin.employeeTypeId as number,
+      profession: admin.profession as string,
+      professional: admin.profession as string,
+      license: (admin.license as string) ?? "",
+      status: mapAdminStatusToLegacyNumber(admin.status),
+      receiveAlert: admin.receiveAlert as boolean,
+      roleId: admin.roleId as number,
       createdAt: "",
       updatedAt: "",
     };

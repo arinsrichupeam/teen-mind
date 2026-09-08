@@ -1,3 +1,10 @@
+import { ScreeningResult } from "@prisma/client";
+
+import { mapLegacyRiskColorToScreeningResult } from "@/lib/legacy-value-mapping";
+import {
+  mapLegacyFollowUpStatusToCaseStatus,
+  OPEN_CASE_STATUSES,
+} from "@/lib/case-status-mapping";
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
@@ -18,6 +25,18 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const nextStatus =
+      typeof newStatus === "number" || /^\d+$/.test(String(newStatus))
+        ? mapLegacyFollowUpStatusToCaseStatus(Number(newStatus))
+        : mapLegacyFollowUpStatusToCaseStatus(
+            // allow enum string pass-through via closed=3
+            String(newStatus) === "CLOSED"
+              ? 3
+              : String(newStatus) === "IN_PROGRESS"
+                ? 2
+                : 1
+          );
 
     if (useFilter) {
       if (!filter || typeof filter !== "object") {
@@ -40,23 +59,35 @@ export async function POST(req: Request) {
       };
 
       const whereConditions: Record<string, unknown>[] = [
-        { status: { in: [0, 1, 2] } },
+        { status: { in: OPEN_CASE_STATUSES } },
         {
           OR: [
             {
               AND: [
-                { q9: { some: {} } },
-                { result: resultParam ? resultParam : "Green" },
+                { questions9Q: { some: {} } },
+                {
+                  result: resultParam
+                    ? mapLegacyRiskColorToScreeningResult(resultParam)
+                    : ScreeningResult.NEGATIVE,
+                },
               ],
             },
             {
               AND: [
-                { NOT: { q9: { some: {} } } },
+                { NOT: { questions9Q: { some: {} } } },
                 {
                   result: {
                     in: resultParam
-                      ? resultParam.split(",").map((r: string) => r.trim())
-                      : ["Green", "Green-Low"],
+                      ? resultParam
+                          .split(",")
+                          .map((r: string) => r.trim())
+                          .map((r: string) =>
+                            mapLegacyRiskColorToScreeningResult(r)
+                          )
+                      : [
+                          ScreeningResult.NEGATIVE,
+                          ScreeningResult.POSITIVE_LOW,
+                        ],
                   },
                 },
               ],
@@ -70,22 +101,26 @@ export async function POST(req: Request) {
       }
 
       if (q2Risk === "risk") {
-        whereConditions.push({ q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } });
+        whereConditions.push({
+          questions2Q: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
+        });
       } else if (q2Risk === "no-risk") {
         whereConditions.push({
-          NOT: { q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
+          NOT: { questions2Q: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
         });
       }
 
       if (q8Risk === "risk") {
-        whereConditions.push({ q8: { some: { sum: { gt: 0 } } } });
+        whereConditions.push({ questions8Q: { some: { sum: { gt: 0 } } } });
       } else if (q8Risk === "no-risk") {
-        whereConditions.push({ NOT: { q8: { some: { sum: { gt: 0 } } } } });
+        whereConditions.push({
+          NOT: { questions8Q: { some: { sum: { gt: 0 } } } },
+        });
       }
 
-      const updateResult = await prisma.questions_Master.updateMany({
+      const updateResult = await prisma.case.updateMany({
         where: { AND: whereConditions },
-        data: { status: newStatus },
+        data: { status: nextStatus },
       });
 
       return Response.json({
@@ -116,9 +151,9 @@ export async function POST(req: Request) {
 
     for (const id of selectedIds) {
       try {
-        await prisma.questions_Master.update({
+        await prisma.case.update({
           where: { id: id },
-          data: { status: newStatus },
+          data: { status: nextStatus },
         });
         successCount++;
       } catch (error) {
@@ -143,11 +178,14 @@ export async function POST(req: Request) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการอัปเดตสถานะ";
-
     return Response.json(
-      { success: false, error: errorMessage },
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาดในการอัปเดตสถานะ",
+      },
       { status: 500 }
     );
   }

@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     validateProblemPayload(problem);
 
-    const question = await prisma.questions_Master.findUnique({
+    const question = await prisma.case.findUnique({
       where: { id: questionId },
       select: {
         id: true,
@@ -95,16 +95,17 @@ export async function POST(req: Request) {
       0
     );
 
-    const saved = await prisma.questions_Problem.upsert({
+    const saved = await prisma.questionProblem.upsert({
       where: {
-        questions_MasterId: questionId,
+        caseId_round: { caseId: questionId, round: 1 },
       },
       update: {
         ...problem,
         sum: normalizedSum,
       },
       create: {
-        questions_MasterId: questionId,
+        caseId: questionId,
+        round: 1,
         ...problem,
         sum: normalizedSum,
       },

@@ -1,7 +1,7 @@
 "use client";
 
 import { Tab, Tabs } from "@heroui/tabs";
-import { Address, EmergencyContact, Profile } from "@prisma/client";
+import { Sex } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -12,45 +12,106 @@ import { Step1, type ChangeEventLike } from "../register/components/step1";
 import { Step2 } from "../register/components/step2";
 import { Step3 } from "../register/components/step3";
 
+import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
 import { title } from "@/components/primitives";
 
-const profileInitValue: Profile & { gradeYear?: number | null } = {
+type ProfileFormState = {
+  id: string;
+  userId: string | null;
+  citizenId: string;
+  prefixId: number;
+  sex: Sex;
+  firstName: string;
+  lastName: string;
+  birthDate: Date;
+  ethnicity: string;
+  nationality: string;
+  phone: string;
+  schoolId: number | null;
+  gradeYear?: number | null;
+  hn: string | null;
+  healthcareFacilityId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  mainInsclCode?: string | null;
+  mainInsclName?: string | null;
+  subInsclCode?: string | null;
+  subInsclName?: string | null;
+  hmainCode?: string | null;
+  hmainName?: string | null;
+  hsubCode?: string | null;
+  hsubName?: string | null;
+  nhsoVerifiedAt?: Date | null;
+};
+
+type AddressFormState = {
+  id: string;
+  profileId: string;
+  houseNo: string;
+  villageNo: string | null;
+  soi: string | null;
+  road: string | null;
+  provinceId: number;
+  districtId: number;
+  subdistrictId: number;
+  postalCode: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type EmergencyFormState = {
+  id: string;
+  profileId: string;
+  name: string;
+  phone: string;
+  relation: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const profileInitValue: ProfileFormState = {
   id: "",
   userId: "",
   citizenId: "",
   prefixId: 0,
-  sex: 0,
-  firstname: "",
-  lastname: "",
-  birthday: new Date(),
+  sex: Sex.UNSPECIFIED,
+  firstName: "",
+  lastName: "",
+  birthDate: new Date(),
   ethnicity: "",
   nationality: "",
-  tel: "",
+  phone: "",
   schoolId: 0,
   gradeYear: null,
   hn: "",
+  healthcareFacilityId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-const addressInitValue: Address = {
+const addressInitValue: AddressFormState = {
   id: "",
   profileId: "",
   houseNo: "",
   villageNo: "",
   soi: "",
   road: "",
-  province: 0,
-  district: 0,
-  subdistrict: 0,
+  provinceId: 0,
+  districtId: 0,
+  subdistrictId: 0,
+  postalCode: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
-const emergencyContactInitValue: EmergencyContact = {
+const emergencyContactInitValue: EmergencyFormState = {
   id: "",
   profileId: "",
   name: "",
-  tel: "",
+  phone: "",
   relation: "",
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
 export default function ProfilePage() {
@@ -60,11 +121,9 @@ export default function ProfilePage() {
   const [showAlert, setShowAlert] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [profile, setProfile] = useState<
-    Profile & { gradeYear?: number | null }
-  >(profileInitValue);
-  const [address, setAddress] = useState<Address>(addressInitValue);
-  const [emergency, setEmergency] = useState<EmergencyContact>(
+  const [profile, setProfile] = useState<ProfileFormState>(profileInitValue);
+  const [address, setAddress] = useState<AddressFormState>(addressInitValue);
+  const [emergency, setEmergency] = useState<EmergencyFormState>(
     emergencyContactInitValue
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +148,7 @@ export default function ProfilePage() {
 
         setProfile({
           ...profileData,
-          birthday: new Date(profileData.birthday),
+          birthDate: new Date(profileData.birthDate),
           schoolId: schoolId ?? 0,
           gradeYear:
             profileData.gradeYear !== null &&
@@ -178,20 +237,23 @@ export default function ProfilePage() {
       if (name === "birthday") {
         setProfile((prev) => ({
           ...prev,
-          birthday:
+          birthDate:
             value === null || value === ""
-              ? prev.birthday
+              ? prev.birthDate
               : new Date(`${String(value)}T12:00:00`),
         }));
       } else if (name === "prefix") {
         setProfile((prev) => ({ ...prev, prefixId: Number(value) }));
       } else if (name === "sex") {
-        setProfile((prev) => ({ ...prev, sex: Number(value) }));
+        setProfile((prev) => ({
+          ...prev,
+          sex: mapLegacySexToSex(Number(value)),
+        }));
       } else if (name === "citizenId") {
         const val = String(value);
 
         if (val.length <= 13) {
-          setProfile((prev) => ({ ...prev, [name]: val }));
+          setProfile((prev) => ({ ...prev, citizenId: val }));
         }
       } else if (name === "school") {
         const schoolId = Number(value) || 0;
@@ -205,6 +267,27 @@ export default function ProfilePage() {
         const gradeYear = value !== "" && value != null ? Number(value) : null;
 
         setProfile((prev) => ({ ...prev, gradeYear }));
+      } else if (
+        name === "firstName" ||
+        name === "firstname" ||
+        name === "lastName" ||
+        name === "lastname" ||
+        name === "phone" ||
+        name === "tel" ||
+        name === "ethnicity" ||
+        name === "nationality" ||
+        name === "hn"
+      ) {
+        const field =
+          name === "firstname"
+            ? "firstName"
+            : name === "lastname"
+              ? "lastName"
+              : name === "tel"
+                ? "phone"
+                : name;
+
+        setProfile((prev) => ({ ...prev, [field]: value }));
       } else {
         setProfile((prev) => ({ ...prev, [name]: value }));
       }
@@ -253,12 +336,12 @@ export default function ProfilePage() {
       citizenId: profile.citizenId,
       prefixId: profile.prefixId,
       sex: profile.sex,
-      firstname: profile.firstname,
-      lastname: profile.lastname,
-      birthday: profile.birthday.toISOString(),
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      birthDate: profile.birthDate.toISOString(),
       ethnicity: profile.ethnicity,
       nationality: profile.nationality,
-      tel: profile.tel,
+      phone: profile.phone,
       schoolId:
         profile.schoolId != null &&
         profile.schoolId !== 0 &&
@@ -269,18 +352,18 @@ export default function ProfilePage() {
         profile.gradeYear !== null && profile.gradeYear !== undefined
           ? profile.gradeYear
           : null,
-      address: {
+      addresses: {
         houseNo: address.houseNo,
         villageNo: address.villageNo,
         soi: address.soi,
         road: address.road,
-        subdistrict: address.subdistrict,
-        district: address.district,
-        province: address.province,
+        subdistrictId: address.subdistrictId,
+        districtId: address.districtId,
+        provinceId: address.provinceId,
       },
-      emergency: {
+      emergencyContacts: {
         name: emergency.name,
-        tel: emergency.tel,
+        phone: emergency.phone,
         relation: emergency.relation,
       },
     });

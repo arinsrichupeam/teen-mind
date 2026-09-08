@@ -43,6 +43,20 @@ function sumQ8Payload(row: Q8Data): number {
   );
 }
 
+/** อ่านค่าข้อที่ n (1-based) จากแถวแบบประเมิน — ห้ามใช้ Object.entries (ลำดับฟิลด์ไม่คงที่หลัง migrate) */
+function getAnswerValue(
+  item: Record<string, unknown> | null | undefined,
+  questionIndex: number
+): string | undefined {
+  if (!item) return undefined;
+
+  const raw = item[`q${questionIndex + 1}`];
+
+  if (raw == null || raw === "") return undefined;
+
+  return String(raw);
+}
+
 interface Props {
   data: QuestionsData | undefined;
   mode?: string;
@@ -323,13 +337,10 @@ export const QuestionDetailDrawer = ({
                             isDisabled={mode !== "edit-questionnaire"}
                             name={(index + 1).toString()}
                             orientation="horizontal"
-                            value={
-                              item
-                                ? Object.entries(item)
-                                    [index + 2]?.toString()
-                                    .substring(3)
-                                : undefined
-                            }
+                            value={getAnswerValue(
+                              item as unknown as Record<string, unknown>,
+                              index
+                            )}
                             onValueChange={(value) =>
                               handleQ2Change(index, value)
                             }
@@ -413,13 +424,10 @@ export const QuestionDetailDrawer = ({
                                 isDisabled={mode !== "edit-questionnaire"}
                                 name={(index + 1).toString()}
                                 orientation="horizontal"
-                                value={
-                                  item
-                                    ? Object.entries(item)
-                                        [index + 2]?.toString()
-                                        .substring(3)
-                                    : undefined
-                                }
+                                value={getAnswerValue(
+                                  item as unknown as Record<string, unknown>,
+                                  index
+                                )}
                                 onValueChange={(value) =>
                                   handlePhqaChange(index, value)
                                 }
@@ -658,13 +666,10 @@ export const QuestionDetailDrawer = ({
                               isDisabled={mode !== "edit-questionnaire"}
                               name={(index + 1).toString()}
                               orientation="horizontal"
-                              value={
-                                item
-                                  ? Object.entries(item)
-                                      [index + 2]?.toString()
-                                      .substring(3)
-                                  : undefined
-                              }
+                              value={getAnswerValue(
+                                item as unknown as Record<string, unknown>,
+                                index
+                              )}
                               onValueChange={(value) =>
                                 handleAddonChange(index, value)
                               }

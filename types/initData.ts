@@ -1,4 +1,4 @@
-import { Referent } from "@prisma/client";
+import { Volunteer } from "@prisma/client";
 
 import { ProfileAdminData } from "@/types";
 
@@ -10,33 +10,33 @@ export const ProfileAdminDataInitData: ProfileAdminData = {
   name: "",
   citizenId: "",
   prefixId: 0,
-  firstname: "",
-  lastname: "",
-  tel: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
   affiliationId: 0,
-  agency: "",
+  healthcareFacilityId: "",
   employeeTypeId: 0,
-  professional: "",
+  profession: "",
   license: "",
   status: 0,
-  alert: false,
+  receiveAlert: false,
   createdAt: "",
   updatedAt: "",
   roleId: 0,
 };
 
-export const referentInitValue: Referent = {
+export const referentInitValue: Volunteer = {
   id: 0,
   citizenId: "",
   prefixId: 0,
-  firstname: "",
-  lastname: "",
+  firstName: "",
+  lastName: "",
   email: "",
-  tel: "",
-  volunteer_type_id: 0,
-  employee_type_id: 0,
-  affiliation_id: 0,
-  agency: "",
+  phone: "",
+  volunteerTypeId: 0,
+  employeeTypeId: 0,
+  affiliationId: 0,
+  healthcareFacilityId: "",
   status: true,
   createdAt: new Date(),
   updatedAt: new Date(),

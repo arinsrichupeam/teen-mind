@@ -10,16 +10,16 @@ import {
   ModalHeader,
 } from "@heroui/react";
 import Image from "next/image";
-import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
+import { Affiliation, Volunteer, VolunteerType } from "@prisma/client";
 
 import { prefix } from "@/utils/data";
 
 interface RegistrationInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedReferent: Referent;
+  selectedReferent: Volunteer;
   affiliation: Affiliation[];
-  volunteerType: Volunteer_Type[];
+  volunteerType: VolunteerType[];
   qrCode: string;
   formRef: React.RefObject<HTMLFormElement>;
   setIsLoading: (loading: boolean) => void;
@@ -60,21 +60,21 @@ export default function RegistrationInfoModal({
             </div>
             <span>
               ชื่อ - นามสกุล : {prefix[selectedReferent.prefixId - 1]?.label}{" "}
-              {selectedReferent?.firstname} {selectedReferent?.lastname}
+              {selectedReferent?.firstName} {selectedReferent?.lastName}
             </span>
             <span>
               สังกัด :{" "}
               {
-                affiliation.find((x) => x.id == selectedReferent.affiliation_id)
+                affiliation.find((x) => x.id == selectedReferent.affiliationId)
                   ?.name
               }
             </span>
-            <span>หน่วยงาน : {selectedReferent?.agency}</span>
+            <span>หน่วยงาน : {selectedReferent?.healthcareFacilityId}</span>
             <span>
               ประเภทอาสาสมัคร :{" "}
               {
                 volunteerType.find(
-                  (x) => x.id == selectedReferent.volunteer_type_id
+                  (x) => x.id == selectedReferent.volunteerTypeId
                 )?.name
               }
             </span>

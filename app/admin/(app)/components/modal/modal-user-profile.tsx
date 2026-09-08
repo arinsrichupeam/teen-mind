@@ -15,7 +15,7 @@ import {
   addToast,
 } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
-import { Affiliation, Employee_Type } from "@prisma/client";
+import { Affiliation, EmployeeType } from "@prisma/client";
 
 import { ProfileAdminData } from "@/types";
 import { prefix } from "@/utils/data";
@@ -43,7 +43,7 @@ export const ModalUserProfile = ({
   const [mode, setMode] = useState("View");
   const [isRequest] = useState(false);
   const [affiliationList, setAffiliationList] = useState<Affiliation[]>([]);
-  const [employeeTypes, setEmployeeTypes] = useState<Employee_Type[]>([]);
+  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
 
   const [selectedProfile, setSelectedProfile] =
     useState<ProfileAdminData>(Profile);
@@ -169,7 +169,7 @@ export const ModalUserProfile = ({
                       placeholder="หมายเลขโทรศัพท์"
                       radius="sm"
                       size="md"
-                      value={selectedProfile.tel}
+                      value={selectedProfile.phone}
                       variant="bordered"
                       onChange={HandleChange}
                     />
@@ -203,7 +203,7 @@ export const ModalUserProfile = ({
                       placeholder="ชื่อ"
                       radius="sm"
                       size="md"
-                      value={selectedProfile.firstname}
+                      value={selectedProfile.firstName}
                       variant="bordered"
                       onChange={HandleChange}
                     />
@@ -215,7 +215,7 @@ export const ModalUserProfile = ({
                       placeholder="นามสกุล"
                       radius="sm"
                       size="md"
-                      value={selectedProfile.lastname}
+                      value={selectedProfile.lastName}
                       variant="bordered"
                       onChange={HandleChange}
                     />
@@ -357,7 +357,7 @@ export const ModalUserProfile = ({
                           placeholder="Emergency Alert"
                           radius="sm"
                           selectedKeys={
-                            selectedProfile.alert === false ? "0" : "1"
+                            selectedProfile.receiveAlert === false ? "0" : "1"
                           }
                           size="md"
                           variant="bordered"

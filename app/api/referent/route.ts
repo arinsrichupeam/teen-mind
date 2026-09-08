@@ -3,13 +3,13 @@ import { prefix } from "@/utils/data";
 
 export async function GET() {
   try {
-    const referents = await prisma.referent.findMany({
+    const referents = await prisma.volunteer.findMany({
       where: {
         status: true,
       },
       include: {
         affiliation: true,
-        questions_master: {
+        cases: {
           include: {
             profile: true,
           },
@@ -20,8 +20,8 @@ export async function GET() {
     // แปลงข้อมูลให้มี prefix และจำนวนแบบประเมิน
     const formattedReferents = referents.map((referent) => {
       // นับจำนวนแบบประเมินโดยจัดกลุ่มตาม userid
-      const questionCountByUser = referent.questions_master.reduce(
-        (acc, question) => {
+      const questionCountByUser = referent.cases.reduce(
+        (acc: Record<string, number>, question) => {
           const profileId = question.profile?.id || "unknown";
 
           acc[profileId] = (acc[profileId] || 0) + 1;

@@ -1,7 +1,7 @@
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
-  const data = await prisma.referent.findMany({
+  const data = await prisma.volunteer.findMany({
     where: {
       status: true,
     },
@@ -14,26 +14,26 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { citizenId, tel } = body;
 
-  const data = await prisma.referent.findMany({
+  const data = await prisma.volunteer.findMany({
     where: {
       citizenId: citizenId,
-      tel: tel,
+      phone: tel,
     },
     select: {
       id: true,
       citizenId: true,
       prefixId: true,
-      firstname: true,
-      lastname: true,
+      firstName: true,
+      lastName: true,
       email: true,
-      tel: true,
-      affiliation_id: true,
+      phone: true,
+      affiliationId: true,
       affiliation: true,
-      volunteer_type_id: true,
-      volunteer_type: true,
-      employee_type_id: true,
-      employee_type: true,
-      agency: true,
+      volunteerTypeId: true,
+      volunteerType: true,
+      employeeTypeId: true,
+      employeeType: true,
+      healthcareFacilityId: true,
     },
   });
 

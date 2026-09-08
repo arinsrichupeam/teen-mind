@@ -5,15 +5,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const id = (await params).id;
-  const data = await prisma.referent.findMany({
+  const data = await prisma.volunteer.findMany({
     where: {
       id: parseInt(id),
     },
     select: {
-      firstname: true,
-      lastname: true,
+      firstName: true,
+      lastName: true,
       affiliation: true,
-      agency: true,
+      healthcareFacilityId: true,
     },
   });
 
@@ -28,25 +28,31 @@ export async function PUT(
     const id = (await params).id;
     const body = await request.json();
 
-    const updated = await prisma.referent.update({
+    const updated = await prisma.volunteer.update({
       where: { id: parseInt(id) },
       data: {
         citizenId: body.citizenId,
         prefixId: body.prefixId ? parseInt(body.prefixId) : undefined,
-        firstname: body.firstname,
-        lastname: body.lastname,
+        firstName: body.firstName,
+        lastName: body.lastName,
         email: body.email,
-        tel: body.tel,
-        affiliation_id: body.affiliation_id
+        phone: body.phone,
+        affiliationId: body.affiliation_id
           ? parseInt(body.affiliation_id)
-          : undefined,
-        volunteer_type_id: body.volunteer_type_id
+          : body.affiliationId
+            ? parseInt(body.affiliationId)
+            : undefined,
+        volunteerTypeId: body.volunteer_type_id
           ? parseInt(body.volunteer_type_id)
-          : undefined,
-        employee_type_id: body.employee_type_id
+          : body.volunteerTypeId
+            ? parseInt(body.volunteerTypeId)
+            : undefined,
+        employeeTypeId: body.employee_type_id
           ? parseInt(body.employee_type_id)
-          : undefined,
-        agency: body.agency,
+          : body.employeeTypeId
+            ? parseInt(body.employeeTypeId)
+            : undefined,
+        healthcareFacilityId: body.healthcareFacilityId ?? body.agency,
       },
     });
 

@@ -1,4 +1,4 @@
-import type { Questions_9Q, Questions_PHQA } from "@prisma/client";
+import type { Question9Q, QuestionPhqa } from "@prisma/client";
 
 import {
   MAIN_ASSESSMENT_AGE_CUTOFF,
@@ -13,13 +13,13 @@ type QuestionRow = {
   id: string;
   profileId: string;
   result: string | null;
-  status: number;
+  status: number | string;
   createdAt: Date;
-  phqa: Questions_PHQA[];
-  q9: Questions_9Q[];
-  addon: { id: string | number }[];
+  questionsPhqa: QuestionPhqa[];
+  questions9Q: Question9Q[];
+  questionsPhqaAddon: { id: string | number }[];
   profile: {
-    birthday: Date | null;
+    birthDate: Date | null;
     school: { screeningDate: Date | null } | null;
   } | null;
 };
@@ -56,10 +56,10 @@ export type RecalculatePreviewStats = {
   };
   resultWouldChange: number;
   resultStats: { result: string; count: number }[];
-  statusStats: { status: number; count: number }[];
+  statusStats: { status: number | string; count: number }[];
 };
 
-function calculateSum(row: Questions_PHQA) {
+function calculateSum(row: QuestionPhqa) {
   return (
     row.q1 +
     row.q2 +
@@ -90,21 +90,21 @@ export function buildRecalculatePreview(
   const scaleByStructure = { nineq: 0, phqa: 0 };
   const scaleByAge = { phqa: 0, nineq: 0 };
   const resultCounts = new Map<string, number>();
-  const statusCounts = new Map<number, number>();
+  const statusCounts = new Map<string | number, number>();
   let resultWouldChange = 0;
 
   for (const question of questions) {
-    if (!question.phqa || question.phqa.length === 0) continue;
+    if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
 
-    const hasQ9Row = Array.isArray(question.q9) && question.q9.length > 0;
+    const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
     const hasPhqaAddon =
-      Array.isArray(question.addon) && question.addon.length > 0;
+      Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
 
     if (hasQ9Row) scaleByStructure.nineq += 1;
     else scaleByStructure.phqa += 1;
 
     const age = getAgeAtAssessment(
-      question.profile?.birthday,
+      question.profile?.birthDate,
       question.createdAt
     );
 
@@ -125,7 +125,7 @@ export function buildRecalculatePreview(
     if (issue === "missing_age") mismatchSummary.missingAge += 1;
     if (issue !== "ok") mismatchSummary.total += 1;
 
-    const sourceData = hasQ9Row ? question.q9[0] : question.phqa[0];
+    const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
     const sum = calculateSum(sourceData);
     const scale =
       age !== null
@@ -178,14 +178,14 @@ export function listRecalculateMismatches(
   const mismatches: RecalculatePreviewMismatch[] = [];
 
   for (const question of questions) {
-    if (!question.phqa || question.phqa.length === 0) continue;
+    if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
 
-    const hasQ9Row = Array.isArray(question.q9) && question.q9.length > 0;
+    const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
     const hasPhqaAddon =
-      Array.isArray(question.addon) && question.addon.length > 0;
+      Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
 
     const age = getAgeAtAssessment(
-      question.profile?.birthday,
+      question.profile?.birthDate,
       question.createdAt
     );
 
@@ -193,7 +193,7 @@ export function listRecalculateMismatches(
 
     if (issue === "ok") continue;
 
-    const sourceData = hasQ9Row ? question.q9[0] : question.phqa[0];
+    const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
     const sum = calculateSum(sourceData);
     const scale =
       age !== null

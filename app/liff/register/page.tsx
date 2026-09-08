@@ -1,7 +1,7 @@
 "use client";
 
 import { Tab, Tabs } from "@heroui/tabs";
-import { Address, EmergencyContact, Profile } from "@prisma/client";
+import { Sex } from "@prisma/client";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -12,13 +12,63 @@ import { Step1, type ChangeEventLike } from "./components/step1";
 import { Step2 } from "./components/step2";
 import { Step3 } from "./components/step3";
 
+import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
 import { peekReferentRef, saveReferentRef } from "@/utils/referent-ref";
 
-type RegisterProfileState = Omit<Profile, "birthday"> & {
+type RegisterProfileState = {
+  id: string;
+  userId: string | null;
+  citizenId: string;
+  prefixId: number;
+  sex: Sex;
+  firstName: string;
+  lastName: string;
+  birthDate: Date | null;
+  ethnicity: string;
+  nationality: string;
+  phone: string;
+  schoolId: number | null;
   gradeYear?: number | null;
-  birthday: Date | null;
+  hn: string | null;
+  healthcareFacilityId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  mainInsclCode?: string | null;
+  mainInsclName?: string | null;
+  subInsclCode?: string | null;
+  subInsclName?: string | null;
+  hmainCode?: string | null;
+  hmainName?: string | null;
+  hsubCode?: string | null;
+  hsubName?: string | null;
+  nhsoVerifiedAt?: Date | null;
+};
+
+type AddressFormState = {
+  id: string;
+  profileId: string;
+  houseNo: string;
+  villageNo: string | null;
+  soi: string | null;
+  road: string | null;
+  provinceId: number;
+  districtId: number;
+  subdistrictId: number;
+  postalCode: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type EmergencyFormState = {
+  id: string;
+  profileId: string;
+  name: string;
+  phone: string;
+  relation: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 const profileInitValue: RegisterProfileState = {
@@ -26,38 +76,44 @@ const profileInitValue: RegisterProfileState = {
   userId: "",
   citizenId: "",
   prefixId: 0,
-  sex: 0,
-  firstname: "",
-  lastname: "",
-  birthday: null,
+  sex: Sex.UNSPECIFIED,
+  firstName: "",
+  lastName: "",
+  birthDate: null,
   ethnicity: "",
   nationality: "",
-  tel: "",
+  phone: "",
   schoolId: 0,
   gradeYear: null,
   hn: "",
+  healthcareFacilityId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-const addressInitValue: Address = {
+const addressInitValue: AddressFormState = {
   id: "",
   profileId: "",
   houseNo: "",
   villageNo: "",
   soi: "",
   road: "",
-  province: 0,
-  district: 0,
-  subdistrict: 0,
+  provinceId: 0,
+  districtId: 0,
+  subdistrictId: 0,
+  postalCode: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
-const emergencyContactInitValue: EmergencyContact = {
+const emergencyContactInitValue: EmergencyFormState = {
   id: "",
   profileId: "",
   name: "",
-  tel: "",
+  phone: "",
   relation: "",
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
 export default function RegisterPage() {
@@ -71,8 +127,8 @@ export default function RegisterPage() {
 
   const [profile, setProfile] =
     useState<RegisterProfileState>(profileInitValue);
-  const [address, setAddress] = useState<Address>(addressInitValue);
-  const [emergency, setEmergency] = useState<EmergencyContact>(
+  const [address, setAddress] = useState<AddressFormState>(addressInitValue);
+  const [emergency, setEmergency] = useState<EmergencyFormState>(
     emergencyContactInitValue
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -264,7 +320,7 @@ export default function RegisterPage() {
       if (name === "birthday") {
         setProfile((prev: RegisterProfileState) => ({
           ...prev,
-          birthday:
+          birthDate:
             value === null || value === ""
               ? null
               : new Date(`${String(value)}T12:00:00`),
@@ -277,7 +333,7 @@ export default function RegisterPage() {
       } else if (name === "sex") {
         setProfile((prev: RegisterProfileState) => ({
           ...prev,
-          sex: parseInt(String(value), 10),
+          sex: mapLegacySexToSex(parseInt(String(value), 10)),
         }));
       } else if (name === "citizenId") {
         const val = String(value);
@@ -285,7 +341,7 @@ export default function RegisterPage() {
         if (val.length <= 13) {
           setProfile((prev: RegisterProfileState) => ({
             ...prev,
-            [name]: val,
+            citizenId: val,
           }));
         }
       } else if (name === "school") {
@@ -301,6 +357,30 @@ export default function RegisterPage() {
           value !== "" && value != null ? parseInt(String(value), 10) : null;
 
         setProfile((prev: RegisterProfileState) => ({ ...prev, gradeYear }));
+      } else if (
+        name === "firstName" ||
+        name === "firstname" ||
+        name === "lastName" ||
+        name === "lastname" ||
+        name === "phone" ||
+        name === "tel" ||
+        name === "ethnicity" ||
+        name === "nationality" ||
+        name === "hn"
+      ) {
+        const field =
+          name === "firstname"
+            ? "firstName"
+            : name === "lastname"
+              ? "lastName"
+              : name === "tel"
+                ? "phone"
+                : name;
+
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          [field]: String(value),
+        }));
       } else {
         setProfile((prev: RegisterProfileState) => ({
           ...prev,

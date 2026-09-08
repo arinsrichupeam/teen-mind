@@ -1,9 +1,16 @@
+import { ScreeningResult } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
-const RISK_LEVELS = ["Green", "Green-Low", "Yellow", "Orange", "Red"] as const;
+const RISK_LEVELS = [
+  ScreeningResult.NEGATIVE,
+  ScreeningResult.POSITIVE_LOW,
+  ScreeningResult.POSITIVE_MODERATE,
+  ScreeningResult.POSITIVE_HIGH,
+  ScreeningResult.POSITIVE_SEVERE,
+] as const;
 
 type RiskLevel = (typeof RISK_LEVELS)[number];
 
@@ -45,7 +52,7 @@ export async function GET(req: Request) {
         gte: new Date(start),
         lt: new Date(end),
       },
-      questions: { some: {} },
+      cases: { some: {} },
     },
     select: { id: true },
   });
@@ -57,7 +64,7 @@ export async function GET(req: Request) {
   }
 
   // หา “แบบประเมินล่าสุดต่อ 1 profile” แบบแม่นยำด้วย groupBy max(createdAt)
-  const latestByProfile = await prisma.questions_Master.groupBy({
+  const latestByProfile = await prisma.case.groupBy({
     by: ["profileId"],
     where: { profileId: { in: profileIds } },
     _max: { createdAt: true },
@@ -71,7 +78,7 @@ export async function GET(req: Request) {
     })
     .filter(Boolean);
 
-  const latestQuestions = await prisma.questions_Master.findMany({
+  const latestQuestions = await prisma.case.findMany({
     where: {
       OR: orConditions as Array<{
         profileId: string;
@@ -84,8 +91,8 @@ export async function GET(req: Request) {
       createdAt: true,
       profile: {
         select: {
-          firstname: true,
-          lastname: true,
+          firstName: true,
+          lastName: true,
         },
       },
     },
@@ -97,7 +104,7 @@ export async function GET(req: Request) {
     .map((q) => ({
       profileId: q.profileId,
       createdAt: q.createdAt.toISOString(),
-      name: `${q.profile?.firstname ?? ""} ${q.profile?.lastname ?? ""}`.trim(),
+      name: `${q.profile?.firstName ?? ""} ${q.profile?.lastName ?? ""}`.trim(),
     }));
 
   const total = filteredLatestQuestions.length;

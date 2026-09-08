@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     }
   }
 
-  const latestByProfile = await prisma.questions_Master.groupBy({
+  const latestByProfile = await prisma.case.groupBy({
     by: ["profileId"],
     ...(questionCreatedAt ? { where: { createdAt: questionCreatedAt } } : {}),
     _max: { createdAt: true },
@@ -63,18 +63,18 @@ export async function GET(req: Request) {
     })
     .filter(Boolean);
 
-  const latestQuestions = await prisma.questions_Master.findMany({
+  const latestQuestions = await prisma.case.findMany({
     where: {
       OR: orConditions as Array<{ profileId: string; createdAt: Date }>,
     },
     select: {
       result: true,
       createdAt: true,
-      q9: { select: { sum: true }, take: 1 },
-      phqa: { select: { sum: true }, take: 1 },
+      questions9Q: { select: { sum: true }, take: 1 },
+      questionsPhqa: { select: { sum: true }, take: 1 },
       profile: {
         select: {
-          birthday: true,
+          birthDate: true,
           school: {
             select: {
               screeningDate: true,
@@ -90,8 +90,8 @@ export async function GET(req: Request) {
   });
 
   const rows: AgeSegmentRow[] = latestQuestions.map((q) => {
-    const q9Sum = q.q9[0]?.sum;
-    const phqaSum = q.phqa[0]?.sum;
+    const q9Sum = q.questions9Q[0]?.sum;
+    const phqaSum = q.questionsPhqa[0]?.sum;
     const mainSum =
       typeof q9Sum === "number" && !Number.isNaN(q9Sum)
         ? q9Sum
@@ -100,7 +100,7 @@ export async function GET(req: Request) {
           : null;
 
     return {
-      birthday: q.profile.birthday,
+      birthDate: q.profile.birthDate,
       screeningDate: resolveSchoolScreeningDate(
         q.profile.school?.screenings,
         q.createdAt,

@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import type { QuestionsData } from "@/types";
 
 import {
@@ -126,13 +127,24 @@ export type QuestionLike = {
   unreachable?: boolean | null;
   unreachable2?: boolean | null;
   unreachable3?: boolean | null;
+  /** Optional: Case treatment notes — flattened via flattenTreatmentNotes when present */
+  treatmentNotes?: Array<{
+    round: number;
+    consult?: string | null;
+    scheduleTelemed?: Date | null;
+    unreachable?: boolean | null;
+    subjective?: string | null;
+    objective?: string | null;
+    assessment?: string | null;
+    plan?: string | null;
+  }>;
 };
 
 const MS_HOUR = 60 * 60 * 1000;
 
 type AdminNameLookup = Map<
   string,
-  { prefixId: number; firstname: string; lastname: string }
+  { prefixId: number; firstName: string; lastName: string }
 >;
 
 const toQuestionData = (q: QuestionLike): QuestionsData =>
@@ -187,7 +199,7 @@ const isLegacyScheduleTelemed = (question: QuestionLike) => {
 export function getRedCaseAccessDelayHours(
   question: QuestionLike
 ): number | null {
-  if (question.result !== "Red") return null;
+  if (question.result !== ScreeningResult.POSITIVE_SEVERE) return null;
   if (!question.schedule_telemed) return null;
   if (isLegacyScheduleTelemed(question)) return null;
 
@@ -216,7 +228,7 @@ const computeRedCase24hAccess = (
   dateRange?: { startUtc: Date; endUtc: Date }
 ): RedCase24hAccessSummary => {
   const redCases = questions.filter((q) => {
-    if (q.result !== "Red") return false;
+    if (q.result !== ScreeningResult.POSITIVE_SEVERE) return false;
     if (isLegacyScheduleTelemed(q)) return false;
     if (!dateRange) return true;
 
@@ -271,7 +283,7 @@ const extractSessions = (questions: QuestionLike[]): SessionRecord[] => {
 
       const unreachable = isRoundUnreachable(qData, roundIndex as 0 | 1 | 2);
       const roundCompleteFromStatus = roundNumber <= completedRounds;
-      // ใช้ Questions_Master.status เป็นแหล่งอ้างอิงหลักของสถานะงาน
+      // ใช้ Case.status เป็นแหล่งอ้างอิงหลักของสถานะงาน
       const consultTelemedComplete =
         normalizedStatus !== null
           ? roundCompleteFromStatus
@@ -327,7 +339,7 @@ const formatAdminName = (
 
   const prefixLabel = prefixMap.get(String(admin.prefixId)) ?? "";
 
-  return `${prefixLabel} ${admin.firstname} ${admin.lastname}`.trim();
+  return `${prefixLabel} ${admin.firstName} ${admin.lastName}`.trim();
 };
 
 const calcCompletionRate = (completed: number, assigned: number) =>

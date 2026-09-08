@@ -19,9 +19,9 @@ import Loading from "@/app/loading";
 
 type LookupProfile = {
   id: string;
-  firstname: string;
-  lastname: string;
-  birthday: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
 };
 
 type LookupResult =
@@ -191,8 +191,8 @@ export default function ReferentLookupPage() {
               {foundProfile ? (
                 <>
                   <p className="text-sm text-center text-default-700">
-                    พบข้อมูล: {foundProfile.profile.firstname}{" "}
-                    {foundProfile.profile.lastname}
+                    พบข้อมูล: {foundProfile.profile.firstName}{" "}
+                    {foundProfile.profile.lastName}
                   </p>
                   <Button
                     className="w-40"

@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
+import { Affiliation, Volunteer, VolunteerType } from "@prisma/client";
 
 import { ReferentQRCodeModal } from "../register/referent/components";
 
 interface ReferentQRCodeProps {
   affiliation: Affiliation[];
-  data: Referent;
-  volunteerType: Volunteer_Type[];
+  data: Volunteer;
+  volunteerType: VolunteerType[];
   isOpen: boolean;
   onClose: () => void;
 }

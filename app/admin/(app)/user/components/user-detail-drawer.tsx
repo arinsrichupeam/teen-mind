@@ -36,18 +36,18 @@ import {
   getNineQRiskText,
 } from "@/utils/helper";
 
-interface Provinces {
+interface Province {
   id: number;
   nameInThai: string;
 }
 
-interface Districts {
+interface District {
   id: number;
   nameInThai: string;
   provinceId: number;
 }
 
-interface Subdistricts {
+interface Subdistrict {
   id: number;
   nameInThai: string;
   districtId: number;
@@ -56,12 +56,12 @@ interface Subdistricts {
 interface UserData {
   id: string;
   userId?: string | null;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   prefixId: number;
-  sex: number;
+  sex: number | string;
   citizenId: string;
-  tel: string;
+  phone: string;
   school: {
     id: number;
     name: string;
@@ -78,14 +78,16 @@ interface UserData {
     q8?: { sum: number }[];
     referent?: {
       id: number;
-      firstname: string;
-      lastname: string;
+      firstName: string;
+      lastName: string;
       affiliation: {
         name: string;
       };
-      agency: string;
+      agency?: string;
+      healthcareFacilityId?: string;
     };
   }[];
+  birthDate?: string;
   birthday?: string;
   ethnicity?: string;
   nationality?: string;
@@ -94,12 +96,16 @@ interface UserData {
     villageNo?: string;
     soi?: string;
     road?: string;
+    subdistrictId?: number;
+    districtId?: number;
+    provinceId?: number;
     subdistrict?: number;
     district?: number;
     province?: number;
   }[];
   emergency?: {
     name?: string;
+    phone?: string;
     tel?: string;
     relation?: string;
   }[];
@@ -129,9 +135,9 @@ export default function UserDetailDrawer({
   onRefresh,
   onMutate,
 }: UserDetailDrawerProps) {
-  const [provinces, setProvinces] = useState<Provinces[]>([]);
-  const [districts, setDistricts] = useState<Districts[]>([]);
-  const [subdistricts, setSubdistricts] = useState<Subdistricts[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subdistricts, setSubdistricts] = useState<Subdistrict[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
   const [isResetLineModalOpen, setIsResetLineModalOpen] = useState(false);
@@ -291,7 +297,7 @@ export default function UserDetailDrawer({
                           (val) => val.key == user.prefixId.toString()
                         )?.label
                       }{" "}
-                      {user.firstname} {user.lastname}
+                      {user.firstName} {user.lastName}
                     </span>
                   </div>
                   <div>
@@ -311,7 +317,7 @@ export default function UserDetailDrawer({
                   <div>
                     <span className="text-default-500">วัน/เดือน/ปี เกิด:</span>
                     <span className="font-medium ml-2">
-                      {formatThaiDate(user.birthday || "")}
+                      {formatThaiDate(user.birthDate || user.birthday || "")}
                     </span>
                   </div>
                   <div>
@@ -342,14 +348,15 @@ export default function UserDetailDrawer({
                         {user.address[0].road
                           ? `ถนน ${user.address[0].road} `
                           : ""}
-                        {user.address[0].subdistrict
-                          ? `ตำบล${getSubdistrictName(user.address[0].subdistrict)} `
+                        {user.address[0].subdistrictId ??
+                        user.address[0].subdistrict
+                          ? `ตำบล${getSubdistrictName(user.address[0].subdistrictId ?? user.address[0].subdistrict!)} `
                           : ""}
-                        {user.address[0].district
-                          ? `อำเภอ${getDistrictName(user.address[0].district)} `
+                        {user.address[0].districtId ?? user.address[0].district
+                          ? `อำเภอ${getDistrictName(user.address[0].districtId ?? user.address[0].district!)} `
                           : ""}
-                        {user.address[0].province
-                          ? `จังหวัด${getProvinceName(user.address[0].province)}`
+                        {user.address[0].provinceId ?? user.address[0].province
+                          ? `จังหวัด${getProvinceName(user.address[0].provinceId ?? user.address[0].province!)}`
                           : ""}
                       </span>
                     ) : (
@@ -358,7 +365,7 @@ export default function UserDetailDrawer({
                   </div>
                   <div>
                     <span className="text-default-500">เบอร์โทรศัพท์:</span>
-                    <span className="font-medium ml-2">{user.tel || "-"}</span>
+                    <span className="font-medium ml-2">{user.phone || "-"}</span>
                   </div>
                   <div>
                     <span className="text-default-500">โรงเรียน:</span>
@@ -377,7 +384,9 @@ export default function UserDetailDrawer({
                         </span>
                         <span className="text-default-500 ml-4">โทรศัพท์:</span>
                         <span className="font-medium ml-2">
-                          {user.emergency[0].tel || "-"}
+                          {user.emergency[0].phone ||
+                            user.emergency[0].tel ||
+                            "-"}
                         </span>
                         <span className="text-default-500 ml-4">
                           ความสัมพันธ์:
@@ -493,8 +502,8 @@ export default function UserDetailDrawer({
                             </span>
                             {question.referent && (
                               <span className="text-xs text-default-500">
-                                ผู้แนะนำ: {question.referent.firstname}{" "}
-                                {question.referent.lastname}
+                                ผู้แนะนำ: {question.referent.firstName}{" "}
+                                {question.referent.lastName}
                                 {question.referent.affiliation && (
                                   <span className="ml-1">
                                     ({question.referent.affiliation.name})
@@ -651,7 +660,7 @@ export default function UserDetailDrawer({
         }}
       />
       <ModalAddQuestion
-        birthday={user.birthday}
+        birthday={user.birthDate || user.birthday}
         isOpen={isAddQuestionModalOpen}
         userId={user.id}
         onClose={() => {
@@ -676,7 +685,7 @@ export default function UserDetailDrawer({
             <p>
               ต้องการยกเลิกการเชื่อมต่อ LINE ของ{" "}
               <span className="font-semibold">
-                {user.firstname} {user.lastname}
+                {user.firstName} {user.lastName}
               </span>{" "}
               ใช่หรือไม่?
             </p>

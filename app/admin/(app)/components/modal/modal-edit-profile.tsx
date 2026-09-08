@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { Districts, Provinces, Subdistricts } from "@prisma/client";
+import { District, Province, Subdistrict } from "@prisma/client";
 import {
   addToast,
   Button,
@@ -34,9 +34,9 @@ interface EditProfileData {
   citizenId: string;
   prefixId: string;
   sex: string;
-  firstname: string;
-  lastname: string;
-  birthday: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
   thaiYear: string;
   ethnicity: string;
   nationality: string;
@@ -45,14 +45,14 @@ interface EditProfileData {
     villageNo: string;
     soi: string;
     road: string;
-    subdistrict: string;
-    district: string;
-    province: string;
+    subdistrictId: string;
+    districtId: string;
+    provinceId: string;
   };
-  tel: string;
+  phone: string;
   emergency: {
     name: string;
-    tel: string;
+    phone: string;
     relation: string;
   };
   school: string;
@@ -73,11 +73,20 @@ export interface ModalEditProfileData {
       villageNo?: string;
       soi?: string;
       road?: string;
+      provinceId?: number;
+      districtId?: number;
+      subdistrictId?: number;
+      /** @deprecated */
       province?: number;
       district?: number;
       subdistrict?: number;
     }>;
-    emergency?: Array<{ name?: string; tel?: string; relation?: string }>;
+    emergency?: Array<{
+      name?: string;
+      phone?: string;
+      tel?: string;
+      relation?: string;
+    }>;
     [key: string]: unknown;
   };
 }
@@ -97,18 +106,18 @@ export const ModalEditProfile = ({
   mode,
   onSuccess,
 }: Props) => {
-  const [distrince, setDistrince] = useState<Districts[]>([]);
-  const [province, setProvince] = useState<Provinces[]>([]);
-  const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
+  const [distrince, setDistrince] = useState<District[]>([]);
+  const [province, setProvince] = useState<Province[]>([]);
+  const [subdistrince, setSubDistrince] = useState<Subdistrict[]>([]);
   const [schools, setSchools] = useState<{ id: number; name: string }[]>([]);
   const [editProfileData, setEditProfileData] = useState<EditProfileData>({
     hn: "",
     citizenId: "",
     prefixId: "",
     sex: "",
-    firstname: "",
-    lastname: "",
-    birthday: "",
+    firstName: "",
+    lastName: "",
+    birthDate: "",
     thaiYear: "",
     ethnicity: "",
     nationality: "",
@@ -117,14 +126,14 @@ export const ModalEditProfile = ({
       villageNo: "",
       soi: "",
       road: "",
-      subdistrict: "",
-      district: "",
-      province: "",
+      subdistrictId: "",
+      districtId: "",
+      provinceId: "",
     },
-    tel: "",
+    phone: "",
     emergency: {
       name: "",
-      tel: "",
+      phone: "",
       relation: "",
     },
     school: "",
@@ -217,7 +226,7 @@ export const ModalEditProfile = ({
       let processedValue = value;
 
       // ตรวจสอบโทรศัพท์ให้รับเฉพาะตัวเลขเท่านั้น
-      if (name === "tel" || name === "emergency.tel") {
+      if (name === "tel" || name === "emergency.phone") {
         // อนุญาตให้กรอกได้แค่ตัวเลขเท่านั้น
         const onlyNumbers = /^[0-9]*$/;
 
@@ -402,9 +411,9 @@ export const ModalEditProfile = ({
         citizenId: "",
         prefixId: "",
         sex: "",
-        firstname: "",
-        lastname: "",
-        birthday: "",
+        firstName: "",
+        lastName: "",
+        birthDate: "",
         thaiYear: "",
         ethnicity: "",
         nationality: "",
@@ -413,14 +422,14 @@ export const ModalEditProfile = ({
           villageNo: "",
           soi: "",
           road: "",
-          subdistrict: "",
-          district: "",
-          province: "",
+          subdistrictId: "",
+          districtId: "",
+          provinceId: "",
         },
-        tel: "",
+        phone: "",
         emergency: {
           name: "",
-          tel: "",
+          phone: "",
           relation: "",
         },
         school: "",
@@ -434,18 +443,20 @@ export const ModalEditProfile = ({
       const profile = data.profile;
       const addr = profile.address?.[0];
       const currentProvince = addr
-        ? province.find((x) => x.id == addr.province)
+        ? province.find((x) => x.id == (addr.provinceId ?? addr.province))
         : undefined;
       const currentDistrict = addr
-        ? distrince.find((x) => x.id == addr.district)
+        ? distrince.find((x) => x.id == (addr.districtId ?? addr.district))
         : undefined;
       const currentSubdistrict = addr
-        ? subdistrince.find((x) => x.id == addr.subdistrict)
+        ? subdistrince.find(
+            (x) => x.id == (addr.subdistrictId ?? addr.subdistrict)
+          )
         : undefined;
 
       let birthdayDisplay = "";
 
-      const birthdayRaw = profile.birthday;
+      const birthdayRaw = profile.birthDate;
 
       if (birthdayRaw) {
         try {
@@ -490,9 +501,9 @@ export const ModalEditProfile = ({
         citizenId: String(profile.citizenId ?? ""),
         prefixId: profile.prefixId != null ? String(profile.prefixId) : "",
         sex: profile.sex != null ? String(profile.sex) : "",
-        firstname: String(profile.firstname ?? ""),
-        lastname: String(profile.lastname ?? ""),
-        birthday: birthdayDisplay || "",
+        firstName: String(profile.firstName ?? ""),
+        lastName: String(profile.lastName ?? ""),
+        birthDate: birthdayDisplay || "",
         thaiYear: thaiYear,
         ethnicity: String(profile.ethnicity ?? ""),
         nationality: String(profile.nationality ?? ""),
@@ -501,14 +512,14 @@ export const ModalEditProfile = ({
           villageNo: String(addr?.villageNo ?? ""),
           soi: String(addr?.soi ?? ""),
           road: String(addr?.road ?? ""),
-          subdistrict: currentSubdistrict?.id?.toString() ?? "",
-          district: currentDistrict?.id?.toString() ?? "",
-          province: currentProvince?.id?.toString() ?? "",
+          subdistrictId: currentSubdistrict?.id?.toString() ?? "",
+          districtId: currentDistrict?.id?.toString() ?? "",
+          provinceId: currentProvince?.id?.toString() ?? "",
         },
-        tel: String(profile.tel ?? ""),
+        phone: String(profile.phone ?? ""),
         emergency: {
           name: String(emergencyFirst?.name ?? ""),
-          tel: String(emergencyFirst?.tel ?? ""),
+          phone: String(emergencyFirst?.phone ?? emergencyFirst?.tel ?? ""),
           relation: String(emergencyFirst?.relation ?? ""),
         },
         school: schoolId != null && schoolId > 0 ? String(schoolId) : "",
@@ -537,7 +548,7 @@ export const ModalEditProfile = ({
     }
 
     // ตรวจสอบวันเกิด
-    const birthdayError = validateBirthday(editProfileData.birthday);
+    const birthdayError = validateBirthday(editProfileData.birthDate);
 
     if (birthdayError) {
       addToast({
@@ -573,13 +584,13 @@ export const ModalEditProfile = ({
         citizenId: editProfileData.citizenId,
         prefixId: parseInt(editProfileData.prefixId),
         sex: parseInt(editProfileData.sex),
-        firstname: editProfileData.firstname,
-        lastname: editProfileData.lastname,
-        birthday:
-          editProfileData.birthday &&
-          editProfileData.birthday !== "" &&
-          editProfileData.birthday.includes("/")
-            ? new Date(parseThaiDateToISO(editProfileData.birthday))
+        firstName: editProfileData.firstName,
+        lastName: editProfileData.lastName,
+        birthDate:
+          editProfileData.birthDate &&
+          editProfileData.birthDate !== "" &&
+          editProfileData.birthDate.includes("/")
+            ? new Date(parseThaiDateToISO(editProfileData.birthDate))
             : null,
         ethnicity: editProfileData.ethnicity,
         nationality: editProfileData.nationality,
@@ -594,14 +605,14 @@ export const ModalEditProfile = ({
           villageNo: editProfileData.address.villageNo,
           soi: editProfileData.address.soi,
           road: editProfileData.address.road,
-          subdistrict: parseInt(editProfileData.address.subdistrict),
-          district: parseInt(editProfileData.address.district),
-          province: parseInt(editProfileData.address.province),
+          subdistrictId: parseInt(editProfileData.address.subdistrictId),
+          districtId: parseInt(editProfileData.address.districtId),
+          provinceId: parseInt(editProfileData.address.provinceId),
         },
-        tel: editProfileData.tel,
+        phone: editProfileData.phone,
         emergency: {
           name: editProfileData.emergency.name,
-          tel: editProfileData.emergency.tel,
+          phone: editProfileData.emergency.phone,
           relation: editProfileData.emergency.relation,
         },
       };
@@ -821,7 +832,7 @@ export const ModalEditProfile = ({
                 label="ชื่อ"
                 name="firstname"
                 size="sm"
-                value={editProfileData.firstname}
+                value={editProfileData.firstName}
                 variant="bordered"
                 onChange={handleEditProfileChange}
               />
@@ -830,7 +841,7 @@ export const ModalEditProfile = ({
                 label="นามสกุล"
                 name="lastname"
                 size="sm"
-                value={editProfileData.lastname}
+                value={editProfileData.lastName}
                 variant="bordered"
                 onChange={handleEditProfileChange}
               />
@@ -883,13 +894,13 @@ export const ModalEditProfile = ({
                 name="birthday"
                 placeholder="วว/ดด/ปปปป (พ.ศ.)"
                 size="sm"
-                value={editProfileData.birthday}
+                value={editProfileData.birthDate}
                 variant="bordered"
                 onChange={(isoDate) => {
                   if (!isoDate) {
                     setEditProfileData((prev) => ({
                       ...prev,
-                      birthday: "",
+                      birthDate: "",
                       thaiYear: "",
                     }));
                     setBirthdayError("กรุณาระบุวันเกิด");
@@ -902,7 +913,7 @@ export const ModalEditProfile = ({
 
                   setEditProfileData((prev) => ({
                     ...prev,
-                    birthday: thaiDate,
+                    birthDate: thaiDate,
                     thaiYear: error ? "" : calculateThaiYear(isoDate),
                   }));
                   setBirthdayError(error);
@@ -1006,21 +1017,21 @@ export const ModalEditProfile = ({
                 defaultItems={province}
                 isRequired={true}
                 label="จังหวัด"
-                name="address.province"
+                name="address.provinceId"
                 placeholder="เลือกจังหวัด"
-                selectedKey={editProfileData.address.province || ""}
+                selectedKey={editProfileData.address.provinceId || ""}
                 size="sm"
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
 
                   handleEditProfileSelectChange(
-                    "address.province",
+                    "address.provinceId",
                     selectedKey
                   );
                   // รีเซ็ตอำเภอและตำบลเมื่อเปลี่ยนจังหวัด
-                  handleEditProfileSelectChange("address.district", "");
-                  handleEditProfileSelectChange("address.subdistrict", "");
+                  handleEditProfileSelectChange("address.districtId", "");
+                  handleEditProfileSelectChange("address.subdistrictId", "");
                 }}
               >
                 {(item) => (
@@ -1036,25 +1047,25 @@ export const ModalEditProfile = ({
                 defaultItems={distrince.filter(
                   (item) =>
                     item.provinceId.toString() ===
-                    editProfileData.address.province
+                    editProfileData.address.provinceId
                 )}
-                isDisabled={!editProfileData.address.province}
+                isDisabled={!editProfileData.address.provinceId}
                 isRequired={true}
                 label="อำเภอ"
-                name="address.district"
+                name="address.districtId"
                 placeholder="เลือกอำเภอ"
-                selectedKey={editProfileData.address.district || ""}
+                selectedKey={editProfileData.address.districtId || ""}
                 size="sm"
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
 
                   handleEditProfileSelectChange(
-                    "address.district",
+                    "address.districtId",
                     selectedKey
                   );
                   // รีเซ็ตตำบลเมื่อเปลี่ยนอำเภอ
-                  handleEditProfileSelectChange("address.subdistrict", "");
+                  handleEditProfileSelectChange("address.subdistrictId", "");
                 }}
               >
                 {(item) => (
@@ -1072,21 +1083,21 @@ export const ModalEditProfile = ({
                 defaultItems={subdistrince.filter(
                   (item) =>
                     item.districtId.toString() ===
-                    editProfileData.address.district
+                    editProfileData.address.districtId
                 )}
-                isDisabled={!editProfileData.address.district}
+                isDisabled={!editProfileData.address.districtId}
                 isRequired={true}
                 label="ตำบล"
-                name="address.subdistrict"
+                name="address.subdistrictId"
                 placeholder="เลือกตำบล"
-                selectedKey={editProfileData.address.subdistrict || ""}
+                selectedKey={editProfileData.address.subdistrictId || ""}
                 size="sm"
                 variant="bordered"
                 onSelectionChange={(key) => {
                   const selectedKey = key as string;
 
                   handleEditProfileSelectChange(
-                    "address.subdistrict",
+                    "address.subdistrictId",
                     selectedKey
                   );
                 }}
@@ -1105,7 +1116,7 @@ export const ModalEditProfile = ({
                 maxLength={10}
                 name="tel"
                 size="sm"
-                value={editProfileData.tel}
+                value={editProfileData.phone}
                 variant="bordered"
                 onChange={handleEditProfileChange}
               />
@@ -1127,9 +1138,9 @@ export const ModalEditProfile = ({
               isRequired={true}
               label="โทรศัพท์"
               maxLength={10}
-              name="emergency.tel"
+              name="emergency.phone"
               size="sm"
-              value={editProfileData.emergency.tel}
+              value={editProfileData.emergency.phone}
               variant="bordered"
               onChange={handleEditProfileChange}
             />

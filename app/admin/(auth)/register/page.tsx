@@ -9,7 +9,7 @@ import {
   SelectItem,
 } from "@heroui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Affiliation, Employee_Type, Profile_Admin } from "@prisma/client";
+import { Affiliation, EmployeeType, AdminStatus } from "@prisma/client";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -17,24 +17,49 @@ import { title } from "@/components/primitives";
 import { validateCitizen } from "@/utils/helper";
 import { prefix } from "@/utils/data";
 
-const profileInitValue: Profile_Admin = {
+/** Form state for admin register (allows free-text agency before facility resolve) */
+type AdminRegisterForm = {
+  id: string;
+  userId: string;
+  citizenId: string;
+  prefixId: number;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  affiliationId: number;
+  agency: string;
+  healthcareFacilityId: string;
+  employeeTypeId: number;
+  profession: string;
+  professional: string;
+  license: string | null;
+  status: AdminStatus | number;
+  createdAt: Date;
+  updatedAt: Date;
+  roleId: number;
+  receiveAlert: boolean;
+};
+
+const profileInitValue: AdminRegisterForm = {
   id: "",
   userId: "",
   citizenId: "",
   prefixId: 0,
-  firstname: "",
-  lastname: "",
-  tel: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
   affiliationId: 0,
   agency: "",
+  healthcareFacilityId: "",
   employeeTypeId: 0,
+  profession: "",
   professional: "",
   license: "",
-  status: 3,
+  status: AdminStatus.DISABLED,
   createdAt: new Date(),
   updatedAt: new Date(),
   roleId: 3,
-  alert: false,
+  receiveAlert: false,
 };
 
 export default function RegisterPage() {
@@ -43,9 +68,9 @@ export default function RegisterPage() {
   const [error, setError] = useState<string>("");
   const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
+  const [employeeType, setEmployeeType] = useState<EmployeeType[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
-  const [admin, setProfileAdmin] = useState<Profile_Admin>(profileInitValue);
+  const [admin, setProfileAdmin] = useState<AdminRegisterForm>(profileInitValue);
 
   const { data: session, status } = useSession();
 
@@ -244,7 +269,7 @@ export default function RegisterPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
-            value={admin?.firstname}
+            value={admin?.firstName}
             variant="bordered"
             onChange={HandleChange}
           />
@@ -258,7 +283,7 @@ export default function RegisterPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
-            value={admin?.lastname}
+            value={admin?.lastName}
             variant="bordered"
             onChange={HandleChange}
           />
@@ -273,7 +298,7 @@ export default function RegisterPage() {
             radius="md"
             size="sm"
             type="number"
-            value={admin.tel?.toString()}
+            value={admin.phone?.toString()}
             variant="bordered"
             onChange={HandleChange}
           />
@@ -338,11 +363,11 @@ export default function RegisterPage() {
             isRequired={false}
             label="สาขาวิชาชีพ"
             labelPlacement="inside"
-            name="professional"
+            name="profession"
             placeholder="สาขาวิชาชีพ"
             radius="md"
             size="sm"
-            value={admin.professional?.toString()}
+            value={admin.profession || admin.professional || ""}
             variant="bordered"
             onChange={HandleChange}
           />

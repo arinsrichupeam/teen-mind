@@ -19,6 +19,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { BirthdaySelect } from "@/components/birthday-select";
+import { mapSexToLegacyNumber } from "@/lib/legacy-value-mapping";
 import { liffPopoverProps } from "@/utils/liff-popover-props";
 import { LineIcon } from "@/components/icons";
 import { prefix, sex, gradeYearLevels } from "@/utils/data";
@@ -31,9 +32,33 @@ import {
 } from "@/utils/helper";
 
 /** Profile ที่มีฟิลด์ชั้นปี (gradeYear) สำหรับฟอร์มลงทะเบียน */
-type ProfileWithGradeYear = Omit<Profile, "birthday"> & {
+type ProfileWithGradeYear = Omit<
+  Profile,
+  | "birthDate"
+  | "sex"
+  | "gradeYear"
+  | "mainInsclCode"
+  | "mainInsclName"
+  | "subInsclCode"
+  | "subInsclName"
+  | "hmainCode"
+  | "hmainName"
+  | "hsubCode"
+  | "hsubName"
+  | "nhsoVerifiedAt"
+> & {
   gradeYear?: number | null;
-  birthday: Date | null;
+  birthDate: Date | null;
+  sex: Profile["sex"] | number;
+  mainInsclCode?: string | null;
+  mainInsclName?: string | null;
+  subInsclCode?: string | null;
+  subInsclName?: string | null;
+  hmainCode?: string | null;
+  hmainName?: string | null;
+  hsubCode?: string | null;
+  hsubName?: string | null;
+  nhsoVerifiedAt?: Date | null;
 };
 
 type StepName = "Profile" | "Address" | "Emergency";
@@ -92,7 +117,7 @@ export const Step1 = ({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      const error = validateBirthdayValue(Result?.birthday ?? null);
+      const error = validateBirthdayValue(Result?.birthDate ?? null);
 
       if (error) {
         setBirthdayError(error);
@@ -115,11 +140,13 @@ export const Step1 = ({
       setGradeYearError("");
       NextStep("Profile");
     },
-    [NextStep, Result?.birthday, Result?.gradeYear, Result?.schoolId]
+    [NextStep, Result?.birthDate, Result?.gradeYear, Result?.schoolId]
   );
 
   const validateCitizenId = async (value: string) => {
-    const result = await validateCitizen(value, "user");
+    // ตอนแก้ไขโปรไฟล์ ให้ exclude เลขบัตรของตัวเอง ไม่ให้ขึ้นว่าซ้ำ
+    const excludeId = Result?.id ? Result.id : null;
+    const result = await validateCitizen(value, "user", excludeId);
     const data = await result.json();
 
     if (!data.valid) {
@@ -452,7 +479,11 @@ export const Step1 = ({
           placeholder="เพศ"
           popoverProps={liffPopoverProps}
           radius="md"
-          selectedKeys={Result?.sex ? [Result.sex.toString()] : []}
+          selectedKeys={
+            Result?.sex != null
+              ? [String(mapSexToLegacyNumber(Result.sex as never))]
+              : []
+          }
           size="sm"
           variant="faded"
           onChange={HandleChange}
@@ -467,11 +498,11 @@ export const Step1 = ({
         isRequired={request}
         label="ชื่อ"
         labelPlacement="inside"
-        name="firstname"
+        name="firstName"
         placeholder="ชื่อ"
         radius="md"
         size="sm"
-        value={Result?.firstname}
+        value={Result?.firstName}
         variant="faded"
         onChange={HandleChange}
       />
@@ -480,11 +511,11 @@ export const Step1 = ({
         isRequired={request}
         label="นามสกุล"
         labelPlacement="inside"
-        name="lastname"
+        name="lastName"
         placeholder="นามสกุล"
         radius="md"
         size="sm"
-        value={Result?.lastname}
+        value={Result?.lastName}
         variant="faded"
         onChange={HandleChange}
       />
@@ -495,7 +526,7 @@ export const Step1 = ({
         label="วันเกิด"
         labelPlacement="inside"
         size="sm"
-        value={Result?.birthday}
+        value={Result?.birthDate}
         variant="faded"
         onChange={(isoDate) => {
           if (!isoDate) {
@@ -547,7 +578,7 @@ export const Step1 = ({
         label="เบอร์โทรศัพท์"
         labelPlacement="inside"
         maxLength={10}
-        name="tel"
+        name="phone"
         placeholder="เบอร์โทรศัพท์"
         radius="md"
         size="sm"
@@ -557,7 +588,7 @@ export const Step1 = ({
 
           return tel === "" ? "" : validateTel(tel);
         }}
-        value={Result?.tel}
+        value={Result?.phone}
         variant="faded"
         onChange={HandleChange}
       />

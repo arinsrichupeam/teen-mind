@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
 
   if (search) {
     profileWhere.OR = [
-      { firstname: { contains: search } },
-      { lastname: { contains: search } },
+      { firstName: { contains: search } },
+      { lastName: { contains: search } },
     ];
   }
   if (schools.length > 0) {
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ total: 0, repeatedCount: 0 });
   }
 
-  const assessments = await prisma.questions_Master.findMany({
+  const assessments = await prisma.case.findMany({
     where: {
       profileId: { in: matchingProfileIds },
     },

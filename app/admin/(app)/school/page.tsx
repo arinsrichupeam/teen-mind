@@ -24,7 +24,7 @@ import {
   addToast,
   DatePicker,
 } from "@heroui/react";
-import { School, Districts, School_Screening } from "@prisma/client";
+import { School, District, SchoolScreening } from "@prisma/client";
 import {
   ChangeEvent,
   Suspense,
@@ -46,7 +46,7 @@ import { safeParseDateForPicker } from "@/utils/helper";
 import Loading from "@/app/loading";
 
 type SchoolWithScreenings = School & {
-  screenings?: School_Screening[];
+  screenings?: SchoolScreening[];
 };
 
 type ScreeningFormRow = {
@@ -111,7 +111,7 @@ const schoolInitValue: SchoolWithScreenings = {
 export default function SchoolListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [schoolList, setSchoolList] = useState<SchoolWithScreenings[]>([]);
-  const [districtData, setDistrictData] = useState<Districts[]>([]);
+  const [districtData, setDistrictData] = useState<District[]>([]);
   const [selectedSchool, setSelectedSchool] =
     useState<SchoolWithScreenings>(schoolInitValue);
   const [screeningRows, setScreeningRows] = useState<ScreeningFormRow[]>(
@@ -620,7 +620,7 @@ export default function SchoolListPage() {
                           columnKey,
                           index:
                             schoolList.findIndex((x) => x.id == item.id) + 1,
-                          district: districtData,
+                          districtId: districtData,
                           viewSchool: onRowViewPress,
                           editSchool: onRowEditPress,
                         })}

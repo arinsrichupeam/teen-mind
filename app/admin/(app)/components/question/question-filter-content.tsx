@@ -356,7 +356,7 @@ export function QuestionFilterContent({
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="Referent type filter"
+                  aria-label="Volunteer type filter"
                   selectedKeys={new Set([referentTypeFilter])}
                   selectionMode="single"
                   onSelectionChange={(keys) => {

@@ -90,10 +90,10 @@ type HistoryEntry = {
 type IndividualProfile = {
   profileId: string;
   prefixId: number;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   citizenId: string | null;
-  birthday: string;
+  birthDate: string;
   userId: string | null;
   school: {
     id: number;
@@ -110,7 +110,7 @@ type IndividualProfile = {
 };
 
 function getProfileAge(
-  birthday: string | null | undefined,
+  birthDate: string | null | undefined,
   school: IndividualProfile["school"],
   assessmentDate?: string | null
 ) {
@@ -120,7 +120,7 @@ function getProfileAge(
     school?.screeningDate
   );
 
-  return getAgeAtAssessment(birthday, resolved, assessmentDate ?? undefined);
+  return getAgeAtAssessment(birthDate, resolved, assessmentDate ?? undefined);
 }
 
 interface School {
@@ -256,10 +256,10 @@ function HistoryModal({
 
   const prefixLabel = prefixMap.get(String(profile.prefixId)) ?? "";
   const fullName =
-    `${prefixLabel} ${profile.firstname} ${profile.lastname}`.trim();
+    `${prefixLabel} ${profile.firstName} ${profile.lastName}`.trim();
 
   const age = getProfileAge(
-    profile.birthday,
+    profile.birthDate,
     typeof profile.school === "object" ? profile.school : null,
     profile.latestDate
   );
@@ -514,11 +514,11 @@ function PreviewExportModal({
 
   const summaryRows = profiles.map((p, i) => {
     const name =
-      `${prefixMap.get(String(p.prefixId)) ?? ""} ${p.firstname} ${p.lastname}`.trim();
+      `${prefixMap.get(String(p.prefixId)) ?? ""} ${p.firstName} ${p.lastName}`.trim();
     const school =
       typeof p.school === "object" && p.school ? p.school.name : "-";
     const age = getProfileAge(
-      p.birthday,
+      p.birthDate,
       typeof p.school === "object" ? p.school : null,
       p.latestDate
     );
@@ -921,7 +921,7 @@ export default function ReportPage() {
                 <DocumentTextIcon className="size-5 text-primary-500 shrink-0" />
               )}
               <p className="text-bold text-small">
-                {prefixLabel} {item.firstname} {item.lastname}
+                {prefixLabel} {item.firstName} {item.lastName}
               </p>
             </div>
           );
@@ -929,8 +929,8 @@ export default function ReportPage() {
         case "age": {
           return (
             <p className="text-small text-center">
-              {item.birthday
-                ? `${getProfileAge(item.birthday, item.school, item.latestDate) ?? "-"} ปี`
+              {item.birthDate
+                ? `${getProfileAge(item.birthDate, item.school, item.latestDate) ?? "-"} ปี`
                 : "-"}
             </p>
           );
@@ -1033,14 +1033,14 @@ export default function ReportPage() {
         // Build data rows
         const dataRows = profiles.map((p, idx) => {
           const name =
-            `${prefixMap.get(String(p.prefixId)) ?? ""} ${p.firstname} ${p.lastname}`.trim();
+            `${prefixMap.get(String(p.prefixId)) ?? ""} ${p.firstName} ${p.lastName}`.trim();
           const schoolName =
             typeof p.school === "object" && p.school !== null
               ? p.school.name
               : "-";
           const age =
             getProfileAge(
-              p.birthday,
+              p.birthDate,
               typeof p.school === "object" ? p.school : null,
               p.latestDate
             ) ?? "-";

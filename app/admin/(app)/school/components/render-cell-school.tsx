@@ -1,20 +1,20 @@
 import React from "react";
 import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
-import { Districts, School, School_Screening } from "@prisma/client";
+import { District, School, SchoolScreening } from "@prisma/client";
 import { Chip } from "@heroui/react";
 
 import { formatThaiDate } from "@/utils/helper";
 import { formatScreeningPeriodSummary } from "@/lib/school-screening";
 
 type SchoolWithScreenings = School & {
-  screenings?: School_Screening[];
+  screenings?: SchoolScreening[];
 };
 
 interface Props {
   data: SchoolWithScreenings;
   columnKey: string | React.Key;
   index: number;
-  district: Districts[];
+  districtId: District[];
   viewSchool(id: number): void;
   editSchool(id: number): void;
 }
@@ -23,7 +23,7 @@ export const SchoolRenderCell = ({
   data,
   columnKey,
   index,
-  district,
+  districtId: district,
   viewSchool,
   editSchool,
 }: Props) => {

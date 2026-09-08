@@ -1,7 +1,4 @@
-import type { QuestionsData } from "@/types";
-
-import { getFollowUpRoundStatuses } from "../../../../lib/question-followup-rounds";
-
+import { toLegacyQuestionRow } from "@/lib/case-to-legacy-question";
 import { prisma } from "@/utils/prisma";
 import { getSession, requireAdmin } from "@/lib/get-session";
 
@@ -17,57 +14,30 @@ export async function GET(
 
   const questionId = (await params).id;
 
-  const question = await prisma.questions_Master.findUnique({
+  const question = await prisma.case.findUnique({
     where: { id: questionId },
     select: {
+      treatmentNotes: true,
       id: true,
       result: true,
-      result_text: true,
       latitude: true,
       longitude: true,
       createdAt: true,
-      subjective: true,
-      subjective2: true,
-      subjective3: true,
-      objective: true,
-      objective2: true,
-      objective3: true,
-      assessment: true,
-      assessment2: true,
-      assessment3: true,
-      plan: true,
-      plan2: true,
-      plan3: true,
-      note: true,
-      note2: true,
-      note3: true,
-      close_case_reason: true,
-      schedule_telemed: true,
-      schedule_telemed2: true,
-      schedule_telemed3: true,
-      follow_up: true,
-      follow_up2: true,
-      follow_up3: true,
-      unreachable: true,
-      unreachable2: true,
-      unreachable3: true,
-      consult: true,
-      consult2: true,
-      consult3: true,
+      closeCaseReason: true,
       status: true,
       profile: {
         select: {
           id: true,
           userId: true,
-          firstname: true,
-          lastname: true,
+          firstName: true,
+          lastName: true,
           prefixId: true,
           sex: true,
-          birthday: true,
+          birthDate: true,
           ethnicity: true,
           nationality: true,
           citizenId: true,
-          tel: true,
+          phone: true,
           hn: true,
           schoolId: true,
           gradeYear: true,
@@ -77,21 +47,21 @@ export async function GET(
               name: true,
             },
           },
-          address: {
+          addresses: {
             select: {
               houseNo: true,
               villageNo: true,
               soi: true,
               road: true,
-              subdistrict: true,
-              district: true,
-              province: true,
+              subdistrictId: true,
+              districtId: true,
+              provinceId: true,
             },
           },
-          emergency: {
+          emergencyContacts: {
             select: {
               name: true,
-              tel: true,
+              phone: true,
               relation: true,
             },
           },
@@ -103,12 +73,12 @@ export async function GET(
           },
         },
       },
-      phqa: true,
-      q2: true,
-      addon: true,
-      q8: true,
-      q9: true,
-      problem: true,
+      questionsPhqa: true,
+      questions2Q: true,
+      questionsPhqaAddon: true,
+      questions8Q: true,
+      questions9Q: true,
+      questionsProblem: true,
     },
   });
 
@@ -124,12 +94,5 @@ export async function GET(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const payload = {
-    ...question,
-    followUpRoundStatuses: getFollowUpRoundStatuses(
-      question as unknown as QuestionsData
-    ),
-  };
-
-  return Response.json(payload);
+  return Response.json(toLegacyQuestionRow(question));
 }

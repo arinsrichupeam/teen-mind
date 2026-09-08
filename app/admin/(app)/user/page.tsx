@@ -44,12 +44,12 @@ import Loading from "@/app/loading";
 
 interface UserData {
   id: string;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   prefixId: number;
   sex: number;
   citizenId: string;
-  tel: string;
+  phone: string;
   school: {
     id: number;
     name: string;
@@ -143,8 +143,8 @@ export default function UserPage() {
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
         `${prefix.find((val) => val.key == user.prefixId.toString())?.label} ${
-          user.firstname
-        } ${user.lastname}`
+          user.firstName
+        } ${user.lastName}`
           .toLowerCase()
           .includes(filterValue.toLowerCase())
       );
@@ -182,7 +182,7 @@ export default function UserPage() {
           case "id":
             return users.findIndex((u) => u.id === user.id);
           case "name":
-            return `${user.firstname} ${user.lastname}`;
+            return `${user.firstName} ${user.lastName}`;
           case "school":
             return user.school?.name || "";
           case "line":
@@ -366,7 +366,7 @@ export default function UserPage() {
                   prefix.find((val) => val.key == user.prefixId.toString())
                     ?.label
                 }{" "}
-                {user.firstname} {user.lastname}
+                {user.firstName} {user.lastName}
               </p>
               <p className="text-bold text-tiny capitalize text-default-400">
                 {user.citizenId}

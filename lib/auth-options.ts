@@ -82,13 +82,23 @@ export const authOptions: NextAuthOptions = {
     maxAge: 1 * 24 * 60 * 60, // 1 days
     secret: process.env.NEXTAUTH_SECRET,
     // ป้องกัน jose รับ payload เป็น null (ERR_INVALID_ARG_TYPE)
+    // และป้องกัน WAF บล็อก SQL Injection (Line Comments "--") ใน Cookie
+    // JWE Base64URL มีโอกาสสุ่มได้ "--" (~5%) ซึ่งจะถูก WAF รพ. (เช่น Sangfor NGAF) บล็อกด้วย Alert_Deny
     encode: async (params) => {
       const token =
         params.token != null && typeof params.token === "object"
           ? params.token
           : {};
 
-      return defaultJwtEncode({ ...params, token });
+      let encoded = await defaultJwtEncode({ ...params, token });
+      let attempts = 0;
+
+      while (encoded.includes("--") && attempts < 50) {
+        encoded = await defaultJwtEncode({ ...params, token });
+        attempts++;
+      }
+
+      return encoded;
     },
     // ป้องกัน token ไม่ถูกต้อง (HTML/เสีย) ส่งเข้า jose แล้วได้ payload null -> ERR_INVALID_ARG_TYPE
     decode: async (params: JWTDecodeParams): Promise<JWT | null> => {

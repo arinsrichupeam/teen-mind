@@ -4,7 +4,7 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import moment from "moment";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Districts, Provinces, Subdistricts } from "@prisma/client";
+import { District, Province, Subdistrict } from "@prisma/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
@@ -137,9 +137,9 @@ const ConsultantInitValue: Consultant[] = [
 ];
 
 export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
-  const [distrince, setDistrince] = useState<Districts[]>([]);
-  const [province, setProvince] = useState<Provinces[]>([]);
-  const [subdistrince, setSubDistrince] = useState<Subdistricts[]>([]);
+  const [distrince, setDistrince] = useState<District[]>([]);
+  const [province, setProvince] = useState<Province[]>([]);
+  const [subdistrince, setSubDistrince] = useState<Subdistrict[]>([]);
   const [Consultant, setConsultant] =
     useState<Consultant[]>(ConsultantInitValue);
   const [questionData, setQuestionData] = useState<QuestionsData>(data);
@@ -239,12 +239,16 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
             (item: {
               id: string;
               userId?: string;
+              firstName?: string;
+              lastName?: string;
               firstname?: string;
               lastname?: string;
             }) => ({
               id: item.userId ?? item.id,
               name:
-                [item.firstname, item.lastname].filter(Boolean).join(" ") || "",
+                [item.firstName ?? item.firstname, item.lastName ?? item.lastname]
+                  .filter(Boolean)
+                  .join(" ") || "",
             })
           )
         );
@@ -1431,10 +1435,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       data?.profile?.prefixId)
                                 )?.label
                               }
-                              {questionData?.profile?.firstname ||
-                                data?.profile?.firstname}{" "}
-                              {questionData?.profile?.lastname ||
-                                data?.profile?.lastname}
+                              {questionData?.profile?.firstName ||
+                                data?.profile?.firstName}{" "}
+                              {questionData?.profile?.lastName ||
+                                data?.profile?.lastName}
                             </p>
                             <p className="text-small">
                               เลขที่บัตรประชาชน :{" "}
@@ -1447,8 +1451,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               วัน/เดือน/ปี เกิด :{" "}
                               <b>
                                 {moment(
-                                  questionData?.profile?.birthday ||
-                                    data?.profile?.birthday
+                                  questionData?.profile?.birthDate ||
+                                    data?.profile?.birthDate
                                 )
                                   .add(543, "year")
                                   .locale("th-TH")
@@ -1507,9 +1511,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     (x) =>
                                       x.id ==
                                       (questionData?.profile?.address?.[0]
-                                        ?.subdistrict ||
+                                        ?.subdistrictId ||
                                         data?.profile?.address?.[0]
-                                          ?.subdistrict)
+                                          ?.subdistrictId)
                                   )?.nameInThai
                                 }
                               </b>{" "}
@@ -1520,8 +1524,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     (x) =>
                                       x.id ==
                                       (questionData?.profile?.address?.[0]
-                                        ?.district ||
-                                        data?.profile?.address?.[0]?.district)
+                                        ?.districtId ||
+                                        data?.profile?.address?.[0]?.districtId)
                                   )?.nameInThai
                                 }
                               </b>
@@ -1534,15 +1538,15 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                     (x) =>
                                       x.id ==
                                       (questionData?.profile?.address?.[0]
-                                        ?.province ||
-                                        data?.profile?.address?.[0]?.province)
+                                        ?.provinceId ||
+                                        data?.profile?.address?.[0]?.provinceId)
                                   )?.nameInThai
                                 }
                               </b>{" "}
                               โทรศัพท์ :{" "}
                               <b>
-                                {questionData?.profile?.tel ||
-                                  data?.profile?.tel}
+                                {questionData?.profile?.phone ||
+                                  data?.profile?.phone}
                               </b>
                             </p>
                           </div>
@@ -1560,8 +1564,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <p className="text-small">
                               โทรศัพท์ :{" "}
                               <b>
-                                {questionData?.profile?.emergency?.[0]?.tel ||
-                                  data?.profile?.emergency?.[0]?.tel}
+                                {questionData?.profile?.emergency?.[0]?.phone ||
+                                  data?.profile?.emergency?.[0]?.phone}
                               </b>{" "}
                               ความสัมพันธ์ :{" "}
                               <b>
@@ -1741,10 +1745,10 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                       data?.profile?.prefixId)
                                 )?.label
                               }{" "}
-                              {questionData?.profile?.firstname ||
-                                data?.profile?.firstname}{" "}
-                              {questionData?.profile?.lastname ||
-                                data?.profile?.lastname}
+                              {questionData?.profile?.firstName ||
+                                data?.profile?.firstName}{" "}
+                              {questionData?.profile?.lastName ||
+                                data?.profile?.lastName}
                             </p>
                             <p className="text-small">
                               เลขที่บัตรประชาชน :{" "}
@@ -1757,8 +1761,8 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                               วัน/เดือน/ปี เกิด :{" "}
                               <b>
                                 {moment(
-                                  questionData?.profile?.birthday ||
-                                    data?.profile?.birthday
+                                  questionData?.profile?.birthDate ||
+                                    data?.profile?.birthDate
                                 )
                                   .add(543, "year")
                                   .locale("th-TH")
@@ -1813,7 +1817,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                   (x) =>
                                     x.id ==
                                     questionData?.profile.address?.[0]
-                                      ?.subdistrict
+                                      ?.subdistrictId
                                 )?.nameInThai || "-"}
                               </b>{" "}
                               อำเภอ :{" "}
@@ -1821,7 +1825,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 {distrince?.find(
                                   (x) =>
                                     x.id ==
-                                    questionData?.profile.address?.[0]?.district
+                                    questionData?.profile.address?.[0]?.districtId
                                 )?.nameInThai || "-"}
                               </b>
                             </p>
@@ -1831,11 +1835,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                                 {province?.find(
                                   (x) =>
                                     x.id ==
-                                    questionData?.profile.address?.[0]?.province
+                                    questionData?.profile.address?.[0]?.provinceId
                                 )?.nameInThai || "-"}
                               </b>{" "}
                               โทรศัพท์ :{" "}
-                              <b>{questionData?.profile.tel || "-"}</b>
+                              <b>{questionData?.profile.phone || "-"}</b>
                             </p>
                           </div>
                         </CardBody>
@@ -1852,7 +1856,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                             <p className="text-small">
                               โทรศัพท์ :{" "}
                               <b>
-                                {questionData?.profile.emergency?.[0]?.tel ||
+                                {questionData?.profile.emergency?.[0]?.phone ||
                                   "-"}
                               </b>{" "}
                               ความสัมพันธ์ :{" "}

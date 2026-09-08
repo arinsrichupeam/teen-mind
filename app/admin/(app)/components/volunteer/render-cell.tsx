@@ -5,10 +5,12 @@ import { Button } from "@heroui/react";
 interface VolunteerRow {
   id: string | number;
   prefix: string;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   affiliation?: { name: string };
-  agency: string;
+  agency?: string;
+  healthcareFacilityId?: string;
+  healthcareFacility?: { name?: string } | null;
   question_count: number;
   status: boolean;
   [key: string]: unknown;
@@ -38,11 +40,17 @@ export const VolunteerRenderCell = ({
         </div>
       );
     case "name":
-      return <div>{`${data.prefix} ${data.firstname} ${data.lastname}`}</div>;
+      return <div>{`${data.prefix} ${data.firstName} ${data.lastName}`}</div>;
     case "affiliation":
       return <div>{data.affiliation?.name}</div>;
     case "agency":
-      return <div>{cellValue != null ? String(cellValue) : ""}</div>;
+      return (
+        <div>
+          {data.healthcareFacility?.name ??
+            data.agency ??
+            (cellValue != null ? String(cellValue) : "")}
+        </div>
+      );
     case "question_count":
       return (
         <div className="text-center">

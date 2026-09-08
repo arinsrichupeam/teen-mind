@@ -19,15 +19,15 @@ import { formatThaiDateTime } from "@/utils/helper";
 
 interface AlertQuestionProfile {
   id: string;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   prefixId: number;
-  tel: string;
+  phone: string;
   citizenId: string;
-  birthday: string;
+  birthDate: string;
   sex: number;
   school?: { id: number; name: string } | null;
-  emergency?: Array<{ name: string; tel: string; relation: string }>;
+  emergency?: Array<{ name: string; phone: string; relation: string }>;
 }
 
 interface AlertQuestionData {
@@ -88,9 +88,9 @@ export default function AlertCasePage() {
   const prefixLabel =
     prefix.find((p) => Number(p.key) === data?.profile?.prefixId)?.label ?? "";
   const fullName = data?.profile
-    ? `${prefixLabel}${data.profile.firstname} ${data.profile.lastname}`.trim()
+    ? `${prefixLabel}${data.profile.firstName} ${data.profile.lastName}`.trim()
     : "-";
-  const tel = data?.profile?.tel ?? "-";
+  const tel = data?.profile?.phone ?? "-";
   const phqaSum = data?.phqa?.[0]?.sum ?? 0;
   const schoolName =
     data?.profile?.school && typeof data.profile.school === "object"
@@ -189,7 +189,7 @@ export default function AlertCasePage() {
                 <span className="min-w-0 break-all">
                   <a
                     className="text-primary underline"
-                    href={`tel:${tel.replace(/\s/g, "")}`}
+                    href={`phone:${tel.replace(/\s/g, "")}`}
                   >
                     {tel}
                   </a>
@@ -208,7 +208,7 @@ export default function AlertCasePage() {
                   as="a"
                   className="w-full sm:w-auto"
                   color="danger"
-                  href={`tel:${tel.replace(/\s/g, "")}`}
+                  href={`phone:${tel.replace(/\s/g, "")}`}
                   size="sm"
                   startContent={<PhoneIcon className="size-4 shrink-0" />}
                   variant="flat"
@@ -245,9 +245,9 @@ export default function AlertCasePage() {
                         <p className="mt-0.5 md:mt-0">
                           <a
                             className="text-primary underline break-all text-sm"
-                            href={`tel:${em.tel.replace(/\s/g, "")}`}
+                            href={`phone:${em.phone.replace(/\s/g, "")}`}
                           >
-                            {em.tel}
+                            {em.phone}
                           </a>
                         </p>
                       </div>

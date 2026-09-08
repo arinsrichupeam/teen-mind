@@ -5,6 +5,9 @@ import {
   isConsultTelemedRoundComplete,
 } from "../../../../../lib/question-followup-rounds";
 
+import { CaseStatus } from "@prisma/client";
+
+import { flattenTreatmentNotes } from "@/lib/case-flat";
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
@@ -33,7 +36,7 @@ interface QuestionForStatus {
   unreachable3?: boolean | null;
 }
 
-function calculateStatus(question: QuestionForStatus) {
+function calculateStatus(question: QuestionForStatus): 0 | 1 | 2 | 3 {
   if (!question.profile?.hn) {
     return 0;
   }
@@ -54,6 +57,13 @@ function calculateStatus(question: QuestionForStatus) {
   return 1;
 }
 
+function mapFollowUpStatusToCaseStatus(status: 0 | 1 | 2 | 3): CaseStatus {
+  if (status === 3) return CaseStatus.CLOSED;
+  if (status === 2) return CaseStatus.IN_PROGRESS;
+
+  return CaseStatus.PENDING;
+}
+
 export async function POST() {
   const auth = await requireAdmin();
 
@@ -62,14 +72,14 @@ export async function POST() {
   }
 
   try {
-    // ดึงข้อมูลทั้งหมดที่มี PHQA
-    const allQuestions = await prisma.questions_Master.findMany({
+    const allQuestions = await prisma.case.findMany({
       include: {
-        phqa: true,
+        questionsPhqa: true,
         profile: true,
+        treatmentNotes: true,
       },
       where: {
-        phqa: {
+        questionsPhqa: {
           some: {},
         },
       },
@@ -80,21 +90,22 @@ export async function POST() {
     const errors: string[] = [];
     const totalQuestions = allQuestions.length;
 
-    // ประมวลผลแต่ละรายการ
     for (let i = 0; i < allQuestions.length; i++) {
       const question = allQuestions[i];
 
       try {
-        // คำนวณสถานะใหม่
-        const newStatus = calculateStatus(question);
+        const flat = flattenTreatmentNotes(question.treatmentNotes);
+        const newStatus = calculateStatus({
+          profile: question.profile,
+          ...flat,
+        } as QuestionForStatus);
 
-        // อัปเดตเฉพาะสถานะในฐานข้อมูล
-        await prisma.questions_Master.update({
+        await prisma.case.update({
           where: {
             id: question.id,
           },
           data: {
-            status: newStatus,
+            status: mapFollowUpStatusToCaseStatus(newStatus),
           },
         });
 

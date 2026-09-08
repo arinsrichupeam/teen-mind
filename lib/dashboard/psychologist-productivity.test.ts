@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -12,7 +13,7 @@ const baseQuestion = (
   overrides: Partial<QuestionLike> & Pick<QuestionLike, "id" | "createdAt">
 ): QuestionLike => ({
   profileId: "p1",
-  result: "Red",
+  result: ScreeningResult.POSITIVE_SEVERE,
   consult: "admin-1",
   schedule_telemed: null,
   ...overrides,
@@ -56,7 +57,7 @@ describe("isRedCaseReachedWithin24h", () => {
       isRedCaseReachedWithin24h(
         baseQuestion({
           id: "q3",
-          result: "Yellow",
+          result: ScreeningResult.POSITIVE_MODERATE,
           createdAt: new Date("2026-07-01T10:00:00.000Z"),
           schedule_telemed: new Date("2026-07-01T12:00:00.000Z"),
         })
@@ -127,7 +128,7 @@ describe("computePsychologistProductivity redCase24hAccess", () => {
       }),
       baseQuestion({
         id: "yellow",
-        result: "Yellow",
+        result: ScreeningResult.POSITIVE_MODERATE,
         createdAt: new Date("2026-07-01T08:00:00.000Z"),
         schedule_telemed: new Date("2026-07-01T09:00:00.000Z"),
       }),
@@ -136,7 +137,7 @@ describe("computePsychologistProductivity redCase24hAccess", () => {
     const stats = computePsychologistProductivity(
       questions,
       new Map([
-        ["admin-1", { prefixId: 1, firstname: "Test", lastname: "User" }],
+        ["admin-1", { prefixId: 1, firstName: "Test", lastName: "User" }],
       ]),
       new Map([["1", "นาย"]]),
       "ทดสอบ",
@@ -171,7 +172,7 @@ describe("computePsychologistProductivity redCase24hAccess", () => {
     const stats = computePsychologistProductivity(
       questions,
       new Map([
-        ["admin-1", { prefixId: 1, firstname: "Test", lastname: "User" }],
+        ["admin-1", { prefixId: 1, firstName: "Test", lastName: "User" }],
       ]),
       new Map([["1", "นาย"]]),
       "ทดสอบ",

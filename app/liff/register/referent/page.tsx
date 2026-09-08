@@ -12,9 +12,9 @@ import {
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Affiliation,
-  Employee_Type,
-  Referent,
-  Volunteer_Type,
+  EmployeeType,
+  Volunteer,
+  VolunteerType,
 } from "@prisma/client";
 import React from "react";
 
@@ -40,10 +40,10 @@ export default function ReferentPage() {
 
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
-    useState<Referent>(referentInitValue);
-  const [referent, setReferent] = useState<Referent>(referentInitValue);
-  const [volunteerType, setvolunteerType] = useState<Volunteer_Type[]>([]);
-  const [employeeType, setEmployeeType] = useState<Employee_Type[]>([]);
+    useState<Volunteer>(referentInitValue);
+  const [referent, setReferent] = useState<Volunteer>(referentInitValue);
+  const [volunteerType, setvolunteerType] = useState<VolunteerType[]>([]);
+  const [employeeType, setEmployeeType] = useState<EmployeeType[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string>("");
@@ -97,7 +97,7 @@ export default function ReferentPage() {
       const formData = new FormData(e.currentTarget);
       const data = {
         citizenId: formData.get("citizenId"),
-        tel: formData.get("tel"),
+        phone: formData.get("tel"),
       };
 
       await fetch(`/api/data/referent`, {
@@ -113,19 +113,19 @@ export default function ReferentPage() {
             const referent = data[0];
 
             if (referent.affiliation?.name) {
-              referent.affiliation_id = affiliation.find(
+              referent.affiliationId = affiliation.find(
                 (x) => x.name === referent.affiliation.name
               )?.id;
             }
 
             if (referent.volunteer_type?.name) {
-              referent.volunteer_type_id = volunteerType.find(
+              referent.volunteerTypeId = volunteerType.find(
                 (x) => x.name === referent.volunteer_type.name
               )?.id;
             }
 
             if (referent.employee_type?.name) {
-              referent.employee_type_id = employeeType.find(
+              referent.employeeTypeId = employeeType.find(
                 (x) => x.name === referent.employee_type.name
               )?.id;
             }
@@ -466,7 +466,7 @@ export default function ReferentPage() {
             placeholder="ชื่อ"
             radius="md"
             size="sm"
-            value={selectedReferent.firstname || ""}
+            value={selectedReferent.firstName || ""}
             variant="faded"
             onChange={HandleChange}
           />
@@ -480,7 +480,7 @@ export default function ReferentPage() {
             placeholder="นามสกุล"
             radius="md"
             size="sm"
-            value={selectedReferent.lastname || ""}
+            value={selectedReferent.lastName || ""}
             variant="faded"
             onChange={HandleChange}
           />
@@ -495,7 +495,7 @@ export default function ReferentPage() {
             radius="md"
             size="sm"
             type="number"
-            value={selectedReferent.tel || ""}
+            value={selectedReferent.phone || ""}
             variant="faded"
             onChange={HandleChange}
           />
@@ -520,12 +520,12 @@ export default function ReferentPage() {
             isRequired={request}
             label="ประเภทอาสาสมัคร"
             labelPlacement="inside"
-            name="volunteer_type_id"
+            name="volunteerTypeId"
             placeholder="ประเภทอาสาสมัคร"
             radius="md"
             selectedKeys={
-              selectedReferent.volunteer_type_id
-                ? [selectedReferent.volunteer_type_id.toString()]
+              selectedReferent.volunteerTypeId
+                ? [selectedReferent.volunteerTypeId.toString()]
                 : []
             }
             size="sm"
@@ -544,12 +544,12 @@ export default function ReferentPage() {
             isRequired={request}
             label="สังกัด"
             labelPlacement="inside"
-            name="affiliation_id"
+            name="affiliationId"
             placeholder="สังกัด"
             radius="md"
             selectedKeys={
-              selectedReferent.affiliation_id
-                ? [selectedReferent.affiliation_id.toString()]
+              selectedReferent.affiliationId
+                ? [selectedReferent.affiliationId.toString()]
                 : []
             }
             size="sm"
@@ -570,7 +570,7 @@ export default function ReferentPage() {
             placeholder="หน่วยงาน"
             radius="md"
             size="sm"
-            value={selectedReferent.agency || ""}
+            value={selectedReferent.healthcareFacilityId || ""}
             variant="faded"
             onChange={HandleChange}
           />
@@ -580,12 +580,12 @@ export default function ReferentPage() {
             isRequired={request}
             label="ประเภทการจ้างงาน"
             labelPlacement="inside"
-            name="employee_type_id"
+            name="employeeTypeId"
             placeholder="ประเภทการจ้างงาน"
             radius="md"
             selectedKeys={
-              selectedReferent.employee_type_id
-                ? [selectedReferent.employee_type_id.toString()]
+              selectedReferent.employeeTypeId
+                ? [selectedReferent.employeeTypeId.toString()]
                 : []
             }
             size="sm"

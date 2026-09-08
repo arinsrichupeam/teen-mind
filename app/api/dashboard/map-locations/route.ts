@@ -6,6 +6,7 @@ import {
   thaiDateRangeToUtc,
 } from "@/lib/dashboard/parse-dashboard-date";
 import { requireAdmin } from "@/lib/get-session";
+import { mapFilterResultsToScreeningResults } from "@/lib/legacy-value-mapping";
 import { MapRiskSummary } from "@/types";
 import { prisma } from "@/utils/prisma";
 
@@ -38,8 +39,8 @@ function hasValidCoordinates(
   );
 }
 
-function buildWhereFromQuery(url: URL): Prisma.Questions_MasterWhereInput {
-  const conditions: Prisma.Questions_MasterWhereInput[] = [
+function buildWhereFromQuery(url: URL): Prisma.CaseWhereInput {
+  const conditions: Prisma.CaseWhereInput[] = [
     { latitude: { not: null } },
     { longitude: { not: null } },
   ];
@@ -84,7 +85,7 @@ function buildWhereFromQuery(url: URL): Prisma.Questions_MasterWhereInput {
     if (results.length > 0) {
       conditions.push({
         result: {
-          in: results,
+          in: mapFilterResultsToScreeningResults(results),
         },
       });
     }
@@ -115,22 +116,22 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const where = buildWhereFromQuery(url);
 
-  const rows = await prisma.questions_Master.findMany({
+  const rows = await prisma.case.findMany({
     where,
     select: {
+      treatmentNotes: true,
       id: true,
       latitude: true,
       longitude: true,
       result: true,
-      result_text: true,
       status: true,
       createdAt: true,
       profile: {
         select: {
           id: true,
           prefixId: true,
-          firstname: true,
-          lastname: true,
+          firstName: true,
+          lastName: true,
           school: {
             select: {
               name: true,
@@ -156,14 +157,13 @@ export async function GET(req: Request) {
         latitude: latitude as number,
         longitude: longitude as number,
         result: row.result,
-        result_text: row.result_text,
         status: row.status,
         createdAt: row.createdAt.toISOString(),
         profile: {
           id: row.profile.id,
           prefixId: row.profile.prefixId,
-          firstname: row.profile.firstname,
-          lastname: row.profile.lastname,
+          firstName: row.profile.firstName,
+          lastName: row.profile.lastName,
           schoolName: row.profile.school?.name ?? null,
         },
       };

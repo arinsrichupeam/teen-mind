@@ -659,7 +659,7 @@ export const ModalExportData = ({
           prefix.find((p) => p.key === profileAdmin.prefixId?.toString())
             ?.label || "";
 
-        return `${prefixLabel} ${profileAdmin.firstname || ""} ${profileAdmin.lastname || ""}`.trim();
+        return `${prefixLabel} ${profileAdmin.firstName || ""} ${profileAdmin.lastName || ""}`.trim();
       }
 
       return `${consultId}`;
@@ -708,9 +708,9 @@ export const ModalExportData = ({
 
     if (filters.ageGroup) {
       filteredData = filteredData.filter((item: QuestionsData) => {
-        if (!item.profile?.birthday) return false;
+        if (!item.profile?.birthDate) return false;
 
-        const age = calculateAge(item.profile.birthday, item.createdAt);
+        const age = calculateAge(item.profile.birthDate, item.createdAt);
 
         return filters.ageGroup === "under18" ? age < 18 : age >= 18;
       });
@@ -755,20 +755,20 @@ export const ModalExportData = ({
           prefix.find((p) => p.key === item.profile?.prefixId?.toString())
             ?.label || "";
 
-        return `${prefixLabel} ${item.profile?.firstname || ""} ${item.profile?.lastname || ""}`;
+        return `${prefixLabel} ${item.profile?.firstName || ""} ${item.profile?.lastName || ""}`;
       case "citizenId":
         return item.profile?.citizenId;
       case "birthday": {
-        if (!item.profile?.birthday) return "-";
-        const isoDate = new Date(item.profile.birthday)
+        if (!item.profile?.birthDate) return "-";
+        const isoDate = new Date(item.profile.birthDate)
           .toISOString()
           .split("T")[0];
 
         return formatDateForDisplay(`${isoDate}T12:00:00`) || "-";
       }
       case "currentAge":
-        return item.profile?.birthday
-          ? formatAgeYMD(item.profile.birthday)
+        return item.profile?.birthDate
+          ? formatAgeYMD(item.profile.birthDate)
           : "-";
       case "assessmentRoundDate1": {
         const { screenings, legacy } = getSchoolScreenings(
@@ -952,14 +952,14 @@ export const ModalExportData = ({
       case "closeCaseReason":
         return item.close_case_reason?.trim() || "-";
       case "studentPhone":
-        return item.profile?.tel || "-";
+        return item.profile?.phone || "-";
       case "emergencyContact":
         const emergency = item.profile?.emergency?.[0];
 
         if (emergency) {
           const name = emergency.name || "";
           const relation = emergency.relation || "";
-          const tel = emergency.tel || "";
+          const tel = emergency.phone || "";
 
           return (
             `${name} - ${relation ? `${relation}` : ""} - ${tel ? `${tel}` : ""}`.trim() ||
@@ -973,17 +973,17 @@ export const ModalExportData = ({
       case "addrVillageNo":
         return item.profile?.address?.[0]?.villageNo || "-";
       case "addrSubdistrict": {
-        const sub = item.profile?.address?.[0]?.subdistrict;
+        const sub = item.profile?.address?.[0]?.subdistrictId;
 
         return sub ? getSubdistrictName(sub) : "-";
       }
       case "addrDistrict": {
-        const addrDist = item.profile?.address?.[0]?.district;
+        const addrDist = item.profile?.address?.[0]?.districtId;
 
         return addrDist ? getDistrictName(addrDist) : "-";
       }
       case "addrProvince": {
-        const addrProv = item.profile?.address?.[0]?.province;
+        const addrProv = item.profile?.address?.[0]?.provinceId;
 
         return addrProv ? getProvinceName(addrProv) : "-";
       }

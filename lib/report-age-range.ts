@@ -18,7 +18,7 @@ export function normalizeReportAgeRange(
 }
 
 export function getProfileAgeForReport(
-  birthday: Date | null,
+  birthDate: Date | null,
   screeningDate: Date | null | undefined,
   latestAssessmentCreatedAt: Date | null | undefined,
   screenings?:
@@ -29,7 +29,7 @@ export function getProfileAgeForReport(
       }[]
     | null
 ): number | null {
-  if (!birthday || !latestAssessmentCreatedAt) {
+  if (!birthDate || !latestAssessmentCreatedAt) {
     return null;
   }
 
@@ -39,7 +39,7 @@ export function getProfileAgeForReport(
     screeningDate
   );
 
-  return getAgeAtAssessment(birthday, resolved, latestAssessmentCreatedAt);
+  return getAgeAtAssessment(birthDate, resolved, latestAssessmentCreatedAt);
 }
 
 export function matchesReportAgeRange(
@@ -74,7 +74,7 @@ export async function filterProfileIdsByAgeRange(
       where: { id: { in: profileIds } },
       select: {
         id: true,
-        birthday: true,
+        birthDate: true,
         school: {
           select: {
             screeningDate: true,
@@ -86,7 +86,7 @@ export async function filterProfileIdsByAgeRange(
         },
       },
     }),
-    prisma.questions_Master.groupBy({
+    prisma.case.groupBy({
       by: ["profileId"],
       where: { profileId: { in: profileIds } },
       _max: { createdAt: true },
@@ -100,7 +100,7 @@ export async function filterProfileIdsByAgeRange(
   return profiles
     .filter((profile) => {
       const age = getProfileAgeForReport(
-        profile.birthday,
+        profile.birthDate,
         profile.school?.screeningDate ?? null,
         latestDateMap.get(profile.id) ?? null,
         profile.school?.screenings

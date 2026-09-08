@@ -187,3 +187,18 @@ Runs under PM2. Build then start the process:
 npm run build
 pm2 start yarn --name teenmind -- start   # or via teenmind-server.js at project root
 ```
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues via `gh` CLI (`arinsrichupeam/teen-mind`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+```

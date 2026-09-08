@@ -11,7 +11,7 @@ import {
   addToast,
 } from "@heroui/react";
 import React, { useEffect, useState } from "react";
-import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
+import { Affiliation, Volunteer, VolunteerType } from "@prisma/client";
 import Image from "next/image";
 
 import { prefix } from "@/utils/data";
@@ -20,9 +20,9 @@ import { generateQRCode } from "@/utils/qrcode";
 interface ReferentQRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: Referent;
+  data: Volunteer;
   affiliation: Affiliation[];
-  volunteerType: Volunteer_Type[];
+  volunteerType: VolunteerType[];
 }
 
 export default function ReferentQRCodeModal({
@@ -103,17 +103,17 @@ export default function ReferentQRCodeModal({
                 </div>
                 <span>
                   ชื่อ - นามสกุล : {prefix[data.prefixId - 1]?.label}{" "}
-                  {data.firstname} {data.lastname}
+                  {data.firstName} {data.lastName}
                 </span>
                 <span>
                   สังกัด :{" "}
-                  {affiliation.find((x) => x.id == data.affiliation_id)?.name}
+                  {affiliation.find((x) => x.id == data.affiliationId)?.name}
                 </span>
-                <span>หน่วยงาน : {data.agency}</span>
+                <span>หน่วยงาน : {data.healthcareFacilityId}</span>
                 <span>
                   ประเภทอาสาสมัคร :{" "}
                   {
-                    volunteerType.find((x) => x.id == data.volunteer_type_id)
+                    volunteerType.find((x) => x.id == data.volunteerTypeId)
                       ?.name
                   }
                 </span>

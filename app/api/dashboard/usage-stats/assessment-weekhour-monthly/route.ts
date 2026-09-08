@@ -119,7 +119,7 @@ export async function GET(req: Request) {
     Array.from({ length: 24 }, () => 0)
   );
 
-  const records = await prisma.questions_Master.findMany({
+  const records = await prisma.case.findMany({
     where: {
       createdAt: {
         gte: startUtc,

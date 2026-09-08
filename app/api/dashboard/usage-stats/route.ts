@@ -1,3 +1,4 @@
+import { ScreeningResult, Sex } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/get-session";
@@ -27,15 +28,15 @@ export async function GET() {
 
   const getRiskCounts = (result: string) => {
     switch (result) {
-      case "Green":
+      case ScreeningResult.NEGATIVE:
         return { green: 1, greenLow: 0, yellow: 0, orange: 0, red: 0 };
-      case "Green-Low":
+      case ScreeningResult.POSITIVE_LOW:
         return { green: 0, greenLow: 1, yellow: 0, orange: 0, red: 0 };
-      case "Yellow":
+      case ScreeningResult.POSITIVE_MODERATE:
         return { green: 0, greenLow: 0, yellow: 1, orange: 0, red: 0 };
-      case "Orange":
+      case ScreeningResult.POSITIVE_HIGH:
         return { green: 0, greenLow: 0, yellow: 0, orange: 1, red: 0 };
-      case "Red":
+      case ScreeningResult.POSITIVE_SEVERE:
         return { green: 0, greenLow: 0, yellow: 0, orange: 0, red: 1 };
       default:
         return { green: 0, greenLow: 0, yellow: 0, orange: 0, red: 0 };
@@ -106,12 +107,13 @@ export async function GET() {
       where: { createdAt: { gte: start, lt: end } },
       _count: { id: true },
     });
-    const male = sexGroups.find((g) => g.sex === 1)?._count.id ?? 0;
-    const female = sexGroups.find((g) => g.sex === 2)?._count.id ?? 0;
-    const unspecified = sexGroups.find((g) => g.sex === 3)?._count.id ?? 0;
+    const male = sexGroups.find((g) => g.sex === Sex.MALE)?._count.id ?? 0;
+    const female = sexGroups.find((g) => g.sex === Sex.FEMALE)?._count.id ?? 0;
+    const unspecified =
+      sexGroups.find((g) => g.sex === Sex.UNSPECIFIED)?._count.id ?? 0;
 
     // ดึง questions ที่ทำในเดือนนั้น (อ้างอิง createdAt ของ questions_Master)
-    const questionsInMonth = await prisma.questions_Master.findMany({
+    const questionsInMonth = await prisma.case.findMany({
       where: { createdAt: { gte: start, lt: end } },
       select: { profileId: true, result: true, createdAt: true },
       orderBy: { createdAt: "desc" },

@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Affiliation, Referent, Volunteer_Type } from "@prisma/client";
+import { Affiliation, Volunteer, VolunteerType } from "@prisma/client";
 import { useDisclosure } from "@heroui/react";
 
 import { ReferentQRCode } from "./ReferentQRCode";
@@ -23,8 +23,8 @@ const ProfileAvatar = () => {
   const { data: session, status } = useSession();
   const [isReferent, setIsReferent] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [referent, setReferent] = useState<Referent>(referentInitValue);
-  const [volunteerType, setVolunteerType] = useState<Volunteer_Type[]>([]);
+  const [referent, setReferent] = useState<Volunteer>(referentInitValue);
+  const [volunteerType, setVolunteerType] = useState<VolunteerType[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
   const [isQRCodeLoading, setIsQRCodeLoading] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -67,9 +67,9 @@ const ProfileAvatar = () => {
 
         const userProfile = profileData?.profile?.[0];
 
-        if (userProfile?.firstname || userProfile?.lastname) {
-          const fullName = `${userProfile.firstname ?? ""} ${
-            userProfile.lastname ?? ""
+        if (userProfile?.firstName || userProfile?.lastName) {
+          const fullName = `${userProfile.firstName ?? ""} ${
+            userProfile.lastName ?? ""
           }`.trim();
 
           setDisplayName(fullName || (session?.user?.name ?? ""));

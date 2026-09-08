@@ -766,9 +766,9 @@ export const ModalStatusUpdate = ({
                                       <TableCell className="whitespace-nowrap">
                                         {(() => {
                                           const firstname =
-                                            item.profile?.firstname ?? "";
+                                            item.profile?.firstName ?? "";
                                           const lastname =
-                                            item.profile?.lastname ?? "";
+                                            item.profile?.lastName ?? "";
                                           const prefixId =
                                             item.profile?.prefixId;
 

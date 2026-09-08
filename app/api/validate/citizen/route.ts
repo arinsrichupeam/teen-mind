@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         );
       }
     } else if (source === "admin") {
-      const existingAdmin = await prisma.profile_Admin.findFirst({
+      const existingAdmin = await prisma.profileAdmin.findFirst({
         where: {
           citizenId,
           ...(excludeId && { id: { not: excludeId } }),
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         );
       }
     } else if (source === "referent") {
-      const existingReferent = await prisma.referent.findFirst({
+      const existingReferent = await prisma.volunteer.findFirst({
         where: {
           citizenId,
           ...(excludeId && { id: { not: excludeId } }),

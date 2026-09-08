@@ -17,7 +17,7 @@ export const Step3 = ({
 }: {
   NextStep: (val: "Profile" | "Address" | "Emergency") => void;
   BackStep: (val: "Profile" | "Address" | "Emergency") => void;
-  Result: EmergencyContact | undefined;
+  Result: Partial<EmergencyContact> | undefined;
   HandleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
@@ -64,7 +64,7 @@ export const Step3 = ({
           size="sm"
           type="text"
           validate={(val) => validateTel(val.toString())}
-          value={Result?.tel}
+          value={Result?.phone}
           variant="faded"
           onChange={HandleChange}
         />

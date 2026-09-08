@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const agg = await prisma.questions_Problem.aggregate({
+  const agg = await prisma.questionProblem.aggregate({
     _sum: {
       familyRelation: true,
       familyStudyPressure: true,
@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
       lifestyleInsomnia: true,
     },
     where: createdAtFilter
-      ? { Questions_Master: { createdAt: createdAtFilter } }
+      ? { case: { createdAt: createdAtFilter } }
       : undefined,
   });
 

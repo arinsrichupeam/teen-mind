@@ -24,9 +24,9 @@ export async function GET(
       select: {
         id: true,
         userId: true,
-        birthday: true,
-        firstname: true,
-        lastname: true,
+        birthDate: true,
+        firstName: true,
+        lastName: true,
       },
     });
 

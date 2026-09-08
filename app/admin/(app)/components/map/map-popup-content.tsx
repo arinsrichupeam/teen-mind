@@ -19,7 +19,7 @@ export function getProfileName(location: MapLocation) {
     prefix.find((item) => item.key === String(location.profile.prefixId))
       ?.label ?? "";
 
-  return `${prefixLabel} ${location.profile.firstname} ${location.profile.lastname}`.trim();
+  return `${prefixLabel} ${location.profile.firstName} ${location.profile.lastName}`.trim();
 }
 
 export function buildPopupHtml(location: MapLocation) {

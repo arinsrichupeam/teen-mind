@@ -472,8 +472,8 @@ export default function QuestionPage() {
                 <DevicePhoneMobileIcon className="size-5 text-primary-500" />
               )}
               <p className="text-bold text-small">
-                {prefixLabel} {item.profile?.firstname || ""}{" "}
-                {item.profile?.lastname || ""}
+                {prefixLabel} {item.profile?.firstName || ""}{" "}
+                {item.profile?.lastName || ""}
               </p>
             </div>
           );
@@ -481,8 +481,8 @@ export default function QuestionPage() {
           return (
             <div className="flex flex-col">
               <p className="text-bold text-small">
-                {item.profile?.birthday
-                  ? calculateAge(item.profile.birthday, item.createdAt)
+                {item.profile?.birthDate
+                  ? calculateAge(item.profile.birthDate, item.createdAt)
                   : "-"}{" "}
                 ปี
               </p>

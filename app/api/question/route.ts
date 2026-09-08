@@ -1,9 +1,11 @@
 import {
+  CaseStatus,
   Prisma,
-  Questions_8Q,
-  Questions_9Q,
-  Questions_PHQA,
-  Questions_PHQA_Addon,
+  Question8Q,
+  Question9Q,
+  QuestionPhqa,
+  QuestionPhqaAddon,
+  ScreeningResult,
 } from "@prisma/client";
 
 import {
@@ -12,6 +14,8 @@ import {
 } from "../../../lib/question-followup-rounds";
 
 import { getSession, requireAdmin, requireReferent } from "@/lib/get-session";
+import { mapLegacyRiskColorToScreeningResult } from "@/lib/legacy-value-mapping";
+import { buildLegacyFollowUpStatusWhere } from "@/lib/case-status-mapping";
 import { profileHasLineLinked } from "@/lib/profile-utils";
 import { prisma } from "@/utils/prisma";
 import { LocationData, QuestionPayload, QuestionsData } from "@/types";
@@ -31,6 +35,7 @@ import {
   getMainSumFromQuestion,
   type MainAssessmentScale,
 } from "@/lib/assessment-scale";
+import { toLegacyQuestionList } from "@/lib/case-to-legacy-question";
 
 function buildWhereFromQuery(url: URL) {
   const search = url.searchParams.get("search")?.trim() || "";
@@ -75,18 +80,21 @@ function buildWhereFromQuery(url: URL) {
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
+        .map((r) => mapLegacyRiskColorToScreeningResult(r))
     : [];
   const resultNineqArray = resultNineqParam
     ? resultNineqParam
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
+        .map((r) => mapLegacyRiskColorToScreeningResult(r))
     : [];
   const resultPhqaArray = resultPhqaParam
     ? resultPhqaParam
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean)
+        .map((r) => mapLegacyRiskColorToScreeningResult(r))
     : [];
 
   const whereConditions: Record<string, unknown>[] = [];
@@ -96,8 +104,8 @@ function buildWhereFromQuery(url: URL) {
   if (search) {
     profileConditions.push({
       OR: [
-        { firstname: { contains: search } },
-        { lastname: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
       ],
     });
   }
@@ -114,7 +122,11 @@ function buildWhereFromQuery(url: URL) {
   }
 
   if (statusArray.length > 0) {
-    whereConditions.push({ status: { in: statusArray } });
+    const statusWhere = buildLegacyFollowUpStatusWhere(statusArray);
+
+    if (statusWhere) {
+      whereConditions.push(statusWhere);
+    }
   }
 
   if (excludeSchoolsArray.length > 0) {
@@ -125,18 +137,21 @@ function buildWhereFromQuery(url: URL) {
 
   if (referentCitizenId) {
     whereConditions.push({
-      referent: { citizenId: referentCitizenId },
+      volunteer: { citizenId: referentCitizenId },
     });
   }
 
   if (consultUserId) {
-    whereConditions.push({ consult: consultUserId });
+    // consult on TreatmentNote stores consultant id/name (legacy mycase filter)
+    whereConditions.push({
+      treatmentNotes: { some: { consult: consultUserId } },
+    });
   }
 
   if (referentType === "outreach") {
-    whereConditions.push({ referentId: { not: null } });
+    whereConditions.push({ volunteerId: { not: null } });
   } else if (referentType === "self") {
-    whereConditions.push({ referentId: null });
+    whereConditions.push({ volunteerId: null });
   }
 
   const hasSplitMainResult =
@@ -147,14 +162,14 @@ function buildWhereFromQuery(url: URL) {
 
     if (resultNineqArray.length > 0) {
       mainResultOr.push({
-        AND: [{ q9: { some: {} } }, { result: { in: resultNineqArray } }],
+        AND: [{ questions9Q: { some: {} } }, { result: { in: resultNineqArray } }],
       });
     }
 
     if (resultPhqaArray.length > 0) {
       mainResultOr.push({
         AND: [
-          { NOT: { q9: { some: {} } } },
+          { NOT: { questions9Q: { some: {} } } },
           { result: { in: resultPhqaArray } },
         ],
       });
@@ -171,40 +186,40 @@ function buildWhereFromQuery(url: URL) {
 
   if (q2Risk === "risk") {
     whereConditions.push({
-      q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
+      questions2Q: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
     });
   } else if (q2Risk === "no-risk") {
     whereConditions.push({
-      NOT: { q2: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
+      NOT: { questions2Q: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
     });
   }
 
   if (addonRisk === "risk") {
     whereConditions.push({
-      addon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
+      questionsPhqaAddon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } },
     });
   } else if (addonRisk === "no-risk") {
     whereConditions.push({
-      NOT: { addon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
+      NOT: { questionsPhqaAddon: { some: { OR: [{ q1: 1 }, { q2: 1 }] } } },
     });
   }
 
   /** 8Q: พบความเสี่ยงเมื่อ sum > 0 (สอดคล้องหน้า admin คอลัมน์ 8Q) */
   if (q8Risk === "risk") {
     whereConditions.push({
-      q8: { some: { sum: { gt: 0 } } },
+      questions8Q: { some: { sum: { gt: 0 } } },
     });
   } else if (q8Risk === "no-risk") {
     whereConditions.push({
-      NOT: { q8: { some: { sum: { gt: 0 } } } },
+      NOT: { questions8Q: { some: { sum: { gt: 0 } } } },
     });
   }
 
   /** แยกชุดคำถามหลัก: 9Q (มีแถว q9) กับ PHQ-A เด็กเล็ก (ไม่มี q9) */
   if (mainScale === "nineq") {
-    whereConditions.push({ q9: { some: {} } });
+    whereConditions.push({ questions9Q: { some: {} } });
   } else if (mainScale === "phqa") {
-    whereConditions.push({ NOT: { q9: { some: {} } } });
+    whereConditions.push({ NOT: { questions9Q: { some: {} } } });
   }
 
   if (whereConditions.length === 0) return undefined;
@@ -235,55 +250,28 @@ export async function GET(req: Request) {
   const where = buildWhereFromQuery(url);
 
   const [questionsList, total] = await Promise.all([
-    prisma.questions_Master.findMany({
+    prisma.case.findMany({
       skip,
       take: limit,
       ...(where && { where }),
       select: {
+      treatmentNotes: true,
         id: true,
         createdAt: true,
         result: true,
-        result_text: true,
         status: true,
-        consult: true,
-        consult2: true,
-        consult3: true,
-        schedule_telemed: true,
-        schedule_telemed2: true,
-        schedule_telemed3: true,
-        referentId: true,
-        subjective: true,
-        subjective2: true,
-        subjective3: true,
-        objective: true,
-        objective2: true,
-        objective3: true,
-        assessment: true,
-        assessment2: true,
-        assessment3: true,
-        plan: true,
-        plan2: true,
-        plan3: true,
-        note: true,
-        note2: true,
-        note3: true,
-        close_case_reason: true,
-        follow_up: true,
-        follow_up2: true,
-        follow_up3: true,
-        unreachable: true,
-        unreachable2: true,
-        unreachable3: true,
+        volunteerId: true,
+        closeCaseReason: true,
         profile: {
           select: {
             id: true,
             userId: true,
             prefixId: true,
-            firstname: true,
-            lastname: true,
-            birthday: true,
+            firstName: true,
+            lastName: true,
+            birthDate: true,
             citizenId: true,
-            tel: true,
+            phone: true,
             hn: true,
             gradeYear: true,
             sex: true,
@@ -303,22 +291,22 @@ export async function GET(req: Request) {
                 },
               },
             },
-            address: {
+            addresses: {
               select: {
                 houseNo: true,
                 villageNo: true,
                 soi: true,
                 road: true,
-                province: true,
-                district: true,
-                subdistrict: true,
+                provinceId: true,
+                districtId: true,
+                subdistrictId: true,
               },
             },
-            emergency: {
+            emergencyContacts: {
               select: {
                 id: true,
                 name: true,
-                tel: true,
+                phone: true,
                 relation: true,
               },
             },
@@ -330,15 +318,15 @@ export async function GET(req: Request) {
             },
           },
         },
-        referent: {
+        volunteer: {
           select: {
             id: true,
             citizenId: true,
-            firstname: true,
-            lastname: true,
+            firstName: true,
+            lastName: true,
           },
         },
-        phqa: {
+        questionsPhqa: {
           select: {
             q1: true,
             q2: true,
@@ -352,20 +340,18 @@ export async function GET(req: Request) {
             sum: true,
           },
         },
-        q2: {
+        questions2Q: { select: {
+            q1: true,
+            q2: true,
+          },
+        },
+        questionsPhqaAddon: {
           select: {
             q1: true,
             q2: true,
           },
         },
-        addon: {
-          select: {
-            q1: true,
-            q2: true,
-          },
-        },
-        q8: {
-          select: {
+        questions8Q: { select: {
             q1: true,
             q2: true,
             q3: true,
@@ -378,8 +364,7 @@ export async function GET(req: Request) {
             sum: true,
           },
         },
-        q9: {
-          select: {
+        questions9Q: { select: {
             q1: true,
             q2: true,
             q3: true,
@@ -392,7 +377,7 @@ export async function GET(req: Request) {
             sum: true,
           },
         },
-        problem: {
+        questionsProblem: {
           select: {
             familyRelation: true,
             familyStudyPressure: true,
@@ -425,11 +410,11 @@ export async function GET(req: Request) {
         createdAt: "desc",
       },
     }),
-    prisma.questions_Master.count(where ? { where } : undefined),
+    prisma.case.count(where ? { where } : undefined),
   ]);
 
   return Response.json({
-    questionsList,
+    questionsList: toLegacyQuestionList(questionsList),
     pagination: {
       page,
       limit,
@@ -457,10 +442,10 @@ export async function POST(req: Request) {
       select: {
         userId: true,
         hn: true,
-        firstname: true,
-        lastname: true,
-        tel: true,
-        birthday: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        birthDate: true,
         school: { select: { screeningDate: true } },
       },
     });
@@ -469,7 +454,7 @@ export async function POST(req: Request) {
       throw new Error("ไม่พบข้อมูลผู้ใช้");
     }
 
-    const age = getAgeAtAssessment(profile.birthday, new Date());
+    const age = getAgeAtAssessment(profile.birthDate, new Date());
 
     if (age === null) {
       throw new Error("ไม่พบวันเกิดสำหรับกำหนดชุดแบบประเมิน");
@@ -480,27 +465,28 @@ export async function POST(req: Request) {
     validateQuestionData(data, expectedScale);
 
     const referenceId = data.reference;
-    const Q2_data: Questions_PHQA_Addon = data.Q2;
+    const Q2_data: QuestionPhqaAddon = data.Q2;
     const location_data: LocationData | null = data.location;
 
-    const phqa_data = data.phqa as Questions_PHQA | undefined;
-    const phqaAddon_data = data.phqaAddon as Questions_PHQA_Addon | undefined;
-    const q9_data = data.q9 as Questions_9Q | undefined;
-    const q8_data = data.q8 as Questions_8Q;
+    const phqa_data = data.phqa as QuestionPhqa | undefined;
+    const phqaAddon_data = data.phqaAddon as QuestionPhqaAddon | undefined;
+    const q9_data = data.q9 as Question9Q | undefined;
+    const q8_data = data.q8 as Question8Q;
     const problem_data = data.problem as
       | (Record<string, number> & { sum?: number })
       | undefined;
 
     const scoreSum =
       expectedScale === "9Q"
-        ? SumValue9Q(q9_data as Questions_9Q)
-        : SumValue(phqa_data as Questions_PHQA);
+        ? SumValue9Q(q9_data as Question9Q)
+        : SumValue(phqa_data as QuestionPhqa);
     const q8_sum = SumValue8Q(q8_data);
 
-    const { result, result_text } = calculateMainAssessmentResult(
+    const { result: riskColor, result_text } = calculateMainAssessmentResult(
       scoreSum,
       expectedScale
     );
+    const result = mapLegacyRiskColorToScreeningResult(riskColor);
 
     const referentAuth = await requireReferent();
     const hasLine = await profileHasLineLinked(profile.userId);
@@ -542,25 +528,24 @@ export async function POST(req: Request) {
       lineUserId = UUID?.accounts?.[0]?.providerAccountId;
     }
 
-    const status = profile.hn ? 1 : 0;
-
     // บันทึกข้อมูลลงฐานข้อมูล
-    const createPayload: Prisma.Questions_MasterUncheckedCreateInput = {
+    const createPayload: Prisma.CaseUncheckedCreateInput = {
       latitude: location_data?.latitude,
       longitude: location_data?.longitude,
-      referentId: referenceId,
-      result: result,
-      result_text: result_text,
-      status: status,
+      volunteerId: referenceId ?? undefined,
+      result,
+      status: CaseStatus.PENDING,
       profileId: profileId,
-      q2: {
+      questions2Q: {
         create: {
+          round: 1,
           q1: Q2_data.q1,
           q2: Q2_data.q2,
         },
       },
-      q8: {
+      questions8Q: {
         create: {
+          round: 1,
           q1: q8_data.q1,
           q2: q8_data.q2,
           q3: q8_data.q3,
@@ -578,8 +563,9 @@ export async function POST(req: Request) {
     if (problem_data) {
       const normalizedProblemSum = calculateProblemSum(problem_data);
 
-      createPayload.problem = {
+      createPayload.questionsProblem = {
         create: {
+          round: 1,
           familyRelation: Number(problem_data.familyRelation ?? 0),
           familyStudyPressure: Number(problem_data.familyStudyPressure ?? 0),
           familyConflict: Number(problem_data.familyConflict ?? 0),
@@ -622,8 +608,9 @@ export async function POST(req: Request) {
       }
 
       // สร้าง q9 + สร้าง phqa/addon เพื่อไม่ให้หน้า admin ที่อิง phqa/addon พัง
-      createPayload.q9 = {
+      createPayload.questions9Q = {
         create: {
+          round: 1,
           q1: q9_data.q1,
           q2: q9_data.q2,
           q3: q9_data.q3,
@@ -637,8 +624,9 @@ export async function POST(req: Request) {
         },
       };
 
-      createPayload.phqa = {
+      createPayload.questionsPhqa = {
         create: {
+          round: 1,
           q1: q9_data.q1,
           q2: q9_data.q2,
           q3: q9_data.q3,
@@ -652,53 +640,56 @@ export async function POST(req: Request) {
         },
       };
 
-      createPayload.addon = {
+      createPayload.questionsPhqaAddon = {
         create: {
+          round: 1,
           q1: 0,
           q2: 0,
         },
       };
     } else {
       // PHQ-A (อายุต่ำกว่า 18 ปี)
-      createPayload.phqa = {
+      createPayload.questionsPhqa = {
         create: {
-          q1: (phqa_data as Questions_PHQA).q1,
-          q2: (phqa_data as Questions_PHQA).q2,
-          q3: (phqa_data as Questions_PHQA).q3,
-          q4: (phqa_data as Questions_PHQA).q4,
-          q5: (phqa_data as Questions_PHQA).q5,
-          q6: (phqa_data as Questions_PHQA).q6,
-          q7: (phqa_data as Questions_PHQA).q7,
-          q8: (phqa_data as Questions_PHQA).q8,
-          q9: (phqa_data as Questions_PHQA).q9,
+          round: 1,
+          q1: (phqa_data as QuestionPhqa).q1,
+          q2: (phqa_data as QuestionPhqa).q2,
+          q3: (phqa_data as QuestionPhqa).q3,
+          q4: (phqa_data as QuestionPhqa).q4,
+          q5: (phqa_data as QuestionPhqa).q5,
+          q6: (phqa_data as QuestionPhqa).q6,
+          q7: (phqa_data as QuestionPhqa).q7,
+          q8: (phqa_data as QuestionPhqa).q8,
+          q9: (phqa_data as QuestionPhqa).q9,
           sum: scoreSum,
         },
       };
 
-      createPayload.addon = {
+      createPayload.questionsPhqaAddon = {
         create: {
-          q1: (phqaAddon_data as Questions_PHQA_Addon).q1,
-          q2: (phqaAddon_data as Questions_PHQA_Addon).q2,
+          round: 1,
+          q1: (phqaAddon_data as QuestionPhqaAddon).q1,
+          q2: (phqaAddon_data as QuestionPhqaAddon).q2,
         },
       };
     }
 
-    const savedQuestion = await prisma.questions_Master.create({
+    const savedQuestion = await prisma.case.create({
       data: createPayload,
     });
 
     // ส่งข้อความผ่าน Line เฉพาะผู้ใช้ที่ทำแบบประเมินเอง (ไม่แจ้งเมื่อ admin บันทึกแทน)
     if (lineUserId && !isAdminActor) {
       const resultFlex =
-        result === "Green"
+        riskColor === "Green"
           ? GreenFlex
-          : result === "Green-Low"
+          : riskColor === "Green-Low"
             ? GreenLowFlex
-            : result === "Yellow"
+            : riskColor === "Yellow"
               ? YellowFlex
-              : result === "Orange"
+              : riskColor === "Orange"
                 ? OrangeFlex
-                : result === "Red"
+                : riskColor === "Red"
                   ? RedFlex
                   : null;
 
@@ -708,9 +699,9 @@ export async function POST(req: Request) {
     }
 
     // เมื่อผลประเมินเป็น Red: แจ้งเตือนไปยัง Line ของ admin ที่เปิดรับแจ้งเตือน (alert = true)
-    if (result === "Red") {
-      const adminsWithAlert = await prisma.profile_Admin.findMany({
-        where: { alert: true },
+    if (result === ScreeningResult.POSITIVE_SEVERE) {
+      const adminsWithAlert = await prisma.profileAdmin.findMany({
+        where: { receiveAlert: true },
         select: {
           userId: true,
         },
@@ -727,9 +718,9 @@ export async function POST(req: Request) {
         });
 
         const profileDisplayName =
-          `${profile.firstname ?? ""} ${profile.lastname ?? ""}`.trim() ||
+          `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() ||
           "ไม่ระบุชื่อ";
-        const profileTel = profile.tel ?? "ไม่ระบุเบอร์";
+        const profileTel = profile.phone ?? "ไม่ระบุเบอร์";
         const baseUrl = (process.env.NEXTAUTH_URL ?? "").replace(/\/$/, "");
         const alertCaseUrl = baseUrl
           ? `${baseUrl}/admin/alert/${savedQuestion.id}`
@@ -748,7 +739,15 @@ export async function POST(req: Request) {
       }
     }
 
-    return Response.json({ success: true, data: savedQuestion });
+    return Response.json({
+      success: true,
+      data: {
+        ...savedQuestion,
+        // LIFF risk UI still keys off legacy color labels
+        result: riskColor,
+        result_text,
+      },
+    });
   } catch (error) {
     return Response.json(
       {
@@ -775,64 +774,36 @@ export async function PUT(req: Request) {
     const question: QuestionsData = data;
 
     const { sum: mainScreeningSum, scale } = getMainScreeningData(question);
-    const { result, result_text } = calculateMainAssessmentResult(
+    const { result: riskColor } = calculateMainAssessmentResult(
       mainScreeningSum,
       scale
     );
+    const result = mapLegacyRiskColorToScreeningResult(riskColor);
 
-    // อัปเดตข้อมูลหลัก
-    const updatedQuestion = await prisma.questions_Master.update({
+    // อัปเดตข้อมูลหลัก (TreatmentNote flat fields → follow-up cutover)
+    const updatedQuestion = await prisma.case.update({
       where: {
         id: question.id,
       },
       data: {
-        consult: question.consult,
-        consult2: question.consult2,
-        consult3: question.consult3,
-        schedule_telemed: question.schedule_telemed,
-        schedule_telemed2: question.schedule_telemed2,
-        schedule_telemed3: question.schedule_telemed3,
-        subjective: question.subjective,
-        subjective2: question.subjective2,
-        subjective3: question.subjective3,
-        objective: question.objective,
-        objective2: question.objective2,
-        objective3: question.objective3,
-        assessment: question.assessment,
-        assessment2: question.assessment2,
-        assessment3: question.assessment3,
-        plan: question.plan,
-        plan2: question.plan2,
-        plan3: question.plan3,
-        note: question.note,
-        note2: question.note2,
-        note3: question.note3,
-        close_case_reason: question.close_case_reason,
-        follow_up: question.follow_up,
-        follow_up2: question.follow_up2,
-        follow_up3: question.follow_up3,
-        unreachable: Boolean(question.unreachable),
-        unreachable2: Boolean(question.unreachable2),
-        unreachable3: Boolean(question.unreachable3),
-        status: CalStatus(question),
-        result: result,
-        result_text: result_text,
+        closeCaseReason: question.close_case_reason,
+        result,
       },
     });
 
     const q2Promise =
       question.q2 && question.q2.length > 0
         ? (async () => {
-            const existingQ2 = await prisma.questions_2Q.findFirst({
+            const existingQ2 = await prisma.question2Q.findFirst({
               where: {
-                questions_MasterId: question.id,
+                caseId: question.id,
               },
             });
 
             if (existingQ2) {
-              await prisma.questions_2Q.updateMany({
+              await prisma.question2Q.updateMany({
                 where: {
-                  questions_MasterId: question.id,
+                  caseId: question.id,
                 },
                 data: {
                   q1: question.q2[0].q1,
@@ -840,9 +811,10 @@ export async function PUT(req: Request) {
                 },
               });
             } else {
-              await prisma.questions_2Q.create({
+              await prisma.question2Q.create({
                 data: {
-                  questions_MasterId: question.id,
+                  round: 1,
+                  caseId: question.id,
                   q1: question.q2[0].q1,
                   q2: question.q2[0].q2,
                 },
@@ -854,16 +826,16 @@ export async function PUT(req: Request) {
     const phqaPromise =
       question.phqa && question.phqa.length > 0
         ? (async () => {
-            const existingPhqa = await prisma.questions_PHQA.findFirst({
+            const existingPhqa = await prisma.questionPhqa.findFirst({
               where: {
-                questions_MasterId: question.id,
+                caseId: question.id,
               },
             });
 
             if (existingPhqa) {
-              await prisma.questions_PHQA.updateMany({
+              await prisma.questionPhqa.updateMany({
                 where: {
-                  questions_MasterId: question.id,
+                  caseId: question.id,
                 },
                 data: {
                   q1: question.phqa[0].q1,
@@ -879,9 +851,10 @@ export async function PUT(req: Request) {
                 },
               });
             } else {
-              await prisma.questions_PHQA.create({
+              await prisma.questionPhqa.create({
                 data: {
-                  questions_MasterId: question.id,
+                  round: 1,
+                  caseId: question.id,
                   q1: question.phqa[0].q1,
                   q2: question.phqa[0].q2,
                   q3: question.phqa[0].q3,
@@ -901,16 +874,16 @@ export async function PUT(req: Request) {
     const addonPromise =
       question.addon && question.addon.length > 0
         ? (async () => {
-            const existingAddon = await prisma.questions_PHQA_Addon.findFirst({
+            const existingAddon = await prisma.questionPhqaAddon.findFirst({
               where: {
-                questions_MasterId: question.id,
+                caseId: question.id,
               },
             });
 
             if (existingAddon) {
-              await prisma.questions_PHQA_Addon.updateMany({
+              await prisma.questionPhqaAddon.updateMany({
                 where: {
-                  questions_MasterId: question.id,
+                  caseId: question.id,
                 },
                 data: {
                   q1: question.addon[0].q1,
@@ -918,9 +891,10 @@ export async function PUT(req: Request) {
                 },
               });
             } else {
-              await prisma.questions_PHQA_Addon.create({
+              await prisma.questionPhqaAddon.create({
                 data: {
-                  questions_MasterId: question.id,
+                  round: 1,
+                  caseId: question.id,
                   q1: question.addon[0].q1,
                   q2: question.addon[0].q2,
                 },
@@ -937,18 +911,18 @@ export async function PUT(req: Request) {
             const q8_sum = SumValue8Q({
               ...row,
               q8Addon: q8AddonStored,
-            } as Questions_8Q);
+            } as Question8Q);
 
-            const existingQ8 = await prisma.questions_8Q.findFirst({
+            const existingQ8 = await prisma.question8Q.findFirst({
               where: {
-                questions_MasterId: question.id,
+                caseId: question.id,
               },
             });
 
             if (existingQ8) {
-              await prisma.questions_8Q.updateMany({
+              await prisma.question8Q.updateMany({
                 where: {
-                  questions_MasterId: question.id,
+                  caseId: question.id,
                 },
                 data: {
                   q1: row.q1,
@@ -964,9 +938,10 @@ export async function PUT(req: Request) {
                 },
               });
             } else {
-              await prisma.questions_8Q.create({
+              await prisma.question8Q.create({
                 data: {
-                  questions_MasterId: question.id,
+                  round: 1,
+                  caseId: question.id,
                   q1: row.q1,
                   q2: row.q2,
                   q3: row.q3,
@@ -1014,7 +989,17 @@ function getMainScreeningData(question: QuestionsData): {
   const sum = getMainSumFromQuestion(q9Row?.sum, phqaRow?.sum) ?? 0;
 
   const age = getAgeAtAssessment(
-    question.profile?.birthday,
+    (
+      question.profile as unknown as {
+        birthDate?: Date;
+        birthday?: Date;
+      } | null
+    )?.birthDate ??
+      (
+        question.profile as unknown as {
+          birthday?: Date;
+        } | null
+      )?.birthday,
     question.createdAt
   );
 
@@ -1039,7 +1024,7 @@ function CalStatus(value: QuestionsData) {
   return 1;
 }
 
-function SumValue(value: Questions_PHQA) {
+function SumValue(value: QuestionPhqa) {
   const { q1, q2, q3, q4, q5, q6, q7, q8, q9 } = value;
 
   const PHQA_SUM =
@@ -1056,7 +1041,7 @@ function SumValue(value: Questions_PHQA) {
   return PHQA_SUM;
 }
 
-function SumValue9Q(value: Questions_9Q) {
+function SumValue9Q(value: Question9Q) {
   const { q1, q2, q3, q4, q5, q6, q7, q8, q9 } = value;
 
   return (
@@ -1072,8 +1057,8 @@ function SumValue9Q(value: Questions_9Q) {
   );
 }
 
-function SumValue8Q(value: Questions_8Q) {
-  // q1..q8 ตามฟิลด์ + q8Addon (เมื่อ q3=6); q3 เป็นคะแนนข้อ 3 (0 หรือ 6) ต้องรวมใน sum
+function SumValue8Q(value: Question8Q) {
+  // q1..questions8Q ตามฟิลด์ + q8Addon (เมื่อ q3=6); q3 เป็นคะแนนข้อ 3 (0 หรือ 6) ต้องรวมใน sum
   return (
     Number(value.q1 ?? 0) +
     Number(value.q2 ?? 0) +

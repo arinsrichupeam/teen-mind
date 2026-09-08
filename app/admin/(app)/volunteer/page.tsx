@@ -14,9 +14,9 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import {
-  Referent,
-  Volunteer_Type,
-  Employee_Type,
+  Volunteer,
+  VolunteerType,
+  EmployeeType,
   Affiliation,
 } from "@prisma/client";
 
@@ -25,9 +25,9 @@ import { AuthGuard } from "../components/auth-guard";
 
 import { VolunteerColumnsName as columns } from "@/app/admin/(app)/data/tableColumn";
 
-type ReferentWithRelations = Referent & {
-  volunteer_type: Volunteer_Type;
-  employee_type: Employee_Type;
+type ReferentWithRelations = Volunteer & {
+  volunteer_type: VolunteerType;
+  employee_type: EmployeeType;
   affiliation: Affiliation;
   prefix: string;
   question_count: number;
@@ -81,7 +81,7 @@ export default function VolunteerPage() {
 
   // กรองข้อมูลตามคำค้นหา
   const filteredReferents = referents.filter((referent) =>
-    `${referent.firstname} ${referent.lastname}`
+    `${referent.firstName} ${referent.lastName}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -153,7 +153,7 @@ export default function VolunteerPage() {
         <div className="max-w-[95rem] mx-auto w-full">
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
-              aria-label="Referent Table"
+              aria-label="Volunteer Table"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
             >

@@ -1,6 +1,11 @@
+import { ScreeningResult } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { computePsychologistProductivity } from "@/lib/dashboard/psychologist-productivity";
+import { flattenTreatmentNotes } from "@/lib/case-flat";
+import {
+  computePsychologistProductivity,
+  type QuestionLike,
+} from "@/lib/dashboard/psychologist-productivity";
 import {
   formatThaiDateLabel,
   parseDateParam,
@@ -41,51 +46,29 @@ export async function GET(req: Request) {
     }
   }
 
-  const [questions, admins] = await Promise.all([
-    prisma.questions_Master.findMany({
+  const [cases, admins] = await Promise.all([
+    prisma.case.findMany({
       where: {
         OR: [
-          { consult: { not: null } },
-          { consult2: { not: null } },
-          { consult3: { not: null } },
-          { result: "Red" },
+          { treatmentNotes: { some: {} } },
+          { result: ScreeningResult.POSITIVE_SEVERE },
         ],
       },
       select: {
+        treatmentNotes: true,
         id: true,
         profileId: true,
         status: true,
         createdAt: true,
         result: true,
-        consult: true,
-        consult2: true,
-        consult3: true,
-        schedule_telemed: true,
-        schedule_telemed2: true,
-        schedule_telemed3: true,
-        subjective: true,
-        objective: true,
-        assessment: true,
-        plan: true,
-        subjective2: true,
-        objective2: true,
-        assessment2: true,
-        plan2: true,
-        subjective3: true,
-        objective3: true,
-        assessment3: true,
-        plan3: true,
-        unreachable: true,
-        unreachable2: true,
-        unreachable3: true,
       },
     }),
-    prisma.profile_Admin.findMany({
+    prisma.profileAdmin.findMany({
       select: {
         userId: true,
         prefixId: true,
-        firstname: true,
-        lastname: true,
+        firstName: true,
+        lastName: true,
       },
     }),
   ]);
@@ -95,12 +78,45 @@ export async function GET(req: Request) {
       admin.userId,
       {
         prefixId: admin.prefixId,
-        firstname: admin.firstname,
-        lastname: admin.lastname,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
       },
     ])
   );
   const prefixMap = new Map(prefix.map((p) => [p.key, p.label]));
+
+  const questions: QuestionLike[] = cases.map((c) => {
+    const flat = flattenTreatmentNotes(c.treatmentNotes);
+
+    return {
+      id: c.id,
+      profileId: c.profileId,
+      createdAt: c.createdAt,
+      status: null,
+      result: c.result,
+      consult: (flat.consult as string | null) ?? null,
+      consult2: (flat.consult2 as string | null) ?? null,
+      consult3: (flat.consult3 as string | null) ?? null,
+      schedule_telemed: (flat.schedule_telemed as Date | null) ?? null,
+      schedule_telemed2: (flat.schedule_telemed2 as Date | null) ?? null,
+      schedule_telemed3: (flat.schedule_telemed3 as Date | null) ?? null,
+      subjective: (flat.subjective as string | null) ?? null,
+      objective: (flat.objective as string | null) ?? null,
+      assessment: (flat.assessment as string | null) ?? null,
+      plan: (flat.plan as string | null) ?? null,
+      subjective2: (flat.subjective2 as string | null) ?? null,
+      objective2: (flat.objective2 as string | null) ?? null,
+      assessment2: (flat.assessment2 as string | null) ?? null,
+      plan2: (flat.plan2 as string | null) ?? null,
+      subjective3: (flat.subjective3 as string | null) ?? null,
+      objective3: (flat.objective3 as string | null) ?? null,
+      assessment3: (flat.assessment3 as string | null) ?? null,
+      plan3: (flat.plan3 as string | null) ?? null,
+      unreachable: (flat.unreachable as boolean | null) ?? null,
+      unreachable2: (flat.unreachable2 as boolean | null) ?? null,
+      unreachable3: (flat.unreachable3 as boolean | null) ?? null,
+    };
+  });
 
   const stats = computePsychologistProductivity(
     questions,

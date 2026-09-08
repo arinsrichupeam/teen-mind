@@ -1,7 +1,7 @@
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
-  const data = await prisma.employee_Type.findMany({
+  const data = await prisma.employeeType.findMany({
     where: {
       status: true,
     },

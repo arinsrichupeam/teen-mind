@@ -30,15 +30,15 @@ export function getAssessmentFlowGroupFromAge(
 }
 
 export function getAgeAtAssessment(
-  birthday: Date | string | null | undefined,
+  birthDate: Date | string | null | undefined,
   referenceDate?: Date | string | null,
   fallbackDate?: Date | string | null
 ): number | null {
-  if (!birthday) return null;
+  if (!birthDate) return null;
 
   const target = referenceDate ?? fallbackDate ?? new Date();
   const age = calculateAge(
-    birthday instanceof Date ? birthday.toISOString() : String(birthday),
+    birthDate instanceof Date ? birthDate.toISOString() : String(birthDate),
     target instanceof Date ? target : target
   );
 

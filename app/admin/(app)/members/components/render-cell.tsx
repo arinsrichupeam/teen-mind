@@ -15,18 +15,21 @@ import { userStatusOptions as statusOptions } from "../../data/optionData";
 
 import { prefix } from "@/utils/data";
 
-/** แถวสมาชิกที่แสดงในตาราง (Profile_Admin + user, role จาก API) */
+/** แถวสมาชิกที่แสดงในตาราง (ProfileAdmin + user, role จาก API) */
 interface MemberRow extends Record<string, unknown> {
   id: string;
   userId?: string;
   prefixId: number;
-  firstname: string;
-  lastname: string;
+  firstName: string;
+  lastName: string;
   professional?: string | null;
+  profession?: string | null;
   affiliationId: number;
-  agency: string;
-  status: number;
-  alert: boolean;
+  agency?: string;
+  healthcareFacilityId?: string;
+  healthcareFacility?: { name?: string } | null;
+  status: number | string;
+  receiveAlert: boolean;
   user?: { image: string };
   role?: { name: string };
 }
@@ -69,9 +72,9 @@ export const RenderCell = ({
             name={
               prefix.find((val) => val.key == data.prefixId.toString())?.label +
               " " +
-              data.firstname +
+              data.firstName +
               " " +
-              data.lastname
+              data.lastName
             }
           />
         </div>
@@ -79,7 +82,7 @@ export const RenderCell = ({
     case "professional":
       return (
         <div>
-          <span>{data.professional ?? ""}</span>
+          <span>{data.profession ?? data.professional ?? ""}</span>
         </div>
       );
     case "affiliation":
@@ -93,7 +96,9 @@ export const RenderCell = ({
     case "agency":
       return (
         <div>
-          <span>{data.agency}</span>
+          <span>
+            {data.healthcareFacility?.name ?? data.agency ?? ""}
+          </span>
         </div>
       );
     case "role":
@@ -129,7 +134,7 @@ export const RenderCell = ({
       return (
         <div className="flex justify-center">
           <span>
-            {data.alert ? (
+            {data.receiveAlert ? (
               <BellAlertIcon className="size-6 text-red-500" />
             ) : (
               <BellIcon className="size-6 text-gray-400" />

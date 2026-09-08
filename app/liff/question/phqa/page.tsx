@@ -6,10 +6,10 @@ import { Tab, Tabs } from "@heroui/tabs";
 import { Progress } from "@heroui/progress";
 import { Image } from "@heroui/image";
 import {
-  Questions_8Q,
-  Questions_9Q,
-  Questions_PHQA,
-  Questions_PHQA_Addon,
+  Question8Q,
+  Question9Q,
+  QuestionPhqa,
+  QuestionPhqaAddon,
 } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,9 +82,10 @@ export default function PHQAPage() {
     />
   ));
 
-  const phqaInitValue: Questions_PHQA = {
+  const phqaInitValue: QuestionPhqa = {
     id: "",
-    questions_MasterId: "",
+    caseId: "",
+    round: 1,
     q1: 99,
     q2: 99,
     q3: 99,
@@ -95,25 +96,34 @@ export default function PHQAPage() {
     q8: 99,
     q9: 99,
     sum: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const Q2InitValue: Questions_PHQA_Addon = {
+  const Q2InitValue: QuestionPhqaAddon = {
     id: "",
-    questions_MasterId: "",
+    caseId: "",
+    round: 1,
     q1: 99,
     q2: 99,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const phqaAddonInitValue: Questions_PHQA_Addon = {
+  const phqaAddonInitValue: QuestionPhqaAddon = {
     id: "",
-    questions_MasterId: "",
+    caseId: "",
+    round: 1,
     q1: 99,
     q2: 99,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const q9InitValue: Questions_9Q = {
+  const q9InitValue: Question9Q = {
     id: "",
-    questions_MasterId: "",
+    caseId: "",
+    round: 1,
     q1: 99,
     q2: 99,
     q3: 99,
@@ -124,11 +134,14 @@ export default function PHQAPage() {
     q8: 99,
     q9: 99,
     sum: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const q8InitValue: Questions_8Q = {
+  const q8InitValue: Question8Q = {
     id: "",
-    questions_MasterId: "",
+    caseId: "",
+    round: 1,
     q1: 99,
     q2: 99,
     q3: 99,
@@ -140,6 +153,8 @@ export default function PHQAPage() {
     q8: 99,
     q8Addon: 99,
     sum: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const problemInitValue: ProblemPayload = {
@@ -197,12 +212,12 @@ export default function PHQAPage() {
     [key: string]: string;
   }>({});
 
-  const [phqa_data, setPHQA] = useState<Questions_PHQA>(phqaInitValue);
-  const [Q2_data, setQ2] = useState<Questions_PHQA_Addon>(Q2InitValue);
+  const [phqa_data, setPHQA] = useState<QuestionPhqa>(phqaInitValue);
+  const [Q2_data, setQ2] = useState<QuestionPhqaAddon>(Q2InitValue);
   const [phqaAddon_data, setPHQAAddon] =
-    useState<Questions_PHQA_Addon>(phqaAddonInitValue);
-  const [q9_data, setQ9] = useState<Questions_9Q>(q9InitValue);
-  const [q8_data, setQ8] = useState<Questions_8Q>(q8InitValue);
+    useState<QuestionPhqaAddon>(phqaAddonInitValue);
+  const [q9_data, setQ9] = useState<Question9Q>(q9InitValue);
+  const [q8_data, setQ8] = useState<Question8Q>(q8InitValue);
   const [problem_data, setProblem] = useState<ProblemPayload>(problemInitValue);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -347,11 +362,11 @@ export default function PHQAPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const applyProfileContext = useCallback(
-    (id: string, birthday: string | Date | null | undefined) => {
+    (id: string, birthDate: string | Date | null | undefined) => {
       setProfileIdState(id);
 
-      if (birthday) {
-        const age = calculateAge(String(birthday));
+      if (birthDate) {
+        const age = calculateAge(String(birthDate));
 
         // spec: อายุ < 18 -> PHQ-A, อายุ >= 18 -> 9Q
         setAgeGroup(getAssessmentFlowGroupFromAge(age));
@@ -380,10 +395,10 @@ export default function PHQAPage() {
         const response = await fetch(`/api/profile/user/${id}`);
         const data = await response.json();
 
-        if (data?.profile.length === 0) {
+        if (!data?.profile?.length) {
           router.push("/liff/privacy");
         } else {
-          applyProfileContext(data.profile[0].id, data.profile[0].birthday);
+          applyProfileContext(data.profile[0].id, data.profile[0].birthDate);
         }
       } catch (error) {
         setErrorMessage(
@@ -410,7 +425,7 @@ export default function PHQAPage() {
 
         const data = await response.json();
 
-        applyProfileContext(data.id, data.birthday);
+        applyProfileContext(data.id, data.birthDate);
       } catch (error) {
         setErrorMessage(
           "เกิดข้อผิดพลาดในการโหลดข้อมูลวัยรุ่น กรุณาลองใหม่อีกครั้ง" + error
@@ -476,7 +491,7 @@ export default function PHQAPage() {
       try {
         const response = await fetch(`/api/data/referent/${referentId}`);
         const data = await response.json();
-        const fullName = data[0].firstname + " " + data[0].lastname;
+        const fullName = data[0].firstName + " " + data[0].lastName;
         const affiliation = data[0].affiliation.name;
         const agency = data[0].agency;
 
@@ -561,10 +576,10 @@ export default function PHQAPage() {
 
         // คำนวณผลรวมของคำตอบ PHQ-A
         const sum = Object.keys(newData)
-          .filter((key) => key.startsWith("q") && key !== "questions_MasterId")
+          .filter((key) => key.startsWith("q") && key !== "caseId")
           .reduce(
             (acc: number, key: string) =>
-              acc + (Number(newData[key as keyof Questions_PHQA]) || 0),
+              acc + (Number(newData[key as keyof QuestionPhqa]) || 0),
             0
           );
 
@@ -640,7 +655,7 @@ export default function PHQAPage() {
         const newData = {
           ...prev,
           [name]: parseInt(value, 10),
-        } as Questions_9Q;
+        } as Question9Q;
 
         // คำนวณผลรวม q1..q9
         const q9Keys = [
@@ -670,7 +685,7 @@ export default function PHQAPage() {
   const q8Change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const Question = parseInt(e.target.name, 10); // 1..8 (ฟิลด์ q1..q8)
-      const name = ("q" + e.target.name) as keyof Questions_8Q;
+      const name = ("q" + e.target.name) as keyof Question8Q;
       const value = parseInt(e.target.value, 10);
 
       setCurrentAnswer(value.toString());
@@ -686,7 +701,7 @@ export default function PHQAPage() {
           ...prev,
           [name]: value,
           ...(Question === 3 && value === 0 ? { q8Addon: 0 } : {}),
-        } as Questions_8Q;
+        } as Question8Q;
 
         const sum =
           Number(updated.q1 ?? 0) +
@@ -972,7 +987,7 @@ export default function PHQAPage() {
     if (ageGroup === "phqa") {
       // ตรวจสอบ PHQ-A (PHQA)
       const phqaAnswers = Object.entries(phqa_data)
-        .filter(([key]) => key.startsWith("q") && key !== "questions_MasterId")
+        .filter(([key]) => key.startsWith("q") && key !== "caseId")
         .map(([_, value]) => Number(value));
 
       const hasAllPhqaAnswers = phqaAnswers.every(
@@ -1026,7 +1041,7 @@ export default function PHQAPage() {
     } else {
       // over12: ตรวจสอบ 9Q
       const q9Answers = Object.entries(q9_data)
-        .filter(([key]) => key.startsWith("q") && key !== "questions_MasterId")
+        .filter(([key]) => key.startsWith("q") && key !== "caseId")
         .map(([_, value]) => Number(value));
 
       const hasAllQ9Answers = q9Answers.every(
@@ -1555,7 +1570,7 @@ export default function PHQAPage() {
                   : showQ9
                     ? q9Questions.map((val, index) => {
                         const questionNumber = index + 1;
-                        const qKey = `q${questionNumber}` as keyof Questions_9Q;
+                        const qKey = `q${questionNumber}` as keyof Question9Q;
                         const radioValue =
                           q9_data[qKey] === 99 ? "" : String(q9_data[qKey]);
 
@@ -1625,7 +1640,7 @@ export default function PHQAPage() {
                             questionNumber: number
                           ) => {
                             const qKey =
-                              `q${questionNumber}` as keyof Questions_8Q;
+                              `q${questionNumber}` as keyof Question8Q;
                             const radioValue =
                               q8_data[qKey] === 99 ? "" : String(q8_data[qKey]);
                             const yesWeight =

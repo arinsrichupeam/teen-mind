@@ -1,4 +1,4 @@
-import { Referent } from "@prisma/client";
+import { Volunteer } from "@prisma/client";
 
 import { requireAdmin } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
@@ -10,7 +10,7 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const data = await prisma.referent.findMany({
+  const data = await prisma.volunteer.findMany({
     where: {
       status: true,
     },
@@ -24,22 +24,47 @@ export async function POST(req: Request) {
 
   let userId = "";
 
-  const referent: Referent = data.referent_data;
+  const volunteer: Volunteer = data.referent_data;
 
-  await prisma.referent
+  await prisma.volunteer
     .create({
       data: {
-        citizenId: referent.citizenId.toString(),
-        prefixId: parseInt(referent.prefixId.toString()),
-        firstname: referent.firstname,
-        lastname: referent.lastname,
-        email: referent.email,
-        tel: referent.tel,
-        volunteer_type_id: parseInt(referent.volunteer_type_id.toString()),
-        employee_type_id: parseInt(referent.employee_type_id.toString()),
-        affiliation_id: parseInt(referent.affiliation_id.toString()),
-        agency: referent.agency,
-        status: referent.status,
+        citizenId: volunteer.citizenId.toString(),
+        prefixId: parseInt(volunteer.prefixId.toString()),
+        firstName: volunteer.firstName,
+        lastName: volunteer.lastName,
+        email: volunteer.email,
+        phone: volunteer.phone,
+        volunteerTypeId: parseInt(
+          String(
+            (volunteer as Volunteer & { volunteer_type_id?: number })
+              .volunteerTypeId ??
+              (volunteer as Volunteer & { volunteer_type_id?: number })
+                .volunteer_type_id
+          )
+        ),
+        employeeTypeId: parseInt(
+          String(
+            (volunteer as Volunteer & { employee_type_id?: number })
+              .employeeTypeId ??
+              (volunteer as Volunteer & { employee_type_id?: number })
+                .employee_type_id
+          )
+        ),
+        affiliationId: parseInt(
+          String(
+            (volunteer as Volunteer & { affiliation_id?: number })
+              .affiliationId ??
+              (volunteer as Volunteer & { affiliation_id?: number })
+                .affiliation_id
+          )
+        ),
+        healthcareFacilityId: String(
+          (volunteer as Volunteer & { agency?: string }).healthcareFacilityId ??
+            (volunteer as Volunteer & { agency?: string }).agency ??
+            ""
+        ),
+        status: volunteer.status,
       },
     })
     .then((val) => {

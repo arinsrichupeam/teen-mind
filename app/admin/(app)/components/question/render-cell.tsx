@@ -58,16 +58,16 @@ export const RenderCell = ({
           <p>
             {prefix.find((val) => val.key == data.profile.prefixId)?.label +
               " " +
-              data.profile.firstname +
+              data.profile.firstName +
               " " +
-              data.profile.lastname}
+              data.profile.lastName}
           </p>
         </div>
       );
     case "age":
       return (
         <div>
-          <span>{calculateAge(data.profile.birthday, data.createdAt)} ปี</span>
+          <span>{calculateAge(data.profile.birthDate, data.createdAt)} ปี</span>
         </div>
       );
     case "school":

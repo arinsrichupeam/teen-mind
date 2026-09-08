@@ -1,6 +1,7 @@
 import { Address, Profile, EmergencyContact } from "@prisma/client";
 
 import { getSession } from "@/lib/get-session";
+import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
 import { prisma } from "@/utils/prisma";
 import { validateBirthdayValue } from "@/utils/helper";
 
@@ -61,8 +62,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const birthdayValue = (profileRaw as { birthday?: string | Date | null })
-    .birthday;
+  const birthdayValue = (
+    profileRaw as { birthday?: string | Date | null; birthDate?: string | Date | null }
+  ).birthDate ?? (profileRaw as { birthday?: string | Date | null }).birthday;
 
   const birthdayValidationError = validateBirthdayValue(birthdayValue);
 
@@ -82,15 +84,16 @@ export async function POST(req: Request) {
   const profile: Profile = {
     ...profileRaw,
     userId,
-    birthday,
+    birthDate: birthday,
+    sex: mapLegacySexToSex(profileRaw.sex),
   } as Profile;
 
   const rawAddress = data.register_address;
   const rawEmergency = data.register_emergency;
 
-  const provinceNum = Number(rawAddress?.province);
-  const districtNum = Number(rawAddress?.district);
-  const subdistrictNum = Number(rawAddress?.subdistrict);
+  const provinceNum = Number(rawAddress?.provinceId);
+  const districtNum = Number(rawAddress?.districtId);
+  const subdistrictNum = Number(rawAddress?.subdistrictId);
 
   if (
     typeof rawAddress?.houseNo !== "string" ||
@@ -115,15 +118,15 @@ export async function POST(req: Request) {
     villageNo: String(rawAddress.villageNo).trim() || "",
     soi: String(rawAddress.soi).trim() || "",
     road: String(rawAddress.road).trim() || "",
-    province: provinceNum,
-    district: districtNum,
-    subdistrict: subdistrictNum,
+    provinceId: provinceNum,
+    districtId: districtNum,
+    subdistrictId: subdistrictNum,
   };
 
   const emergencyName =
     rawEmergency?.name != null ? String(rawEmergency.name).trim() : "";
   const emergencyTel =
-    rawEmergency?.tel != null ? String(rawEmergency.tel).trim() : "";
+    rawEmergency?.phone != null ? String(rawEmergency.phone).trim() : "";
   const emergencyRelation =
     rawEmergency?.relation != null ? String(rawEmergency.relation).trim() : "";
 
@@ -136,7 +139,7 @@ export async function POST(req: Request) {
 
   const emergencyForCreate = {
     name: emergencyName,
-    tel: emergencyTel,
+    phone: emergencyTel,
     relation: emergencyRelation,
   };
 
@@ -174,7 +177,7 @@ export async function POST(req: Request) {
       : null;
 
   if (referentId == null && existingUserProfile?.citizenId) {
-    const refRecord = await prisma.referent.findUnique({
+    const refRecord = await prisma.volunteer.findUnique({
       where: {
         citizenId: existingUserProfile.citizenId,
       },
@@ -194,32 +197,32 @@ export async function POST(req: Request) {
     citizenId: profile.citizenId,
     prefixId: profile.prefixId,
     sex: profile.sex,
-    firstname: profile.firstname,
-    lastname: profile.lastname,
-    birthday: profile.birthday,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    birthDate: profile.birthDate,
     ethnicity: profile.ethnicity,
     nationality: profile.nationality,
-    tel: profile.tel,
+    phone: profile.phone,
     hn: profile.hn?.trim() || "",
     schoolId,
     gradeYear: gradeYear ?? undefined,
-    address: {
+    addresses: {
       create: [
         {
           houseNo: addressForCreate.houseNo,
           villageNo: addressForCreate.villageNo,
           soi: addressForCreate.soi,
           road: addressForCreate.road,
-          province: addressForCreate.province,
-          district: addressForCreate.district,
-          subdistrict: addressForCreate.subdistrict,
+          provinceId: addressForCreate.provinceId,
+          districtId: addressForCreate.districtId,
+          subdistrictId: addressForCreate.subdistrictId,
         },
       ],
     },
-    emergency: {
+    emergencyContacts: {
       create: {
         name: emergencyForCreate.name,
-        tel: emergencyForCreate.tel,
+        phone: emergencyForCreate.phone,
         relation: emergencyForCreate.relation,
       },
     },
@@ -244,7 +247,7 @@ export async function POST(req: Request) {
       },
       data: {
         profile: {
-          create: [youthProfileData],
+          create: youthProfileData,
         },
       },
       include: {
@@ -253,7 +256,7 @@ export async function POST(req: Request) {
     });
 
     return Response.json({
-      profile: profileData.profile[0],
+      profile: profileData.profile,
       ref: "",
       isReferentYouth: false,
     });

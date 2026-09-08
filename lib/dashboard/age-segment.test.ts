@@ -8,12 +8,12 @@ function makeRow(
   mainSum: number,
   result = "Green"
 ): AgeSegmentRow {
-  const birthday = new Date();
+  const birthDate = new Date();
 
-  birthday.setFullYear(birthday.getFullYear() - ageYearsAgo);
+  birthDate.setFullYear(birthDate.getFullYear() - ageYearsAgo);
 
   return {
-    birthday,
+    birthDate,
     screeningDate: null,
     questionCreatedAt: new Date(),
     result,

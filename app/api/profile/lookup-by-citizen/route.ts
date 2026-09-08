@@ -36,9 +36,9 @@ export async function POST(req: Request) {
     where: { citizenId },
     select: {
       id: true,
-      firstname: true,
-      lastname: true,
-      birthday: true,
+      firstName: true,
+      lastName: true,
+      birthDate: true,
       userId: true,
     },
   });
@@ -61,9 +61,9 @@ export async function POST(req: Request) {
     referentId: referentAuth.referent.id,
     profile: {
       id: profile.id,
-      firstname: profile.firstname,
-      lastname: profile.lastname,
-      birthday: profile.birthday,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      birthDate: profile.birthDate,
     },
   });
 }

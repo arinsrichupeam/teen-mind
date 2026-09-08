@@ -1,3 +1,4 @@
+import { CaseStatus, Sex } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
 import {
@@ -16,13 +17,27 @@ import { prisma } from "@/utils/prisma";
 import { getNineQRiskLevel, getPhqaRiskLevel } from "@/utils/helper";
 
 function getAge(
-  birthday: Date,
+  birthDate: Date,
   screeningDate: Date | null,
   fallback: Date
 ): number {
   const target = screeningDate ?? fallback;
 
-  return target.getFullYear() - birthday.getFullYear();
+  return target.getFullYear() - birthDate.getFullYear();
+}
+
+/** Map CaseStatus to legacy consult-progress buckets (0–3) for overview UI. */
+function caseStatusToLegacyBucket(status: CaseStatus): 0 | 1 | 2 | 3 {
+  switch (status) {
+    case CaseStatus.CLOSED:
+      return 3;
+    case CaseStatus.IN_PROGRESS:
+    case CaseStatus.TRANSFER_PENDING:
+      return 2;
+    case CaseStatus.PENDING:
+    default:
+      return 1;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const questions = await prisma.questions_Master.findMany({
+  const questions = await prisma.case.findMany({
     where: createdAtFilter ? { createdAt: createdAtFilter } : undefined,
     select: {
       id: true,
@@ -58,7 +73,7 @@ export async function GET(req: NextRequest) {
       status: true,
       profile: {
         select: {
-          birthday: true,
+          birthDate: true,
           sex: true,
           school: {
             select: {
@@ -71,8 +86,8 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      phqa: { select: { sum: true }, take: 1, orderBy: { id: "asc" } },
-      q9: { select: { sum: true }, take: 1, orderBy: { id: "asc" } },
+      questionsPhqa: { select: { sum: true }, take: 1, orderBy: { id: "asc" } },
+      questions9Q: { select: { sum: true }, take: 1, orderBy: { id: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -93,20 +108,9 @@ export async function GET(req: NextRequest) {
   let unclassifiedCount = 0;
 
   for (const q of Array.from(latestByProfile.values())) {
-    const profile = q.profile as {
-      birthday: Date | null;
-      sex: number;
-      school: {
-        screeningDate: Date | null;
-        screenings: {
-          round: number;
-          startDate: Date;
-          endDate: Date | null;
-        }[];
-      } | null;
-    };
+    const profile = q.profile;
 
-    if (!profile.birthday) {
+    if (!profile.birthDate) {
       unclassifiedCount++;
       continue;
     }
@@ -116,14 +120,14 @@ export async function GET(req: NextRequest) {
       q.createdAt,
       profile.school?.screeningDate ?? null
     );
-    const age = getAge(profile.birthday, screeningDate, q.createdAt);
-    const status = q.status as 0 | 1 | 2 | 3;
+    const age = getAge(profile.birthDate, screeningDate, q.createdAt);
+    const status = caseStatusToLegacyBucket(q.status);
     const sex = profile.sex;
 
     if (age < MAIN_ASSESSMENT_AGE_CUTOFF) {
       under18Stats.total++;
-      if (sex === 1) under18Stats.gender.male++;
-      else if (sex === 2) under18Stats.gender.female++;
+      if (sex === Sex.MALE) under18Stats.gender.male++;
+      else if (sex === Sex.FEMALE) under18Stats.gender.female++;
       else under18Stats.gender.other++;
 
       if (status === 0) under18Stats.consult.awaitingHn++;
@@ -131,7 +135,7 @@ export async function GET(req: NextRequest) {
       else if (status === 2) under18Stats.consult.awaitingSummary++;
       else under18Stats.consult.completed++;
 
-      const phqaSum = (q.phqa as { sum: number }[])[0]?.sum;
+      const phqaSum = (q.questionsPhqa as { sum: number }[])[0]?.sum;
 
       if (phqaSum !== undefined) {
         const level = getPhqaRiskLevel(phqaSum);
@@ -147,8 +151,8 @@ export async function GET(req: NextRequest) {
       }
     } else {
       age18AndOverStats.total++;
-      if (sex === 1) age18AndOverStats.gender.male++;
-      else if (sex === 2) age18AndOverStats.gender.female++;
+      if (sex === Sex.MALE) age18AndOverStats.gender.male++;
+      else if (sex === Sex.FEMALE) age18AndOverStats.gender.female++;
       else age18AndOverStats.gender.other++;
 
       if (status === 0) age18AndOverStats.consult.awaitingHn++;
@@ -156,7 +160,7 @@ export async function GET(req: NextRequest) {
       else if (status === 2) age18AndOverStats.consult.awaitingSummary++;
       else age18AndOverStats.consult.completed++;
 
-      const q9Sum = (q.q9 as { sum: number }[])[0]?.sum;
+      const q9Sum = (q.questions9Q as { sum: number }[])[0]?.sum;
 
       if (q9Sum !== undefined) {
         const level = getNineQRiskLevel(q9Sum);

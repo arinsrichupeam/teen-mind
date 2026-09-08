@@ -95,7 +95,7 @@ function getStepSequence(ageGroup: AssessmentFlowGroup): StepType[] {
 function getStepLabel(stepType: StepType): string {
   switch (stepType) {
     case "referent":
-      return "Referent";
+      return "Volunteer";
     case "q2":
       return "2Q";
     case "phqa":
@@ -158,7 +158,7 @@ export const ModalAddQuestion = ({
     try {
       const response = await fetch(`/api/data/referent/${referentId}`);
       const data = await response.json();
-      const fullName = data[0].firstname + " " + data[0].lastname;
+      const fullName = data[0].firstName + " " + data[0].lastName;
       const affiliation = data[0].affiliation.name;
       const agency = data[0].agency;
 

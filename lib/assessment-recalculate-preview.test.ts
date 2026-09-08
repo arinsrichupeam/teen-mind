@@ -1,3 +1,4 @@
+import { ScreeningResult } from "@prisma/client";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -9,9 +10,9 @@ function makeQuestion(overrides: {
   hasAddon: boolean;
   result?: string;
 }) {
-  const birthday = new Date();
+  const birthDate = new Date();
 
-  birthday.setFullYear(birthday.getFullYear() - overrides.ageYearsAgo);
+  birthDate.setFullYear(birthDate.getFullYear() - overrides.ageYearsAgo);
 
   const phqaRow = {
     q1: 2,
@@ -24,8 +25,9 @@ function makeQuestion(overrides: {
     q8: 0,
     q9: 0,
     sum: 6,
-    id: 1,
-    questions_MasterId: "q1",
+    id: "1",
+    caseId: "q1",
+    round: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -36,11 +38,11 @@ function makeQuestion(overrides: {
     result: overrides.result ?? "Green",
     status: 1,
     createdAt: new Date(),
-    phqa: [phqaRow],
-    q9: overrides.hasQ9 ? [{ ...phqaRow, id: 2 }] : [],
-    addon: overrides.hasAddon ? [{ id: 1 }] : [],
+    questionsPhqa: [phqaRow],
+    questions9Q: overrides.hasQ9 ? [{ ...phqaRow, id: "2" }] : [],
+    questionsPhqaAddon: overrides.hasAddon ? [{ id: "1" }] : [],
     profile: {
-      birthday,
+      birthDate,
       school: { screeningDate: null },
     },
   };
@@ -63,7 +65,7 @@ describe("buildRecalculatePreview", () => {
         ageYearsAgo: 15,
         hasQ9: true,
         hasAddon: true,
-        result: "Green",
+        result: ScreeningResult.NEGATIVE,
       }),
     ]);
 

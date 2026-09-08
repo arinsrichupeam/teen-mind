@@ -26,7 +26,7 @@ export const emergencyOptions = [
 
 export const userRoles = [
   { id: 1, name: "User" },
-  { id: 2, name: "Referent" },
+  { id: 2, name: "Volunteer" },
   { id: 3, name: "Consult" },
   { id: 4, name: "Admin" },
 ];

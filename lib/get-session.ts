@@ -12,7 +12,7 @@ export async function getSession() {
 }
 
 /**
- * ตรวจสอบว่าเป็น admin (มี Profile_Admin) คืนค่า { session, adminProfile } หรือ null
+ * ตรวจสอบว่าเป็น admin (มี ProfileAdmin) คืนค่า { session, adminProfile } หรือ null
  * ใช้สำหรับ API ที่เฉพาะ admin เข้าถึงได้
  */
 export async function requireAdmin() {
@@ -20,7 +20,7 @@ export async function requireAdmin() {
 
   if (!session?.user?.id) return null;
 
-  const adminProfile = await prisma.profile_Admin.findFirst({
+  const adminProfile = await prisma.profileAdmin.findFirst({
     where: { userId: session.user.id },
   });
 
@@ -28,7 +28,7 @@ export async function requireAdmin() {
 }
 
 /**
- * ตรวจสอบว่าเป็นอสท. (มี Referent ที่ citizenId ตรงกับ Profile ของ session)
+ * ตรวจสอบว่าเป็นอสท. (มี Volunteer ที่ citizenId ตรงกับ Profile ของ session)
  * คืนค่า { session, referent } หรือ null
  */
 export async function requireReferent() {
@@ -43,9 +43,9 @@ export async function requireReferent() {
 
   if (!profile?.citizenId) return null;
 
-  const referent = await prisma.referent.findUnique({
+  const referent = await prisma.volunteer.findUnique({
     where: { citizenId: profile.citizenId },
-    select: { id: true, firstname: true, lastname: true },
+    select: { id: true, firstName: true, lastName: true },
   });
 
   return referent ? { session, referent } : null;
