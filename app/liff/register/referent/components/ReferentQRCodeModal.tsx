@@ -20,9 +20,14 @@ import { generateQRCode } from "@/utils/qrcode";
 interface ReferentQRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: Volunteer;
+  data: Volunteer & {
+    facilityUnitId?: number | null;
+    healthcareFacility?: { id: string; name: string } | null;
+    facilityUnit?: { id: number; name: string } | null;
+  };
   affiliation: Affiliation[];
   volunteerType: VolunteerType[];
+  facilities?: Array<{ id: string; name: string }>;
 }
 
 export default function ReferentQRCodeModal({
@@ -31,9 +36,16 @@ export default function ReferentQRCodeModal({
   data,
   affiliation,
   volunteerType,
+  facilities = [],
 }: ReferentQRCodeModalProps) {
   const [qrCode, setQrCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const facilityName =
+    data.healthcareFacility?.name ??
+    facilities.find((f) => f.id === data.healthcareFacilityId)?.name ??
+    data.healthcareFacilityId;
+  const unitName = data.facilityUnit?.name ?? null;
 
   useEffect(() => {
     if (isOpen && data?.id !== undefined && data?.id !== null) {
@@ -109,7 +121,8 @@ export default function ReferentQRCodeModal({
                   สังกัด :{" "}
                   {affiliation.find((x) => x.id == data.affiliationId)?.name}
                 </span>
-                <span>หน่วยงาน : {data.healthcareFacilityId}</span>
+                <span>หน่วยงาน : {facilityName}</span>
+                {unitName ? <span>หน่วยงานย่อย : {unitName}</span> : null}
                 <span>
                   ประเภทอาสาสมัคร :{" "}
                   {

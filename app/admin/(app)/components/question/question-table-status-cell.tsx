@@ -6,9 +6,16 @@ import { Chip } from "@heroui/react";
 
 import { questionStatusOptions } from "../../data/optionData";
 
-import { getFollowUpRoundStatuses } from "@/lib/question-followup-rounds";
+import {
+  countAssessmentRounds,
+  countConsultRounds,
+} from "@/lib/case-round-counts";
+import {
+  caseStatusChipColor,
+  caseStatusLabel,
+} from "@/lib/case-status-mapping";
 
-function statusChipColor(
+function followUpChipColor(
   status: number
 ): "default" | "primary" | "warning" | "success" {
   if (status === 0) return "default";
@@ -18,37 +25,58 @@ function statusChipColor(
   return "success";
 }
 
-/** คอลัมน์สถานะ: สถานะหลัก + สถานะติดตามครั้งที่ 1–3 */
+function hasHn(row: QuestionsData): boolean {
+  const hn = (row.hn ?? row.profile?.hn ?? "").toString().trim();
+
+  return hn.length > 0;
+}
+
+/** คอลัมน์สถานะเคส: CaseStatus หลัก + จำนวนรอบประเมิน / รอบคำปรึกษา */
 export function QuestionTableStatusCell({ row }: { row: QuestionsData }) {
-  const mainLabel =
-    questionStatusOptions[row.status]?.name ?? `สถานะ ${row.status}`;
-  const rounds = getFollowUpRoundStatuses(row);
+  const caseStatus = row.caseStatus;
+  const mainLabel = caseStatus
+    ? caseStatusLabel(caseStatus)
+    : (questionStatusOptions[row.status]?.name ?? `สถานะ ${row.status}`);
+  const mainColor = caseStatus
+    ? caseStatusChipColor(caseStatus)
+    : followUpChipColor(row.status);
+  const missingHn = !hasHn(row) && caseStatus !== "CLOSED";
+  const assessmentRounds = countAssessmentRounds(row);
+  const consultRounds = countConsultRounds(row);
 
   return (
-    <div className="flex flex-col items-center gap-1.5 py-0.5 max-w-[200px]">
+    <div className="flex flex-col items-center gap-1.5 py-0.5 max-w-[220px]">
       <Chip
         className="h-auto min-h-7 w-fit max-w-full whitespace-normal text-center"
-        color={statusChipColor(row.status)}
+        color={mainColor}
         size="sm"
         variant="flat"
       >
         <span className="text-xs font-semibold leading-snug">{mainLabel}</span>
       </Chip>
-      <div className="flex flex-row gap-1 justify-center items-center whitespace-nowrap">
-        {rounds.map((r) => (
-          <Chip
-            key={r.round}
-            className="h-6 min-w-0 px-1.5 whitespace-nowrap"
-            color={
-              r.unreachable ? "danger" : r.complete ? "success" : "default"
-            }
-            size="sm"
-            title={`${r.title}: ${r.statusLabel}`}
-            variant="flat"
-          >
-            <span className="text-[11px] font-medium">{r.round}</span>
-          </Chip>
-        ))}
+      {missingHn && (
+        <Chip
+          className="h-auto min-h-6 w-fit max-w-full"
+          color="default"
+          size="sm"
+          variant="bordered"
+        >
+          <span className="text-[11px]">รอระบุ HN</span>
+        </Chip>
+      )}
+      <div className="flex flex-col items-center gap-0.5 text-[11px] leading-tight text-default-600">
+        <span title="จำนวนรอบที่ประเมิน">
+          ประเมิน{" "}
+          <span className="font-semibold text-foreground">
+            {assessmentRounds}
+          </span>{" "}
+          รอบ
+        </span>
+        <span title="จำนวนรอบบันทึกการให้คำปรึกษา">
+          คำปรึกษา{" "}
+          <span className="font-semibold text-foreground">{consultRounds}</span>{" "}
+          รอบ
+        </span>
       </div>
     </div>
   );

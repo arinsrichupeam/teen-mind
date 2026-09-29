@@ -6,21 +6,63 @@
  * Round 2 → consult2, schedule_telemed2, …
  * Round 3 → consult3, schedule_telemed3, …
  */
+import type {
+  AfterCarePlanCode,
+  InterventionCode,
+  PresentingTopicCode,
+  PsychRiskSeverity,
+  SessionOutcomeCode,
+  SessionSelfHarmRiskCode,
+} from "@/lib/session-report";
+
+/**
+ * Flatten TreatmentNote[] into the legacy Questions_Master consult/schedule shape
+ * used by QuestionLike / follow-up helpers.
+ *
+ * Round 1 → consult, schedule_telemed, subjective, …
+ * Round 2 → consult2, schedule_telemed2, …
+ * Round 3 → consult3, schedule_telemed3, …
+ */
 export type TreatmentNoteLike = {
   round: number;
   consult?: string | null;
-  scheduleTelemed?: Date | null;
+  /** Date from API; string may appear from legacy flat / picker drafts */
+  scheduleTelemed?: Date | string | null;
+  serviceEndedAt?: Date | string | null;
   unreachable?: boolean | null;
   subjective?: string | null;
   objective?: string | null;
   assessment?: string | null;
   plan?: string | null;
   note?: string | null;
-  followUp?: Date | null;
+  sessionSelfHarmRisk?: SessionSelfHarmRiskCode | null;
+  psychRisk?: PsychRiskSeverity | null;
+  presentingTopics?: PresentingTopicCode[] | string[] | null;
+  presentingTopicsOther?: string | null;
+  interventions?: InterventionCode[] | string[] | null;
+  interventionsOther?: string | null;
+  sessionOutcome?: SessionOutcomeCode | null;
+  afterCarePlan?: AfterCarePlanCode | null;
+  afterCarePlanOther?: string | null;
+  followUp?: Date | string | null;
+};
+
+/** Minimal shape needed to flatten consult/SOAP columns (ignores Json session fields). */
+type FlattenableTreatmentNote = {
+  round: number;
+  consult?: string | null;
+  scheduleTelemed?: Date | string | null;
+  unreachable?: boolean | null;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+  note?: string | null;
+  followUp?: Date | string | null;
 };
 
 export function flattenTreatmentNotes(
-  notes: TreatmentNoteLike[] | null | undefined
+  notes: FlattenableTreatmentNote[] | null | undefined
 ): Record<string, unknown> {
   const flat: Record<string, unknown> = {
     consult: null,

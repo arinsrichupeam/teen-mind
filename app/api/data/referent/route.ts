@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     where: {
       citizenId: citizenId,
       phone: tel,
+      status: true, // ไม่ให้ login ถ้าปิดการใช้งานแล้ว
     },
     select: {
       id: true,
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
       employeeTypeId: true,
       employeeType: true,
       healthcareFacilityId: true,
+      facilityUnitId: true,
+      healthcareFacility: { select: { id: true, name: true } },
+      facilityUnit: { select: { id: true, name: true } },
     },
   });
 

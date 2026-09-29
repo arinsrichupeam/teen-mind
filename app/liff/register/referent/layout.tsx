@@ -1,11 +1,14 @@
+import { LiffPageBg } from "@/components/liff-page-bg";
+
 export default function RegisterLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <section className="w-full bg-[url(/image/BG_TEEN_MIND_2.jpg)]  bg-cover bg-center bg-no-repeat">
-      <div className="inline-block text-center justify-center">{children}</div>
+    <section className="relative isolate w-full min-h-screen overflow-hidden">
+      <LiffPageBg blur />
+      <div className="relative w-full flex justify-center">{children}</div>
     </section>
   );
 }

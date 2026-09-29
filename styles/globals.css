@@ -13,3 +13,17 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Consultation drawer: lock 50/50 so assessment tables cannot shift columns.
+   lg (1024px) covers iPad Air landscape (~1180) — not only xl (1280). */
+@media (min-width: 1024px) {
+  .consultation-split-panes {
+    grid-template-columns: 50% 50% !important;
+  }
+
+  .consultation-split-pane {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+}

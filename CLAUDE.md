@@ -178,6 +178,9 @@ LINE_CHANNEL_ACCESS_TOKEN
 ABS_BASE_URL              # External HIS/patient lookup API
 ABS_USERNAME
 ABS_PASSWORD
+NHSO_BASE_URL             # NHSO RealPerson endpoint (…/api/RealPerson)
+NHSO_TOKEN                # Bearer token for NHSO API
+NHSO_SOURCE_ID            # SOURCE_ID query param for RealPerson
 ```
 
 ### Deployment

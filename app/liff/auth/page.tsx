@@ -5,13 +5,15 @@ import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
 import { Suspense } from "react";
 
+import { LiffPageBg } from "@/components/liff-page-bg";
 import { title } from "@/components/primitives";
 import { LineIcon } from "@/components/icons";
 import Loading from "@/app/loading";
 
 export default function AuthPage() {
   return (
-    <section className="flex flex-col w-[calc(100vw)] h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
+    <section className="relative isolate flex flex-col w-[calc(100vw)] min-h-screen items-center gap-4 pt-10 px-8 py-8 pb-14 md:py-10 overflow-hidden">
+      <LiffPageBg />
       <Suspense fallback={<Loading />}>
         <Image
           alt="BKK Logo"
@@ -25,7 +27,7 @@ export default function AuthPage() {
             alt="BKK Logo"
             className="h-[calc(7vh)]"
             loading="eager"
-            src="/image/logo_App.png"
+            src="/image/bkk-mind-logo.png"
           />
           <p className={title({ size: "sm" })}>เข้าสู่ระบบ</p>
         </div>

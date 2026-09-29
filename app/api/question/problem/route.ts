@@ -1,3 +1,4 @@
+import { getLatestInstrumentRound } from "@/lib/case-assessment-rounds";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/utils/prisma";
 
@@ -95,9 +96,11 @@ export async function POST(req: Request) {
       0
     );
 
+    const tipRound = (await getLatestInstrumentRound(questionId)) ?? 1;
+
     const saved = await prisma.questionProblem.upsert({
       where: {
-        caseId_round: { caseId: questionId, round: 1 },
+        caseId_round: { caseId: questionId, round: tipRound },
       },
       update: {
         ...problem,
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
       },
       create: {
         caseId: questionId,
-        round: 1,
+        round: tipRound,
         ...problem,
         sum: normalizedSum,
       },

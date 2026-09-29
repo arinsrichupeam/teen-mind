@@ -25,6 +25,45 @@ export async function GET(
       createdAt: true,
       closeCaseReason: true,
       status: true,
+      assigneeAdminId: true,
+      healthcareFacilityId: true,
+      healthcareFacility: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      transferToFacilityId: true,
+      transferNote: true,
+      transferRequestedAt: true,
+      transferToFacility: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      transfers: {
+        orderBy: { requestedAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          requestNote: true,
+          responseNote: true,
+          requestedAt: true,
+          respondedAt: true,
+          fromFacility: { select: { id: true, name: true } },
+          toFacility: { select: { id: true, name: true } },
+        },
+      },
+      assigneeAdmin: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          userId: true,
+        },
+      },
       profile: {
         select: {
           id: true,
@@ -39,6 +78,15 @@ export async function GET(
           citizenId: true,
           phone: true,
           hn: true,
+          mainInsclCode: true,
+          mainInsclName: true,
+          subInsclCode: true,
+          subInsclName: true,
+          hmainCode: true,
+          hmainName: true,
+          hsubCode: true,
+          hsubName: true,
+          nhsoVerifiedAt: true,
           schoolId: true,
           gradeYear: true,
           school: {
@@ -47,6 +95,7 @@ export async function GET(
               name: true,
             },
           },
+          healthcareFacilityId: true,
           addresses: {
             select: {
               houseNo: true,

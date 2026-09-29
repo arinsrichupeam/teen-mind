@@ -2,8 +2,23 @@ import { Address, Profile, EmergencyContact } from "@prisma/client";
 
 import { getSession } from "@/lib/get-session";
 import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
+import { assertCitizenRegisterProfile } from "@/lib/register-profile-rules";
 import { prisma } from "@/utils/prisma";
 import { validateBirthdayValue } from "@/utils/helper";
+
+function asOptionalString(value: unknown): string | null {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asOptionalDate(value: unknown): Date | null {
+  if (value == null || value === "") return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
 export async function GET() {
   return Response.json("GET request successful");
@@ -62,9 +77,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const birthdayValue = (
-    profileRaw as { birthday?: string | Date | null; birthDate?: string | Date | null }
-  ).birthDate ?? (profileRaw as { birthday?: string | Date | null }).birthday;
+  const birthdayValue =
+    (
+      profileRaw as {
+        birthday?: string | Date | null;
+        birthDate?: string | Date | null;
+      }
+    ).birthDate ?? (profileRaw as { birthday?: string | Date | null }).birthday;
 
   const birthdayValidationError = validateBirthdayValue(birthdayValue);
 
@@ -143,8 +162,9 @@ export async function POST(req: Request) {
     relation: emergencyRelation,
   };
 
+  const isStudent = Boolean((profile as { isStudent?: boolean }).isStudent);
   const schoolId =
-    profile.schoolId == null || Number(profile.schoolId) === 0
+    !isStudent || profile.schoolId == null || Number(profile.schoolId) === 0
       ? null
       : Number(profile.schoolId);
   const rawGradeYear = (profile as { gradeYear?: number | null }).gradeYear;
@@ -154,6 +174,24 @@ export async function POST(req: Request) {
       : rawGradeYear != null && String(rawGradeYear).trim() !== ""
         ? Number(rawGradeYear)
         : null;
+  const healthcareFacilityId =
+    typeof profile.healthcareFacilityId === "string" &&
+    profile.healthcareFacilityId.trim()
+      ? profile.healthcareFacilityId.trim()
+      : null;
+
+  try {
+    assertCitizenRegisterProfile({
+      healthcareFacilityId,
+      isStudent,
+      schoolId,
+    });
+  } catch (err) {
+    return Response.json(
+      { error: err instanceof Error ? err.message : "ข้อมูลโปรไฟล์ไม่ครบ" },
+      { status: 400 }
+    );
+  }
 
   const registerForReferent = data.registerForReferent === true;
   const referentRefRaw = data.referentRef;
@@ -176,10 +214,20 @@ export async function POST(req: Request) {
       ? referentRefFromClient
       : null;
 
+  if (referentId != null) {
+    const activeVolunteer = await prisma.volunteer.findFirst({
+      where: { id: referentId, status: true },
+      select: { id: true },
+    });
+
+    referentId = activeVolunteer?.id ?? null;
+  }
+
   if (referentId == null && existingUserProfile?.citizenId) {
-    const refRecord = await prisma.volunteer.findUnique({
+    const refRecord = await prisma.volunteer.findFirst({
       where: {
         citizenId: existingUserProfile.citizenId,
+        status: true,
       },
       select: {
         id: true,
@@ -206,6 +254,35 @@ export async function POST(req: Request) {
     hn: profile.hn?.trim() || "",
     schoolId,
     gradeYear: gradeYear ?? undefined,
+    isStudent,
+    healthcareFacilityId,
+    mainInsclCode: asOptionalString(
+      (profile as { mainInsclCode?: string | null }).mainInsclCode
+    ),
+    mainInsclName: asOptionalString(
+      (profile as { mainInsclName?: string | null }).mainInsclName
+    ),
+    subInsclCode: asOptionalString(
+      (profile as { subInsclCode?: string | null }).subInsclCode
+    ),
+    subInsclName: asOptionalString(
+      (profile as { subInsclName?: string | null }).subInsclName
+    ),
+    hmainCode: asOptionalString(
+      (profile as { hmainCode?: string | null }).hmainCode
+    ),
+    hmainName: asOptionalString(
+      (profile as { hmainName?: string | null }).hmainName
+    ),
+    hsubCode: asOptionalString(
+      (profile as { hsubCode?: string | null }).hsubCode
+    ),
+    hsubName: asOptionalString(
+      (profile as { hsubName?: string | null }).hsubName
+    ),
+    nhsoVerifiedAt: asOptionalDate(
+      (profile as { nhsoVerifiedAt?: string | Date | null }).nhsoVerifiedAt
+    ),
     addresses: {
       create: [
         {

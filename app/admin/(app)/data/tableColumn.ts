@@ -1,12 +1,13 @@
 export const QuestionColumnsName = [
   { name: "ชื่อ - สกุล", uid: "name", align: "start" },
   { name: "อายุ", uid: "age", align: "center" },
-  { name: "9Q/PHQ-A", uid: "phqa", align: "center" },
   { name: "2Q", uid: "2q", align: "center" },
+  { name: "9Q/PHQ-A", uid: "phqa", align: "center" },
   { name: "8Q", uid: "addon", align: "center" },
-  { name: "วันที่ประเมิน", uid: "createdAt", align: "center" },
+  { name: "วันที่สร้างเคส", uid: "createdAt", align: "center" },
   { name: "โรงเรียน", uid: "school", align: "start" },
-  { name: "สถานะ", uid: "status", align: "center" },
+  { name: "ผู้ดูแล", uid: "assignee", align: "start" },
+  { name: "สถานะเคส", uid: "status", align: "center" },
   { name: "", uid: "actions", align: "center" },
 ];
 
@@ -28,7 +29,7 @@ export const VolunteerColumnsName = [
   },
   {
     uid: "agency",
-    name: "หน่วยงาน",
+    name: "หน่วยงาน / ย่อย",
     align: "start",
   },
   {
@@ -54,6 +55,7 @@ export const MemberColumnsName = [
   { name: "สาขาวิชาชีพ", uid: "professional", align: "center" },
   { name: "สังกัด", uid: "affiliation", align: "start" },
   { name: "หน่วยงาน", uid: "agency", align: "start" },
+  { name: "รัศมีข้อมูล", uid: "scope", align: "center" },
   { name: "ระดับการใช้งาน", uid: "role", align: "center" },
   { name: "สถานะ", uid: "status", align: "center" },
   { name: "Emergency Alert", uid: "alert", align: "center" },

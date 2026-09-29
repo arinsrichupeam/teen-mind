@@ -62,7 +62,46 @@ export type QuestionsData = {
   consult3?: string | null;
   createdAt: string;
   status: number;
+  /** Native Case.status (PENDING / IN_PROGRESS / …) when mapped from Case */
+  caseStatus?: string;
+  /** หน่วยงานเจ้าของเคส (Case.healthcareFacility) — ใช้ scope permission ต่อหน่วย */
+  healthcareFacilityId?: string | null;
+  healthcareFacility?: { id: string; name: string } | null;
+  /** คำขอส่งต่อค้าง (Case.transferToFacility) */
+  transferToFacilityId?: string | null;
+  transferToFacility?: { id: string; name: string } | null;
+  transferNote?: string | null;
+  transferRequestedAt?: string | Date | null;
+  /** ประวัติ CaseTransfer (ล่าสุดก่อน) */
+  transfers?: {
+    id: string;
+    status: string;
+    requestNote?: string | null;
+    responseNote?: string | null;
+    requestedAt: string | Date;
+    respondedAt?: string | Date | null;
+    fromFacility?: { id: string; name: string } | null;
+    toFacility?: { id: string; name: string } | null;
+  }[];
+  /** Profile_Admin.id of the assigned consult */
+  assigneeAdminId?: string | null;
+  /** User.id of assignee — matches consultant Autocomplete keys */
+  assigneeUserId?: string | null;
+  /** Display name of assignee (first + last) */
+  assigneeName?: string | null;
   hn: string;
+  /** Draft สิทธิจากค้นหา สปสช. ก่อนกดบันทึก (เหมือน hn ระดับเคส) */
+  nhsoDraft?: {
+    mainInsclCode?: string | null;
+    mainInsclName?: string | null;
+    subInsclCode?: string | null;
+    subInsclName?: string | null;
+    hmainCode?: string | null;
+    hmainName?: string | null;
+    hsubCode?: string | null;
+    hsubName?: string | null;
+    nhsoVerifiedAt?: string | Date | null;
+  } | null;
   referentId: number | null;
   profile: Profile;
   referent: {
@@ -79,6 +118,29 @@ export type QuestionsData = {
   problem: ProblemPayload[];
   /** จาก GET /api/question/[id] (คำนวณฝั่งเซิร์ฟเวอร์) */
   followUpRoundStatuses?: FollowUpRoundTrackingStatus[];
+  /** TreatmentNote ทุกรอบ (ไม่จำกัด 3) — ใช้ใน UI บันทึกคำปรึกษา */
+  treatmentNotes?: {
+    round: number;
+    consult?: string | null;
+    scheduleTelemed?: Date | string | null;
+    serviceEndedAt?: Date | string | null;
+    unreachable?: boolean | null;
+    subjective?: string | null;
+    objective?: string | null;
+    assessment?: string | null;
+    plan?: string | null;
+    note?: string | null;
+    sessionSelfHarmRisk?: string | null;
+    psychRisk?: string | null;
+    presentingTopics?: string[] | null;
+    presentingTopicsOther?: string | null;
+    interventions?: string[] | null;
+    interventionsOther?: string | null;
+    sessionOutcome?: string | null;
+    afterCarePlan?: string | null;
+    afterCarePlanOther?: string | null;
+    followUp?: Date | string | null;
+  }[];
 };
 
 export interface User {
@@ -115,8 +177,19 @@ export interface Profile {
   citizenId: string;
   phone: string;
   school: ProfileSchool;
+  /** หน่วยงานที่ผู้ใช้เลือกตอนลงทะเบียน (กรณีไม่ใช่นักเรียน) */
+  healthcareFacility?: { id: string; name: string } | null;
   gradeYear?: number | null;
   hn: string;
+  mainInsclCode?: string | null;
+  mainInsclName?: string | null;
+  subInsclCode?: string | null;
+  subInsclName?: string | null;
+  hmainCode?: string | null;
+  hmainName?: string | null;
+  hsubCode?: string | null;
+  hsubName?: string | null;
+  nhsoVerifiedAt?: string | Date | null;
   address: Address[];
   emergency: Emergency[];
   user: User;
@@ -139,6 +212,8 @@ export interface Emergency {
 }
 
 export interface Phqa {
+  round?: number;
+  createdAt?: string | Date;
   q1: number;
   q2: number;
   q3: number;
@@ -153,6 +228,8 @@ export interface Phqa {
 
 /** คะแนน 2Q (สองข้อ) */
 export interface Questions2Q {
+  round?: number;
+  createdAt?: string | Date;
   q1: number;
   q2: number;
 }
@@ -161,11 +238,15 @@ export interface Questions2Q {
 export type q2 = Questions2Q;
 
 export interface Addon {
+  round?: number;
+  createdAt?: string | Date;
   q1: number;
   q2: number;
 }
 
 export interface Q9Data {
+  round?: number;
+  createdAt?: string | Date;
   q1: number;
   q2: number;
   q3: number;
@@ -179,6 +260,8 @@ export interface Q9Data {
 }
 
 export interface Q8Data {
+  round?: number;
+  createdAt?: string | Date;
   q1: number;
   q2: number;
   q3: number;
@@ -224,6 +307,8 @@ export interface Q8Payload {
 }
 
 export interface ProblemPayload {
+  round?: number;
+  createdAt?: string | Date;
   familyRelation: number;
   familyStudyPressure: number;
   familyConflict: number;
@@ -274,10 +359,18 @@ export interface ProfileAdminData {
   firstName: string;
   lastName: string;
   phone: string;
-  affiliationId: number;
+  affiliationId: number | null;
   /** @deprecated use healthcareFacilityId */
   agency?: string;
-  healthcareFacilityId?: string;
+  healthcareFacilityId?: string | null;
+  facilityUnitId?: number | null;
+  /** AdminDataScope — elevated values set by SUPERADMIN only */
+  scopeLevel?: string;
+  zoneId?: number | null;
+  /** Effective visibility after แม่ zone elevation for Admin (list/detail API) */
+  effectiveScopeLevel?: string;
+  facilitatedZoneId?: number | null;
+  facilitatedZoneName?: string | null;
   employeeTypeId: number;
   /** @deprecated use profession */
   professional?: string;
@@ -289,6 +382,10 @@ export interface ProfileAdminData {
   createdAt: string;
   updatedAt: string;
   roleId: number;
+  /** Role.name from DB (e.g. Consult / Admin) */
+  roleName?: string;
+  /** Role.code from DB (e.g. STAFF / ADMIN) */
+  roleCode?: string;
 }
 
 export interface Consultant {

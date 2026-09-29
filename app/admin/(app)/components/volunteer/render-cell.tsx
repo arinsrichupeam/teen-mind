@@ -11,6 +11,7 @@ interface VolunteerRow {
   agency?: string;
   healthcareFacilityId?: string;
   healthcareFacility?: { name?: string } | null;
+  facilityUnit?: { name?: string } | null;
   question_count: number;
   status: boolean;
   [key: string]: unknown;
@@ -22,6 +23,7 @@ interface Props {
   index: number;
   viewDetail(id: string): void;
   editDetail(id: string): void;
+  deleteDetail?(id: string): void;
 }
 
 export const VolunteerRenderCell = ({
@@ -29,6 +31,7 @@ export const VolunteerRenderCell = ({
   columnKey,
   viewDetail,
   editDetail,
+  deleteDetail,
 }: Props) => {
   const cellValue = data[columnKey as keyof VolunteerRow] as unknown;
 
@@ -46,9 +49,16 @@ export const VolunteerRenderCell = ({
     case "agency":
       return (
         <div>
-          {data.healthcareFacility?.name ??
-            data.agency ??
-            (cellValue != null ? String(cellValue) : "")}
+          <div>
+            {data.healthcareFacility?.name ??
+              data.agency ??
+              (cellValue != null ? String(cellValue) : "-")}
+          </div>
+          {data.facilityUnit?.name ? (
+            <div className="text-xs text-default-400">
+              {data.facilityUnit.name}
+            </div>
+          ) : null}
         </div>
       );
     case "question_count":
@@ -74,33 +84,36 @@ export const VolunteerRenderCell = ({
     case "actions":
       return (
         <div className="flex justify-center gap-2">
-          <div>
-            <Button
-              isIconOnly
-              name="Detail"
-              size="sm"
-              variant="light"
-              onPress={() => viewDetail(String(data.id))}
-            >
-              <EyeIcon className="size-6 text-primary-400" />
-            </Button>
-          </div>
-          <div>
-            <Button
-              isIconOnly
-              name="Edit"
-              size="sm"
-              variant="light"
-              onPress={() => editDetail(String(data.id))}
-            >
-              <PencilIcon className="size-6 text-warning-400" />
-            </Button>
-          </div>
-          <div>
-            <Button isIconOnly size="sm" variant="light">
-              <TrashIcon className="size-6 text-danger-500" />
-            </Button>
-          </div>
+          <Button
+            isIconOnly
+            aria-label="ดูรายละเอียด"
+            name="Detail"
+            size="sm"
+            variant="light"
+            onPress={() => viewDetail(String(data.id))}
+          >
+            <EyeIcon className="size-6 text-primary-400" />
+          </Button>
+          <Button
+            isIconOnly
+            aria-label="แก้ไข"
+            name="Edit"
+            size="sm"
+            variant="light"
+            onPress={() => editDetail(String(data.id))}
+          >
+            <PencilIcon className="size-6 text-warning-400" />
+          </Button>
+          <Button
+            isIconOnly
+            aria-label="ลบ"
+            isDisabled={!data.status || !deleteDetail}
+            size="sm"
+            variant="light"
+            onPress={() => deleteDetail?.(String(data.id))}
+          >
+            <TrashIcon className="size-6 text-danger-500" />
+          </Button>
         </div>
       );
     default:

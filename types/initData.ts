@@ -15,6 +15,9 @@ export const ProfileAdminDataInitData: ProfileAdminData = {
   phone: "",
   affiliationId: 0,
   healthcareFacilityId: "",
+  facilityUnitId: null,
+  scopeLevel: "FACILITY",
+  zoneId: null,
   employeeTypeId: 0,
   profession: "",
   license: "",
@@ -23,6 +26,8 @@ export const ProfileAdminDataInitData: ProfileAdminData = {
   createdAt: "",
   updatedAt: "",
   roleId: 0,
+  roleName: "",
+  roleCode: "",
 };
 
 export const referentInitValue: Volunteer = {
@@ -37,6 +42,7 @@ export const referentInitValue: Volunteer = {
   employeeTypeId: 0,
   affiliationId: 0,
   healthcareFacilityId: "",
+  facilityUnitId: null,
   status: true,
   createdAt: new Date(),
   updatedAt: new Date(),

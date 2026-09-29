@@ -6,6 +6,7 @@ import { Card, CardBody } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Suspense, useState } from "react";
 
+import { LiffPageBg } from "@/components/liff-page-bg";
 import Loading from "@/app/loading";
 
 export default function QuestionPage() {
@@ -34,14 +35,15 @@ export default function QuestionPage() {
   };
 
   return (
-    <section className="flex flex-col w-screen min-h-[calc(100vh-48px)] px-8 items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
+    <section className="relative isolate flex flex-col w-screen min-h-screen px-8 pb-14 items-center justify-center gap-4 overflow-hidden">
+      <LiffPageBg blur />
       <Suspense fallback={<Loading />}>
         <div className="flex flex-col items-center gap-5 pt-10 pb-6 w-full max-w-sm">
           <Image
             alt="app logo"
             className="h-[calc(7vh)]"
             loading="eager"
-            src="/image/logo_App.png"
+            src="/image/bkk-mind-logo.png"
           />
 
           <Card className="w-full bg-white/95 shadow-lg backdrop-blur-sm border border-white/80">

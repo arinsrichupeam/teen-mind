@@ -13,6 +13,7 @@ import { Affiliation } from "@prisma/client";
 
 import { userStatusOptions as statusOptions } from "../../data/optionData";
 
+import { adminDataScopeLabel } from "@/lib/admin-data-scope";
 import { prefix } from "@/utils/data";
 
 /** แถวสมาชิกที่แสดงในตาราง (ProfileAdmin + user, role จาก API) */
@@ -24,10 +25,13 @@ interface MemberRow extends Record<string, unknown> {
   lastName: string;
   professional?: string | null;
   profession?: string | null;
-  affiliationId: number;
+  affiliationId: number | null;
   agency?: string;
-  healthcareFacilityId?: string;
+  healthcareFacilityId?: string | null;
   healthcareFacility?: { name?: string } | null;
+  scopeLevel?: string | null;
+  effectiveScopeLevel?: string | null;
+  facilitatedZoneName?: string | null;
   status: number | string;
   receiveAlert: boolean;
   user?: { image: string };
@@ -96,11 +100,31 @@ export const RenderCell = ({
     case "agency":
       return (
         <div>
-          <span>
-            {data.healthcareFacility?.name ?? data.agency ?? ""}
-          </span>
+          <span>{data.healthcareFacility?.name ?? data.agency ?? ""}</span>
         </div>
       );
+    case "scope": {
+      const effective = data.effectiveScopeLevel ?? data.scopeLevel;
+      const isMaeZone =
+        effective === "ZONE" &&
+        data.scopeLevel === "FACILITY" &&
+        Boolean(data.facilitatedZoneName);
+
+      return (
+        <div className="flex flex-col items-center gap-0.5">
+          <Chip color="primary" size="sm" variant="flat">
+            <span className="text-xs font-semibold">
+              {adminDataScopeLabel(effective)}
+            </span>
+          </Chip>
+          {isMaeZone ? (
+            <span className="text-[10px] text-default-400">
+              แม่ {data.facilitatedZoneName}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
     case "role":
       return (
         <div>

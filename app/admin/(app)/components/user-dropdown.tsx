@@ -17,12 +17,16 @@ import { ProfileAdminDataInitData } from "../../../../types/initData";
 
 import { ModalUserProfile } from "./modal/modal-user-profile";
 
+import {
+  getAdminRoleLabel,
+  readStoredAdminProfile,
+} from "@/lib/admin-profile-client";
 import { ProfileAdminData } from "@/types";
 
 export const UserDropdown = () => {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileAdminData>(
-    ProfileAdminDataInitData
+    () => readStoredAdminProfile() ?? ProfileAdminDataInitData
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -41,14 +45,14 @@ export const UserDropdown = () => {
           onOpen();
         });
     },
-    [profile]
+    [onOpen]
   );
 
   const GetProfile = async () => {
-    const data = sessionStorage.getItem("adminProfile");
+    const data = readStoredAdminProfile();
 
     if (data) {
-      setProfile(JSON.parse(data));
+      setProfile(data);
     }
   };
 
@@ -63,12 +67,16 @@ export const UserDropdown = () => {
           break;
       }
     },
-    [profile, router]
+    [profile, handleLogout, EditProfile]
   );
 
   useEffect(() => {
     GetProfile();
-  }, [sessionStorage]);
+  }, []);
+
+  const roleLabel = getAdminRoleLabel(profile);
+  const facilityLabel = profile?.agency?.trim() || "";
+  const description = [roleLabel, facilityLabel].filter(Boolean).join(" · ");
 
   return (
     <div>
@@ -95,7 +103,7 @@ export const UserDropdown = () => {
                 ),
               }}
               className="cursor-pointer"
-              description={profile?.agency}
+              description={description || undefined}
               name={
                 (profile ? profile.firstName : "") +
                 " " +

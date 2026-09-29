@@ -13,6 +13,11 @@ import { Step2 } from "./components/step2";
 import { Step3 } from "./components/step3";
 
 import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
+import {
+  applyAddressFormField,
+  normalizeProfileFormFieldName,
+} from "@/lib/profile-form-fields";
+import { LiffPageBg } from "@/components/liff-page-bg";
 import { title } from "@/components/primitives";
 import Loading from "@/app/loading";
 import { peekReferentRef, saveReferentRef } from "@/utils/referent-ref";
@@ -31,6 +36,7 @@ type RegisterProfileState = {
   phone: string;
   schoolId: number | null;
   gradeYear?: number | null;
+  isStudent: boolean;
   hn: string | null;
   healthcareFacilityId: string | null;
   createdAt: Date;
@@ -85,6 +91,7 @@ const profileInitValue: RegisterProfileState = {
   phone: "",
   schoolId: 0,
   gradeYear: null,
+  isStudent: false,
   hn: "",
   healthcareFacilityId: null,
   createdAt: new Date(),
@@ -181,10 +188,32 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!currentProfile.healthcareFacilityId?.trim()) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "กรุณาเลือกสถานพยาบาล",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
+
     const hasSchool =
       currentProfile.schoolId != null && Number(currentProfile.schoolId) > 0;
     const hasGradeYear =
       currentProfile.gradeYear != null && Number(currentProfile.gradeYear) > 0;
+
+    if (currentProfile.isStudent && !hasSchool) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "นักเรียนต้องระบุสถานศึกษา",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
 
     if (hasSchool && !hasGradeYear) {
       addToast({
@@ -352,6 +381,20 @@ export default function RegisterPage() {
           schoolId,
           ...(schoolId === 0 ? { gradeYear: null } : {}),
         }));
+      } else if (name === "isStudent") {
+        const next = value === true || value === "true" || value === 1;
+
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          isStudent: next,
+          ...(next ? {} : { schoolId: 0, gradeYear: null }),
+        }));
+      } else if (name === "healthcareFacilityId") {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          healthcareFacilityId:
+            value != null && String(value).trim() !== "" ? String(value) : null,
+        }));
       } else if (name === "gradeYear") {
         const gradeYear =
           value !== "" && value != null ? parseInt(String(value), 10) : null;
@@ -381,6 +424,31 @@ export default function RegisterPage() {
           ...prev,
           [field]: String(value),
         }));
+      } else if (
+        name === "mainInsclCode" ||
+        name === "mainInsclName" ||
+        name === "subInsclCode" ||
+        name === "subInsclName" ||
+        name === "hmainCode" ||
+        name === "hmainName" ||
+        name === "hsubCode" ||
+        name === "hsubName"
+      ) {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          [name]:
+            value === null || value === undefined || String(value).trim() === ""
+              ? null
+              : String(value),
+        }));
+      } else if (name === "nhsoVerifiedAt") {
+        setProfile((prev: RegisterProfileState) => ({
+          ...prev,
+          nhsoVerifiedAt:
+            value === null || value === undefined || value === ""
+              ? null
+              : new Date(String(value)),
+        }));
       } else {
         setProfile((prev: RegisterProfileState) => ({
           ...prev,
@@ -395,7 +463,14 @@ export default function RegisterPage() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, value } = e.target;
 
-      setAddress((prev) => ({ ...prev, [name]: value }));
+      setAddress(
+        (prev) =>
+          applyAddressFormField(
+            prev as unknown as Record<string, unknown>,
+            name,
+            value
+          ) as unknown as AddressFormState
+      );
     },
     []
   );
@@ -403,69 +478,75 @@ export default function RegisterPage() {
   const EmergencyHandleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, value } = e.target;
+      const field = normalizeProfileFormFieldName(name);
 
-      setEmergency((prev) => ({ ...prev, [name]: value }));
+      setEmergency((prev) => ({ ...prev, [field]: value }));
     },
     []
   );
 
   return (
-    <section className="flex flex-col w-full max-w-xl min-w-0 mx-auto min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-4 sm:px-6 md:px-8 py-8 md:py-10">
-      <Suspense fallback={<Loading />}>
-        <div className="flex items-center my-3 absolute top-4 right-4 sm:top-5 sm:right-5 max-w-[calc(100%-2rem)]">
-          <Alert
-            color={"success"}
-            isVisible={showAlert}
-            title={"ลงทะเบียนเรียบร้อย"}
-            variant="faded"
-          />
-        </div>
-        <div className="flex flex-col gap-5 w-full min-w-0">
-          <h1 className={title({ size: "sm" })}>ลงทะเบียน</h1>
-          <div className="flex flex-col w-full min-w-0 min-h-[calc(100vh_-_350px)]">
-            <Tabs
-              aria-label="Options"
-              classNames={{
-                base: "w-full",
-                tabList: "w-full gap-0 sm:gap-2",
-                tab: "text-xs sm:text-sm px-1 sm:px-3",
-                panel: "w-full pt-4",
-              }}
-              color="primary"
-              fullWidth={true}
-              selectedKey={selected}
-              variant="underlined"
-            >
-              <Tab key="profile" title="ข้อมูลส่วนตัว">
-                <Step1
-                  HandleChange={ProfileHandleChange}
-                  NextStep={NextStep}
-                  Result={profile}
-                  isReferentFlow={isReferentFlow}
-                />
-              </Tab>
-              <Tab key="address" title="ที่อยู่อาศัย">
-                <Step2
-                  BackStep={BackStep}
-                  HandleChange={AddressHandleChange}
-                  NextStep={NextStep}
-                  Result={address}
-                />
-              </Tab>
-              <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
-                <Step3
-                  BackStep={BackStep}
-                  HandleChange={EmergencyHandleChange}
-                  NextStep={NextStep}
-                  Result={emergency}
-                  isLoading={isLoading}
-                  isSubmitted={isSubmitted}
-                />
-              </Tab>
-            </Tabs>
+    <section className="relative isolate w-full min-h-screen overflow-hidden">
+      <LiffPageBg blur />
+      <div className="flex flex-col w-full max-w-xl min-w-0 mx-auto min-h-screen items-center gap-4 pt-10 px-4 sm:px-6 md:px-8 py-8 pb-14 md:py-10">
+        <Suspense fallback={<Loading />}>
+          <div className="flex items-center my-3 absolute top-4 right-4 sm:top-5 sm:right-5 max-w-[calc(100%-2rem)]">
+            <Alert
+              color={"success"}
+              isVisible={showAlert}
+              title={"ลงทะเบียนเรียบร้อย"}
+              variant="faded"
+            />
           </div>
-        </div>
-      </Suspense>
+          <div className="flex flex-col gap-5 w-full min-w-0">
+            <h1 className={title({ size: "sm" }) + " text-center"}>
+              ลงทะเบียน
+            </h1>
+            <div className="flex flex-col w-full min-w-0 min-h-[calc(100vh_-_350px)]">
+              <Tabs
+                aria-label="Options"
+                classNames={{
+                  base: "w-full",
+                  tabList: "w-full gap-0 sm:gap-2",
+                  tab: "text-xs sm:text-sm px-1 sm:px-3",
+                  panel: "w-full pt-4",
+                }}
+                color="primary"
+                fullWidth={true}
+                selectedKey={selected}
+                variant="underlined"
+              >
+                <Tab key="profile" title="ข้อมูลส่วนตัว">
+                  <Step1
+                    HandleChange={ProfileHandleChange}
+                    NextStep={NextStep}
+                    Result={profile}
+                    isReferentFlow={isReferentFlow}
+                  />
+                </Tab>
+                <Tab key="address" title="ที่อยู่อาศัย">
+                  <Step2
+                    BackStep={BackStep}
+                    HandleChange={AddressHandleChange}
+                    NextStep={NextStep}
+                    Result={address}
+                  />
+                </Tab>
+                <Tab key="emergency" title="ผู้ติดต่อในกรณีฉุกเฉิน">
+                  <Step3
+                    BackStep={BackStep}
+                    HandleChange={EmergencyHandleChange}
+                    NextStep={NextStep}
+                    Result={emergency}
+                    isLoading={isLoading}
+                    isSubmitted={isSubmitted}
+                  />
+                </Tab>
+              </Tabs>
+            </div>
+          </div>
+        </Suspense>
+      </div>
     </section>
   );
 }

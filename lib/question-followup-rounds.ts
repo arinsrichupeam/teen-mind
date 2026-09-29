@@ -149,19 +149,30 @@ export function isAllFollowUpRoundsComplete(
  * คำนวณสถานะหลักของแบบประเมิน (ตรงกับ CalStatus ใน API)
  * 0 = รอระบุ HN
  * 1 = รอให้คำปรึกษา
- * 2 = รอสรุปผลการให้คำปรึกษา
- * 3 = เสร็จสิ้น
+ * 2 = กำลังดูแล / รอสรุป (มีอย่างน้อย 1 รอบพบจริงแล้ว)
+ * 3 = เสร็จสิ้น (ปิดเคส)
+ *
+ * Case ที่ปิดแล้ว (`CLOSED` / มีเหตุผลปิดเคส) เป็น 3 เสมอ — ไม่บังคับครบ 3 รอบ
  */
 export function calculateQuestionStatus(
   q: QuestionsData | undefined
 ): 0 | 1 | 2 | 3 {
   if (!q) return 0;
 
+  const rawStatus = (q as { status?: unknown }).status;
+  const closeReason = q.close_case_reason;
+
+  if (
+    rawStatus === "CLOSED" ||
+    (typeof closeReason === "string" && closeReason.trim() !== "")
+  ) {
+    return 3;
+  }
+
   const hn = q.profile?.hn ?? q.hn;
 
   if (!hn || String(hn).trim() === "") return 0;
 
-  if (isAllFollowUpRoundsComplete(q)) return 3;
   if (isConsultTelemedRoundComplete(q, 0)) return 2;
 
   return 1;

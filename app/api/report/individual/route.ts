@@ -87,7 +87,10 @@ export async function GET(req: NextRequest) {
         profileId: { in: matchingProfileIds },
       },
       select: {
-      treatmentNotes: true, profileId: true, createdAt: true },
+        treatmentNotes: true,
+        profileId: true,
+        createdAt: true,
+      },
     });
     const yearsByProfile = new Map<string, Set<number>>();
 
@@ -212,7 +215,8 @@ export async function GET(req: NextRequest) {
 
       const history = Array.from(byDay.values())
         .map((q) => {
-          const isNineQ = Array.isArray(q.questions9Q) && q.questions9Q.length > 0;
+          const isNineQ =
+            Array.isArray(q.questions9Q) && q.questions9Q.length > 0;
           const score = isNineQ
             ? Number(q.questions9Q![0].sum)
             : Array.isArray(q.questionsPhqa) && q.questionsPhqa.length > 0
@@ -223,7 +227,9 @@ export async function GET(req: NextRequest) {
               ? q.questions2Q[0].q1 === 1 || q.questions2Q[0].q2 === 1
               : null;
           const q8Score =
-            Array.isArray(q.questions8Q) && q.questions8Q.length > 0 ? Number(q.questions8Q[0].sum) : null;
+            Array.isArray(q.questions8Q) && q.questions8Q.length > 0
+              ? Number(q.questions8Q[0].sum)
+              : null;
 
           return {
             id: q.id,

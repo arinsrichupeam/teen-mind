@@ -13,6 +13,11 @@ import { Step2 } from "../register/components/step2";
 import { Step3 } from "../register/components/step3";
 
 import { mapLegacySexToSex } from "@/lib/legacy-value-mapping";
+import {
+  normalizeProfileFormFieldName,
+  applyAddressFormField,
+} from "@/lib/profile-form-fields";
+import { LiffPageBg } from "@/components/liff-page-bg";
 import { title } from "@/components/primitives";
 
 type ProfileFormState = {
@@ -29,6 +34,7 @@ type ProfileFormState = {
   phone: string;
   schoolId: number | null;
   gradeYear?: number | null;
+  isStudent?: boolean;
   hn: string | null;
   healthcareFacilityId: string | null;
   createdAt: Date;
@@ -83,6 +89,7 @@ const profileInitValue: ProfileFormState = {
   phone: "",
   schoolId: 0,
   gradeYear: null,
+  isStudent: false,
   hn: "",
   healthcareFacilityId: null,
   createdAt: new Date(),
@@ -155,6 +162,8 @@ export default function ProfilePage() {
             profileData.gradeYear !== undefined
               ? Number(profileData.gradeYear)
               : null,
+          isStudent: Boolean(profileData.isStudent),
+          healthcareFacilityId: profileData.healthcareFacilityId ?? null,
         });
 
         if (data.profile[0].address && data.profile[0].address.length > 0) {
@@ -232,8 +241,6 @@ export default function ProfilePage() {
     ) => {
       const { name, value } = e.target;
 
-      if (value === null) return;
-
       if (name === "birthday") {
         setProfile((prev) => ({
           ...prev,
@@ -263,6 +270,20 @@ export default function ProfilePage() {
           schoolId,
           ...(schoolId === 0 ? { gradeYear: null } : {}),
         }));
+      } else if (name === "isStudent") {
+        const next = value === true || value === "true" || value === 1;
+
+        setProfile((prev) => ({
+          ...prev,
+          isStudent: next,
+          ...(next ? {} : { schoolId: 0, gradeYear: null }),
+        }));
+      } else if (name === "healthcareFacilityId") {
+        setProfile((prev) => ({
+          ...prev,
+          healthcareFacilityId:
+            value != null && String(value).trim() !== "" ? String(value) : null,
+        }));
       } else if (name === "gradeYear") {
         const gradeYear = value !== "" && value != null ? Number(value) : null;
 
@@ -288,7 +309,32 @@ export default function ProfilePage() {
                 : name;
 
         setProfile((prev) => ({ ...prev, [field]: value }));
-      } else {
+      } else if (
+        name === "mainInsclCode" ||
+        name === "mainInsclName" ||
+        name === "subInsclCode" ||
+        name === "subInsclName" ||
+        name === "hmainCode" ||
+        name === "hmainName" ||
+        name === "hsubCode" ||
+        name === "hsubName"
+      ) {
+        setProfile((prev) => ({
+          ...prev,
+          [name]:
+            value === null || value === undefined || String(value).trim() === ""
+              ? null
+              : String(value),
+        }));
+      } else if (name === "nhsoVerifiedAt") {
+        setProfile((prev) => ({
+          ...prev,
+          nhsoVerifiedAt:
+            value === null || value === undefined || value === ""
+              ? null
+              : new Date(String(value)),
+        }));
+      } else if (value !== null) {
         setProfile((prev) => ({ ...prev, [name]: value }));
       }
     },
@@ -297,28 +343,57 @@ export default function ProfilePage() {
 
   const AddressHandleChange = useCallback(
     (e: { target: { name: string; value: string } }) => {
-      setAddress((prev) => ({
-        ...prev,
-        [e.target.name]: e.target.value,
-      }));
+      setAddress(
+        (prev) =>
+          applyAddressFormField(
+            prev as unknown as Record<string, unknown>,
+            e.target.name,
+            e.target.value
+          ) as unknown as typeof prev
+      );
     },
     []
   );
 
   const EmergencyHandleChange = useCallback(
     (e: { target: { name: string; value: string } }) => {
+      const field = normalizeProfileFormFieldName(e.target.name);
+
       setEmergency((prev) => ({
         ...prev,
-        [e.target.name]: e.target.value,
+        [field]: e.target.value,
       }));
     },
     []
   );
 
   const SaveToDB = async () => {
+    if (!profile.healthcareFacilityId?.trim()) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "กรุณาเลือกสถานพยาบาล",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
+
+    const isStudent = profile.isStudent === true;
     const hasSchool = profile.schoolId != null && Number(profile.schoolId) > 0;
     const hasGradeYear =
       profile.gradeYear != null && Number(profile.gradeYear) > 0;
+
+    if (isStudent && !hasSchool) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        description: "นักเรียนต้องระบุสถานศึกษา",
+        color: "danger",
+      });
+      setSelected("profile");
+
+      return;
+    }
 
     if (hasSchool && !hasGradeYear) {
       addToast({
@@ -342,16 +417,32 @@ export default function ProfilePage() {
       ethnicity: profile.ethnicity,
       nationality: profile.nationality,
       phone: profile.phone,
+      isStudent,
+      healthcareFacilityId: profile.healthcareFacilityId,
       schoolId:
+        isStudent &&
         profile.schoolId != null &&
         profile.schoolId !== 0 &&
         Number(profile.schoolId) > 0
           ? Number(profile.schoolId)
           : null,
       gradeYear:
-        profile.gradeYear !== null && profile.gradeYear !== undefined
+        isStudent &&
+        profile.gradeYear !== null &&
+        profile.gradeYear !== undefined
           ? profile.gradeYear
           : null,
+      mainInsclCode: profile.mainInsclCode ?? null,
+      mainInsclName: profile.mainInsclName ?? null,
+      subInsclCode: profile.subInsclCode ?? null,
+      subInsclName: profile.subInsclName ?? null,
+      hmainCode: profile.hmainCode ?? null,
+      hmainName: profile.hmainName ?? null,
+      hsubCode: profile.hsubCode ?? null,
+      hsubName: profile.hsubName ?? null,
+      nhsoVerifiedAt: profile.nhsoVerifiedAt
+        ? new Date(profile.nhsoVerifiedAt).toISOString()
+        : null,
       addresses: {
         houseNo: address.houseNo,
         villageNo: address.villageNo,
@@ -432,7 +523,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <section className="flex flex-col w-full min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat bg-fixed">
+    <section className="relative isolate flex flex-col w-full min-h-screen items-center gap-4 pt-10 px-8 py-8 pb-14 md:py-10 overflow-hidden">
+      <LiffPageBg blur />
       <Suspense>
         <div className="flex items-center my-3 absolute top-5 right-5">
           <Alert

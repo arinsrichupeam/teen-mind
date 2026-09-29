@@ -18,10 +18,10 @@ export const NavbarWrapper = ({ children }: Props) => {
           wrapper: "w-full max-w-full",
         }}
       >
-        <NavbarContent className="md:hidden">
+        <NavbarContent>
           <BurguerButton />
         </NavbarContent>
-        <NavbarContent className="w-full max-md:hidden" />
+        <NavbarContent className="w-full" />
         <NavbarContent
           className="w-fit data-[justify=end]:flex-grow-0"
           justify="end"

@@ -7,8 +7,13 @@
   "build": "next build",
   "start": "next start",
   "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix",
-  "test": "tsx --test lib/**/*.test.ts"
+    "test": "tsx --test lib/**/*.test.ts",
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "tsx prisma/seed-demo-cases.ts"
  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
  "dependencies": {
   "@auth/prisma-adapter": "^2.7.4",
   "@heroicons/react": "^2.2.0",

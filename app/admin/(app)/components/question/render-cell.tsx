@@ -1,13 +1,7 @@
 import React from "react";
-import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import { Chip } from "@heroui/chip";
-import {
-  Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-} from "@heroui/react";
+import { Button } from "@heroui/react";
 
 import { QuestionTableStatusCell } from "./question-table-status-cell";
 
@@ -25,14 +19,8 @@ interface Props {
   data: QuestionsData;
   columnKey: string | React.Key;
   index: number;
-  viewDetail(
-    id: string,
-    type: "view-questionnaire" | "view-consultation"
-  ): void;
-  editDetail(
-    id: string,
-    type: "edit-questionnaire" | "edit-consultation"
-  ): void;
+  viewDetail(id: string, type: "view-consultation"): void;
+  editDetail(id: string, type: "edit-consultation"): void;
 }
 
 export const RenderCell = ({
@@ -54,7 +42,7 @@ export const RenderCell = ({
       );
     case "name":
       return (
-        <div>
+        <div className="flex flex-col gap-0.5">
           <p>
             {prefix.find((val) => val.key == data.profile.prefixId)?.label +
               " " +
@@ -62,6 +50,11 @@ export const RenderCell = ({
               " " +
               data.profile.lastName}
           </p>
+          {data.healthcareFacility?.name?.trim() ? (
+            <p className="text-tiny text-default-500">
+              {data.healthcareFacility.name}
+            </p>
+          ) : null}
         </div>
       );
     case "age":
@@ -73,7 +66,7 @@ export const RenderCell = ({
     case "school":
       return (
         <div>
-          <span>{getSchoolName(data.profile.school)}</span>
+          <span>{getSchoolName(data.profile?.school) || "-"}</span>
         </div>
       );
     case "result":
@@ -117,58 +110,24 @@ export const RenderCell = ({
     case "actions":
       return (
         <div className="flex justify-center gap-2">
-          <div>
-            <Dropdown>
-              <DropdownTrigger>
-                <Button isIconOnly name="Detail" size="sm" variant="light">
-                  <EyeIcon className="size-6 text-primary-400" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Detail options">
-                <DropdownItem
-                  key="view-questionnaire"
-                  onPress={() => viewDetail(data.id, "view-questionnaire")}
-                >
-                  รายละเอียดแบบประเมิน
-                </DropdownItem>
-                <DropdownItem
-                  key="view-consultation"
-                  onPress={() => viewDetail(data.id, "view-consultation")}
-                >
-                  รายละเอียดการให้คำปรึกษา
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-          <div>
-            <Dropdown>
-              <DropdownTrigger>
-                <Button isIconOnly name="Edit" size="sm" variant="light">
-                  <PencilIcon className="size-6 text-warning-400" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Edit options">
-                <DropdownItem
-                  key="edit-questionnaire"
-                  onPress={() => editDetail(data.id, "edit-questionnaire")}
-                >
-                  แก้ไขแบบประเมิน
-                </DropdownItem>
-
-                <DropdownItem
-                  key="edit-consultation"
-                  onPress={() => editDetail(data.id, "edit-consultation")}
-                >
-                  บันทึกการให้คำปรึกษา
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-          <div>
-            <Button isIconOnly size="sm" variant="light">
-              <TrashIcon className="size-6 text-danger-500" />
-            </Button>
-          </div>
+          <Button
+            isIconOnly
+            name="Detail"
+            size="sm"
+            variant="light"
+            onPress={() => viewDetail(data.id, "view-consultation")}
+          >
+            <EyeIcon className="size-6 text-primary-400" />
+          </Button>
+          <Button
+            isIconOnly
+            name="Edit"
+            size="sm"
+            variant="light"
+            onPress={() => editDetail(data.id, "edit-consultation")}
+          >
+            <DocumentTextIcon className="size-6 text-warning-400" />
+          </Button>
         </div>
       );
     default:

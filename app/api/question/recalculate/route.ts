@@ -86,12 +86,18 @@ export async function POST() {
 
     for (const question of allQuestions) {
       try {
-        if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
+        if (!question.questionsPhqa || question.questionsPhqa.length === 0)
+          continue;
 
-        const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
+        const hasQ9Row =
+          Array.isArray(question.questions9Q) &&
+          question.questions9Q.length > 0;
         const hasPhqaAddon =
-          Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
-        const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
+          Array.isArray(question.questionsPhqaAddon) &&
+          question.questionsPhqaAddon.length > 0;
+        const sourceData = hasQ9Row
+          ? question.questions9Q[0]
+          : question.questionsPhqa[0];
         const previousResult = question.result ?? "";
 
         const age = getAgeAtAssessment(

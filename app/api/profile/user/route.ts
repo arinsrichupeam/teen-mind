@@ -28,6 +28,13 @@ export async function GET() {
       phone: true,
       school: true,
       gradeYear: true,
+      healthcareFacilityId: true,
+      healthcareFacility: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       cases: {
         select: {
           id: true,
@@ -173,20 +180,69 @@ export async function PATCH(req: Request) {
 
   try {
     const data = await req.json();
+    const updateData: {
+      hn?: string;
+      mainInsclCode?: string | null;
+      mainInsclName?: string | null;
+      subInsclCode?: string | null;
+      subInsclName?: string | null;
+      hmainCode?: string | null;
+      hmainName?: string | null;
+      hsubCode?: string | null;
+      hsubName?: string | null;
+      nhsoVerifiedAt?: Date | null;
+    } = {};
 
-    if (data.hn !== "") {
-      await prisma.profile.update({
-        where: {
-          id: data.id,
-        },
-        data: {
-          hn: data.hn,
-        },
-      });
-
-      // อัปเดตเฉพาะ question ที่มี status = 0 ให้เป็น 1 เมื่อมีการอัปเดต HN
-      // HN is on Profile; CaseStatus no longer tracks "awaiting HN" (legacy 0→1).
+    if (typeof data.hn === "string" && data.hn !== "") {
+      updateData.hn = data.hn;
     }
+
+    const hasNhsoUpdate =
+      data.mainInsclCode !== undefined ||
+      data.mainInsclName !== undefined ||
+      data.subInsclCode !== undefined ||
+      data.subInsclName !== undefined ||
+      data.hmainCode !== undefined ||
+      data.hmainName !== undefined ||
+      data.hsubCode !== undefined ||
+      data.hsubName !== undefined ||
+      data.nhsoVerifiedAt !== undefined;
+
+    if (hasNhsoUpdate) {
+      const asNullableString = (value: unknown) => {
+        if (value == null) return null;
+        const trimmed = String(value).trim();
+
+        return trimmed.length > 0 ? trimmed : null;
+      };
+
+      updateData.mainInsclCode = asNullableString(data.mainInsclCode);
+      updateData.mainInsclName = asNullableString(data.mainInsclName);
+      updateData.subInsclCode = asNullableString(data.subInsclCode);
+      updateData.subInsclName = asNullableString(data.subInsclName);
+      updateData.hmainCode = asNullableString(data.hmainCode);
+      updateData.hmainName = asNullableString(data.hmainName);
+      updateData.hsubCode = asNullableString(data.hsubCode);
+      updateData.hsubName = asNullableString(data.hsubName);
+      updateData.nhsoVerifiedAt =
+        data.nhsoVerifiedAt == null || data.nhsoVerifiedAt === ""
+          ? null
+          : new Date(String(data.nhsoVerifiedAt));
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: "No profile fields to update" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.profile.update({
+      where: {
+        id: data.id,
+      },
+      data: updateData,
+    });
 
     return new Response("Success");
   } catch (error) {

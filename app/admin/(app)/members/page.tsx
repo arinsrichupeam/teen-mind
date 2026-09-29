@@ -35,7 +35,7 @@ import { useRouter } from "next/navigation";
 import { Affiliation, ProfileAdmin } from "@prisma/client";
 
 import { ModalUserProfile } from "../components/modal/modal-user-profile";
-import { questionStatusOptions as options } from "../data/optionData";
+import { userStatusOptions, staffAssignableRoles } from "../data/optionData";
 import { MemberColumnsName as columns } from "../data/tableColumn";
 import { AuthGuard } from "../components/auth-guard";
 
@@ -44,6 +44,16 @@ import { RenderCell } from "./components/render-cell";
 import { SortDescriptor } from "@/types";
 import { ProfileAdminData } from "@/types";
 import Loading from "@/app/loading";
+
+type MemberListRow = ProfileAdmin & {
+  role?: { id: number; name: string };
+  agency?: string | null;
+  healthcareFacility?: { id: string; name: string } | null;
+  user?: { image: string };
+  effectiveScopeLevel?: string | null;
+  facilitatedZoneId?: number | null;
+  facilitatedZoneName?: string | null;
+};
 
 const ProfileAdminDataInitData: ProfileAdminData = {
   id: "",
@@ -58,6 +68,8 @@ const ProfileAdminDataInitData: ProfileAdminData = {
   phone: "",
   affiliationId: 0,
   healthcareFacilityId: "",
+  scopeLevel: "FACILITY",
+  zoneId: null,
   employeeTypeId: 0,
   profession: "",
   license: "",
@@ -76,8 +88,13 @@ export default function MemberPage() {
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
-  const [profileAdminList, setProfileAdminList] = useState<ProfileAdmin[]>([]);
+  const [roleFilter, setRoleFilter] = useState<Selection>("all");
+  const [facilityFilter, setFacilityFilter] = useState<Selection>("all");
+  const [profileAdminList, setProfileAdminList] = useState<MemberListRow[]>([]);
   const [affiliationList, setAffiliationList] = useState<Affiliation[]>([]);
+  const [facilityOptions, setFacilityOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -107,15 +124,40 @@ export default function MemberPage() {
     }
     if (
       statusFilter !== "all" &&
-      Array.from(statusFilter).length !== options.length
+      Array.from(statusFilter).length !== userStatusOptions.length
     ) {
       filteredUsers = filteredUsers.filter((user) =>
         Array.from(statusFilter).includes(user.status.toString())
       );
     }
+    if (
+      roleFilter !== "all" &&
+      Array.from(roleFilter).length !== staffAssignableRoles.length
+    ) {
+      filteredUsers = filteredUsers.filter((user) =>
+        Array.from(roleFilter).includes(String(user.roleId))
+      );
+    }
+    if (facilityFilter !== "all" && Array.from(facilityFilter).length > 0) {
+      const selected = Array.from(facilityFilter).map(String);
+
+      if (selected.length !== facilityOptions.length) {
+        filteredUsers = filteredUsers.filter((user) =>
+          selected.includes(user.healthcareFacilityId ?? "")
+        );
+      }
+    }
 
     return filteredUsers;
-  }, [profileAdminList, filterValue, statusFilter]);
+  }, [
+    profileAdminList,
+    filterValue,
+    statusFilter,
+    roleFilter,
+    facilityFilter,
+    facilityOptions.length,
+    hasSearchFilter,
+  ]);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -125,9 +167,9 @@ export default function MemberPage() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a: ProfileAdmin, b: ProfileAdmin) => {
-      const first = a[sortDescriptor.column as keyof ProfileAdmin] as number;
-      const second = b[sortDescriptor.column as keyof ProfileAdmin] as number;
+    return [...items].sort((a: MemberListRow, b: MemberListRow) => {
+      const first = a[sortDescriptor.column as keyof MemberListRow] as number;
+      const second = b[sortDescriptor.column as keyof MemberListRow] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -140,29 +182,26 @@ export default function MemberPage() {
       setPages(Math.ceil(filteredItems.length / parseInt(e.target.value)));
       setPage(1);
     },
-    [pages, items]
+    [filteredItems.length]
   );
 
-  const onSearchChange = useCallback(
-    (value?: string) => {
-      if (value) {
-        setFilterValue(value);
-        setPage(1);
-      } else {
-        setFilterValue("");
-      }
-    },
-    [filterValue]
-  );
+  const onSearchChange = useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value);
+      setPage(1);
+    } else {
+      setFilterValue("");
+    }
+  }, []);
 
   const topContent = useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center gap-3">
+        <div className="flex justify-between items-center gap-3 flex-wrap">
           <Input
             isClearable
             classNames={{
-              base: "w-full",
+              base: "w-full sm:max-w-xs",
               inputWrapper: "border-1 bg-white",
             }}
             placeholder="Search by name..."
@@ -175,42 +214,95 @@ export default function MemberPage() {
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                color="primary"
-                endContent={<ChevronDownIcon className="size-6" />}
-                size="sm"
-                variant="solid"
+          <div className="flex gap-2 flex-wrap">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="sm"
+                  variant="solid"
+                >
+                  สิทธิ์
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Role filter"
+                closeOnSelect={false}
+                selectedKeys={roleFilter}
+                selectionMode="multiple"
+                onSelectionChange={setRoleFilter}
               >
-                สถานะ
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              disallowEmptySelection
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              selectedKeys={statusFilter}
-              selectionMode="multiple"
-              onSelectionChange={setStatusFilter}
-            >
-              {options.map((status) => (
-                <DropdownItem key={status.uid} className="capitalize">
-                  {status.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+                {staffAssignableRoles.map((role) => (
+                  <DropdownItem key={String(role.id)} className="capitalize">
+                    {role.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="sm"
+                  variant="solid"
+                >
+                  หน่วยงาน
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Facility filter"
+                closeOnSelect={false}
+                selectedKeys={facilityFilter}
+                selectionMode="multiple"
+                onSelectionChange={setFacilityFilter}
+              >
+                {facilityOptions.map((facility) => (
+                  <DropdownItem key={facility.id} className="capitalize">
+                    {facility.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  color="primary"
+                  endContent={<ChevronDownIcon className="size-6" />}
+                  size="sm"
+                  variant="solid"
+                >
+                  สถานะ
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Status filter"
+                closeOnSelect={false}
+                selectedKeys={statusFilter}
+                selectionMode="multiple"
+                onSelectionChange={setStatusFilter}
+              >
+                {userStatusOptions.map((statusOption) => (
+                  <DropdownItem key={statusOption.uid} className="capitalize">
+                    {statusOption.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
         </div>
       </div>
     );
   }, [
     filterValue,
     statusFilter,
+    roleFilter,
+    facilityFilter,
+    facilityOptions,
     onSearchChange,
-    onRowsPerPageChange,
-    profileAdminList.length,
-    hasSearchFilter,
   ]);
 
   const bottomContent = useMemo(() => {
@@ -283,9 +375,26 @@ export default function MemberPage() {
       .then((val) => {
         setProfileAdminList(val);
         setPages(Math.ceil(val.length / rowsPerPage));
+        const facilities = new Map<string, string>();
+
+        for (const row of val as MemberListRow[]) {
+          if (row.healthcareFacilityId) {
+            facilities.set(
+              row.healthcareFacilityId,
+              row.healthcareFacility?.name ??
+                row.agency ??
+                row.healthcareFacilityId
+            );
+          }
+        }
+        setFacilityOptions(
+          Array.from(facilities.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, "th"))
+        );
         setIsLoading(false);
       });
-  }, [profileAdminList]);
+  }, [rowsPerPage]);
 
   const GetAffiliationList = useCallback(async () => {
     await fetch("/api/data/affiliation")
@@ -293,7 +402,7 @@ export default function MemberPage() {
       .then((val) => {
         setAffiliationList(val);
       });
-  }, [affiliationList]);
+  }, []);
 
   useEffect(() => {
     if (status !== "loading") {
@@ -356,7 +465,10 @@ export default function MemberPage() {
                     {(columnKey) => (
                       <TableCell className="text-nowrap">
                         {RenderCell({
-                          data: item,
+                          data: {
+                            ...item,
+                            agency: item.agency ?? undefined,
+                          },
                           affiliationList: affiliationList,
                           columnKey: columnKey,
                           index:

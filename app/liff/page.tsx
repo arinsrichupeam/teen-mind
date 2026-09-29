@@ -40,7 +40,7 @@ export default function LiffHome() {
   }, [status]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-48px)] w-screen">
+    <div className="flex flex-col min-h-screen w-screen">
       <Loading />
     </div>
   );

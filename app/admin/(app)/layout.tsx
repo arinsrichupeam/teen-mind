@@ -1,52 +1,64 @@
 "use client";
 
-import React, { ReactNode, useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import React, { ReactNode, useEffect, useState } from "react";
 
 import { SidebarContext } from "./layout-context";
 import { NavbarWrapper } from "./components/navbar-admin";
-import { ModalUserStatus } from "./components/modal/modal-user-status";
+import { AdminAccessGate } from "./components/admin-access-gate";
 import { SidebarWrapper } from "./components/sidebar/sidebar-wrapper";
 
-const Layout = ({ children }: { children: ReactNode }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { status } = useSession();
-  const router = useRouter();
+const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
 
-  const handleToggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+const Layout = ({ children }: { children: ReactNode }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (status !== "loading") {
-      if (status === "unauthenticated") {
-        router.replace("/admin/login");
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+
+      if (stored === "true") {
+        setCollapsed(true);
       }
+    } catch {
+      // ignore storage errors
     }
-  }, [status, router]);
+  }, []);
 
-  if (status === "loading") {
-    return null;
-  }
+  const toggleMobile = () => {
+    setMobileOpen((open) => !open);
+  };
 
-  if (status === "unauthenticated") {
-    return null;
-  }
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // ignore storage errors
+      }
+
+      return next;
+    });
+  };
 
   return (
-    <SidebarContext.Provider
-      value={{
-        collapsed: sidebarOpen,
-        setCollapsed: handleToggleSidebar,
-      }}
-    >
-      <section className="flex bg-gray-100">
-        <ModalUserStatus />
-        <SidebarWrapper />
-        <NavbarWrapper>{children}</NavbarWrapper>
-      </section>
-    </SidebarContext.Provider>
+    <AdminAccessGate>
+      <SidebarContext.Provider
+        value={{
+          mobileOpen,
+          toggleMobile,
+          collapsed,
+          toggleCollapsed,
+        }}
+      >
+        <section className="flex bg-gray-100">
+          <SidebarWrapper />
+          <NavbarWrapper>{children}</NavbarWrapper>
+        </section>
+      </SidebarContext.Provider>
+    </AdminAccessGate>
   );
 };
 

@@ -26,7 +26,7 @@ import {
 } from "@heroicons/react/24/outline";
 import useSWR from "swr";
 
-import { questionStatusOptions as options } from "../../data/optionData";
+import { caseStatusOptions as options } from "../../data/optionData";
 import { ExportButton } from "../export-button";
 import { StatusUpdateButton } from "../status-update-button";
 
@@ -57,7 +57,7 @@ const phqaStatusOptions = [
 
 /** แยกชุดคำถามหลักตามโครงสร้าง DB (9Q มีแถว q9; PHQ-A ไม่มี q9) — ไม่เท่ากับอายุโดยตรง */
 const mainScaleOptions = [
-  { name: "ทุกชุดแบบประเมิน", uid: "all" },
+  { name: "ทุกชุดประเมิน", uid: "all" },
   { name: "9Q", uid: "nineq" },
   { name: "PHQ-A", uid: "phqa" },
 ];
@@ -385,12 +385,12 @@ export function QuestionFilterContent({
                     size="sm"
                     variant="flat"
                   >
-                    สถานะ
+                    สถานะเคส
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="Table Columns"
+                  aria-label="Case status filter"
                   closeOnSelect={false}
                   selectedKeys={statusFilter}
                   selectionMode="multiple"
@@ -655,7 +655,7 @@ export function QuestionFilterContent({
                       setStatusFilter(newStatusFilter);
                     }}
                   >
-                    สถานะ: {statusOption?.name}
+                    สถานะเคส: {statusOption?.name}
                   </Chip>
                 );
               })}

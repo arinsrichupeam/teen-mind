@@ -54,11 +54,10 @@ interface UserData {
     id: number;
     name: string;
   } | null;
-  questions: {
+  cases: {
     id: string;
     createdAt: string;
     result: string;
-    result_text?: string;
   }[];
   user?: {
     name: string | null;
@@ -92,7 +91,7 @@ const columns = [
     sortable: true,
   },
   {
-    name: "จำนวนแบบประเมิน",
+    name: "จำนวนเคส",
     uid: "questionCount",
     align: "center" as const,
     sortable: true,
@@ -188,7 +187,7 @@ export default function UserPage() {
           case "line":
             return user.user?.accounts?.length ? 1 : 0;
           case "questionCount":
-            return user.questions.length;
+            return user.cases?.length ?? 0;
           default:
             return "";
         }
@@ -399,11 +398,11 @@ export default function UserPage() {
         case "questionCount":
           return (
             <Chip
-              color={user.questions.length > 0 ? "primary" : "default"}
+              color={(user.cases?.length ?? 0) > 0 ? "primary" : "default"}
               size="sm"
               variant="flat"
             >
-              {user.questions.length}
+              {user.cases?.length ?? 0}
             </Chip>
           );
         case "actions":

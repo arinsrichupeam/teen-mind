@@ -32,7 +32,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex flex-col gap-5 z-10">
-            <Image alt="logo" height={70} src="../../../image/Logo_App.png" />
+            <Image
+              alt="logo"
+              className="h-[65px] w-auto object-contain"
+              src="/image/bkk-mind-logo.png"
+            />
             <div className="max-w-lg flex flex-col gap-3">
               <div>
                 <span className="font-semibold">ขอบเขตงาน ผู้ให้คำปรึกษา</span>

@@ -192,21 +192,33 @@ const ProfileAvatar = () => {
       >
         <DropdownTrigger>
           <button
-            className="flex items-center gap-2 rounded-full px-2 py-1 bg-white/60 hover:bg-white/90 shadow-sm"
+            aria-label={
+              isDisplayNameLoading
+                ? "เมนูโปรไฟล์"
+                : `เมนูโปรไฟล์ของ ${displayName || "ผู้ใช้"}`
+            }
+            className="rounded-full outline-none ring-offset-2 transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary"
             type="button"
           >
             <Avatar
-              className="border border-default-200"
+              className="border border-default-200 shadow-sm"
               name={initials}
               size="sm"
               src={image}
             />
-            <span className="text-xs text-default-700 max-w-[140px] truncate">
-              {isDisplayNameLoading ? "กำลังโหลด..." : displayName}
-            </span>
           </button>
         </DropdownTrigger>
         <DropdownMenu aria-label="เมนูโปรไฟล์" className="min-w-[200px]">
+          <DropdownItem
+            key="display-name"
+            isReadOnly
+            className="cursor-default opacity-100 data-[hover=true]:bg-transparent"
+            textValue={displayName || "ผู้ใช้"}
+          >
+            <p className="truncate text-sm font-medium text-default-700">
+              {isDisplayNameLoading ? "กำลังโหลด..." : displayName || "ผู้ใช้"}
+            </p>
+          </DropdownItem>
           {isAdmin ? (
             <DropdownItem key="admin" onPress={() => router.push("/admin")}>
               ไปหน้าแอดมิน

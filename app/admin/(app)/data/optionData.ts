@@ -1,3 +1,4 @@
+/** Follow-up progress 0–3 (HN / consult rounds) — bulk status update & secondary chips */
 export const questionStatusOptions = [
   { name: "รอระบุ HN", uid: "0" },
   { name: "รอให้คำปรึกษา", uid: "1" },
@@ -5,13 +6,22 @@ export const questionStatusOptions = [
   { name: "เสร็จสิ้น", uid: "3" },
 ] as const;
 
-/** Label สถานะแบบประเมิน — ใช้ร่วมกันทั้งหน้า productivity / filter */
+/** Label สถานะติดตาม — ใช้ร่วมกันทั้งหน้า productivity / bulk update */
 export const QUESTION_STATUS_LABEL = {
   0: questionStatusOptions[0].name,
   1: questionStatusOptions[1].name,
   2: questionStatusOptions[2].name,
   3: questionStatusOptions[3].name,
 } as const;
+
+/** Case workflow status — primary filter on เคส / เคสที่ดูแล
+ *  TRANSFER_PENDING is listed under คำขอรับส่งต่อ tab, not here.
+ */
+export const caseStatusOptions = [
+  { name: "รอรับดูแล", uid: "PENDING" },
+  { name: "กำลังดูแล", uid: "IN_PROGRESS" },
+  { name: "เสร็จสิ้น", uid: "CLOSED" },
+] as const;
 
 export const userStatusOptions = [
   { name: "ใช้งาน", uid: "1" },
@@ -30,3 +40,6 @@ export const userRoles = [
   { id: 3, name: "Consult" },
   { id: 4, name: "Admin" },
 ];
+
+/** Roles assignable on ProfileAdmin (members / staff). */
+export const staffAssignableRoles = userRoles.filter((r) => r.id !== 1);

@@ -13,8 +13,7 @@ import {
 } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { Radio, RadioGroup } from "@heroui/radio";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   ModalBody,
@@ -25,7 +24,12 @@ import {
 } from "@heroui/modal";
 import { Divider, InputOtp } from "@heroui/react";
 
-import { subtitle, title } from "@/components/primitives";
+import { title } from "@/components/primitives";
+import {
+  AssessmentChoiceGroup,
+  FREQUENCY_OPTIONS,
+  YES_NO_OPTIONS,
+} from "@/components/assessment-choice-group";
 import { LocationData, ProblemPayload } from "@/types";
 import Loading from "@/app/loading";
 import { calculateAge } from "@/utils/helper";
@@ -35,6 +39,26 @@ import {
   getAssessmentFlowGroupFromAge,
 } from "@/lib/assessment-scale";
 import {
+  isTwoQPositive,
+  nextAfterTwoQ,
+  resolveDepressionBackStep,
+  shouldEnter8Q,
+} from "@/lib/depression-flow";
+import {
+  normalize8QAddon,
+  sum8Q,
+  sum9Q,
+  sumPhqa,
+} from "@/lib/assessment-scoring";
+import {
+  buildAssessmentResultBlocks,
+  type AssessmentResultDisplayInput,
+} from "@/lib/assessment-result-display";
+import {
+  getScreeningProgressView,
+  isElevatedScreeningRisk,
+} from "@/lib/liff-screening-progress";
+import {
   q2,
   qPhqa,
   phqaAddon,
@@ -43,6 +67,8 @@ import {
   q8Addon as q8AddonQuestions,
   teenMindProblems,
 } from "@/app/data";
+
+const AUTO_ADVANCE_MS = 350;
 
 export default function PHQAPage() {
   const searchParams = useSearchParams();
@@ -186,15 +212,15 @@ export default function PHQAPage() {
 
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [questionName, setQuestionName] = useState("2Q");
-  const [progress, setProgress] = useState(0);
   const [showPHQA, setPHQAShow] = useState(false);
   const [showPHQAAddon, setPHQAAddonShow] = useState(false);
   const [showQ9, setShowQ9] = useState(false);
   const [showQ8, setShowQ8] = useState(false);
   const [showProblem, setShowProblem] = useState(false);
+  const [show8QInterstitial, setShow8QInterstitial] = useState(false);
+  const [twoQNegativePath, setTwoQNegativePath] = useState(false);
+  const [entered8Q, setEntered8Q] = useState(false);
   const [canProceed, setCanProceed] = useState(false);
-  const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false);
   const [profileIdState, setProfileIdState] = useState("");
   const [ageGroup, setAgeGroup] = useState<AssessmentFlowGroup | null>(null);
   const [referenceId, setReferenceId] = useState("");
@@ -202,15 +228,15 @@ export default function PHQAPage() {
     fullName: string;
     affiliation: string;
     agency: string;
+    facilityUnit?: string | null;
   }>();
   const [question, setQuestion] = useState("1");
-  const [currentAnswer, setCurrentAnswer] = useState<string>("");
   const [isModalOpened, setIsModalOpened] = useState(false);
   const [isOtpEmpty, setIsOtpEmpty] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<{
-    [key: string]: string;
-  }>({});
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const [phqa_data, setPHQA] = useState<QuestionPhqa>(phqaInitValue);
   const [Q2_data, setQ2] = useState<QuestionPhqaAddon>(Q2InitValue);
@@ -223,142 +249,11 @@ export default function PHQAPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [location, setLocation] = useState<LocationData>();
-  const [calculationResult, setCalculationResult] = useState<{
-    phqa_sum: number;
-    result: string;
-    result_text: string;
-    q9_value: number;
-  } | null>(null);
-
-  type RiskDisplay = {
-    text?: string;
-    textColor: string;
-    barColor: string;
-    scoreRange: string;
-  };
-
-  const riskDisplayMap: Record<string, RiskDisplay> = {
-    Green: {
-      textColor: "text-green-700",
-      barColor: "bg-green-200",
-      scoreRange: "0 - 4 คะแนน",
-    },
-    "Green-Low": {
-      textColor: "text-green-600",
-      barColor: "bg-green-400",
-      scoreRange: "5 - 9 คะแนน",
-    },
-    Yellow: {
-      textColor: "text-yellow-700",
-      barColor: "bg-yellow-500",
-      scoreRange: "10 - 14 คะแนน",
-    },
-    Orange: {
-      textColor: "text-orange-700",
-      barColor: "bg-orange-500",
-      scoreRange: "15 - 19 คะแนน",
-    },
-    Red: {
-      textColor: "text-red-700",
-      barColor: "bg-red-500",
-      scoreRange: "20 - 27 คะแนน",
-    },
-  };
-
-  const getNineQRiskDisplay = (
-    sum: number
-  ): {
-    text: string;
-    textColor: string;
-    barColor: string;
-    scoreRange: string;
-  } => {
-    if (sum < 7) {
-      return {
-        text: "ไม่มีอาการของโรคซึมเศร้า",
-        textColor: "text-green-700",
-        barColor: "bg-green-300",
-        scoreRange: "< 7 คะแนน",
-      };
-    }
-
-    if (sum <= 12) {
-      return {
-        text: "มีอาการของโรคซึมเศร้า ระดับน้อย",
-        textColor: "text-yellow-700",
-        barColor: "bg-yellow-400",
-        scoreRange: "7 - 12 คะแนน",
-      };
-    }
-
-    if (sum <= 18) {
-      return {
-        text: "มีอาการของโรคซึมเศร้า ระดับปานกลาง",
-        textColor: "text-orange-700",
-        barColor: "bg-orange-500",
-        scoreRange: "13 - 18 คะแนน",
-      };
-    }
-
-    return {
-      text: "มีอาการของโรคซึมเศร้า ระดับรุนแรง",
-      textColor: "text-red-700",
-      barColor: "bg-red-500",
-      scoreRange: ">= 19 คะแนน",
-    };
-  };
-
-  const getEightQRiskDisplay = (
-    sum: number
-  ): {
-    text: string;
-    textColor: string;
-    barColor: string;
-    scoreRange: string;
-  } => {
-    if (sum === 0) {
-      return {
-        text: "ไม่มีแนวโน้มฆ่าตัวตายในปัจจุบัน",
-        textColor: "text-green-700",
-        barColor: "bg-green-300",
-        scoreRange: "0 คะแนน",
-      };
-    }
-
-    if (sum <= 8) {
-      return {
-        text: "มีแนวโน้มที่จะฆ่าตัวตายในปัจจุบัน ระดับน้อย",
-        textColor: "text-yellow-700",
-        barColor: "bg-yellow-400",
-        scoreRange: "1 - 8 คะแนน",
-      };
-    }
-
-    if (sum <= 16) {
-      return {
-        text: "มีแนวโน้มที่จะฆ่าตัวตายในปัจจุบัน ระดับปานกลาง",
-        textColor: "text-orange-700",
-        barColor: "bg-orange-500",
-        scoreRange: "9 - 16 คะแนน",
-      };
-    }
-
-    return {
-      text: "มีแนวโน้มที่จะฆ่าตัวตายในปัจจุบัน ระดับรุนแรง",
-      textColor: "text-red-700",
-      barColor: "bg-red-500",
-      scoreRange: ">= 17 คะแนน",
-    };
-  };
-
-  const selectedRisk = calculationResult
-    ? ageGroup === "nineq"
-      ? getNineQRiskDisplay(calculationResult.phqa_sum)
-      : (riskDisplayMap[calculationResult.result] ?? riskDisplayMap.Red)
-    : null;
-  const selectedEightQRisk = calculationResult
-    ? getEightQRiskDisplay(calculationResult.q9_value)
-    : null;
+  const [calculationResult, setCalculationResult] =
+    useState<AssessmentResultDisplayInput | null>(null);
+  const resultBlocks = calculationResult
+    ? buildAssessmentResultBlocks(calculationResult)
+    : [];
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const applyProfileContext = useCallback(
@@ -379,12 +274,11 @@ export default function PHQAPage() {
       setShowQ9(false);
       setShowQ8(false);
       setShowProblem(false);
+      setShow8QInterstitial(false);
+      setTwoQNegativePath(false);
+      setEntered8Q(false);
       setQuestion("1");
-      setQuestionName("2Q");
-      setProgress(0);
       setCanProceed(false);
-      setCurrentAnswer("");
-      setCurrentQuestionAnswers({});
     },
     []
   );
@@ -454,10 +348,28 @@ export default function PHQAPage() {
 
     // ตรวจสอบ ref จาก QR — ใช้จาก URL ก่อน ถ้าไม่มีค่อยอ่านจาก sessionStorage
     // เปิด modal ให้กรอกรหัส อสท. ก็ต่อเมื่อไม่พบ ref จากที่ไหนเลย
+    // หรือเมื่อ ref ชี้ไปอาสาสมัครที่ปิดการใช้งานแล้ว
     const effectiveRef = ref || peekReferentRef();
 
     if (effectiveRef) {
       setReferenceId(effectiveRef);
+      void (async () => {
+        try {
+          const response = await fetch(
+            `/api/data/referent/${parseInt(effectiveRef, 10)}`
+          );
+          const data = await response.json();
+          const row = Array.isArray(data) ? data[0] : null;
+
+          if (!row) {
+            setReferenceId("");
+            onOpen();
+          }
+        } catch {
+          setReferenceId("");
+          onOpen();
+        }
+      })();
     } else {
       onOpen();
     }
@@ -470,8 +382,7 @@ export default function PHQAPage() {
       });
     }
 
-    // เริ่มต้น progress ที่ 0%
-    setProgress(0);
+    // เริ่มต้นที่ข้อแรก
   }, [
     session,
     status,
@@ -482,36 +393,57 @@ export default function PHQAPage() {
     onOpen,
   ]);
 
-  const fetchReferentData = useCallback(
-    async (id: string) => {
-      const referentId = parseInt(id);
+  const clearAutoAdvance = useCallback(() => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+  }, []);
 
-      setIsLoading(true);
+  useEffect(() => () => clearAutoAdvance(), [clearAutoAdvance]);
 
-      try {
-        const response = await fetch(`/api/data/referent/${referentId}`);
-        const data = await response.json();
-        const fullName = data[0].firstName + " " + data[0].lastName;
-        const affiliation = data[0].affiliation.name;
-        const agency = data[0].agency;
+  const handleNextRef = useRef<() => void>(() => {});
 
-        setReferentData({
-          fullName: fullName,
-          affiliation: affiliation,
-          agency: agency,
-        });
-      } catch {
-        setReferentData({
-          fullName: "ไม่พบข้อมูล",
-          affiliation: "ไม่พบข้อมูล",
-          agency: "ไม่พบข้อมูล",
-        });
-      } finally {
-        setIsLoading(false);
+  const scheduleAutoAdvance = useCallback(() => {
+    clearAutoAdvance();
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      handleNextRef.current();
+    }, AUTO_ADVANCE_MS);
+  }, [clearAutoAdvance]);
+
+  const fetchReferentData = useCallback(async (id: string) => {
+    const referentId = parseInt(id);
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/data/referent/${referentId}`);
+      const data = await response.json();
+      const row = Array.isArray(data) ? data[0] : null;
+
+      if (!row) {
+        throw new Error("not found");
       }
-    },
-    [ageGroup]
-  );
+
+      const facilityName = row.healthcareFacility?.name ?? "";
+
+      setReferentData({
+        fullName: `${row.firstName} ${row.lastName}`.trim(),
+        affiliation: row.affiliation?.name ?? "",
+        agency: facilityName,
+        facilityUnit: row.facilityUnit?.name ?? null,
+      });
+    } catch {
+      setReferentData({
+        fullName: "ไม่พบข้อมูล",
+        affiliation: "ไม่พบข้อมูล",
+        agency: "ไม่พบข้อมูล",
+        facilityUnit: null,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const ReferChange = useCallback(
     (e: React.FormEvent<HTMLDivElement> | string) => {
@@ -532,41 +464,11 @@ export default function PHQAPage() {
     [fetchReferentData]
   );
 
-  const calProgress = useCallback(
-    (e: number) => {
-      if (!ageGroup) return 0;
-
-      // จำนวนคำถามทั้งหมด (นับเฉพาะหน้าที่แสดงด้วย Tab)
-      // under12: 2Q(2) + PHQ-A(9) + PHQ-A Addon(2) + 8Q(9) = 22
-      // + ประเมินปัญหา(1)
-      // over12 : 2Q(2) + 9Q(9) + 8Q(9) + ประเมินปัญหา(1) = 21
-      const totalQuestions = ageGroup === "phqa" ? 23 : 21;
-      const currentQuestion = e - 1; // ลบ 1 เพื่อให้เริ่มจาก 0
-
-      // คำนวณเปอร์เซ็นต์ความคืบหน้า (100/13 ≈ 7.7% ต่อข้อ)
-      const progress = Math.round((currentQuestion * 100) / totalQuestions);
-
-      return progress;
-    },
-    [ageGroup]
-  );
-
   const phqaChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const Question = parseInt(e.target.name, 10);
-      const name = "q" + e.target.name;
-      const value = e.target.value;
+    (questionNo: number, value: string) => {
+      const name = "q" + questionNo;
 
-      setCurrentAnswer(value);
       setCanProceed(true);
-      setCurrentQuestionAnswers((prev) => {
-        const newAnswers = {
-          ...prev,
-          [Question]: value,
-        };
-
-        return newAnswers;
-      });
 
       setPHQA((prev) => {
         const newData = {
@@ -574,7 +476,6 @@ export default function PHQAPage() {
           [name]: parseInt(value, 10),
         };
 
-        // คำนวณผลรวมของคำตอบ PHQ-A
         const sum = Object.keys(newData)
           .filter((key) => key.startsWith("q") && key !== "caseId")
           .reduce(
@@ -586,70 +487,48 @@ export default function PHQAPage() {
         return { ...newData, sum };
       });
 
-      if (Question === 9) {
-        setLastQuestionAnswered(true);
-      }
+      scheduleAutoAdvance();
     },
-    [currentQuestionAnswers]
+    [scheduleAutoAdvance]
   );
 
-  const Q2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const Question = parseInt(e.target.name, 10);
-    const name = "q" + Question;
-    const value = parseInt(e.target.value);
+  const Q2Change = useCallback(
+    (questionNo: number, value: string) => {
+      const name = "q" + questionNo;
 
-    setCurrentAnswer(value.toString());
-    setCanProceed(true);
-    setCurrentQuestionAnswers((prev) => ({
-      ...prev,
-      [Question]: value.toString(),
-    }));
-
-    setQ2((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (Question === 2) {
-      setLastQuestionAnswered(true);
-    }
-  }, []);
-
-  const phqaAddonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const Question = parseInt(e.target.name, 10);
-    const name = "q" + (Question - 11); // แปลงจาก q12, q13 เป็น q1, q2
-    const value = parseInt(e.target.value, 10);
-
-    setCurrentAnswer(value.toString());
-    setCanProceed(true);
-    setCurrentQuestionAnswers((prev) => ({
-      ...prev,
-      [Question]: value.toString(),
-    }));
-
-    setPHQAAddon((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (Question === 13) {
-      setLastQuestionAnswered(true);
-    }
-  };
-
-  const q9Change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const Question = parseInt(e.target.name, 10); // 1..9
-      const name = "q" + e.target.name;
-      const value = e.target.value;
-
-      setCurrentAnswer(value);
       setCanProceed(true);
 
-      setCurrentQuestionAnswers((prev) => ({
+      setQ2((prev) => ({
         ...prev,
-        [Question]: value,
+        [name]: parseInt(value, 10),
       }));
+
+      scheduleAutoAdvance();
+    },
+    [scheduleAutoAdvance]
+  );
+
+  const phqaAddonChange = useCallback(
+    (questionNo: number, value: string) => {
+      const name = "q" + (questionNo - 11);
+
+      setCanProceed(true);
+
+      setPHQAAddon((prev) => ({
+        ...prev,
+        [name]: parseInt(value, 10),
+      }));
+
+      scheduleAutoAdvance();
+    },
+    [scheduleAutoAdvance]
+  );
+
+  const q9Change = useCallback(
+    (questionNo: number, value: string) => {
+      const name = "q" + questionNo;
+
+      setCanProceed(true);
 
       setQ9((prev) => {
         const newData = {
@@ -657,7 +536,6 @@ export default function PHQAPage() {
           [name]: parseInt(value, 10),
         } as Question9Q;
 
-        // คำนวณผลรวม q1..q9
         const q9Keys = [
           "q1",
           "q2",
@@ -677,30 +555,23 @@ export default function PHQAPage() {
         return { ...newData, sum };
       });
 
-      if (Question === 9) setLastQuestionAnswered(true);
+      scheduleAutoAdvance();
     },
-    [currentQuestionAnswers]
+    [scheduleAutoAdvance]
   );
 
   const q8Change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const Question = parseInt(e.target.name, 10); // 1..8 (ฟิลด์ q1..q8)
-      const name = ("q" + e.target.name) as keyof Question8Q;
-      const value = parseInt(e.target.value, 10);
+    (questionNo: number, value: string) => {
+      const name = ("q" + questionNo) as keyof Question8Q;
+      const parsed = parseInt(value, 10);
 
-      setCurrentAnswer(value.toString());
       setCanProceed(true);
-
-      setCurrentQuestionAnswers((prev) => ({
-        ...prev,
-        [Question]: value.toString(),
-      }));
 
       setQ8((prev) => {
         const updated = {
           ...prev,
-          [name]: value,
-          ...(Question === 3 && value === 0 ? { q8Addon: 0 } : {}),
+          [name]: parsed,
+          ...(questionNo === 3 && parsed === 0 ? { q8Addon: 0 } : {}),
         } as Question8Q;
 
         const sum =
@@ -717,37 +588,36 @@ export default function PHQAPage() {
         return { ...updated, sum };
       });
 
-      if (Question === 8) setLastQuestionAnswered(true);
+      scheduleAutoAdvance();
     },
-    [currentQuestionAnswers]
+    [scheduleAutoAdvance]
   );
 
-  const q8AddonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10); // 0 หรือ 8
+  const q8AddonChange = useCallback(
+    (value: string) => {
+      const parsed = parseInt(value, 10);
 
-    setCurrentAnswer(value.toString());
-    setCanProceed(true);
-    setCurrentQuestionAnswers((prev) => ({
-      ...prev,
-      q8Addon: value.toString(),
-    }));
+      setCanProceed(true);
 
-    setQ8((prev) => {
-      const updated = { ...prev, q8Addon: value };
-      const sum =
-        Number(updated.q1 ?? 0) +
-        Number(updated.q2 ?? 0) +
-        Number(updated.q3 ?? 0) +
-        Number(updated.q4 ?? 0) +
-        Number(updated.q5 ?? 0) +
-        Number(updated.q6 ?? 0) +
-        Number(updated.q7 ?? 0) +
-        Number(updated.q8 ?? 0) +
-        Number(value ?? 0);
+      setQ8((prev) => {
+        const updated = { ...prev, q8Addon: parsed };
+        const sum =
+          Number(updated.q1 ?? 0) +
+          Number(updated.q2 ?? 0) +
+          Number(updated.q3 ?? 0) +
+          Number(updated.q4 ?? 0) +
+          Number(updated.q5 ?? 0) +
+          Number(updated.q6 ?? 0) +
+          Number(updated.q7 ?? 0) +
+          Number(updated.q8 ?? 0) +
+          Number(parsed ?? 0);
 
-      return { ...updated, sum };
-    });
-  };
+        return { ...updated, sum };
+      });
+      scheduleAutoAdvance();
+    },
+    [scheduleAutoAdvance]
+  );
 
   const toggleProblem = useCallback((key: keyof ProblemPayload) => {
     if (key === "sum") return;
@@ -771,41 +641,69 @@ export default function PHQAPage() {
     setCanProceed(true);
   }, []);
 
+  const openEightQInterstitial = useCallback(() => {
+    clearAutoAdvance();
+    setPHQAShow(false);
+    setPHQAAddonShow(false);
+    setShowQ9(false);
+    setShowQ8(false);
+    setShowProblem(false);
+    setShow8QInterstitial(true);
+    setEntered8Q(true);
+    setCanProceed(false);
+  }, [clearAutoAdvance]);
+
+  const startEightQ = useCallback(() => {
+    if (!ageGroup) return;
+    const q8Start = ageGroup === "phqa" ? 14 : 12;
+
+    setShow8QInterstitial(false);
+    setShowQ8(true);
+    setQuestion(q8Start.toString());
+    setCanProceed(false);
+  }, [ageGroup]);
+
   const handleNext = useCallback(() => {
     if (!ageGroup) return;
+    clearAutoAdvance();
 
     const currentQuestion = parseInt(question, 10);
     const q8Start = ageGroup === "phqa" ? 14 : 12;
-    /** คีย์สุดท้ายของ 8Q: q1..q3, addon, q4..q8 (รวม 9 ขั้น) */
     const q8LastKey = q8Start + 8;
     const problemStepKey = q8LastKey + 1;
 
     const resetForNext = (nextKey: number) => {
-      setProgress(calProgress(nextKey));
       setQuestion(nextKey.toString());
-      setCurrentAnswer("");
       setCanProceed(false);
-      setCurrentQuestionAnswers({});
-      setLastQuestionAnswered(false);
     };
 
-    // 2Q -> (PHQ-A หรือ 9Q)
     if (currentQuestion === 2) {
+      if (nextAfterTwoQ(Number(Q2_data.q1), Number(Q2_data.q2)) === "problem") {
+        setPHQAShow(false);
+        setPHQAAddonShow(false);
+        setShowQ9(false);
+        setShowQ8(false);
+        setShowProblem(true);
+        setTwoQNegativePath(true);
+        resetForNext(problemStepKey);
+        setCanProceed(true);
+
+        return;
+      }
+
       const isUnder12 = ageGroup === "phqa";
 
+      setTwoQNegativePath(false);
       setPHQAShow(isUnder12);
       setPHQAAddonShow(false);
       setShowQ9(!isUnder12);
       setShowQ8(false);
       setShowProblem(false);
-
-      setQuestionName(isUnder12 ? "PHQ-A" : "9Q");
       resetForNext(3);
 
       return;
     }
 
-    // under12: PHQ-A (3..11) -> PHQ-A Addon (12..13) -> 8Q (q8Start..q8LastKey)
     if (ageGroup === "phqa") {
       if (currentQuestion >= 3 && currentQuestion < 11) {
         resetForNext(currentQuestion + 1);
@@ -819,7 +717,6 @@ export default function PHQAPage() {
         setShowQ9(false);
         setShowQ8(false);
         setShowProblem(false);
-        setQuestionName("PHQ-A Addon");
         resetForNext(12);
 
         return;
@@ -832,18 +729,26 @@ export default function PHQAPage() {
       }
 
       if (currentQuestion === 13) {
-        setPHQAAddonShow(false);
-        setShowQ9(false);
-        setShowQ8(true);
-        setShowProblem(false);
-        setQuestionName("8Q");
-        resetForNext(q8Start);
+        const phqaSum = sumPhqa(phqa_data);
+
+        if (!shouldEnter8Q("PHQA", phqaSum)) {
+          setPHQAAddonShow(false);
+          setShowQ9(false);
+          setShowQ8(false);
+          setShowProblem(true);
+          setEntered8Q(false);
+          resetForNext(problemStepKey);
+          setCanProceed(true);
+
+          return;
+        }
+
+        openEightQInterstitial();
 
         return;
       }
     }
 
-    // over12: 9Q (3..11) -> 8Q (q8Start..q8LastKey)
     if (ageGroup === "nineq") {
       if (currentQuestion >= 3 && currentQuestion < 11) {
         resetForNext(currentQuestion + 1);
@@ -852,31 +757,34 @@ export default function PHQAPage() {
       }
 
       if (currentQuestion === 11) {
-        setPHQAShow(false);
-        setPHQAAddonShow(false);
-        setShowQ9(false);
-        setShowQ8(true);
-        setShowProblem(false);
-        setQuestionName("8Q");
-        resetForNext(q8Start);
+        const nineSum = sum9Q(q9_data);
+
+        if (!shouldEnter8Q("9Q", nineSum)) {
+          setPHQAShow(false);
+          setPHQAAddonShow(false);
+          setShowQ9(false);
+          setShowQ8(false);
+          setShowProblem(true);
+          setEntered8Q(false);
+          resetForNext(problemStepKey);
+          setCanProceed(true);
+
+          return;
+        }
+
+        openEightQInterstitial();
 
         return;
       }
     }
 
-    // 8Q segment (under12 / over12): ลำดับ q1–q3 → addon → q4–q8
     if (currentQuestion >= q8Start && currentQuestion < q8LastKey) {
       let nextKey = currentQuestion + 1;
 
-      // จาก q3: ถ้าไม่ใช่ (0) ข้ามแท็บ addon ไป q4
       if (currentQuestion === q8Start + 2 && q8_data.q3 === 0) {
         nextKey = q8Start + 4;
       }
-      setProgress(calProgress(nextKey));
       setQuestion(nextKey.toString());
-      setCurrentAnswer("");
-      setCurrentQuestionAnswers({});
-      setLastQuestionAnswered(false);
       setCanProceed(false);
 
       return;
@@ -885,20 +793,25 @@ export default function PHQAPage() {
     if (currentQuestion === q8LastKey) {
       setShowQ8(false);
       setShowProblem(true);
-      setQuestionName("ประเมินปัญหา");
-      setProgress(calProgress(problemStepKey));
       setQuestion(problemStepKey.toString());
-      setCurrentAnswer("");
-      setCurrentQuestionAnswers({});
-      setLastQuestionAnswered(false);
       setCanProceed(true);
 
       return;
     }
 
-    // fallback
     resetForNext(currentQuestion + 1);
-  }, [question, calProgress, ageGroup, q8_data.q3]);
+  }, [
+    question,
+    ageGroup,
+    q8_data.q3,
+    Q2_data,
+    phqa_data,
+    q9_data,
+    clearAutoAdvance,
+    openEightQInterstitial,
+  ]);
+
+  handleNextRef.current = handleNext;
 
   const SaveToDB = async () => {
     setIsSaving(true);
@@ -934,147 +847,181 @@ export default function PHQAPage() {
       return;
     }
 
-    // ตรวจสอบ 8Q (รวมคำถามต่อเนื่อง q8Addon เมื่อ q3=6)
-    const q8MainAnswers = [
-      q8_data.q1,
-      q8_data.q2,
-      q8_data.q3,
-      q8_data.q4,
-      q8_data.q5,
-      q8_data.q6,
-      q8_data.q7,
-      q8_data.q8,
-    ].map((v) => Number(v));
-    const hasAllQ8MainAnswers = q8MainAnswers.every(
-      (value) => !isNaN(value) && value !== 99
-    );
-
-    if (!hasAllQ8MainAnswers) {
-      setErrorMessage("กรุณาตอบคำถาม 8Q ให้ครบทุกข้อ");
-      setIsModalOpened(true);
-      setIsSaving(false);
-
-      return;
-    }
-
-    const q8NeedsAddon = q8_data.q3 === 6;
-    const q8AddonValue = q8NeedsAddon ? q8_data.q8Addon : 0;
-
-    if (q8NeedsAddon) {
-      if (q8AddonValue === 99 || isNaN(Number(q8AddonValue))) {
-        setErrorMessage("กรุณาตอบคำถามต่อเนื่อง 8Q ให้ครบถ้วน");
-        setIsModalOpened(true);
-        setIsSaving(false);
-
-        return;
-      }
-    }
-
-    const q8_sum =
-      Number(q8_data.q1 ?? 0) +
-      Number(q8_data.q2 ?? 0) +
-      Number(q8_data.q3 ?? 0) +
-      Number(q8_data.q4 ?? 0) +
-      Number(q8_data.q5 ?? 0) +
-      Number(q8_data.q6 ?? 0) +
-      Number(q8_data.q7 ?? 0) +
-      Number(q8_data.q8 ?? 0) +
-      Number(q8AddonValue ?? 0);
+    const twoQPositive = isTwoQPositive(q2Answers[0], q2Answers[1]);
+    const problemPayload =
+      Number(problem_data.sum ?? 0) > 0 ? problem_data : undefined;
 
     let dataToSave: Record<string, unknown>;
-    let scoreSum: number;
+    let scoreSum = 0;
+    let q8_sum = 0;
+    let needs8Q = false;
+    const mainScale = ageGroup === "phqa" ? "PHQA" : "9Q";
 
-    if (ageGroup === "phqa") {
-      // ตรวจสอบ PHQ-A (PHQA)
-      const phqaAnswers = Object.entries(phqa_data)
-        .filter(([key]) => key.startsWith("q") && key !== "caseId")
-        .map(([_, value]) => Number(value));
-
-      const hasAllPhqaAnswers = phqaAnswers.every(
-        (value) => !isNaN(value) && value >= 0 && value <= 3
-      );
-
-      if (!hasAllPhqaAnswers) {
-        setErrorMessage("กรุณาตอบคำถาม PHQ-A ให้ครบทุกข้อ");
-        setIsModalOpened(true);
-        setIsSaving(false);
-
-        return;
-      }
-
-      // ตรวจสอบ PHQ-A Addon
-      const hasAllPhqaAddonAnswers =
-        !isNaN(phqaAddon_data.q1) &&
-        phqaAddon_data.q1 >= 0 &&
-        phqaAddon_data.q1 <= 1 &&
-        !isNaN(phqaAddon_data.q2) &&
-        phqaAddon_data.q2 >= 0 &&
-        phqaAddon_data.q2 <= 1;
-
-      if (!hasAllPhqaAddonAnswers) {
-        setErrorMessage("กรุณาตอบคำถาม PHQ-A Addon ให้ครบทุกข้อ");
-        setIsModalOpened(true);
-        setIsSaving(false);
-
-        return;
-      }
-
-      scoreSum = phqaAnswers.reduce((acc: number, val: number) => acc + val, 0);
-
+    if (!twoQPositive) {
       dataToSave = {
         profileId: profileIdState,
-        phqa: {
-          ...phqa_data,
-          sum: scoreSum,
-        },
         Q2: Q2_data,
-        phqaAddon: phqaAddon_data,
-        q8: {
-          ...q8_data,
-          q8Addon: q8AddonValue,
-          sum: q8_sum,
-        },
-        problem: problem_data,
+        ...(problemPayload ? { problem: problemPayload } : {}),
         location: location || null,
         reference: referenceId ? parseInt(referenceId) : null,
       };
     } else {
-      // over12: ตรวจสอบ 9Q
-      const q9Answers = Object.entries(q9_data)
-        .filter(([key]) => key.startsWith("q") && key !== "caseId")
-        .map(([_, value]) => Number(value));
+      // ตรวจสอบ 8Q เฉพาะเมื่อเข้าเกณฑ์
+      const mainSumPreview =
+        ageGroup === "phqa" ? sumPhqa(phqa_data) : sum9Q(q9_data);
 
-      const hasAllQ9Answers = q9Answers.every(
-        (value) => !isNaN(value) && value >= 0 && value <= 3
-      );
+      needs8Q = shouldEnter8Q(mainScale, mainSumPreview);
 
-      if (!hasAllQ9Answers) {
-        setErrorMessage("กรุณาตอบคำถาม 9Q ให้ครบทุกข้อ");
-        setIsModalOpened(true);
-        setIsSaving(false);
+      if (needs8Q) {
+        const q8MainAnswers = [
+          q8_data.q1,
+          q8_data.q2,
+          q8_data.q3,
+          q8_data.q4,
+          q8_data.q5,
+          q8_data.q6,
+          q8_data.q7,
+          q8_data.q8,
+        ].map((v) => Number(v));
+        const hasAllQ8MainAnswers = q8MainAnswers.every(
+          (value) => !isNaN(value) && value !== 99
+        );
 
-        return;
+        if (!hasAllQ8MainAnswers) {
+          setErrorMessage("กรุณาตอบคำถาม 8Q ให้ครบทุกข้อ");
+          setIsModalOpened(true);
+          setIsSaving(false);
+
+          return;
+        }
+
+        const q8NeedsAddon = q8_data.q3 === 6;
+        const q8AddonValue = q8NeedsAddon ? q8_data.q8Addon : 0;
+
+        if (q8NeedsAddon) {
+          if (q8AddonValue === 99 || isNaN(Number(q8AddonValue))) {
+            setErrorMessage("กรุณาตอบคำถามต่อเนื่อง 8Q ให้ครบถ้วน");
+            setIsModalOpened(true);
+            setIsSaving(false);
+
+            return;
+          }
+        }
+
+        q8_sum = sum8Q({
+          ...q8_data,
+          q8Addon: normalize8QAddon(Number(q8_data.q3 ?? 0), q8AddonValue),
+        });
       }
 
-      scoreSum = q9Answers.reduce((acc: number, val: number) => acc + val, 0);
+      const q8AddonForSave = normalize8QAddon(
+        Number(q8_data.q3 ?? 0),
+        q8_data.q8Addon
+      );
 
-      dataToSave = {
-        profileId: profileIdState,
-        Q2: Q2_data,
-        q9: {
-          ...q9_data,
-          sum: scoreSum,
-        },
-        q8: {
-          ...q8_data,
-          q8Addon: q8AddonValue,
-          sum: q8_sum,
-        },
-        problem: problem_data,
-        location: location || null,
-        reference: referenceId ? parseInt(referenceId) : null,
-      };
-    }
+      if (ageGroup === "phqa") {
+        // ตรวจสอบ PHQ-A (PHQA)
+        const phqaAnswers = Object.entries(phqa_data)
+          .filter(([key]) => key.startsWith("q") && key !== "caseId")
+          .map(([_, value]) => Number(value));
+
+        const hasAllPhqaAnswers = phqaAnswers.every(
+          (value) => !isNaN(value) && value >= 0 && value <= 3
+        );
+
+        if (!hasAllPhqaAnswers) {
+          setErrorMessage("กรุณาตอบคำถาม PHQ-A ให้ครบทุกข้อ");
+          setIsModalOpened(true);
+          setIsSaving(false);
+
+          return;
+        }
+
+        // ตรวจสอบ PHQ-A Addon
+        const hasAllPhqaAddonAnswers =
+          !isNaN(phqaAddon_data.q1) &&
+          phqaAddon_data.q1 >= 0 &&
+          phqaAddon_data.q1 <= 1 &&
+          !isNaN(phqaAddon_data.q2) &&
+          phqaAddon_data.q2 >= 0 &&
+          phqaAddon_data.q2 <= 1;
+
+        if (!hasAllPhqaAddonAnswers) {
+          setErrorMessage("กรุณาตอบคำถาม PHQ-A Addon ให้ครบทุกข้อ");
+          setIsModalOpened(true);
+          setIsSaving(false);
+
+          return;
+        }
+
+        scoreSum = phqaAnswers.reduce(
+          (acc: number, val: number) => acc + val,
+          0
+        );
+
+        dataToSave = {
+          profileId: profileIdState,
+          phqa: {
+            ...phqa_data,
+            sum: scoreSum,
+          },
+          Q2: Q2_data,
+          phqaAddon: phqaAddon_data,
+          ...(needs8Q
+            ? {
+                q8: {
+                  ...q8_data,
+                  q8Addon: q8AddonForSave,
+                  sum: q8_sum,
+                },
+              }
+            : {}),
+          ...(problemPayload ? { problem: problemPayload } : {}),
+          location: location || null,
+          reference: referenceId ? parseInt(referenceId) : null,
+        };
+      } else {
+        // over12: ตรวจสอบ 9Q
+        const q9Answers = Object.entries(q9_data)
+          .filter(([key]) => key.startsWith("q") && key !== "caseId")
+          .map(([_, value]) => Number(value));
+
+        const hasAllQ9Answers = q9Answers.every(
+          (value) => !isNaN(value) && value >= 0 && value <= 3
+        );
+
+        if (!hasAllQ9Answers) {
+          setErrorMessage("กรุณาตอบคำถาม 9Q ให้ครบทุกข้อ");
+          setIsModalOpened(true);
+          setIsSaving(false);
+
+          return;
+        }
+
+        scoreSum = q9Answers.reduce((acc: number, val: number) => acc + val, 0);
+
+        dataToSave = {
+          profileId: profileIdState,
+          Q2: Q2_data,
+          q9: {
+            ...q9_data,
+            sum: scoreSum,
+          },
+          ...(needs8Q
+            ? {
+                q8: {
+                  ...q8_data,
+                  q8Addon: q8AddonForSave,
+                  sum: q8_sum,
+                },
+              }
+            : {}),
+          ...(problemPayload ? { problem: problemPayload } : {}),
+          location: location || null,
+          reference: referenceId ? parseInt(referenceId) : null,
+        };
+      }
+    } // end twoQPositive
 
     try {
       const response = await fetch("/api/question", {
@@ -1091,14 +1038,19 @@ export default function PHQAPage() {
         // บันทึกแบบประเมินสำเร็จ — ล้าง ref ที่เก็บไว้ ไม่ให้ค้างไปปนการประเมินรอบถัดไปในแท็บเดิม
         clearReferentRef();
         setCalculationResult({
-          phqa_sum: scoreSum,
-          result: responseData.data.result,
-          result_text: responseData.data.result_text,
-          q9_value: q8_sum,
+          twoQPositive,
+          took8Q: needs8Q,
+          mainScale: twoQPositive ? mainScale : null,
+          mainSum: twoQPositive ? scoreSum : null,
+          mainResult: responseData.data.result ?? null,
+          mainResultText: responseData.data.result_text ?? null,
+          eightQSum: needs8Q ? q8_sum : null,
         });
       } else {
         setErrorMessage(
-          `เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${responseData.message || "กรุณาลองใหม่อีกครั้ง"}`
+          `เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${
+            responseData.error || responseData.message || "กรุณาลองใหม่อีกครั้ง"
+          }`
         );
         setIsModalOpened(true);
       }
@@ -1112,87 +1064,89 @@ export default function PHQAPage() {
     }
   };
 
-  const BackStep = useCallback(async () => {
+  const BackStep = useCallback(() => {
     if (!ageGroup) return;
+    clearAutoAdvance();
 
-    const currentKey = parseInt(question, 10);
+    const target = resolveDepressionBackStep({
+      ageGroup,
+      questionKey: parseInt(question, 10),
+      show8QInterstitial,
+      showProblem,
+      showPHQA,
+      showPHQAAddon,
+      showQ9,
+      showQ8,
+      twoQNegativePath,
+      entered8Q,
+      q8q3: Number(q8_data.q3),
+      phqaAddonQ2Answered: Number(phqaAddon_data.q2) !== 99,
+      q9q9Answered: Number(q9_data.q9) !== 99,
+    });
 
-    if (currentKey <= 1) {
-      router.back();
+    if (target.action === "exit") {
+      const exitRef = ref || peekReferentRef();
+
+      router.push(
+        exitRef
+          ? `/liff/question?ref=${encodeURIComponent(exitRef)}`
+          : "/liff/question"
+      );
 
       return;
     }
 
-    const q8Start = ageGroup === "phqa" ? 14 : 12;
-    const q8LastKey = q8Start + 8;
-    const problemStepKey = q8LastKey + 1;
-    // จาก q4 กลับ: ถ้า q3=0 ไม่ได้ผ่าน addon — ข้ามกลับไป q3
-    const prevKey =
-      currentKey === problemStepKey
-        ? q8LastKey
-        : currentKey === q8Start + 4 && q8_data.q3 === 0
-          ? q8Start + 2
-          : currentKey - 1;
+    setQuestion(target.questionKey.toString());
+    setCanProceed(target.canProceed);
+    setPHQAShow(target.showPHQA);
+    setPHQAAddonShow(target.showPHQAAddon);
+    setShowQ9(target.showQ9);
+    setShowQ8(target.showQ8);
+    setShowProblem(target.showProblem);
+    setShow8QInterstitial(target.show8QInterstitial);
+    setTwoQNegativePath(target.twoQNegativePath);
+    setEntered8Q(target.entered8Q);
+  }, [
+    ageGroup,
+    question,
+    clearAutoAdvance,
+    show8QInterstitial,
+    showProblem,
+    showPHQA,
+    showPHQAAddon,
+    showQ9,
+    showQ8,
+    twoQNegativePath,
+    entered8Q,
+    q8_data.q3,
+    phqaAddon_data.q2,
+    q9_data.q9,
+    ref,
+    router,
+  ]);
 
-    setProgress(calProgress(prevKey));
-    setQuestion(prevKey.toString());
-    setCanProceed(true);
+  const progressView =
+    ageGroup != null
+      ? getScreeningProgressView({
+          ageGroup,
+          questionKey: parseInt(question, 10),
+          show8QInterstitial,
+          twoQNegativePath,
+          entered8Q: entered8Q || show8QInterstitial || showQ8,
+          q8AddonInPath: Number(q8_data.q3) === 6,
+        })
+      : null;
 
-    // reset current answer สำหรับ 2Q
-    if (prevKey === 1) setCurrentAnswer(String(Q2_data.q1));
-    if (prevKey === 2) setCurrentAnswer(String(Q2_data.q2));
-
-    // sync show flags ตาม key
-    if (ageGroup === "phqa") {
-      setShowQ9(false);
-      setShowQ8(prevKey >= 14 && prevKey <= q8LastKey);
-      setShowProblem(prevKey === problemStepKey);
-      setPHQAShow(prevKey >= 3 && prevKey <= 11);
-      setPHQAAddonShow(prevKey >= 12 && prevKey <= 13);
-      setQuestionName(
-        prevKey <= 2
-          ? "2Q"
-          : prevKey <= 11
-            ? "PHQ-A"
-            : prevKey <= 13
-              ? "PHQ-A Addon"
-              : prevKey <= q8LastKey
-                ? "8Q"
-                : "ประเมินปัญหา"
-      );
-    } else {
-      setPHQAShow(false);
-      setPHQAAddonShow(false);
-      setShowQ9(prevKey >= 3 && prevKey <= 11);
-      setShowQ8(prevKey >= 12 && prevKey <= q8LastKey);
-      setShowProblem(prevKey === problemStepKey);
-      setQuestionName(
-        prevKey <= 2
-          ? "2Q"
-          : prevKey <= 11
-            ? "9Q"
-            : prevKey <= q8LastKey
-              ? "8Q"
-              : "ประเมินปัญหา"
-      );
-    }
-  }, [question, calProgress, router, ageGroup, Q2_data, q8_data.q3]);
-
-  useEffect(() => {
-    if (
-      showPHQAAddon &&
-      phqaAddon_data.q1 !== 99 &&
-      phqaAddon_data.q2 !== 99 &&
-      lastQuestionAnswered
-    ) {
-      // ลบการบันทึกอัตโนมัติออก
-      // SaveToDB();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phqaAddon_data]);
+  const showElevatedHelp =
+    calculationResult != null &&
+    isElevatedScreeningRisk({
+      mainResult: calculationResult.mainResult,
+      eightQSum: calculationResult.eightQSum,
+      took8Q: calculationResult.took8Q,
+    });
 
   return (
-    <section className="flex flex-col w-[calc(100vw)] items-center justify-center gap-4 pt-10 px-8 py-8 md:py-10">
+    <section className="flex min-h-[100dvh] w-[calc(100vw)] flex-col items-center gap-4 px-8 pb-0 pt-10 md:py-10">
       <Suspense fallback={<Loading />}>
         <Modal
           backdrop="blur"
@@ -1236,7 +1190,9 @@ export default function PHQAPage() {
                         <br />
                         สังกัด : {referentData?.affiliation}
                         <br />
-                        หน่วยงาน : {referentData?.agency}
+                        หน่วยงาน : {referentData?.agency || "-"}
+                        <br />
+                        หน่วยงานย่อย : {referentData?.facilityUnit || "-"}
                       </span>
                     ) : (
                       <span className="flex flex-col box-border rounded-lg bg-danger-100 text-danger-500 p-3 text-center w-full text-md font-semibold">
@@ -1244,7 +1200,7 @@ export default function PHQAPage() {
                       </span>
                     ))}
                 </ModalBody>
-                <ModalFooter className="flex flex-col justify-center">
+                <ModalFooter className="flex flex-col justify-center gap-2">
                   <Button
                     className="w-full"
                     color="primary"
@@ -1258,7 +1214,7 @@ export default function PHQAPage() {
                     variant="solid"
                     onPress={() => onOpenChange()}
                   >
-                    ถัดไป
+                    ใช้รหัสนี้
                   </Button>
                   <Button
                     className="w-full"
@@ -1312,16 +1268,20 @@ export default function PHQAPage() {
           </ModalContent>
         </Modal>
 
-        <h1 className={title({ size: "xs" })}>
-          แบบประเมินภาวะซึมเศร้าในวัยรุ่น
-        </h1>
+        <h1 className={title({ size: "xs" })}>แบบประเมินภาวะซึมเศร้า</h1>
 
-        <Progress
-          aria-label="Loading..."
-          className="max-w-md"
-          showValueLabel={true}
-          value={progress}
-        />
+        {progressView ? (
+          <div className="flex w-full max-w-md flex-col gap-2">
+            <p className="text-sm text-default-600 text-center">
+              {progressView.label}
+            </p>
+            <Progress
+              aria-label={progressView.label}
+              className="max-w-md"
+              value={progressView.progressPercent}
+            />
+          </div>
+        ) : null}
 
         {calculationResult && (
           <Modal
@@ -1343,51 +1303,48 @@ export default function PHQAPage() {
                     ผลการประเมิน
                   </ModalHeader>
                   <ModalBody className="items-center text-center">
-                    <div className="w-full space-y-4">
-                      <p>
-                        <span className="font-semibold">คะแนนรวม:</span>{" "}
-                        {calculationResult.phqa_sum} คะแนน
-                      </p>
-                      <div className="w-full space-y-2">
-                        <div className="flex flex-col gap-2 justify-center items-center">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex flex-col items-center gap-2">
-                              <span className={`${selectedRisk?.textColor}`}>
-                                {ageGroup === "nineq"
-                                  ? selectedRisk?.text
-                                  : calculationResult.result_text}
-                              </span>
+                    <div className="w-full space-y-5">
+                      {resultBlocks.map((block) => (
+                        <div key={block.key} className="w-full space-y-2">
+                          <p className="font-semibold">
+                            {block.scoreLine ?? block.title}
+                          </p>
+                          <div className="flex w-full flex-col items-center gap-2">
+                            <span className={block.textColor}>
+                              {block.text}
+                            </span>
+                            {block.scoreRange ? (
                               <span className="text-xs text-default-500">
-                                เกณฑ์คะแนน: {selectedRisk?.scoreRange}
+                                เกณฑ์คะแนน: {block.scoreRange}
                               </span>
-                            </div>
-                            <div className="flex w-full h-2 rounded-full overflow-hidden">
+                            ) : null}
+                            <div className="flex h-2 w-full overflow-hidden rounded-full">
                               <div
-                                className={`h-full w-full ${selectedRisk?.barColor}`}
+                                className={`h-full w-full ${block.barColor}`}
                               />
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="w-full space-y-2 pt-1">
-                        <p>
-                          <span className="font-semibold">คะแนนรวม 8Q:</span>{" "}
-                          {calculationResult.q9_value} คะแนน
-                        </p>
-                        <div className="flex flex-col items-center gap-2">
-                          <span className={`${selectedEightQRisk?.textColor}`}>
-                            {selectedEightQRisk?.text}
-                          </span>
-                          <span className="text-xs text-default-500">
-                            เกณฑ์คะแนน: {selectedEightQRisk?.scoreRange}
-                          </span>
-                          <div className="flex w-full h-2 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full w-full ${selectedEightQRisk?.barColor}`}
-                            />
-                          </div>
+                      ))}
+                      {showElevatedHelp ? (
+                        <div className="rounded-xl bg-danger-50 p-3 text-sm text-danger-700 text-left">
+                          <p className="font-semibold mb-1">
+                            หากรู้สึกไม่ไหวหรือคิดทำร้ายตัวเอง
+                          </p>
+                          <p>
+                            คุยกับผู้ใหญ่ที่ไว้ใจ
+                            หรือติดต่อหน่วยบริการใกล้บ้านได้ทันที
+                            {referentData?.fullName &&
+                            referentData.fullName !== "ไม่พบข้อมูล"
+                              ? ` · ผู้ให้คำแนะนำ: ${referentData.fullName}${
+                                  referentData.agency
+                                    ? ` (${referentData.agency})`
+                                    : ""
+                                }`
+                              : ""}
+                          </p>
                         </div>
-                      </div>
+                      ) : null}
                     </div>
                   </ModalBody>
                   <ModalFooter className="flex flex-col justify-center">
@@ -1411,171 +1368,94 @@ export default function PHQAPage() {
           </Modal>
         )}
 
-        <div className="flex flex-col w-full min-h-[calc(100vh_-_350px)]">
-          <h2 className={subtitle()}>{questionName}</h2>
-          <Tabs
-            aria-label="Options"
-            className="max-w-xs"
-            classNames={{ tabList: "invisible" }}
-            color="primary"
-            selectedKey={question}
-            variant="underlined"
-          >
-            {!showPHQA && !showPHQAAddon && !showQ9 && !showQ8 && !showProblem
-              ? q2.map((val, index) => (
-                  <Tab key={(index + 1).toString()}>
-                    <div className="flex flex-col gap-4 mt-[-50px]">
-                      <div className="flex flex-col items-center">
-                        {q2_Image[index]}
-                      </div>
-                      <div className="flex flex-col gap-4 items-start text-start">
-                        <p className="text-primary-500 font-semibold">
-                          {index + 1}. {val}
-                        </p>
-                        <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                          <RadioGroup
-                            key={index}
-                            className="pl-5"
-                            label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                            name={(index + 1).toString()}
-                            value={currentAnswer}
-                            onChange={(val) => {
-                              Q2Change(val);
-                            }}
-                          >
-                            <Radio
-                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="0"
-                            >
-                              ไม่ใช่
-                            </Radio>
-                            <Radio
-                              className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                              value="1"
-                            >
-                              ใช่
-                            </Radio>
-                          </RadioGroup>
-                        </div>
-                      </div>
-                    </div>
-                  </Tab>
-                ))
-              : showPHQA
-                ? qPhqa.map((val, index) => {
-                    const questionNumber = index + 1;
-
-                    return (
-                      <Tab key={(index + 3).toString()}>
+        <div className="flex w-full flex-1 flex-col min-h-0 pb-4">
+          {show8QInterstitial ? (
+            <div className="flex flex-col gap-4 text-start rounded-2xl border border-default-200 p-5 mt-2">
+              <p className="font-semibold text-lg text-primary-600">
+                คำถามถัดไปอาจรู้สึกหนักหน่อย
+              </p>
+              <p className="text-default-600 text-sm leading-relaxed">
+                ส่วนนี้ถามถึงความรู้สึกเกี่ยวกับการทำร้ายตัวเอง ตอบตามจริงได้เลย
+                ไม่มีถูกหรือผิด และคุณสามารถย้อนกลับได้หากต้องการ
+              </p>
+              <Button
+                className="w-full mt-2"
+                color="primary"
+                radius="full"
+                size="lg"
+                variant="solid"
+                onPress={() => startEightQ()}
+              >
+                เริ่มต่อ
+              </Button>
+              <Button
+                className="w-full"
+                color="default"
+                radius="full"
+                size="lg"
+                variant="bordered"
+                onPress={() => BackStep()}
+              >
+                ย้อนกลับ
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col w-full min-h-[calc(100vh_-_350px)]">
+              <Tabs
+                aria-label="Options"
+                className="max-w-xs"
+                classNames={{ tabList: "invisible" }}
+                color="primary"
+                selectedKey={question}
+                variant="underlined"
+              >
+                {!showPHQA &&
+                !showPHQAAddon &&
+                !showQ9 &&
+                !showQ8 &&
+                !showProblem
+                  ? q2.map((val, index) => (
+                      <Tab
+                        key={(index + 1).toString()}
+                        title={(index + 1).toString()}
+                      >
                         <div className="flex flex-col gap-4 mt-[-50px]">
                           <div className="flex flex-col items-center">
-                            {qPhqa_Image[index]}
+                            {q2_Image[index]}
                           </div>
                           <div className="flex flex-col gap-4 items-start text-start">
                             <p className="text-primary-500 font-semibold">
-                              {questionNumber}. {val}
+                              {index + 1}. {val}
                             </p>
-                            <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                              <RadioGroup
-                                key={`phqa-${questionNumber}`}
-                                className="pl-5"
-                                label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                                name={questionNumber.toString()}
+                            <div className="flex flex-col gap-2 w-full">
+                              <AssessmentChoiceGroup
+                                label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                                options={YES_NO_OPTIONS}
                                 value={
-                                  currentQuestionAnswers[questionNumber] || ""
+                                  Number(
+                                    Q2_data[`q${index + 1}` as "q1" | "q2"]
+                                  ) === 99
+                                    ? ""
+                                    : String(
+                                        Q2_data[`q${index + 1}` as "q1" | "q2"]
+                                      )
                                 }
-                                onChange={(val) => {
-                                  phqaChange(val);
-                                }}
-                              >
-                                <Radio
-                                  className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                  value="0"
-                                >
-                                  ไม่มีเลย
-                                </Radio>
-                                <Radio
-                                  className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                  value="1"
-                                >
-                                  มีบางวัน
-                                </Radio>
-                                <Radio
-                                  className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                  value="2"
-                                >
-                                  มีมากกว่า 7 วัน
-                                </Radio>
-                                <Radio
-                                  className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                  value="3"
-                                >
-                                  มีแทบทุกวัน
-                                </Radio>
-                              </RadioGroup>
+                                onSelect={(value) => Q2Change(index + 1, value)}
+                              />
                             </div>
                           </div>
                         </div>
                       </Tab>
-                    );
-                  })
-                : showPHQAAddon
-                  ? phqaAddon.map((val, index) => {
-                      const questionNumber = index + 1;
-
-                      return (
-                        <Tab key={(index + 12).toString()}>
-                          <div className="flex flex-col gap-4 mt-[-50px]">
-                            <div className="flex flex-col items-center">
-                              {qPhqa_Image[index]}
-                            </div>
-                            <div className="flex flex-col gap-4 items-start text-start">
-                              <p className="text-primary-500 font-semibold">
-                                {questionNumber}. {val}
-                              </p>
-                              <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                                <RadioGroup
-                                  key={`phqa-addon-${questionNumber}`}
-                                  className="pl-5"
-                                  label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                                  name={(questionNumber + 11).toString()}
-                                  value={
-                                    currentQuestionAnswers[
-                                      questionNumber + 11
-                                    ] || ""
-                                  }
-                                  onChange={(val) => {
-                                    phqaAddonChange(val);
-                                  }}
-                                >
-                                  <Radio
-                                    className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                    value="0"
-                                  >
-                                    ไม่ใช่
-                                  </Radio>
-                                  <Radio
-                                    className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                    value="1"
-                                  >
-                                    ใช่
-                                  </Radio>
-                                </RadioGroup>
-                              </div>
-                            </div>
-                          </div>
-                        </Tab>
-                      );
-                    })
-                  : showQ9
-                    ? q9Questions.map((val, index) => {
+                    ))
+                  : showPHQA
+                    ? qPhqa.map((val, index) => {
                         const questionNumber = index + 1;
-                        const qKey = `q${questionNumber}` as keyof Question9Q;
-                        const radioValue =
-                          q9_data[qKey] === 99 ? "" : String(q9_data[qKey]);
 
                         return (
-                          <Tab key={(index + 3).toString()}>
+                          <Tab
+                            key={(index + 3).toString()}
+                            title={(index + 3).toString()}
+                          >
                             <div className="flex flex-col gap-4 mt-[-50px]">
                               <div className="flex flex-col items-center">
                                 {qPhqa_Image[index]}
@@ -1584,285 +1464,363 @@ export default function PHQAPage() {
                                 <p className="text-primary-500 font-semibold">
                                   {questionNumber}. {val}
                                 </p>
-                                <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                                  <RadioGroup
-                                    key={`q9-${questionNumber}`}
-                                    className="pl-5"
+                                <div className="flex flex-col gap-2 w-full">
+                                  <AssessmentChoiceGroup
                                     label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
-                                    name={questionNumber.toString()}
-                                    value={radioValue}
-                                    onChange={(ev) => {
-                                      q9Change(ev);
-                                    }}
-                                  >
-                                    <Radio
-                                      className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                      value="0"
-                                    >
-                                      ไม่มีเลย
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                      value="1"
-                                    >
-                                      มีบางวัน
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                      value="2"
-                                    >
-                                      มีมากกว่า 7 วัน
-                                    </Radio>
-                                    <Radio
-                                      className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                      value="3"
-                                    >
-                                      มีแทบทุกวัน
-                                    </Radio>
-                                  </RadioGroup>
+                                    options={FREQUENCY_OPTIONS}
+                                    value={
+                                      Number(
+                                        phqa_data[
+                                          `q${questionNumber}` as keyof QuestionPhqa
+                                        ]
+                                      ) === 99
+                                        ? ""
+                                        : String(
+                                            phqa_data[
+                                              `q${questionNumber}` as keyof QuestionPhqa
+                                            ]
+                                          )
+                                    }
+                                    onSelect={(value) =>
+                                      phqaChange(questionNumber, value)
+                                    }
+                                  />
                                 </div>
                               </div>
                             </div>
                           </Tab>
                         );
                       })
-                    : showQ8
-                      ? (() => {
-                          const q8Start = ageGroup === "phqa" ? 14 : 12;
-                          const q8AddonTabKey = q8Start + 3;
-                          // คะแนนเมื่อเลือก "ใช่" ตามข้อ q1..q8 (ไม่รวม addon)
-                          const yesWeights = [1, 2, 6, 8, 9, 5, 10, 4];
-
-                          const renderQ8MainTab = (
-                            tabKey: number,
-                            displayNo: number,
-                            val: string,
-                            questionNumber: number
-                          ) => {
-                            const qKey =
-                              `q${questionNumber}` as keyof Question8Q;
-                            const radioValue =
-                              q8_data[qKey] === 99 ? "" : String(q8_data[qKey]);
-                            const yesWeight =
-                              yesWeights[questionNumber - 1] ?? 1;
-
-                            return (
-                              <Tab key={tabKey.toString()}>
-                                <div className="flex flex-col gap-4 mt-[-50px]">
-                                  <div className="flex flex-col gap-4 items-start text-start">
-                                    <p className="text-primary-500 font-semibold">
-                                      {displayNo}. {val}
-                                    </p>
-                                    <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                                      <RadioGroup
-                                        key={`q8-${questionNumber}`}
-                                        className="pl-5"
-                                        label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
-                                        name={questionNumber.toString()}
-                                        value={radioValue}
-                                        onChange={(ev) => {
-                                          q8Change(ev);
-                                        }}
-                                      >
-                                        <Radio
-                                          className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                          value="0"
-                                        >
-                                          ไม่ใช่
-                                        </Radio>
-                                        <Radio
-                                          className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                          value={String(yesWeight)}
-                                        >
-                                          ใช่
-                                        </Radio>
-                                      </RadioGroup>
-                                    </div>
-                                  </div>
-                                </div>
-                              </Tab>
-                            );
-                          };
+                    : showPHQAAddon
+                      ? phqaAddon.map((val, index) => {
+                          const questionNumber = index + 1;
 
                           return (
-                            <>
-                              {renderQ8MainTab(
-                                q8Start + 0,
-                                1,
-                                q8Questions[0],
-                                1
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 1,
-                                2,
-                                q8Questions[1],
-                                2
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 2,
-                                3,
-                                q8Questions[2],
-                                3
-                              )}
+                            <Tab
+                              key={(index + 12).toString()}
+                              title={(index + 12).toString()}
+                            >
+                              <div className="flex flex-col gap-4 mt-[-50px]">
+                                <div className="flex flex-col items-center">
+                                  {qPhqa_Image[index]}
+                                </div>
+                                <div className="flex flex-col gap-4 items-start text-start">
+                                  <p className="text-primary-500 font-semibold">
+                                    {questionNumber}. {val}
+                                  </p>
+                                  <div className="flex flex-col gap-2 w-full">
+                                    <AssessmentChoiceGroup
+                                      label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                                      options={YES_NO_OPTIONS}
+                                      value={
+                                        Number(
+                                          phqaAddon_data[
+                                            `q${questionNumber}` as "q1" | "q2"
+                                          ]
+                                        ) === 99
+                                          ? ""
+                                          : String(
+                                              phqaAddon_data[
+                                                `q${questionNumber}` as
+                                                  | "q1"
+                                                  | "q2"
+                                              ]
+                                            )
+                                      }
+                                      onSelect={(value) =>
+                                        phqaAddonChange(
+                                          questionNumber + 11,
+                                          value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </Tab>
+                          );
+                        })
+                      : showQ9
+                        ? q9Questions.map((val, index) => {
+                            const questionNumber = index + 1;
+                            const qKey =
+                              `q${questionNumber}` as keyof Question9Q;
+                            const radioValue =
+                              q9_data[qKey] === 99 ? "" : String(q9_data[qKey]);
 
-                              <Tab key={q8AddonTabKey.toString()}>
+                            return (
+                              <Tab
+                                key={(index + 3).toString()}
+                                title={(index + 3).toString()}
+                              >
                                 <div className="flex flex-col gap-4 mt-[-50px]">
+                                  <div className="flex flex-col items-center">
+                                    {qPhqa_Image[index]}
+                                  </div>
                                   <div className="flex flex-col gap-4 items-start text-start">
                                     <p className="text-primary-500 font-semibold">
-                                      คำถามต่อเนื่อง (addon):{" "}
-                                      {q8AddonQuestions[0]}
+                                      {questionNumber}. {val}
                                     </p>
-                                    <div className="flex flex-col gap-2 w-full mt-[-15px] ml-[-5px]">
-                                      <RadioGroup
-                                        key="q8-addon"
-                                        className="pl-5"
-                                        isDisabled={q8_data.q3 !== 6}
-                                        label="คำถามต่อเนื่อง"
-                                        name="addon"
-                                        value={String(q8_data.q8Addon ?? 0)}
-                                        onChange={(ev) => {
-                                          q8AddonChange(ev);
-                                        }}
-                                      >
-                                        <Radio
-                                          className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                          value="0"
-                                        >
-                                          ได้
-                                        </Radio>
-                                        <Radio
-                                          className="inline-flex m-0 items-center justify-between flex-row-reverse max-w-full cursor-pointer rounded-xl p-3 border"
-                                          value="8"
-                                        >
-                                          ไม่ได้
-                                        </Radio>
-                                      </RadioGroup>
+                                    <div className="flex flex-col gap-2 w-full">
+                                      <AssessmentChoiceGroup
+                                        label="ในช่วง 2 สัปดาห์ คุณมีอาการเหล่านี้บ่อยแค่ไหน"
+                                        options={FREQUENCY_OPTIONS}
+                                        value={radioValue}
+                                        onSelect={(value) =>
+                                          q9Change(questionNumber, value)
+                                        }
+                                      />
                                     </div>
                                   </div>
                                 </div>
                               </Tab>
+                            );
+                          })
+                        : showQ8
+                          ? (() => {
+                              const q8Start = ageGroup === "phqa" ? 14 : 12;
+                              const q8AddonTabKey = q8Start + 3;
+                              // คะแนนเมื่อเลือก "ใช่" ตามข้อ q1..q8 (ไม่รวม addon)
+                              const yesWeights = [1, 2, 6, 8, 9, 5, 10, 4];
 
-                              {renderQ8MainTab(
-                                q8Start + 4,
-                                4,
-                                q8Questions[3],
-                                4
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 5,
-                                5,
-                                q8Questions[4],
-                                5
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 6,
-                                6,
-                                q8Questions[5],
-                                6
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 7,
-                                7,
-                                q8Questions[6],
-                                7
-                              )}
-                              {renderQ8MainTab(
-                                q8Start + 8,
-                                8,
-                                q8Questions[7],
-                                8
-                              )}
-                            </>
-                          );
-                        })()
-                      : showProblem
-                        ? (() => {
-                            const problemTabKey =
-                              ageGroup === "phqa" ? "23" : "21";
+                              const renderQ8MainTab = (
+                                tabKey: number,
+                                displayNo: number,
+                                val: string,
+                                questionNumber: number
+                              ) => {
+                                const qKey =
+                                  `q${questionNumber}` as keyof Question8Q;
+                                const radioValue =
+                                  q8_data[qKey] === 99
+                                    ? ""
+                                    : String(q8_data[qKey]);
+                                const yesWeight =
+                                  yesWeights[questionNumber - 1] ?? 1;
 
-                            return (
-                              <Tab key={problemTabKey}>
-                                <div className="flex flex-col gap-4 mt-[-40px]">
-                                  <p className="text-primary-500 font-semibold text-start">
-                                    เลือกหัวข้อที่ตรงกับสิ่งที่คุณกำลังพบเจออยู่
-                                    (เลือกได้มากกว่า 1 ข้อ)
-                                  </p>
-                                  <div className="flex flex-col gap-4">
-                                    {teenMindProblems.map((section) => (
-                                      <div
-                                        key={section.category}
-                                        className="rounded-xl border p-4"
-                                      >
-                                        <p className="font-semibold text-primary-500 mb-2">
-                                          {section.category}
+                                return (
+                                  <Tab
+                                    key={tabKey.toString()}
+                                    title={tabKey.toString()}
+                                  >
+                                    <div className="flex flex-col gap-4 mt-[-50px]">
+                                      <div className="flex flex-col gap-4 items-start text-start">
+                                        <p className="text-primary-500 font-semibold">
+                                          {displayNo}. {val}
                                         </p>
-                                        <div className="flex flex-col gap-2">
-                                          {section.items.map((item) => (
-                                            <Checkbox
-                                              key={item.key}
-                                              isSelected={
-                                                problem_data[
-                                                  item.key as keyof ProblemPayload
-                                                ] === 1
-                                              }
-                                              onValueChange={() =>
-                                                toggleProblem(
-                                                  item.key as keyof ProblemPayload
-                                                )
-                                              }
-                                            >
-                                              {item.label}
-                                            </Checkbox>
-                                          ))}
+                                        <div className="flex flex-col gap-2 w-full">
+                                          <AssessmentChoiceGroup
+                                            label="เลือกข้อที่รู้สึกตรงกับตัวเอง"
+                                            options={[
+                                              { value: "0", label: "ไม่ใช่" },
+                                              {
+                                                value: String(yesWeight),
+                                                label: "ใช่",
+                                              },
+                                            ]}
+                                            value={radioValue}
+                                            onSelect={(value) =>
+                                              q8Change(questionNumber, value)
+                                            }
+                                          />
                                         </div>
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </Tab>
-                            );
-                          })()
-                        : null}
-          </Tabs>
+                                    </div>
+                                  </Tab>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {renderQ8MainTab(
+                                    q8Start + 0,
+                                    1,
+                                    q8Questions[0],
+                                    1
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 1,
+                                    2,
+                                    q8Questions[1],
+                                    2
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 2,
+                                    3,
+                                    q8Questions[2],
+                                    3
+                                  )}
+
+                                  <Tab
+                                    key={q8AddonTabKey.toString()}
+                                    title={q8AddonTabKey.toString()}
+                                  >
+                                    <div className="flex flex-col gap-4 mt-[-50px]">
+                                      <div className="flex flex-col gap-4 items-start text-start">
+                                        <p className="text-primary-500 font-semibold">
+                                          คำถามต่อเนื่อง (addon):{" "}
+                                          {q8AddonQuestions[0]}
+                                        </p>
+                                        <div className="flex flex-col gap-2 w-full">
+                                          <AssessmentChoiceGroup
+                                            isDisabled={q8_data.q3 !== 6}
+                                            label="คำถามต่อเนื่อง"
+                                            options={[
+                                              { value: "0", label: "ได้" },
+                                              { value: "8", label: "ไม่ได้" },
+                                            ]}
+                                            value={
+                                              Number(q8_data.q8Addon) === 99
+                                                ? ""
+                                                : String(q8_data.q8Addon ?? "")
+                                            }
+                                            onSelect={(value) =>
+                                              q8AddonChange(value)
+                                            }
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </Tab>
+
+                                  {renderQ8MainTab(
+                                    q8Start + 4,
+                                    4,
+                                    q8Questions[3],
+                                    4
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 5,
+                                    5,
+                                    q8Questions[4],
+                                    5
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 6,
+                                    6,
+                                    q8Questions[5],
+                                    6
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 7,
+                                    7,
+                                    q8Questions[6],
+                                    7
+                                  )}
+                                  {renderQ8MainTab(
+                                    q8Start + 8,
+                                    8,
+                                    q8Questions[7],
+                                    8
+                                  )}
+                                </>
+                              );
+                            })()
+                          : showProblem
+                            ? (() => {
+                                const problemTabKey =
+                                  ageGroup === "phqa" ? "23" : "21";
+
+                                return (
+                                  <Tab
+                                    key={problemTabKey}
+                                    title={problemTabKey}
+                                  >
+                                    <div className="flex flex-col gap-4 mt-[-40px]">
+                                      <p className="text-primary-500 font-semibold text-start">
+                                        เลือกหัวข้อที่ตรงกับสิ่งที่คุณกำลังพบเจออยู่
+                                        (เลือกได้มากกว่า 1 ข้อ · ไม่บังคับ)
+                                      </p>
+                                      <div className="flex flex-col gap-4">
+                                        {teenMindProblems.map((section) => (
+                                          <div
+                                            key={section.category}
+                                            className="rounded-xl border p-4"
+                                          >
+                                            <p className="font-semibold text-primary-500 mb-2">
+                                              {section.category}
+                                            </p>
+                                            <div className="flex flex-col gap-2">
+                                              {section.items.map((item) => (
+                                                <Checkbox
+                                                  key={item.key}
+                                                  isSelected={
+                                                    problem_data[
+                                                      item.key as keyof ProblemPayload
+                                                    ] === 1
+                                                  }
+                                                  onValueChange={() =>
+                                                    toggleProblem(
+                                                      item.key as keyof ProblemPayload
+                                                    )
+                                                  }
+                                                >
+                                                  {item.label}
+                                                </Checkbox>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </Tab>
+                                );
+                              })()
+                            : null}
+              </Tabs>
+            </div>
+          )}
         </div>
 
-        <Button
-          className="w-full"
-          color="default"
-          radius="full"
-          size="lg"
-          variant="bordered"
-          onPress={() => BackStep()}
-        >
-          ย้อนกลับ
-        </Button>
+        {!show8QInterstitial ? (
+          <div className="sticky bottom-0 z-20 -mx-8 mt-auto flex w-[calc(100%+4rem)] flex-col gap-2 border-t border-default-200 bg-background/95 px-8 py-3 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <Button
+              className="w-full"
+              color="default"
+              radius="full"
+              size="lg"
+              variant="bordered"
+              onPress={() => BackStep()}
+            >
+              ย้อนกลับ
+            </Button>
 
-        <Button
-          className="w-full"
-          color="primary"
-          isDisabled={!canProceed || isSaving}
-          isLoading={isSaving}
-          radius="full"
-          size="lg"
-          variant="solid"
-          onPress={() => {
-            const finalQuestionKey =
-              ageGroup === "phqa" ? "23" : ageGroup === "nineq" ? "21" : "13";
+            <Button
+              className="w-full"
+              color="primary"
+              isDisabled={!canProceed || isSaving}
+              isLoading={isSaving}
+              radius="full"
+              size="lg"
+              variant="solid"
+              onPress={() => {
+                const finalQuestionKey =
+                  ageGroup === "phqa"
+                    ? "23"
+                    : ageGroup === "nineq"
+                      ? "21"
+                      : "13";
 
-            if (question === finalQuestionKey) {
-              SaveToDB();
-            } else {
-              handleNext();
-            }
-          }}
-        >
-          {(() => {
-            const finalQuestionKey =
-              ageGroup === "phqa" ? "23" : ageGroup === "nineq" ? "21" : "13";
+                if (question === finalQuestionKey) {
+                  SaveToDB();
+                } else {
+                  handleNext();
+                }
+              }}
+            >
+              {(() => {
+                const finalQuestionKey =
+                  ageGroup === "phqa"
+                    ? "23"
+                    : ageGroup === "nineq"
+                      ? "21"
+                      : "13";
 
-            return question === finalQuestionKey ? "บันทึกผล" : "ถัดไป";
-          })()}
-        </Button>
+                return question === finalQuestionKey ? "บันทึกผล" : "ถัดไป";
+              })()}
+            </Button>
+          </div>
+        ) : null}
       </Suspense>
     </section>
   );

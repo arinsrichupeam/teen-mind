@@ -84,9 +84,11 @@ export function mapLegacySexToSex(
 }
 
 /** Map Sex enum → legacy UI number (1=male, 2=female, 3=unspecified). */
-export function mapSexToLegacyNumber(sex: Sex | string | null | undefined): number {
-  if (sex === Sex.MALE || sex === "MALE") return 1;
-  if (sex === Sex.FEMALE || sex === "FEMALE") return 2;
+export function mapSexToLegacyNumber(
+  sex: Sex | string | number | null | undefined
+): number {
+  if (sex === Sex.MALE || sex === "MALE" || sex === 1) return 1;
+  if (sex === Sex.FEMALE || sex === "FEMALE" || sex === 2) return 2;
 
   return 3;
 }
@@ -120,10 +122,18 @@ export function mapLegacyAdminStatus(
 export function mapAdminStatusToLegacyNumber(
   status: AdminStatus | string | number | null | undefined
 ): number {
-  if (status === AdminStatus.APPROVED || status === "APPROVED" || status === 1) {
+  if (
+    status === AdminStatus.APPROVED ||
+    status === "APPROVED" ||
+    status === 1
+  ) {
     return 1;
   }
-  if (status === AdminStatus.DISABLED || status === "DISABLED" || status === 3) {
+  if (
+    status === AdminStatus.DISABLED ||
+    status === "DISABLED" ||
+    status === 3
+  ) {
     return 3;
   }
   if (status === 2) {

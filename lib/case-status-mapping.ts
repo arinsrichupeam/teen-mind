@@ -1,5 +1,55 @@
 import { CaseStatus } from "@prisma/client";
 
+export const CASE_STATUS_VALUES = [
+  CaseStatus.PENDING,
+  CaseStatus.IN_PROGRESS,
+  CaseStatus.TRANSFER_PENDING,
+  CaseStatus.CLOSED,
+] as const;
+
+export type CaseStatusValue = (typeof CASE_STATUS_VALUES)[number];
+
+/** Thai labels for CaseStatus — shared by admin list, drawer, LIFF history. */
+export function caseStatusLabel(status: string): string {
+  switch (status) {
+    case CaseStatus.PENDING:
+    case "PENDING":
+      return "รอรับดูแล";
+    case CaseStatus.IN_PROGRESS:
+    case "IN_PROGRESS":
+      return "กำลังดูแล";
+    case CaseStatus.TRANSFER_PENDING:
+    case "TRANSFER_PENDING":
+      return "อยู่ระหว่างส่งต่อ";
+    case CaseStatus.CLOSED:
+    case "CLOSED":
+      return "เสร็จสิ้น";
+    default:
+      return status;
+  }
+}
+
+export function caseStatusChipColor(
+  status: string | undefined | null
+): "default" | "primary" | "warning" | "success" | "secondary" {
+  switch (status) {
+    case CaseStatus.PENDING:
+    case "PENDING":
+      return "warning";
+    case CaseStatus.IN_PROGRESS:
+    case "IN_PROGRESS":
+      return "primary";
+    case CaseStatus.TRANSFER_PENDING:
+    case "TRANSFER_PENDING":
+      return "secondary";
+    case CaseStatus.CLOSED:
+    case "CLOSED":
+      return "success";
+    default:
+      return "default";
+  }
+}
+
 /**
  * Map UI follow-up status chips (0–3) → CaseStatus for writes / coarse filters.
  * Note: true follow-up progress is derived via calculateQuestionStatus;

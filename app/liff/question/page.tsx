@@ -5,6 +5,7 @@ import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
 import { Suspense } from "react";
 
+import { LiffPageBg } from "@/components/liff-page-bg";
 import { subtitle, title } from "@/components/primitives";
 import Loading from "@/app/loading";
 import { peekReferentRef } from "@/utils/referent-ref";
@@ -25,7 +26,8 @@ export default function QuestionPage() {
   };
 
   return (
-    <section className="flex flex-col w-screen min-h-[calc(100vh-48px)] px-8 items-center justify-center gap-4 bg-[url(/image/BG_TEEN_MIND_2.jpg)] bg-cover bg-center bg-no-repeat">
+    <section className="relative isolate flex flex-col w-screen min-h-screen px-8 pb-14 items-center justify-center gap-4 overflow-hidden">
+      <LiffPageBg blur />
       <Suspense fallback={<Loading />}>
         <div className="flex flex-col items-center gap-5 pt-10 pb-10">
           <h1 className={title({ size: "xs" })}>
@@ -42,7 +44,7 @@ export default function QuestionPage() {
             src="/image/Yallow.png"
           />
           <h2 className={subtitle()}>
-            แบบทดสอบนี้อ้างอิงจากแบบประเมินภาวะซึมเศร้าในวัยรุ่น โดยกรมสุขภาพจิต
+            แบบทดสอบนี้อ้างอิงจากแบบประเมินภาวะซึมเศร้า โดยกรมสุขภาพจิต
             กระทรวงสาธารณสุข
           </h2>
           <Button className="w-full" color="primary" onPress={() => Submit()}>

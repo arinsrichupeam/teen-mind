@@ -32,11 +32,15 @@ import {
   calculateMainAssessmentResult,
   getAssessmentFlowGroupFromAge,
 } from "@/lib/assessment-scale";
+import {
+  getRequiredSteps,
+  type DepressionStepId,
+  isTwoQPositive,
+} from "@/lib/depression-flow";
+import { Q8_YES_WEIGHTS, sumMainAnswers } from "@/lib/assessment-scoring";
 import { calculateAge } from "@/utils/helper";
 
-const Q8_YES_WEIGHTS = [1, 2, 6, 8, 9, 5, 10, 4] as const;
-
-type StepType = "referent" | "q2" | "phqa" | "addon" | "q9" | "q8" | "problem";
+type StepType = "referent" | DepressionStepId;
 
 const PROBLEM_KEYS = teenMindProblems.flatMap((section) =>
   section.items.map((item) => item.key)
@@ -84,14 +88,6 @@ function createEmptyFormData() {
   };
 }
 
-function getStepSequence(ageGroup: AssessmentFlowGroup): StepType[] {
-  if (ageGroup === "phqa") {
-    return ["referent", "q2", "phqa", "addon", "q8", "problem"];
-  }
-
-  return ["referent", "q2", "q9", "q8", "problem"];
-}
-
 function getStepLabel(stepType: StepType): string {
   switch (stepType) {
     case "referent":
@@ -109,6 +105,62 @@ function getStepLabel(stepType: StepType): string {
     case "problem":
       return "ปัญหา";
   }
+}
+
+function buildStepSequence(
+  ageGroup: AssessmentFlowGroup,
+  form: ReturnType<typeof createEmptyFormData>
+): StepType[] {
+  const q1 = Number(form.q2_q1 || 0);
+  const q2 = Number(form.q2_q2 || 0);
+  let mainSum: number | undefined;
+
+  if (isTwoQPositive(q1, q2)) {
+    if (ageGroup === "nineq") {
+      const answers = {
+        q1: Number(form.q9_q1 || 0),
+        q2: Number(form.q9_q2 || 0),
+        q3: Number(form.q9_q3 || 0),
+        q4: Number(form.q9_q4 || 0),
+        q5: Number(form.q9_q5 || 0),
+        q6: Number(form.q9_q6 || 0),
+        q7: Number(form.q9_q7 || 0),
+        q8: Number(form.q9_q8 || 0),
+        q9: Number(form.q9_q9 || 0),
+      };
+      const filled = [1, 2, 3, 4, 5, 6, 7, 8, 9].every(
+        (i) => form[`q9_q${i}` as keyof typeof form] !== ""
+      );
+
+      if (filled) mainSum = sumMainAnswers(answers);
+    } else {
+      const answers = {
+        q1: Number(form.phqa_q1 || 0),
+        q2: Number(form.phqa_q2 || 0),
+        q3: Number(form.phqa_q3 || 0),
+        q4: Number(form.phqa_q4 || 0),
+        q5: Number(form.phqa_q5 || 0),
+        q6: Number(form.phqa_q6 || 0),
+        q7: Number(form.phqa_q7 || 0),
+        q8: Number(form.phqa_q8 || 0),
+        q9: Number(form.phqa_q9 || 0),
+      };
+      const filled = [1, 2, 3, 4, 5, 6, 7, 8, 9].every(
+        (i) => form[`phqa_q${i}` as keyof typeof form] !== ""
+      );
+
+      if (filled) mainSum = sumMainAnswers(answers);
+    }
+  }
+
+  return [
+    "referent",
+    ...getRequiredSteps({
+      ageGroup,
+      q2: { q1, q2 },
+      mainSum,
+    }),
+  ];
 }
 
 interface ModalAddQuestionProps {
@@ -133,9 +185,6 @@ export const ModalAddQuestion = ({
     return getAssessmentFlowGroupFromAge(age);
   }, [birthday]);
 
-  const stepSequence = useMemo(() => getStepSequence(ageGroup), [ageGroup]);
-  const totalSteps = stepSequence.length;
-
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [referentData, setReferentData] = useState<{
@@ -144,6 +193,12 @@ export const ModalAddQuestion = ({
     agency: string;
   }>();
   const [formData, setFormData] = useState(createEmptyFormData);
+
+  const stepSequence = useMemo(
+    () => buildStepSequence(ageGroup, formData),
+    [ageGroup, formData]
+  );
+  const totalSteps = stepSequence.length;
 
   const getStepType = useCallback(
     (step: number): StepType | undefined => stepSequence[step - 1],

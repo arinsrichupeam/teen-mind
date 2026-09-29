@@ -1,6 +1,7 @@
 import { Volunteer } from "@prisma/client";
 
 import { requireAdmin } from "@/lib/get-session";
+import { resolveFacilityUnitId } from "@/lib/resolve-facility-unit";
 import { prisma } from "@/utils/prisma";
 
 export async function GET() {
@@ -24,7 +25,32 @@ export async function POST(req: Request) {
 
   let userId = "";
 
-  const volunteer: Volunteer = data.referent_data;
+  const volunteer = data.referent_data as Volunteer & {
+    volunteer_type_id?: number;
+    employee_type_id?: number;
+    affiliation_id?: number;
+    agency?: string;
+    facilityUnitId?: number | null;
+    newFacilityUnitName?: string | null;
+  };
+
+  const healthcareFacilityId = String(
+    volunteer.healthcareFacilityId ?? volunteer.agency ?? ""
+  ).trim();
+
+  if (!healthcareFacilityId) {
+    return Response.json({ error: "กรุณาเลือกหน่วยงาน" }, { status: 400 });
+  }
+
+  const unitResult = await resolveFacilityUnitId({
+    healthcareFacilityId,
+    facilityUnitId: volunteer.facilityUnitId,
+    newFacilityUnitName: volunteer.newFacilityUnitName,
+  });
+
+  if ("error" in unitResult) {
+    return Response.json({ error: unitResult.error }, { status: 400 });
+  }
 
   await prisma.volunteer
     .create({
@@ -36,34 +62,16 @@ export async function POST(req: Request) {
         email: volunteer.email,
         phone: volunteer.phone,
         volunteerTypeId: parseInt(
-          String(
-            (volunteer as Volunteer & { volunteer_type_id?: number })
-              .volunteerTypeId ??
-              (volunteer as Volunteer & { volunteer_type_id?: number })
-                .volunteer_type_id
-          )
+          String(volunteer.volunteerTypeId ?? volunteer.volunteer_type_id)
         ),
         employeeTypeId: parseInt(
-          String(
-            (volunteer as Volunteer & { employee_type_id?: number })
-              .employeeTypeId ??
-              (volunteer as Volunteer & { employee_type_id?: number })
-                .employee_type_id
-          )
+          String(volunteer.employeeTypeId ?? volunteer.employee_type_id)
         ),
         affiliationId: parseInt(
-          String(
-            (volunteer as Volunteer & { affiliation_id?: number })
-              .affiliationId ??
-              (volunteer as Volunteer & { affiliation_id?: number })
-                .affiliation_id
-          )
+          String(volunteer.affiliationId ?? volunteer.affiliation_id)
         ),
-        healthcareFacilityId: String(
-          (volunteer as Volunteer & { agency?: string }).healthcareFacilityId ??
-            (volunteer as Volunteer & { agency?: string }).agency ??
-            ""
-        ),
+        healthcareFacilityId,
+        facilityUnitId: unitResult.id,
         status: volunteer.status,
       },
     })

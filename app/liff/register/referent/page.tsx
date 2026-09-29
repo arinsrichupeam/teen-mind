@@ -2,17 +2,25 @@
 
 import {
   addToast,
+  Autocomplete,
+  AutocompleteItem,
   Button,
   Form,
   Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectItem,
   useDisclosure,
 } from "@heroui/react";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Affiliation,
   EmployeeType,
+  FacilityUnit,
   Volunteer,
   VolunteerType,
 } from "@prisma/client";
@@ -26,12 +34,45 @@ import {
 } from "./components";
 
 import { title } from "@/components/primitives";
+import { normalizeProfileFormFieldName } from "@/lib/profile-form-fields";
 import { prefix } from "@/utils/data";
 import { validateCitizen, validateEmail } from "@/utils/helper";
 import { generateQRCode } from "@/utils/qrcode";
 import { referentInitValue } from "@/types/initData";
 
 type Mode = "register" | "edit";
+
+type FacilityOption = {
+  id: string;
+  name: string;
+  affiliationId: number;
+};
+
+type UnitOption = {
+  id: number;
+  name: string;
+};
+
+type ReferentFormState = Volunteer & {
+  facilityUnitId: number | null;
+  newFacilityUnitName: string;
+};
+
+const referentFormInit: ReferentFormState = {
+  ...referentInitValue,
+  facilityUnitId: null,
+  newFacilityUnitName: "",
+};
+
+const NEW_UNIT_KEY_PREFIX = "new:";
+const FIELD_ROW_CLASS =
+  "flex w-full max-w-xl min-w-[320px] flex-row items-end gap-2";
+const AUTOCOMPLETE_CLASS_NAMES = {
+  base: "min-w-0 flex-1",
+  inputWrapper: "h-12 min-h-12",
+} as const;
+const ADD_BUTTON_CLASS =
+  "h-12 min-h-12 max-h-12 w-[9.5rem] shrink-0 px-2 text-sm";
 
 export default function ReferentPage() {
   const request = true;
@@ -40,13 +81,53 @@ export default function ReferentPage() {
 
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedReferent, setSelectedReferent] =
-    useState<Volunteer>(referentInitValue);
-  const [referent, setReferent] = useState<Volunteer>(referentInitValue);
+    useState<ReferentFormState>(referentFormInit);
+  const [referent, setReferent] = useState<ReferentFormState>(referentFormInit);
   const [volunteerType, setvolunteerType] = useState<VolunteerType[]>([]);
   const [employeeType, setEmployeeType] = useState<EmployeeType[]>([]);
   const [affiliation, setAffiliation] = useState<Affiliation[]>([]);
+  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
+  const [facilityUnits, setFacilityUnits] = useState<FacilityUnit[]>([]);
+  const [localFacilityUnits, setLocalFacilityUnits] = useState<UnitOption[]>(
+    []
+  );
+  const [newUnitName, setNewUnitName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string>("");
+
+  const facilityItems = useMemo(() => {
+    if (!selectedReferent.affiliationId) return facilities;
+
+    return facilities.filter(
+      (f) => f.affiliationId === selectedReferent.affiliationId
+    );
+  }, [facilities, selectedReferent.affiliationId]);
+
+  const unitItems = useMemo(() => {
+    const fromDb = facilityUnits.map((u) => ({ id: u.id, name: u.name }));
+    const merged = [...fromDb, ...localFacilityUnits];
+    const seen = new Set<string>();
+
+    return merged.filter((u) => {
+      const key = u.name.trim().toLowerCase();
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+  }, [facilityUnits, localFacilityUnits]);
+
+  const selectedUnitKey = useMemo(() => {
+    if (selectedReferent.newFacilityUnitName.trim()) {
+      return `${NEW_UNIT_KEY_PREFIX}${selectedReferent.newFacilityUnitName.trim()}`;
+    }
+    if (selectedReferent.facilityUnitId != null) {
+      return String(selectedReferent.facilityUnitId);
+    }
+
+    return null;
+  }, [selectedReferent.facilityUnitId, selectedReferent.newFacilityUnitName]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
@@ -65,6 +146,11 @@ export default function ReferentPage() {
     isOpen: isOpenModal4,
     onOpen: onOpenModal4,
     onClose: onCloseModal4,
+  } = useDisclosure();
+  const {
+    isOpen: isUnitOpen,
+    onOpen: onUnitOpen,
+    onClose: onUnitClose,
   } = useDisclosure();
 
   const GetvolunteerType = useCallback(async () => {
@@ -91,13 +177,53 @@ export default function ReferentPage() {
       });
   }, [affiliation]);
 
+  const GetFacilities = useCallback(async () => {
+    await fetch("/api/data/healthcare-facility")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setFacilities(
+            data.map((f: FacilityOption) => ({
+              id: f.id,
+              name: f.name,
+              affiliationId: Number(f.affiliationId),
+            }))
+          );
+        }
+      })
+      .catch(() => setFacilities([]));
+  }, []);
+
+  const loadFacilityUnits = useCallback(async (facilityId: string) => {
+    if (!facilityId) {
+      setFacilityUnits([]);
+
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/data/facility-unit?healthcareFacilityId=${encodeURIComponent(facilityId)}`
+      );
+      const data = await res.json();
+
+      setFacilityUnits(Array.isArray(data) ? data : []);
+    } catch {
+      setFacilityUnits([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFacilityUnits(selectedReferent.healthcareFacilityId);
+  }, [selectedReferent.healthcareFacilityId, loadFacilityUnits]);
+
   const handleVerification = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
       const data = {
         citizenId: formData.get("citizenId"),
-        phone: formData.get("tel"),
+        phone: formData.get("phone") ?? formData.get("tel"),
       };
 
       await fetch(`/api/data/referent`, {
@@ -134,8 +260,16 @@ export default function ReferentPage() {
               referent.prefixId = referent.prefixId.toString();
             }
 
+            if (referent.facilityUnitId == null) {
+              referent.facilityUnitId = null;
+            }
+
             if (mode === "edit") {
-              setSelectedReferent(referent);
+              setSelectedReferent({
+                ...referentFormInit,
+                ...referent,
+                facilityUnitId: referent.facilityUnitId ?? null,
+              });
               onCloseModal3();
               addToast({
                 title: "สำเร็จ",
@@ -148,7 +282,11 @@ export default function ReferentPage() {
                 referent.id !== undefined &&
                 referent.id !== null
               ) {
-                setReferent(referent);
+                setReferent({
+                  ...referentFormInit,
+                  ...referent,
+                  facilityUnitId: referent.facilityUnitId ?? null,
+                });
                 onOpenModal4();
               } else {
                 addToast({
@@ -227,34 +365,173 @@ export default function ReferentPage() {
     | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     | { target: { name: string; value: string } };
 
-  const HandleChange = useCallback(
-    async (e: ChangeEventLike) => {
-      if (e.target.name === "citizenId") {
-        const value = e.target.value;
+  const HandleChange = useCallback(async (e: ChangeEventLike) => {
+    if (e.target.name === "citizenId") {
+      const value = e.target.value;
 
-        if (value.length > 13) {
-          return;
-        }
-        if (value.length === 13) {
-          await validateCitizenId(value);
-        } else if (value.length > 0) {
-          setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
-        } else {
-          setError("");
-        }
-        setSelectedReferent((prev) => ({
-          ...prev,
-          [e.target.name]: value,
-        }));
+      if (value.length > 13) {
+        return;
+      }
+      if (value.length === 13) {
+        await validateCitizenId(value);
+      } else if (value.length > 0) {
+        setError("กรอกเลขบัตรประชาชนไม่ครบถ้วน");
       } else {
+        setError("");
+      }
+      setSelectedReferent((prev) => ({
+        ...prev,
+        [e.target.name]: value,
+      }));
+    } else if (e.target.name === "affiliationId") {
+      const affiliationId = parseInt(String(e.target.value), 10) || 0;
+
+      setSelectedReferent((prev) => ({
+        ...prev,
+        affiliationId,
+        healthcareFacilityId: "",
+        facilityUnitId: null,
+        newFacilityUnitName: "",
+      }));
+      setFacilityUnits([]);
+      setLocalFacilityUnits([]);
+    } else {
+      const { name, value } = e.target;
+      const field = normalizeProfileFormFieldName(name);
+
+      setSelectedReferent((prev) => ({
+        ...prev,
+        [field]:
+          field === "prefixId" ||
+          field === "volunteerTypeId" ||
+          field === "employeeTypeId"
+            ? parseInt(String(value), 10) || 0
+            : value,
+      }));
+    }
+  }, []);
+
+  const handleFacilitySelect = useCallback((key: React.Key | null) => {
+    if (key == null) {
+      setSelectedReferent((prev) => ({
+        ...prev,
+        healthcareFacilityId: "",
+        facilityUnitId: null,
+        newFacilityUnitName: "",
+      }));
+      setLocalFacilityUnits([]);
+
+      return;
+    }
+
+    setSelectedReferent((prev) => ({
+      ...prev,
+      healthcareFacilityId: String(key),
+      facilityUnitId: null,
+      newFacilityUnitName: "",
+    }));
+    setLocalFacilityUnits([]);
+  }, []);
+
+  const handleUnitSelect = useCallback((key: React.Key | null) => {
+    if (key == null) {
+      setSelectedReferent((prev) => ({
+        ...prev,
+        facilityUnitId: null,
+        newFacilityUnitName: "",
+      }));
+
+      return;
+    }
+
+    const keyStr = String(key);
+
+    if (keyStr.startsWith(NEW_UNIT_KEY_PREFIX)) {
+      setSelectedReferent((prev) => ({
+        ...prev,
+        facilityUnitId: null,
+        newFacilityUnitName: keyStr.slice(NEW_UNIT_KEY_PREFIX.length),
+      }));
+
+      return;
+    }
+
+    const id = parseInt(keyStr, 10);
+
+    setSelectedReferent((prev) => ({
+      ...prev,
+      facilityUnitId: Number.isNaN(id) || id <= 0 ? null : id,
+      newFacilityUnitName: "",
+    }));
+  }, []);
+
+  const handleAddUnit = useCallback(() => {
+    const name = newUnitName.trim();
+
+    if (!selectedReferent.healthcareFacilityId) {
+      addToast({
+        title: "เลือกหน่วยงานก่อน",
+        color: "warning",
+        description: "กรุณาเลือกหน่วยงานก่อนเพิ่มหน่วยงานย่อย",
+      });
+
+      return;
+    }
+
+    if (!name) {
+      addToast({
+        title: "ข้อมูลไม่ครบ",
+        color: "danger",
+        description: "กรุณาระบุชื่อหน่วยงานย่อย",
+      });
+
+      return;
+    }
+
+    const exists = unitItems.some(
+      (u) => u.name.trim().toLowerCase() === name.toLowerCase()
+    );
+
+    if (exists) {
+      const matched = unitItems.find(
+        (u) => u.name.trim().toLowerCase() === name.toLowerCase()
+      );
+
+      if (matched) {
+        const isLocal = localFacilityUnits.some((u) => u.id === matched.id);
+
         setSelectedReferent((prev) => ({
           ...prev,
-          [e.target.name]: e.target.value,
+          facilityUnitId: isLocal || matched.id <= 0 ? null : matched.id,
+          newFacilityUnitName: isLocal || matched.id <= 0 ? matched.name : "",
         }));
       }
-    },
-    [selectedReferent]
-  );
+      setNewUnitName("");
+      onUnitClose();
+
+      return;
+    }
+
+    setLocalFacilityUnits((prev) => [...prev, { id: -Date.now(), name }]);
+    setSelectedReferent((prev) => ({
+      ...prev,
+      facilityUnitId: null,
+      newFacilityUnitName: name,
+    }));
+    setNewUnitName("");
+    onUnitClose();
+    addToast({
+      color: "success",
+      title: "เพิ่มหน่วยงานย่อยแล้ว",
+      description: `${name} จะถูกสร้างเมื่อลงทะเบียนสำเร็จ`,
+    });
+  }, [
+    newUnitName,
+    selectedReferent.healthcareFacilityId,
+    unitItems,
+    localFacilityUnits,
+    onUnitClose,
+  ]);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -320,7 +597,7 @@ export default function ReferentPage() {
               });
               setMode("register");
               formRef.current?.reset();
-              setSelectedReferent(referentInitValue);
+              setSelectedReferent(referentFormInit);
             } else {
               addToast({
                 title: "แจ้งเตือน",
@@ -350,7 +627,10 @@ export default function ReferentPage() {
 
   const handleRegisterMode = useCallback(() => {
     setMode("register");
-    setSelectedReferent(referentInitValue);
+    setSelectedReferent(referentFormInit);
+    setFacilityUnits([]);
+    setLocalFacilityUnits([]);
+    setNewUnitName("");
     setError("");
     formRef.current?.reset();
   }, []);
@@ -378,10 +658,11 @@ export default function ReferentPage() {
     GetvolunteerType();
     GetEmployeeType();
     GetAffiliation();
+    GetFacilities();
   }, [mode, onOpenModal2]);
 
   return (
-    <div className="flex flex-col w-[calc(100vw)] min-h-[calc(100vh-48px)] items-center gap-4 pt-10 px-8 py-8 md:py-10">
+    <div className="flex flex-col w-[calc(100vw)] min-h-screen items-center gap-4 pt-10 px-8 py-8 pb-14 md:py-10">
       <h1 className={title({ size: "sm" })}>
         {mode === "register" ? "ลงทะเบียน อสท." : "แก้ไขข้อมูล อสท."}
       </h1>
@@ -462,7 +743,7 @@ export default function ReferentPage() {
             isRequired={request}
             label="ชื่อ"
             labelPlacement="inside"
-            name="firstname"
+            name="firstName"
             placeholder="ชื่อ"
             radius="md"
             size="sm"
@@ -476,7 +757,7 @@ export default function ReferentPage() {
             isRequired={request}
             label="นามสกุล"
             labelPlacement="inside"
-            name="lastname"
+            name="lastName"
             placeholder="นามสกุล"
             radius="md"
             size="sm"
@@ -490,7 +771,7 @@ export default function ReferentPage() {
             isRequired={request}
             label="เบอร์โทรศัพท์"
             labelPlacement="inside"
-            name="tel"
+            name="phone"
             placeholder="เบอร์โทรศัพท์"
             radius="md"
             size="sm"
@@ -560,20 +841,79 @@ export default function ReferentPage() {
               <SelectItem key={affiliation.id}>{affiliation.name}</SelectItem>
             ))}
           </Select>
-          <Input
+          <Autocomplete
             className="max-w-xl w-full min-w-[320px]"
-            errorMessage="กรุณากรอกหน่วยงาน"
+            errorMessage="กรุณาเลือกหน่วยงาน"
+            isDisabled={!selectedReferent.affiliationId}
             isRequired={request}
+            items={facilityItems}
             label="หน่วยงาน"
             labelPlacement="inside"
-            name="agency"
-            placeholder="หน่วยงาน"
+            menuTrigger="input"
+            placeholder={
+              selectedReferent.affiliationId
+                ? "ค้นหาหรือเลือกหน่วยงาน"
+                : "เลือกสังกัดก่อน"
+            }
             radius="md"
+            selectedKey={selectedReferent.healthcareFacilityId || null}
             size="sm"
-            value={selectedReferent.healthcareFacilityId || ""}
             variant="faded"
-            onChange={HandleChange}
-          />
+            onSelectionChange={handleFacilitySelect}
+          >
+            {(item) => (
+              <AutocompleteItem key={item.id} textValue={item.name}>
+                {item.name}
+              </AutocompleteItem>
+            )}
+          </Autocomplete>
+          <div className={FIELD_ROW_CLASS}>
+            <Autocomplete
+              className="min-w-0 flex-1"
+              classNames={AUTOCOMPLETE_CLASS_NAMES}
+              isDisabled={!selectedReferent.healthcareFacilityId}
+              isRequired={false}
+              items={unitItems.map((u) => ({
+                id: u.id > 0 ? String(u.id) : `${NEW_UNIT_KEY_PREFIX}${u.name}`,
+                name: u.name,
+              }))}
+              label="หน่วยงานย่อย (ถ้ามี)"
+              labelPlacement="inside"
+              menuTrigger="input"
+              placeholder={
+                !selectedReferent.healthcareFacilityId
+                  ? "เลือกหน่วยงานก่อน"
+                  : unitItems.length === 0
+                    ? "ยังไม่มี — กดเพิ่มได้"
+                    : "เลือกหรือเพิ่มหน่วยงานย่อย"
+              }
+              radius="md"
+              selectedKey={selectedUnitKey}
+              size="sm"
+              variant="faded"
+              onSelectionChange={handleUnitSelect}
+            >
+              {(item) => (
+                <AutocompleteItem key={item.id} textValue={item.name}>
+                  {item.name}
+                  {String(item.id).startsWith(NEW_UNIT_KEY_PREFIX)
+                    ? " (ใหม่)"
+                    : ""}
+                </AutocompleteItem>
+              )}
+            </Autocomplete>
+            <Button
+              className={ADD_BUTTON_CLASS}
+              color="primary"
+              isDisabled={!selectedReferent.healthcareFacilityId}
+              radius="md"
+              type="button"
+              variant="solid"
+              onPress={onUnitOpen}
+            >
+              เพิ่มหน่วยงานย่อย
+            </Button>
+          </div>
           <Select
             className="max-w-xl w-full min-w-[320px]"
             errorMessage="กรุณาเลือกประเภทการจ้างงาน"
@@ -631,6 +971,8 @@ export default function ReferentPage() {
 
       <RegistrationInfoModal
         affiliation={affiliation}
+        facilities={facilities}
+        facilityUnits={facilityUnits}
         formRef={formRef as React.RefObject<HTMLFormElement>}
         isOpen={isOpen}
         qrCode={qrCode}
@@ -643,6 +985,7 @@ export default function ReferentPage() {
       <ReferentQRCodeModal
         affiliation={affiliation}
         data={referent}
+        facilities={facilities}
         isOpen={isOpenModal4}
         volunteerType={volunteerType}
         onClose={onCloseModal4}
@@ -656,6 +999,52 @@ export default function ReferentPage() {
         onOpenChange={onOpenChange}
         onSubmit={handleVerification}
       />
+
+      <Modal
+        isOpen={isUnitOpen}
+        placement="center"
+        size="sm"
+        onClose={onUnitClose}
+      >
+        <ModalContent>
+          {(close) => (
+            <>
+              <ModalHeader>เพิ่มหน่วยงานย่อย</ModalHeader>
+              <ModalBody>
+                <p className="text-sm text-default-500">
+                  หน่วยงาน:{" "}
+                  {facilityItems.find(
+                    (f) => f.id === selectedReferent.healthcareFacilityId
+                  )?.name ?? "-"}
+                </p>
+                <Input
+                  isRequired
+                  label="ชื่อหน่วยงานย่อย"
+                  labelPlacement="inside"
+                  placeholder="เช่น งานส่งเสริมสุขภาพ"
+                  value={newUnitName}
+                  variant="bordered"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddUnit();
+                    }
+                  }}
+                  onValueChange={setNewUnitName}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="bordered" onPress={close}>
+                  ยกเลิก
+                </Button>
+                <Button color="primary" onPress={handleAddUnit}>
+                  เพิ่ม
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

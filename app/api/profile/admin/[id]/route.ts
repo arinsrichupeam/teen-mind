@@ -1,3 +1,4 @@
+import { resolveDataScopeAnchor } from "@/lib/admin-data-scope";
 import { ProfileAdminData } from "@/types";
 import lineSdk from "@/utils/linesdk";
 import { prisma } from "@/utils/prisma";
@@ -83,6 +84,17 @@ export async function GET(
 
   if (profile && profile.profileAdmins.length > 0) {
     const admin = profile.profileAdmins[0];
+    const facilitated = admin.healthcareFacilityId
+      ? await prisma.zone.findFirst({
+          where: {
+            facilitatorFacilityId: admin.healthcareFacilityId,
+            status: true,
+          },
+          select: { id: true, name: true },
+        })
+      : null;
+    const effective = resolveDataScopeAnchor(admin, facilitated?.id ?? null);
+
     const result: ProfileAdminData = {
       id: admin.id as string,
       userId: admin.userId as string,
@@ -94,9 +106,15 @@ export async function GET(
       firstName: admin.firstName as string,
       lastName: admin.lastName as string,
       phone: (admin.phone as string) ?? "",
-      affiliationId: admin.affiliationId as number,
+      affiliationId: admin.affiliationId,
       healthcareFacilityId: admin.healthcareFacilityId,
       agency: admin.healthcareFacility?.name ?? "",
+      facilityUnitId: admin.facilityUnitId ?? null,
+      scopeLevel: admin.scopeLevel,
+      zoneId: admin.zoneId,
+      effectiveScopeLevel: effective.scopeLevel,
+      facilitatedZoneId: facilitated?.id ?? null,
+      facilitatedZoneName: facilitated?.name ?? null,
       employeeTypeId: admin.employeeTypeId as number,
       profession: admin.profession as string,
       professional: admin.profession as string,
@@ -104,6 +122,8 @@ export async function GET(
       status: mapAdminStatusToLegacyNumber(admin.status),
       receiveAlert: admin.receiveAlert as boolean,
       roleId: admin.roleId as number,
+      roleName: admin.role?.name ?? "",
+      roleCode: admin.role?.code ?? "",
       createdAt: "",
       updatedAt: "",
     };

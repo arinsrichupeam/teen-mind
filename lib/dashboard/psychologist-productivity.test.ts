@@ -1,6 +1,7 @@
-import { ScreeningResult } from "@prisma/client";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { ScreeningResult } from "@prisma/client";
 
 import {
   computePsychologistProductivity,

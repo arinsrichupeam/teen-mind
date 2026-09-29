@@ -1,11 +1,11 @@
 import type { QuestionsData } from "@/types";
 
+import { CaseStatus } from "@prisma/client";
+
 import {
   isAllFollowUpRoundsComplete,
   isConsultTelemedRoundComplete,
 } from "../../../../../lib/question-followup-rounds";
-
-import { CaseStatus } from "@prisma/client";
 
 import { flattenTreatmentNotes } from "@/lib/case-flat";
 import { requireAdmin } from "@/lib/get-session";

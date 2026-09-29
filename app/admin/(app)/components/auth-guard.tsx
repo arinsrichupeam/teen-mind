@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { addToast } from "@heroui/react";
 
 import { ProfileAdminData } from "@/types";
+import { isApprovedAdminStatus } from "@/lib/admin-access";
 import Loading from "@/app/loading";
 
 interface AuthGuardProps {
@@ -44,6 +45,13 @@ export const AuthGuard = ({
           if (storedProfile) {
             const profile = JSON.parse(storedProfile);
 
+            if (!isApprovedAdminStatus(profile.status)) {
+              sessionStorage.removeItem("adminProfile");
+              router.replace("/admin/login");
+
+              return;
+            }
+
             setAdminProfile(profile);
 
             // ตรวจสอบสิทธิ์
@@ -63,6 +71,13 @@ export const AuthGuard = ({
 
             if (response.ok) {
               const profile = await response.json();
+
+              if (!profile || !isApprovedAdminStatus(profile.status)) {
+                sessionStorage.removeItem("adminProfile");
+                router.replace("/admin/login");
+
+                return;
+              }
 
               setAdminProfile(profile);
 

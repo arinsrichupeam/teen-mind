@@ -68,7 +68,7 @@ export default function VerificationModal({
                   isRequired={request}
                   label="เบอร์โทรศัพท์"
                   labelPlacement="inside"
-                  name="tel"
+                  name="phone"
                   placeholder="เบอร์โทรศัพท์"
                   radius="md"
                   size="sm"

@@ -51,14 +51,41 @@ export async function GET(
             citizenId: true,
             schoolId: true,
             gradeYear: true,
+            isStudent: true,
+            healthcareFacilityId: true,
             school: true,
             emergencyContacts: true,
             cases: {
               select: {
+                id: true,
                 createdAt: true,
+                updatedAt: true,
                 result: true,
+                status: true,
+                questions2Q: {
+                  select: {
+                    round: true,
+                    q1: true,
+                    q2: true,
+                    createdAt: true,
+                  },
+                  orderBy: { round: "asc" },
+                },
+                questions9Q: {
+                  select: { round: true, sum: true },
+                  orderBy: { round: "asc" },
+                },
                 questionsPhqa: {
-                  select: { sum: true },
+                  select: { round: true, sum: true },
+                  orderBy: { round: "asc" },
+                },
+                questions8Q: {
+                  select: { round: true, sum: true },
+                  orderBy: { round: "asc" },
+                },
+                questionsProblem: {
+                  select: { round: true, sum: true },
+                  orderBy: { round: "asc" },
                 },
               },
             },
@@ -101,7 +128,7 @@ export async function GET(
 
     if (profileRecord?.citizenId) {
       referent = await prisma.volunteer.findFirst({
-        where: { citizenId: profileRecord.citizenId },
+        where: { citizenId: profileRecord.citizenId, status: true },
       });
     }
 
@@ -217,6 +244,27 @@ export async function PUT(
         ? Number(rawSchoolId)
         : null;
 
+    const isStudent = Boolean(body.isStudent);
+    const healthcareFacilityId =
+      typeof body.healthcareFacilityId === "string" &&
+      body.healthcareFacilityId.trim()
+        ? body.healthcareFacilityId.trim()
+        : null;
+
+    if (!healthcareFacilityId) {
+      return Response.json(
+        { success: false, message: "กรุณาเลือกสถานพยาบาล" },
+        { status: 400 }
+      );
+    }
+
+    if (isStudent && normalizedSchoolId == null) {
+      return Response.json(
+        { success: false, message: "นักเรียนต้องระบุโรงเรียน" },
+        { status: 400 }
+      );
+    }
+
     await prisma.profile.update({
       where: { id: profileId },
       data: {
@@ -230,12 +278,52 @@ export async function PUT(
         ethnicity: body.ethnicity,
         nationality: body.nationality,
         phone: body.phone,
-        schoolId: normalizedSchoolId,
+        schoolId: isStudent ? normalizedSchoolId : null,
         gradeYear:
-          normalizedSchoolId == null
+          !isStudent || normalizedSchoolId == null
             ? null
             : body.gradeYear != null && body.gradeYear !== ""
               ? Number(body.gradeYear)
+              : null,
+        isStudent,
+        healthcareFacilityId,
+        mainInsclCode:
+          body.mainInsclCode === undefined
+            ? undefined
+            : body.mainInsclCode?.trim() || null,
+        mainInsclName:
+          body.mainInsclName === undefined
+            ? undefined
+            : body.mainInsclName?.trim() || null,
+        subInsclCode:
+          body.subInsclCode === undefined
+            ? undefined
+            : body.subInsclCode?.trim() || null,
+        subInsclName:
+          body.subInsclName === undefined
+            ? undefined
+            : body.subInsclName?.trim() || null,
+        hmainCode:
+          body.hmainCode === undefined
+            ? undefined
+            : body.hmainCode?.trim() || null,
+        hmainName:
+          body.hmainName === undefined
+            ? undefined
+            : body.hmainName?.trim() || null,
+        hsubCode:
+          body.hsubCode === undefined
+            ? undefined
+            : body.hsubCode?.trim() || null,
+        hsubName:
+          body.hsubName === undefined
+            ? undefined
+            : body.hsubName?.trim() || null,
+        nhsoVerifiedAt:
+          body.nhsoVerifiedAt === undefined
+            ? undefined
+            : body.nhsoVerifiedAt
+              ? new Date(body.nhsoVerifiedAt)
               : null,
       },
     });

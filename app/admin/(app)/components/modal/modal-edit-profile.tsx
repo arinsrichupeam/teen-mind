@@ -20,6 +20,8 @@ import {
 } from "@heroui/react";
 
 import { BirthdaySelect } from "@/components/birthday-select";
+import { mapSexToLegacyNumber } from "@/lib/legacy-value-mapping";
+import { normalizeProfileFormFieldName } from "@/lib/profile-form-fields";
 import { gradeYearLevels, prefix } from "@/utils/data";
 import {
   validateCitizen,
@@ -40,6 +42,15 @@ interface EditProfileData {
   thaiYear: string;
   ethnicity: string;
   nationality: string;
+  mainInsclCode: string;
+  mainInsclName: string;
+  subInsclCode: string;
+  subInsclName: string;
+  hmainCode: string;
+  hmainName: string;
+  hsubCode: string;
+  hsubName: string;
+  nhsoVerifiedAt: string;
   address: {
     houseNo: string;
     villageNo: string;
@@ -66,8 +77,24 @@ export interface ModalEditProfileData {
     userId?: string | null;
     citizenId?: string;
     prefixId?: number;
+    firstName?: string;
+    lastName?: string;
+    /** @deprecated alias */
     firstname?: string;
+    /** @deprecated alias */
     lastname?: string;
+    sex?: string | number;
+    birthDate?: string | Date | null;
+    birthday?: string | Date | null;
+    ethnicity?: string;
+    nationality?: string;
+    phone?: string;
+    hn?: string | null;
+    schoolId?: number | null;
+    gradeYear?: number | null;
+    school?: { id?: number; name?: string } | string | null;
+    healthcareFacilityId?: string | null;
+    healthcareFacility?: { id?: string; name?: string } | null;
     address?: Array<{
       houseNo?: string;
       villageNo?: string;
@@ -89,6 +116,8 @@ export interface ModalEditProfileData {
     }>;
     [key: string]: unknown;
   };
+  /** หน่วยงานเจ้าของเคส — แสดงอย่างเดียวเมื่อเปิดจาก case drawer */
+  caseHealthcareFacility?: { id?: string; name?: string } | null;
 }
 
 interface Props {
@@ -97,6 +126,39 @@ interface Props {
   data: ModalEditProfileData;
   mode?: "create" | "edit";
   onSuccess?: () => void;
+}
+
+function resolveHealthcareFacilityName(
+  data: ModalEditProfileData | null | undefined
+): string {
+  const caseName = data?.caseHealthcareFacility?.name;
+
+  if (typeof caseName === "string" && caseName.trim()) {
+    return caseName.trim();
+  }
+
+  const profileName = data?.profile?.healthcareFacility?.name;
+
+  return typeof profileName === "string" && profileName.trim()
+    ? profileName.trim()
+    : "";
+}
+
+function resolveHealthcareFacilityId(
+  profile: ModalEditProfileData["profile"]
+): string | null {
+  if (
+    typeof profile?.healthcareFacilityId === "string" &&
+    profile.healthcareFacilityId.trim()
+  ) {
+    return profile.healthcareFacilityId.trim();
+  }
+
+  const nestedId = profile?.healthcareFacility?.id;
+
+  return typeof nestedId === "string" && nestedId.trim()
+    ? nestedId.trim()
+    : null;
 }
 
 export const ModalEditProfile = ({
@@ -121,6 +183,15 @@ export const ModalEditProfile = ({
     thaiYear: "",
     ethnicity: "",
     nationality: "",
+    mainInsclCode: "",
+    mainInsclName: "",
+    subInsclCode: "",
+    subInsclName: "",
+    hmainCode: "",
+    hmainName: "",
+    hsubCode: "",
+    hsubName: "",
+    nhsoVerifiedAt: "",
     address: {
       houseNo: "",
       villageNo: "",
@@ -141,6 +212,7 @@ export const ModalEditProfile = ({
   });
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [isHnLoading, setIsHnLoading] = useState(false);
+  const [isNhsoLoading, setIsNhsoLoading] = useState(false);
   const [citizenIdError, setCitizenIdError] = useState<string>("");
   const [isCheckingCitizenId, setIsCheckingCitizenId] = useState(false);
   const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,7 +298,7 @@ export const ModalEditProfile = ({
       let processedValue = value;
 
       // ตรวจสอบโทรศัพท์ให้รับเฉพาะตัวเลขเท่านั้น
-      if (name === "tel" || name === "emergency.phone") {
+      if (name === "tel" || name === "phone" || name === "emergency.phone") {
         // อนุญาตให้กรอกได้แค่ตัวเลขเท่านั้น
         const onlyNumbers = /^[0-9]*$/;
 
@@ -237,9 +309,10 @@ export const ModalEditProfile = ({
       }
 
       setEditProfileData((prev) => {
+        const field = normalizeProfileFormFieldName(name);
         const newData = {
           ...prev,
-          [name]: processedValue,
+          [field]: processedValue,
         };
 
         return newData;
@@ -370,6 +443,115 @@ export const ModalEditProfile = ({
     }
   }, [editProfileData.citizenId]);
 
+  const clearNhsoFields = useCallback(
+    (): Pick<
+      EditProfileData,
+      | "mainInsclCode"
+      | "mainInsclName"
+      | "subInsclCode"
+      | "subInsclName"
+      | "hmainCode"
+      | "hmainName"
+      | "hsubCode"
+      | "hsubName"
+      | "nhsoVerifiedAt"
+    > => ({
+      mainInsclCode: "",
+      mainInsclName: "",
+      subInsclCode: "",
+      subInsclName: "",
+      hmainCode: "",
+      hmainName: "",
+      hsubCode: "",
+      hsubName: "",
+      nhsoVerifiedAt: "",
+    }),
+    []
+  );
+
+  const handleSearchNhso = useCallback(async () => {
+    const citizenId = editProfileData.citizenId.trim();
+
+    if (!citizenId || citizenId.length !== 13) {
+      addToast({
+        title: "ไม่พบเลขบัตรประชาชน",
+        description: "กรุณากรอกเลขบัตรประชาชน 13 หลักก่อนค้นหาสิทธิ",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setIsNhsoLoading(true);
+    try {
+      const response = await fetch("/api/profile/nhso", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ citizenId }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        nhsoResult?: {
+          mainInsclCode?: string;
+          mainInsclName?: string;
+          subInsclCode?: string;
+          subInsclName?: string;
+          hmainCode?: string;
+          hmainName?: string;
+          hsubCode?: string;
+          hsubName?: string;
+          verifiedAt?: string;
+        };
+      };
+
+      if (!response.ok || !payload.nhsoResult) {
+        setEditProfileData((prev) => ({ ...prev, ...clearNhsoFields() }));
+        throw new Error(
+          payload.error || "เกิดข้อผิดพลาดในการค้นหาสิทธิจาก สปสช."
+        );
+      }
+
+      const result = payload.nhsoResult;
+      const rightsLabel =
+        result.mainInsclName?.trim() ||
+        result.mainInsclCode?.trim() ||
+        "พบข้อมูลสิทธิ";
+
+      setEditProfileData((prev) => ({
+        ...prev,
+        mainInsclCode: result.mainInsclCode?.trim() || "",
+        mainInsclName: result.mainInsclName?.trim() || "",
+        subInsclCode: result.subInsclCode?.trim() || "",
+        subInsclName: result.subInsclName?.trim() || "",
+        hmainCode: result.hmainCode?.trim() || "",
+        hmainName: result.hmainName?.trim() || "",
+        hsubCode: result.hsubCode?.trim() || "",
+        hsubName: result.hsubName?.trim() || "",
+        nhsoVerifiedAt: result.verifiedAt
+          ? new Date(result.verifiedAt).toISOString()
+          : "",
+      }));
+      addToast({
+        title: "ค้นหาสิทธิสำเร็จ",
+        description: `พบสิทธิ: ${rightsLabel}`,
+        color: "success",
+      });
+    } catch (error) {
+      addToast({
+        title: "ค้นหาสิทธิไม่สำเร็จ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาดในการค้นหาสิทธิ",
+        color: "danger",
+      });
+    } finally {
+      setIsNhsoLoading(false);
+    }
+  }, [editProfileData.citizenId, clearNhsoFields]);
+
   const validateCitizenIdAsync = async (
     citizenId: string
   ): Promise<boolean> => {
@@ -417,6 +599,15 @@ export const ModalEditProfile = ({
         thaiYear: "",
         ethnicity: "",
         nationality: "",
+        mainInsclCode: "",
+        mainInsclName: "",
+        subInsclCode: "",
+        subInsclName: "",
+        hmainCode: "",
+        hmainName: "",
+        hsubCode: "",
+        hsubName: "",
+        nhsoVerifiedAt: "",
         address: {
           houseNo: "",
           villageNo: "",
@@ -442,21 +633,13 @@ export const ModalEditProfile = ({
     if (data?.profile) {
       const profile = data.profile;
       const addr = profile.address?.[0];
-      const currentProvince = addr
-        ? province.find((x) => x.id == (addr.provinceId ?? addr.province))
-        : undefined;
-      const currentDistrict = addr
-        ? distrince.find((x) => x.id == (addr.districtId ?? addr.district))
-        : undefined;
-      const currentSubdistrict = addr
-        ? subdistrince.find(
-            (x) => x.id == (addr.subdistrictId ?? addr.subdistrict)
-          )
-        : undefined;
+      const provinceIdRaw = addr?.provinceId ?? addr?.province;
+      const districtIdRaw = addr?.districtId ?? addr?.district;
+      const subdistrictIdRaw = addr?.subdistrictId ?? addr?.subdistrict;
 
       let birthdayDisplay = "";
 
-      const birthdayRaw = profile.birthDate;
+      const birthdayRaw = profile.birthDate ?? profile.birthday;
 
       if (birthdayRaw) {
         try {
@@ -495,26 +678,74 @@ export const ModalEditProfile = ({
         (profile as { schoolId?: number | null }).schoolId ??
         null;
       const emergencyFirst = profile.emergency?.[0];
+      const sexLegacy =
+        profile.sex != null && profile.sex !== ""
+          ? mapSexToLegacyNumber(
+              profile.sex as string | number | null | undefined
+            )
+          : null;
 
       const initialData: EditProfileData = {
         hn: String(profile.hn ?? ""),
         citizenId: String(profile.citizenId ?? ""),
         prefixId: profile.prefixId != null ? String(profile.prefixId) : "",
-        sex: profile.sex != null ? String(profile.sex) : "",
-        firstName: String(profile.firstName ?? ""),
-        lastName: String(profile.lastName ?? ""),
+        sex: sexLegacy != null ? String(sexLegacy) : "",
+        firstName: String(profile.firstName ?? profile.firstname ?? ""),
+        lastName: String(profile.lastName ?? profile.lastname ?? ""),
         birthDate: birthdayDisplay || "",
         thaiYear: thaiYear,
         ethnicity: String(profile.ethnicity ?? ""),
         nationality: String(profile.nationality ?? ""),
+        mainInsclCode: String(
+          (profile as { mainInsclCode?: string | null }).mainInsclCode ?? ""
+        ),
+        mainInsclName: String(
+          (profile as { mainInsclName?: string | null }).mainInsclName ?? ""
+        ),
+        subInsclCode: String(
+          (profile as { subInsclCode?: string | null }).subInsclCode ?? ""
+        ),
+        subInsclName: String(
+          (profile as { subInsclName?: string | null }).subInsclName ?? ""
+        ),
+        hmainCode: String(
+          (profile as { hmainCode?: string | null }).hmainCode ?? ""
+        ),
+        hmainName: String(
+          (profile as { hmainName?: string | null }).hmainName ?? ""
+        ),
+        hsubCode: String(
+          (profile as { hsubCode?: string | null }).hsubCode ?? ""
+        ),
+        hsubName: String(
+          (profile as { hsubName?: string | null }).hsubName ?? ""
+        ),
+        nhsoVerifiedAt: (() => {
+          const raw = (profile as { nhsoVerifiedAt?: string | Date | null })
+            .nhsoVerifiedAt;
+
+          if (!raw) return "";
+
+          return new Date(raw).toISOString();
+        })(),
         address: {
           houseNo: String(addr?.houseNo ?? ""),
           villageNo: String(addr?.villageNo ?? ""),
           soi: String(addr?.soi ?? ""),
           road: String(addr?.road ?? ""),
-          subdistrictId: currentSubdistrict?.id?.toString() ?? "",
-          districtId: currentDistrict?.id?.toString() ?? "",
-          provinceId: currentProvince?.id?.toString() ?? "",
+          // Prefer IDs from profile; geo lists only refine when present
+          subdistrictId:
+            subdistrictIdRaw != null && String(subdistrictIdRaw) !== ""
+              ? String(subdistrictIdRaw)
+              : "",
+          districtId:
+            districtIdRaw != null && String(districtIdRaw) !== ""
+              ? String(districtIdRaw)
+              : "",
+          provinceId:
+            provinceIdRaw != null && String(provinceIdRaw) !== ""
+              ? String(provinceIdRaw)
+              : "",
         },
         phone: String(profile.phone ?? ""),
         emergency: {
@@ -594,12 +825,26 @@ export const ModalEditProfile = ({
             : null,
         ethnicity: editProfileData.ethnicity,
         nationality: editProfileData.nationality,
+        mainInsclCode: editProfileData.mainInsclCode || null,
+        mainInsclName: editProfileData.mainInsclName || null,
+        subInsclCode: editProfileData.subInsclCode || null,
+        subInsclName: editProfileData.subInsclName || null,
+        hmainCode: editProfileData.hmainCode || null,
+        hmainName: editProfileData.hmainName || null,
+        hsubCode: editProfileData.hsubCode || null,
+        hsubName: editProfileData.hsubName || null,
+        nhsoVerifiedAt: editProfileData.nhsoVerifiedAt || null,
         schoolId: editProfileData.school
           ? parseInt(editProfileData.school)
           : null,
         gradeYear: editProfileData.gradeYear
           ? parseInt(editProfileData.gradeYear)
           : null,
+        // Keep existing facility; this modal does not allow changing it
+        healthcareFacilityId: resolveHealthcareFacilityId(data?.profile),
+        isStudent: Boolean(
+          editProfileData.school && Number(editProfileData.school) > 0
+        ),
         address: {
           houseNo: editProfileData.address.houseNo,
           villageNo: editProfileData.address.villageNo,
@@ -709,18 +954,13 @@ export const ModalEditProfile = ({
   }, []);
 
   useEffect(() => {
-    if (
-      isOpen &&
-      province.length > 0 &&
-      distrince.length > 0 &&
-      subdistrince.length > 0 &&
-      schools.length > 0
-    ) {
-      // อัปเดตข้อมูลทุกครั้งที่ modal เปิดและมีข้อมูลครบ
-      setCurrentData(data);
-      initializeEditProfileData();
-    }
-  }, [isOpen, data, province, distrince, subdistrince, schools, mode]);
+    if (!isOpen) return;
+
+    // School list is optional (DB may have zero active schools). Do not block
+    // profile field hydration on schools.length — that left the edit form blank.
+    setCurrentData(data);
+    initializeEditProfileData();
+  }, [isOpen, data, mode]);
 
   // เพิ่ม useEffect เพื่ออัปเดตข้อมูลเมื่อ data เปลี่ยน
   useEffect(() => {
@@ -807,6 +1047,34 @@ export const ModalEditProfile = ({
               />
             </div>
             <div className="flex flex-row gap-2">
+              <Input
+                className="flex-1"
+                endContent={
+                  <Button
+                    isIconOnly
+                    aria-label="ค้นหาสิทธิจาก สปสช."
+                    isLoading={isNhsoLoading}
+                    size="sm"
+                    variant="light"
+                    onPress={handleSearchNhso}
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </Button>
+                }
+                label="สิทธิการรักษา (สปสช.)"
+                name="mainInsclName"
+                placeholder="ค้นหาจากเลขบัตรประชาชน"
+                size="sm"
+                value={
+                  editProfileData.mainInsclName ||
+                  editProfileData.mainInsclCode ||
+                  ""
+                }
+                variant="bordered"
+                onChange={handleEditProfileChange}
+              />
+            </div>
+            <div className="flex flex-row gap-2">
               <Select
                 isRequired={true}
                 label="คำนำหน้า"
@@ -830,7 +1098,7 @@ export const ModalEditProfile = ({
               <Input
                 isRequired={true}
                 label="ชื่อ"
-                name="firstname"
+                name="firstName"
                 size="sm"
                 value={editProfileData.firstName}
                 variant="bordered"
@@ -839,7 +1107,7 @@ export const ModalEditProfile = ({
               <Input
                 isRequired={true}
                 label="นามสกุล"
-                name="lastname"
+                name="lastName"
                 size="sm"
                 value={editProfileData.lastName}
                 variant="bordered"
@@ -920,6 +1188,20 @@ export const ModalEditProfile = ({
                 }}
               />
             </div>
+            {mode !== "create" && (
+              <Input
+                isReadOnly
+                description={
+                  data?.caseHealthcareFacility
+                    ? "หน่วยงานเจ้าของเคส (แก้ไขไม่ได้)"
+                    : "หน่วยงานที่ผู้ใช้เลือกตอนลงทะเบียน (แก้ไขไม่ได้)"
+                }
+                label="หน่วยงาน"
+                size="sm"
+                value={resolveHealthcareFacilityName(data) || "-"}
+                variant="bordered"
+              />
+            )}
             <Autocomplete
               className="w-full"
               defaultItems={schools}
@@ -1114,7 +1396,7 @@ export const ModalEditProfile = ({
               <Input
                 label="โทรศัพท์"
                 maxLength={10}
-                name="tel"
+                name="phone"
                 size="sm"
                 value={editProfileData.phone}
                 variant="bordered"

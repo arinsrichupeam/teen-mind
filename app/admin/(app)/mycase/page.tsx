@@ -20,19 +20,13 @@ import {
   TableRow,
   useDisclosure,
   Selection,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   addToast,
   Chip,
 } from "@heroui/react";
 import {
   EyeIcon,
-  PencilIcon,
+  DocumentTextIcon,
   TrashIcon,
-  PlusCircleIcon,
-  DevicePhoneMobileIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -44,9 +38,12 @@ import { QuestionColumnsName } from "../data/tableColumn";
 import { QuestionFilterContent } from "../components/question/question-filter-content";
 
 import { prefix } from "@/utils/data";
-import { QuestionsData, TableSortDescriptor } from "@/types";
+import { QuestionsData, ProfileAdminData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
 import { formatThaiDateTime, calculateAge } from "@/utils/helper";
+import { getAssessmentResultLabel } from "@/lib/assessment-result-colors";
+import { canClaimCase } from "@/lib/admin-roles";
+import { readStoredAdminProfile } from "@/lib/admin-profile-client";
 
 interface Column {
   key: string;
@@ -74,7 +71,7 @@ export default function MyCasePage() {
     column: "createdAt",
     direction: "descending",
   });
-  const [mode, setMode] = useState("view-questionnaire");
+  const [mode, setMode] = useState("view-consultation");
   const { data: session, status } = useSession();
   const [error] = useState("");
 
@@ -92,8 +89,33 @@ export default function MyCasePage() {
   const [mainScaleFilter, setMainScaleFilter] = useState<string>("all");
   const [referentTypeFilter, setReferentTypeFilter] = useState<string>("all");
   const [hiddenSchools, setHiddenSchools] = useState<Set<string>>(new Set());
+  const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
+    () => readStoredAdminProfile()
+  );
 
   const consultUserId = session?.user?.id ?? "";
+  const canClaimCases = canClaimCase(
+    adminProfile?.roleId,
+    adminProfile?.roleCode
+  );
+
+  const { data: adminData } = useSWR(
+    session?.user?.id ? `/api/profile/admin/${session.user.id}` : null,
+    async (url) => {
+      const res = await fetch(url);
+
+      if (!res.ok) throw new Error("Failed to fetch admin profile");
+
+      return res.json();
+    }
+  );
+
+  useEffect(() => {
+    if (adminData) {
+      setAdminProfile(adminData);
+      sessionStorage.setItem("adminProfile", JSON.stringify(adminData));
+    }
+  }, [adminData]);
 
   const prefixMap = useMemo(
     () => new Map(prefix.map((p) => [String(p.key), p.label])),
@@ -437,19 +459,6 @@ export default function MyCasePage() {
     []
   );
 
-  const onRowDetailPress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("view-questionnaire");
-          onOpen();
-        });
-    },
-    [onOpen, setSelectedQuestion]
-  );
-
   const onRowConsultationPress = useCallback(
     (e: string) => {
       fetch("/api/question/" + e)
@@ -463,30 +472,27 @@ export default function MyCasePage() {
     [onOpen, setSelectedQuestion]
   );
 
-  const onRowEditQuestionnairePress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("edit-questionnaire");
-          onOpen();
-        });
-    },
-    [onOpen, setSelectedQuestion]
-  );
-
   const onRowEditConsultationPress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("edit-consultation");
-          onOpen();
+    async (e: string, caseStatus?: string | null) => {
+      if (caseStatus === "PENDING" && !canClaimCases) {
+        addToast({
+          color: "warning",
+          title: "รอ Consult รับเคส",
+          description: "เฉพาะ Consult เท่านั้นที่รับเคสได้",
+          timeout: 4000,
         });
+
+        return;
+      }
+
+      const res = await fetch("/api/question/" + e);
+      const val: QuestionsData | QuestionsData[] = await res.json();
+
+      setSelectedQuestion(val);
+      setMode("edit-consultation");
+      onOpen();
     },
-    [onOpen, setSelectedQuestion]
+    [onOpen, setSelectedQuestion, canClaimCases]
   );
 
   const onDrawerClose = useCallback(() => {
@@ -521,18 +527,17 @@ export default function MyCasePage() {
         case "name":
           const prefixLabel =
             prefixMap.get(item.profile?.prefixId?.toString() ?? "") || "";
+          const facilityName = item.healthcareFacility?.name?.trim() || "";
 
           return (
-            <div className="flex items-center gap-2">
-              {item.referentId ? (
-                <PlusCircleIcon className="size-5 text-danger-500" />
-              ) : (
-                <DevicePhoneMobileIcon className="size-5 text-primary-500" />
-              )}
+            <div className="flex flex-col gap-0.5">
               <p className="text-bold text-small">
                 {prefixLabel} {item.profile?.firstName || ""}{" "}
                 {item.profile?.lastName || ""}
               </p>
+              {facilityName ? (
+                <p className="text-tiny text-default-500">{facilityName}</p>
+              ) : null}
             </div>
           );
         case "age":
@@ -553,16 +558,16 @@ export default function MyCasePage() {
               ? school.name
               : typeof school === "string"
                 ? school
-                : "-";
+                : null;
 
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small">{schoolName}</p>
+              <p className="text-bold text-small">{schoolName || "-"}</p>
             </div>
           );
         }
         case "phqa":
-          let phqaScore: string | number = "-";
+          let phqaScore: string | number | null = null;
 
           if (Array.isArray(item.q9) && item.q9.length > 0) {
             phqaScore = item.q9[0].sum;
@@ -570,8 +575,12 @@ export default function MyCasePage() {
             phqaScore = item.phqa[0].sum;
           }
 
-          if (!item.result_text || phqaScore === "-") {
-            return "-";
+          if (!item.result || phqaScore == null) {
+            return (
+              <span className="text-default-500 text-small">
+                ไม่เข้าเกณฑ์ประเมิน
+              </span>
+            );
           }
 
           return (
@@ -591,7 +600,7 @@ export default function MyCasePage() {
               size="sm"
               variant="flat"
             >
-              {`${item.result_text} (${phqaScore})`}
+              {getAssessmentResultLabel(String(item.result))}
             </Chip>
           );
         case "2q":
@@ -611,7 +620,11 @@ export default function MyCasePage() {
             );
           }
 
-          return "-";
+          return (
+            <span className="text-default-500 text-small">
+              ไม่เข้าเกณฑ์ประเมิน
+            </span>
+          );
         case "addon":
           if (Array.isArray(item.q8) && item.q8.length > 0) {
             const q8Score = Number(item.q8[0].sum ?? 0);
@@ -629,7 +642,11 @@ export default function MyCasePage() {
             );
           }
 
-          return "-";
+          return (
+            <span className="text-default-500 text-small">
+              ไม่เข้าเกณฑ์ประเมิน
+            </span>
+          );
         case "screeningDate":
         case "createdAt": {
           return (
@@ -644,66 +661,43 @@ export default function MyCasePage() {
         }
         case "status":
           return <QuestionTableStatusCell row={item} />;
+        case "assignee":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {item.assigneeName?.trim() || "—"}
+              </p>
+            </div>
+          );
         case "actions":
           return (
             <div className="relative flex items-center gap-2">
               <div className="flex justify-center gap-2">
-                <div>
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button
-                        isIconOnly
-                        name="Detail"
-                        size="sm"
-                        variant="light"
-                      >
-                        <EyeIcon className="size-6 text-primary-400" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Detail options">
-                      <DropdownItem
-                        key="view-questionnaire"
-                        onPress={() => onRowDetailPress(item.id)}
-                      >
-                        รายละเอียดแบบประเมิน
-                      </DropdownItem>
-                      <DropdownItem
-                        key="view-consultation"
-                        onPress={() => onRowConsultationPress(item.id)}
-                      >
-                        รายละเอียดการให้คำปรึกษา
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </div>
-                <div>
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button isIconOnly name="Edit" size="sm" variant="light">
-                        <PencilIcon className="size-6 text-warning-400" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Edit options">
-                      <DropdownItem
-                        key="edit-questionnaire"
-                        onPress={() => onRowEditQuestionnairePress(item.id)}
-                      >
-                        แก้ไขแบบประเมิน
-                      </DropdownItem>
-                      <DropdownItem
-                        key="edit-consultation"
-                        onPress={() => onRowEditConsultationPress(item.id)}
-                      >
-                        บันทึกการให้คำปรึกษา
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </div>
-                <div>
-                  <Button isIconOnly size="sm" variant="light">
-                    <TrashIcon className="size-6 text-danger-500" />
-                  </Button>
-                </div>
+                <Button
+                  isIconOnly
+                  aria-label="ดูรายละเอียดเคส"
+                  name="Detail"
+                  size="sm"
+                  variant="light"
+                  onPress={() => onRowConsultationPress(item.id)}
+                >
+                  <EyeIcon className="size-6 text-primary-400" />
+                </Button>
+                <Button
+                  isIconOnly
+                  aria-label="บันทึกการให้คำปรึกษา"
+                  name="Edit"
+                  size="sm"
+                  variant="light"
+                  onPress={() =>
+                    void onRowEditConsultationPress(item.id, item.caseStatus)
+                  }
+                >
+                  <DocumentTextIcon className="size-6 text-warning-400" />
+                </Button>
+                <Button isIconOnly size="sm" variant="light">
+                  <TrashIcon className="size-6 text-danger-500" />
+                </Button>
               </div>
             </div>
           );
@@ -717,9 +711,8 @@ export default function MyCasePage() {
     },
     [
       prefixMap,
-      onRowDetailPress,
+      canClaimCases,
       onRowConsultationPress,
-      onRowEditQuestionnairePress,
       onRowEditConsultationPress,
     ]
   );
@@ -728,19 +721,21 @@ export default function MyCasePage() {
     <Suspense fallback={<Loading />}>
       <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
         <div className="flex justify-between items-end ">
-          <h3 className="text-lg font-semibold">รายการที่ดูแล</h3>
+          <h3 className="text-lg font-semibold">เคสที่ดูแล</h3>
         </div>
         <div className="max-w-[95rem] mx-auto w-full">
           <QuestionEditDrawer
+            canClaimCase={canClaimCases}
             data={selectedKeys!}
             isOpen={isOpen}
             mode={mode}
+            viewerFacilityId={adminProfile?.healthcareFacilityId ?? null}
             onClose={onDrawerClose}
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
               isStriped
-              aria-label="Question List Table"
+              aria-label="รายการเคสที่ดูแล"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
               sortDescriptor={sortDescriptor}
@@ -760,7 +755,7 @@ export default function MyCasePage() {
                 )}
               </TableHeader>
               <TableBody
-                emptyContent={"ไม่พบข้อมูล"}
+                emptyContent={"ไม่พบเคส"}
                 items={sortedItems}
                 loadingContent={<Spinner label="Loading..." />}
               >

@@ -17,9 +17,14 @@ import { prefix } from "@/utils/data";
 interface RegistrationInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedReferent: Volunteer;
+  selectedReferent: Volunteer & {
+    facilityUnitId?: number | null;
+    newFacilityUnitName?: string;
+  };
   affiliation: Affiliation[];
   volunteerType: VolunteerType[];
+  facilities?: Array<{ id: string; name: string }>;
+  facilityUnits?: Array<{ id: number; name: string }>;
   qrCode: string;
   formRef: React.RefObject<HTMLFormElement>;
   setIsLoading: (loading: boolean) => void;
@@ -31,10 +36,22 @@ export default function RegistrationInfoModal({
   selectedReferent,
   affiliation,
   volunteerType,
+  facilities = [],
+  facilityUnits = [],
   qrCode,
   formRef,
   setIsLoading,
 }: RegistrationInfoModalProps) {
+  const facilityName =
+    facilities.find((f) => f.id === selectedReferent.healthcareFacilityId)
+      ?.name ?? selectedReferent.healthcareFacilityId;
+  const unitName =
+    selectedReferent.newFacilityUnitName?.trim() ||
+    (selectedReferent.facilityUnitId != null
+      ? facilityUnits.find((u) => u.id === selectedReferent.facilityUnitId)
+          ?.name
+      : null);
+
   return (
     <Modal
       backdrop="blur"
@@ -69,7 +86,8 @@ export default function RegistrationInfoModal({
                   ?.name
               }
             </span>
-            <span>หน่วยงาน : {selectedReferent?.healthcareFacilityId}</span>
+            <span>หน่วยงาน : {facilityName}</span>
+            {unitName ? <span>หน่วยงานย่อย : {unitName}</span> : null}
             <span>
               ประเภทอาสาสมัคร :{" "}
               {

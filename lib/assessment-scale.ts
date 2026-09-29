@@ -3,8 +3,8 @@ import {
   getNineQRiskText,
   getPhqaRiskLevel,
   getPhqaRiskText,
-  calculateAge,
-} from "@/utils/helper";
+} from "@/lib/assessment-risk";
+import { calculateAge } from "@/lib/age";
 
 export const MAIN_ASSESSMENT_AGE_CUTOFF = 18;
 

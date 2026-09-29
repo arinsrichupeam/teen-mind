@@ -1,9 +1,12 @@
-import { CaseStatus } from "@prisma/client";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
+import { CaseStatus } from "@prisma/client";
+
 import {
   buildLegacyFollowUpStatusWhere,
+  caseStatusChipColor,
+  caseStatusLabel,
   mapLegacyFollowUpStatusToCaseStatus,
   mapLegacyFollowUpStatusesToCaseStatuses,
   OPEN_CASE_STATUSES,
@@ -18,6 +21,15 @@ describe("case-status-mapping", () => {
       CaseStatus.IN_PROGRESS
     );
     assert.equal(mapLegacyFollowUpStatusToCaseStatus(3), CaseStatus.CLOSED);
+  });
+
+  it("labels CaseStatus in Thai", () => {
+    assert.equal(caseStatusLabel("PENDING"), "รอรับดูแล");
+    assert.equal(caseStatusLabel("IN_PROGRESS"), "กำลังดูแล");
+    assert.equal(caseStatusLabel("TRANSFER_PENDING"), "อยู่ระหว่างส่งต่อ");
+    assert.equal(caseStatusLabel("CLOSED"), "เสร็จสิ้น");
+    assert.equal(caseStatusChipColor("PENDING"), "warning");
+    assert.equal(caseStatusChipColor("CLOSED"), "success");
   });
 
   it("expands UI filter chips to CaseStatus sets", () => {

@@ -2,6 +2,8 @@
 
 import { DatePicker } from "@heroui/react";
 
+import { consultationFieldClassNames } from "./consultation-ui";
+
 import { safeParseDateTimeForPicker } from "@/utils/helper";
 
 type Props = {
@@ -26,6 +28,7 @@ export function ConsultScheduleDateTimePicker({
       key={`${name}-${value?.toString() ?? ""}`}
       hideTimeZone
       showMonthAndYearPickers
+      classNames={consultationFieldClassNames}
       defaultValue={safeParseDateTimeForPicker(value)}
       granularity="minute"
       hourCycle={24}

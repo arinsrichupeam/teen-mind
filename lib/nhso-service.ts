@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from "@/utils/prisma";
 
 export interface NhsoCheckResult {
   mainInsclCode?: string;
@@ -12,84 +10,176 @@ export interface NhsoCheckResult {
   hsubCode?: string;
   hsubName?: string;
   verifiedAt: Date;
-  status: 'SUCCESS' | 'NOT_FOUND' | 'ERROR';
+  status: "SUCCESS" | "NOT_FOUND" | "ERROR";
   errorMessage?: string;
 }
 
+/** Response shape from GET /api/RealPerson (fields we persist + nested hospital objects). */
+export type NhsoRealPersonResponse = {
+  dataError?: string;
+  message?: string;
+  mainInscl?: string;
+  mainInsclCode?: string;
+  mainInsclName?: string;
+  subInscl?: string;
+  subInsclCode?: string;
+  subInsclName?: string;
+  hospMainNew?: NhsoHospitalRef | null;
+  hospSubNew?: NhsoHospitalRef | null;
+  hospMain?: NhsoHospitalRef | null;
+  hospSub?: NhsoHospitalRef | null;
+  hmain?: string;
+  hmain_name?: string;
+  hsub?: string;
+  hsub_name?: string;
+};
+
+type NhsoHospitalRef = {
+  hcode?: string;
+  hname?: string;
+  code?: string;
+  name?: string;
+};
+
+function asTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function hospitalCode(
+  ref: NhsoHospitalRef | null | undefined
+): string | undefined {
+  return asTrimmedString(ref?.hcode) ?? asTrimmedString(ref?.code);
+}
+
+function hospitalName(
+  ref: NhsoHospitalRef | null | undefined
+): string | undefined {
+  return asTrimmedString(ref?.hname) ?? asTrimmedString(ref?.name);
+}
+
 /**
- * Check health insurance rights with NHSO API using Citizen ID (PID)
- * @param citizenId 13-digit Thai national ID
+ * Map NHSO RealPerson JSON into Profile insurance fields.
+ * Pure — used by checkNhsoRights and unit tests.
  */
-export async function checkNhsoRights(citizenId: string): Promise<NhsoCheckResult> {
-  const cleanPid = citizenId.replace(/\D/g, '');
+export function mapNhsoRealPersonToRights(
+  data: NhsoRealPersonResponse
+): Omit<NhsoCheckResult, "verifiedAt" | "status" | "errorMessage"> {
+  const hospMain = data.hospMainNew ?? data.hospMain;
+  const hospSub = data.hospSubNew ?? data.hospSub;
+
+  return {
+    mainInsclCode:
+      asTrimmedString(data.mainInsclCode) ?? asTrimmedString(data.mainInscl),
+    mainInsclName: asTrimmedString(data.mainInsclName),
+    subInsclCode:
+      asTrimmedString(data.subInsclCode) ?? asTrimmedString(data.subInscl),
+    subInsclName: asTrimmedString(data.subInsclName),
+    hmainCode: hospitalCode(hospMain) ?? asTrimmedString(data.hmain),
+    hmainName: hospitalName(hospMain) ?? asTrimmedString(data.hmain_name),
+    hsubCode: hospitalCode(hospSub) ?? asTrimmedString(data.hsub),
+    hsubName: hospitalName(hospSub) ?? asTrimmedString(data.hsub_name),
+  };
+}
+
+function buildRealPersonUrl(baseUrl: string, sourceId: string, pid: string) {
+  const url = new URL(baseUrl.trim());
+
+  url.searchParams.set("SOURCE_ID", sourceId);
+  url.searchParams.set("PID", pid);
+
+  return url.toString();
+}
+
+/**
+ * Check health insurance rights with NHSO RealPerson API.
+ * PID ใน API สปสช. = citizenId (เลขบัตรประชาชน 13 หลัก) ในระบบนี้
+ * Auth: Bearer NHSO_TOKEN. Query: SOURCE_ID + PID.
+ */
+export async function checkNhsoRights(
+  citizenId: string
+): Promise<NhsoCheckResult> {
+  // NHSO PID = citizenId
+  const cleanPid = citizenId.replace(/\D/g, "");
+  const verifiedAt = new Date();
 
   if (cleanPid.length !== 13) {
     return {
-      verifiedAt: new Date(),
-      status: 'ERROR',
-      errorMessage: 'Invalid Citizen ID length. Must be 13 digits.',
+      verifiedAt,
+      status: "ERROR",
+      errorMessage: "Invalid Citizen ID length. Must be 13 digits.",
     };
   }
 
-  const nhsoApiEndpoint = process.env.NHSO_API_ENDPOINT || 'https://ucw.nhso.go.th/ucws/service';
-  const nhsoUser = process.env.NHSO_API_USER;
-  const nhsoPassword = process.env.NHSO_API_PASSWORD;
+  const baseUrl = process.env.NHSO_BASE_URL?.trim();
+  const token = process.env.NHSO_TOKEN?.trim();
+  const sourceId = process.env.NHSO_SOURCE_ID?.trim();
+
+  if (!baseUrl || !token || !sourceId) {
+    return {
+      verifiedAt,
+      status: "ERROR",
+      errorMessage: "NHSO environment variables are not configured",
+    };
+  }
 
   try {
-    // Note: Mock/Fallback handling when NHSO API is not configured or in dev mode
-    if (!nhsoUser || !process.env.NHSO_API_ENDPOINT) {
-      console.log(`[NHSO Service] Simulating NHSO API check for PID: ${cleanPid}`);
+    const response = await fetch(
+      buildRealPersonUrl(baseUrl, sourceId, cleanPid),
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    const data = (await response.json()) as NhsoRealPersonResponse;
+
+    // NHSO returns 202 + dataError when PID is invalid / not found
+    if (data.dataError) {
       return {
-        mainInsclCode: 'UCS',
-        mainInsclName: 'สิทธิหลักประกันสุขภาพแห่งชาติ (บัตรทอง)',
-        subInsclCode: 'WEL',
-        subInsclName: 'สิทธิผู้มีรายได้น้อย / นักเรียน',
-        hmainCode: '10660',
-        hmainName: 'โรงพยาบาลศิริราช',
-        hsubCode: '10660',
-        hsubName: 'โรงพยาบาลศิริราช',
-        verifiedAt: new Date(),
-        status: 'SUCCESS',
+        verifiedAt,
+        status: "NOT_FOUND",
+        errorMessage: data.dataError,
       };
     }
 
-    // Call actual NHSO endpoint
-    const response = await fetch(nhsoApiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userToken: nhsoUser,
-        passwordToken: nhsoPassword,
-        pid: cleanPid,
-      }),
-    });
-
     if (!response.ok) {
-      throw new Error(`NHSO API responded with status: ${response.status}`);
+      return {
+        verifiedAt,
+        status: "ERROR",
+        errorMessage:
+          asTrimmedString(data.message) ??
+          `NHSO API responded with status: ${response.status}`,
+      };
     }
 
-    const data = await response.json();
+    const rights = mapNhsoRealPersonToRights(data);
+
+    if (!rights.mainInsclCode && !rights.mainInsclName) {
+      return {
+        verifiedAt,
+        status: "NOT_FOUND",
+        errorMessage: "ไม่พบข้อมูลสิทธิจาก สปสช.",
+      };
+    }
 
     return {
-      mainInsclCode: data.maininscl || data.mainInsclCode,
-      mainInsclName: data.maininscl_name || data.mainInsclName,
-      subInsclCode: data.subinscl || data.subInsclCode,
-      subInsclName: data.subinscl_name || data.subInsclName,
-      hmainCode: data.hmain || data.hmainCode,
-      hmainName: data.hmain_name || data.hmainName,
-      hsubCode: data.hsub || data.hsubCode,
-      hsubName: data.hsub_name || data.hsubName,
-      verifiedAt: new Date(),
-      status: 'SUCCESS',
+      ...rights,
+      verifiedAt,
+      status: "SUCCESS",
     };
-  } catch (err: any) {
-    console.error('[NHSO Service Error]:', err);
+  } catch (err: unknown) {
     return {
-      verifiedAt: new Date(),
-      status: 'ERROR',
-      errorMessage: err.message || 'Failed to connect to NHSO API',
+      verifiedAt,
+      status: "ERROR",
+      errorMessage:
+        err instanceof Error ? err.message : "Failed to connect to NHSO API",
     };
   }
 }
@@ -105,12 +195,12 @@ export async function updateProfileNhsoRights(profileId: string) {
   });
 
   if (!profile || !profile.citizenId) {
-    throw new Error('Profile not found or citizenId missing');
+    throw new Error("Profile not found or citizenId missing");
   }
 
   const result = await checkNhsoRights(profile.citizenId);
 
-  if (result.status === 'SUCCESS') {
+  if (result.status === "SUCCESS") {
     const updatedProfile = await prisma.profile.update({
       where: { id: profileId },
       data: {
@@ -125,6 +215,7 @@ export async function updateProfileNhsoRights(profileId: string) {
         nhsoVerifiedAt: result.verifiedAt,
       },
     });
+
     return { profile: updatedProfile, nhsoResult: result };
   }
 

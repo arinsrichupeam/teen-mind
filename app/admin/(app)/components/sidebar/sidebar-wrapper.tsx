@@ -10,11 +10,16 @@ import {
   UserGroupIcon,
   UserIcon,
 } from "@heroicons/react/24/solid";
+import {
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+} from "@heroicons/react/24/outline";
 import { Image } from "@heroui/image";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { useDisclosure } from "@heroui/modal";
 import { Suspense, useEffect, useState } from "react";
+import clsx from "clsx";
 
 import { ProfileAdminDataInitData } from "../../../../../types/initData";
 import packageJson from "../../../../../package.json";
@@ -31,7 +36,8 @@ import { ProfileAdminData } from "@/types";
 
 export const SidebarWrapper = () => {
   const pathname = usePathname();
-  const { collapsed, setCollapsed } = useSidebarContext();
+  const { mobileOpen, toggleMobile, collapsed, toggleCollapsed } =
+    useSidebarContext();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [profile, setProfile] = useState<ProfileAdminData>(
     ProfileAdminDataInitData
@@ -52,57 +58,83 @@ export const SidebarWrapper = () => {
   return (
     <Suspense fallback={<Loading />}>
       <aside className="h-screen z-[20] sticky top-0">
-        {collapsed ? (
-          <Button className={Sidebar.Overlay()} onPress={setCollapsed} />
+        {mobileOpen ? (
+          <Button className={Sidebar.Overlay()} onPress={toggleMobile} />
         ) : null}
         <div
           className={Sidebar({
-            collapsed: collapsed,
+            mobileOpen,
+            collapsed,
           })}
         >
-          <div className={Sidebar.Header()}>
-            <Image src="/image/logo_App.png" />
+          <div className={Sidebar.Header({ collapsed })}>
+            <Image
+              alt="BKK Mind"
+              className={clsx(
+                "h-10 w-auto object-contain",
+                collapsed && "md:hidden"
+              )}
+              src="/image/bkk-mind-logo.png"
+            />
+            <Button
+              isIconOnly
+              aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+              className="hidden md:flex shrink-0"
+              size="sm"
+              variant="light"
+              onPress={toggleCollapsed}
+            >
+              {collapsed ? (
+                <ChevronDoubleRightIcon className="size-5" />
+              ) : (
+                <ChevronDoubleLeftIcon className="size-5" />
+              )}
+            </Button>
           </div>
           <div className="flex flex-col justify-between h-full">
-            <div className={Sidebar.Body()}>
+            <div className={Sidebar.Body({ collapsed })}>
               {/* Main Menu - แสดงสำหรับทุก role */}
               <SidebarMenu title="Main Menu">
                 <SidebarItem
                   href="/admin"
-                  icon={<HomeIcon className="size-6" />}
+                  icon={<HomeIcon className="size-6 shrink-0" />}
                   isActive={pathname === "/admin"}
                   title="หน้าหลัก"
                 />
                 <SidebarItem
                   href="/admin/dashboard-productivity"
-                  icon={<ChartPieIcon className="size-6" />}
+                  icon={<ChartPieIcon className="size-6 shrink-0" />}
                   isActive={pathname === "/admin/dashboard-productivity"}
                   title="ประสิทธิภาพการทำงาน"
                 />
-                <SidebarItem
-                  href="/admin/question"
-                  icon={<ClipboardDocumentCheckIcon className="size-6" />}
-                  isActive={pathname === "/admin/question"}
-                  title="แบบประเมิน"
-                />
-                {profile.roleId !== 2 && (
+                {(profile.roleId === 3 || profile.roleId === 4) && (
+                  <SidebarItem
+                    href="/admin/question"
+                    icon={
+                      <ClipboardDocumentCheckIcon className="size-6 shrink-0" />
+                    }
+                    isActive={pathname === "/admin/question"}
+                    title="เคส"
+                  />
+                )}
+                {(profile.roleId === 3 || profile.roleId === 4) && (
                   <SidebarItem
                     href="/admin/mycase"
-                    icon={<UserIcon className="size-6" />}
+                    icon={<UserIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/mycase"}
                     title="เคสที่ดูแล"
                   />
                 )}
                 <SidebarItem
                   href="/admin/map"
-                  icon={<MapIcon className="size-6" />}
+                  icon={<MapIcon className="size-6 shrink-0" />}
                   isActive={pathname === "/admin/map"}
                   title="แผนที่"
                 />
                 {profile.roleId === 4 && (
                   <SidebarItem
                     href="/admin/report"
-                    icon={<DocumentChartBarIcon className="size-6" />}
+                    icon={<DocumentChartBarIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/report"}
                     title="รายงาน"
                   />
@@ -110,7 +142,7 @@ export const SidebarWrapper = () => {
                 {(profile.roleId === 2 || profile.roleId === 3) && (
                   <SidebarItem
                     href="/admin/user"
-                    icon={<UserGroupIcon className="size-6" />}
+                    icon={<UserGroupIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/user"}
                     title="ผู้ใช้งาน (User)"
                   />
@@ -122,34 +154,34 @@ export const SidebarWrapper = () => {
                 <SidebarMenu title="Admin Menu">
                   <SidebarItem
                     href="/admin/members"
-                    icon={<UserGroupIcon className="size-6" />}
+                    icon={<UserGroupIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/members"}
                     title="ผู้ใช้งาน (Admin)"
                   />
                   <SidebarItem
                     href="/admin/user"
-                    icon={<UserGroupIcon className="size-6" />}
+                    icon={<UserGroupIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/user"}
                     title="ผู้ใช้งาน (User)"
                   />
                   <SidebarItem
                     href="/admin/school"
-                    icon={<HomeModernIcon className="size-6" />}
+                    icon={<HomeModernIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/school"}
                     title="รายชื่อโรงเรียน"
                   />
                   <SidebarItem
                     href="/admin/volunteer"
-                    icon={<CreditCardIcon className="size-6" />}
+                    icon={<CreditCardIcon className="size-6 shrink-0" />}
                     isActive={pathname === "/admin/volunteer"}
                     title="รายชื่อ อสท."
                   />
-                  {/* <SidebarItem
-                    // href="/admin/area"
-                    icon={<MapIcon className="size-6" />}
-                    isActive={pathname === "/admin/area"}
-                    title="พื้นที่อยู่อาศัย"
-                  /> */}
+                  <SidebarItem
+                    href="/admin/org"
+                    icon={<MapIcon className="size-6 shrink-0" />}
+                    isActive={pathname === "/admin/org"}
+                    title="สังกัด / Zone / หน่วยงาน"
+                  />
                   {/* <SidebarItem
                     href="/admin/recalculate-phqa"
                     icon={<CalculatorIcon className="size-6" />}
@@ -159,8 +191,13 @@ export const SidebarWrapper = () => {
                 </SidebarMenu>
               )}
             </div>
-            <div className={Sidebar.Footer()}>
-              <div className="flex flex-col items-center gap-1 text-sm">
+            <div className={Sidebar.Footer({ collapsed })}>
+              <div
+                className={clsx(
+                  "flex flex-col items-center gap-1 text-sm",
+                  collapsed && "md:hidden"
+                )}
+              >
                 <Link
                   isExternal
                   className="flex flex-col items-center gap-1"

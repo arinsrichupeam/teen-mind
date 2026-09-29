@@ -1,5 +1,6 @@
-import { ScreeningResult } from "@prisma/client";
 import type { QuestionsData } from "@/types";
+
+import { ScreeningResult } from "@prisma/client";
 
 import {
   formatThaiMonthLabel,

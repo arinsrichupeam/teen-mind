@@ -1,56 +1,60 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import moment from "moment";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { District, Province, Subdistrict } from "@prisma/client";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
-import "leaflet-defaulticon-compatibility";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   addToast,
   Autocomplete,
   AutocompleteItem,
   Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
   Chip,
-  DatePicker,
-  Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
   Form,
-  Image,
-  Input,
-  Link,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Switch,
   Tab,
   Tabs,
   Textarea,
 } from "@heroui/react";
 
-import { questionStatusOptions as options } from "../../data/optionData";
 import {
   ModalEditProfile,
   type ModalEditProfileData,
 } from "../modal/modal-edit-profile";
 
+import { ConsultationCitizenHeader } from "./consultation-citizen-header";
+import {
+  ConsultationRoundsPanel,
+  type ConsultationRoundsHandle,
+  type ConsultationSaveFooterState,
+} from "./consultation-rounds-panel";
+import { CaseTransferPanel } from "./case-transfer-panel";
+import { consultationFooterBtnClass } from "./consultation-ui";
 import { QuestionDetailDrawer } from "./question-detail-drawer";
-import { ConsultScheduleDateTimePicker } from "./consult-schedule-datetime-picker";
+import { QuestionnaireProfileCards } from "./questionnaire-profile-cards";
+import { useQuestionCaseActions } from "./use-question-case-actions";
+import { useThaiGeoLookups } from "./use-thai-geo-lookups";
 
+import { flattenTreatmentNotes } from "@/lib/case-flat";
 import { mapAdminStatusToLegacyNumber } from "@/lib/legacy-value-mapping";
+import {
+  caseStatusChipColor,
+  caseStatusLabel,
+} from "@/lib/case-status-mapping";
+import { resolveDrawerCaseId } from "@/lib/question-drawer-case-id";
 import {
   Addon,
   Consultant,
@@ -59,34 +63,14 @@ import {
   Questions2Q,
   QuestionsData,
 } from "@/types";
-import { subtitle } from "@/components/primitives";
-import {
-  CONSULT_TELEMED_ROUNDS,
-  DISCHARGE_SUMMARY_ROUNDS,
-  FOLLOW_UP_ROUNDS,
-  isConsultTelemedRoundComplete,
-  isFollowUpRoundComplete,
-  isRoundUnreachable,
-  isUnreachableRoundDocumented,
-} from "@/lib/question-followup-rounds";
-import {
-  safeParseDate,
-  formatThaiDateTime,
-  dateTimePickerValueToDate,
-} from "@/utils/helper";
-// eslint-disable-next-line import/order -- ไม่มีบรรทัดว่างภายในกลุ่ม import
-import { prefix } from "@/utils/data";
+import { formatThaiDateTime } from "@/utils/helper";
 
-/** คืนค่าเฉพาะ CalendarDate สำหรับ DatePicker (กรอง string ออก) */
-function parseDateForPicker(
-  val: Date | string | null | undefined
-): import("@internationalized/date").CalendarDate | null | undefined {
-  const p = safeParseDate(val);
+const DRAWER_MODE_LABEL: Record<string, string> = {
+  "view-consultation": "ดูการให้คำปรึกษา",
+  "edit-questionnaire": "แก้ไขแบบประเมิน",
+  "edit-consultation": "บันทึกการให้คำปรึกษา",
+};
 
-  return p != null && typeof p !== "string" ? p : undefined;
-}
-
-/** แปลง QuestionsData เป็น ModalEditProfileData (profile.prefixId เป็น number) */
 function toModalEditProfileData(
   row: QuestionsData | undefined | null
 ): ModalEditProfileData {
@@ -102,25 +86,8 @@ function toModalEditProfileData(
               : profile.prefixId,
         }
       : undefined,
+    caseHealthcareFacility: row?.healthcareFacility ?? null,
   };
-}
-/** map ชื่อฟิลด์ schedule/consult → รอบ 0–2 */
-function roundIndexFromScheduleOrConsult(name: string): 0 | 1 | 2 | null {
-  if (name === "schedule_telemed" || name === "consult") return 0;
-  if (name === "schedule_telemed2" || name === "consult2") return 1;
-  if (name === "schedule_telemed3" || name === "consult3") return 2;
-
-  return null;
-}
-
-function isConsultRoundSaved(
-  q: QuestionsData | undefined,
-  roundIndex: 0 | 1 | 2
-): boolean {
-  return (
-    isConsultTelemedRoundComplete(q, roundIndex) ||
-    isUnreachableRoundDocumented(q, roundIndex)
-  );
 }
 
 interface Props {
@@ -128,99 +95,87 @@ interface Props {
   onClose: () => void;
   data: QuestionsData;
   mode: string;
+  /** Consult-only claim; when false, skip claim CTA / auto-claim */
+  canClaimCase?: boolean;
+  /** Home facility of current admin — for transfer source/destination actions */
+  viewerFacilityId?: string | null;
 }
 
-const ConsultantInitValue: Consultant[] = [
-  {
-    id: "",
-    name: "",
-  },
-];
+const ConsultantInitValue: Consultant[] = [{ id: "", name: "" }];
 
-export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
-  const [distrince, setDistrince] = useState<District[]>([]);
-  const [province, setProvince] = useState<Province[]>([]);
-  const [subdistrince, setSubDistrince] = useState<Subdistrict[]>([]);
-  const [Consultant, setConsultant] =
+export const QuestionEditDrawer = ({
+  isOpen,
+  onClose,
+  data,
+  mode,
+  canClaimCase = false,
+  viewerFacilityId = null,
+}: Props) => {
+  const { provinces, districts, subdistricts, formatAddress } =
+    useThaiGeoLookups();
+  const [consultants, setConsultants] =
     useState<Consultant[]>(ConsultantInitValue);
   const [questionData, setQuestionData] = useState<QuestionsData>(data);
-  const [hnIsloading, setHnIsloading] = useState(false);
-  const [consultantLoading, setConsultantLoading] = useState(false);
   const [questionnaireLoading, setQuestionnaireLoading] = useState(false);
-  const [consultationLoading, setConsultationLoading] = useState(false);
-  const [sendMessageLoading, setSendMessageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
-  const [consultValidationRound, setConsultValidationRound] = useState<
-    0 | 1 | 2 | null
-  >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCloseCaseModalOpen, setIsCloseCaseModalOpen] = useState(false);
   const [closeCaseReason, setCloseCaseReason] = useState("");
-  const [modalKey, setModalKey] = useState(0);
-  /** รอบไหนบันทึกวันที่พบ + ผู้ให้คำปรึกษาแล้ว (ถึงจะกรอก SOAP / หมายเหตุ / นัดพบครั้งถัดไป) */
-  const [consultantRoundSaved, setConsultantRoundSaved] = useState<
-    [boolean, boolean, boolean]
-  >([
-    isConsultRoundSaved(data, 0),
-    isConsultRoundSaved(data, 1),
-    isConsultRoundSaved(data, 2),
-  ]);
-  const [consultationSaved, setConsultationSaved] = useState(false);
-  const [followUpRoundTab, setFollowUpRoundTab] = useState("r1");
-  const [showRegisterHnLineButton, setShowRegisterHnLineButton] =
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferFacilityId, setTransferFacilityId] = useState<string>("");
+  const [transferNote, setTransferNote] = useState("");
+  const [transferFacilities, setTransferFacilities] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [transferFacilitiesLoading, setTransferFacilitiesLoading] =
     useState(false);
+  const [modalKey, setModalKey] = useState(0);
+  const [consultationMobilePane, setConsultationMobilePane] = useState<
+    "assessment" | "consultation"
+  >("consultation");
+  const [consultationProfileExpanded, setConsultationProfileExpanded] =
+    useState(false);
+  const consultationRoundsRef = useRef<ConsultationRoundsHandle>(null);
+  const [consultationSaveFooter, setConsultationSaveFooter] =
+    useState<ConsultationSaveFooterState>({
+      visible: false,
+      label: "บันทึก",
+      disabled: true,
+      loading: false,
+      color: "primary",
+      variant: "solid",
+    });
 
-  const latitude =
-    questionData?.latitude != null
-      ? questionData?.latitude
-      : data?.latitude != null
-        ? data?.latitude
-        : 0;
-  const longitude =
-    questionData?.longitude != null
-      ? questionData?.longitude
-      : data?.longitude != null
-        ? data?.longitude
-        : 0;
+  const isConsultationMode =
+    mode === "edit-consultation" || mode === "view-consultation";
 
-  const fetchData = async <T,>(
-    url: string,
-    setter: React.Dispatch<React.SetStateAction<T>>
-  ) => {
-    try {
-      const res = await fetch(url);
+  // Prefer prop id — local questionData can lag one render behind when switching rows
+  const caseId = resolveDrawerCaseId(data?.id, questionData?.id);
+  const caseStatus = questionData?.caseStatus ?? data?.caseStatus;
+  const profile = questionData?.profile ?? data?.profile;
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch data from ${url}`);
-      }
-      const json = await res.json();
-
-      setter(json as T);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล"
-      );
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-        color: "danger",
-      });
-    }
-  };
-
-  const GetDistrictList = useCallback(async () => {
-    await fetchData("/api/data/districts", setDistrince);
-  }, []);
-
-  const GetProvinceList = useCallback(async () => {
-    await fetchData("/api/data/provinces", setProvince);
-  }, []);
-
-  const GetSubdistrictList = useCallback(async () => {
-    await fetchData("/api/data/subdistricts", setSubDistrince);
-  }, []);
+  const actions = useQuestionCaseActions({
+    caseId,
+    caseStatus,
+    canClaimCase,
+    profileId: profile?.id,
+    citizenId: profile?.citizenId,
+    hn: questionData?.hn ?? profile?.hn,
+    nhsoRights: questionData?.nhsoDraft ?? {
+      mainInsclCode: profile?.mainInsclCode,
+      mainInsclName: profile?.mainInsclName,
+      subInsclCode: profile?.subInsclCode,
+      subInsclName: profile?.subInsclName,
+      hmainCode: profile?.hmainCode,
+      hmainName: profile?.hmainName,
+      hsubCode: profile?.hsubCode,
+      hsubName: profile?.hsubName,
+      nhsoVerifiedAt: profile?.nhsoVerifiedAt,
+    },
+    onData: setQuestionData,
+    setQuestionDataDirect: setQuestionData,
+    fallbackData: data,
+  });
 
   const GetConsultantList = useCallback(async () => {
     try {
@@ -230,7 +185,11 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
 
       const val = await res.json();
       const consult = (Array.isArray(val) ? val : []).filter(
-        (x: { status: number | string; role?: { id: number }; roleId?: number }) => {
+        (x: {
+          status: number | string;
+          role?: { id: number };
+          roleId?: number;
+        }) => {
           const legacyStatus = mapAdminStatusToLegacyNumber(x.status);
           const roleId = x.role?.id ?? x.roleId;
 
@@ -239,7 +198,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       );
 
       if (consult.length > 0) {
-        setConsultant(
+        setConsultants(
           consult.map(
             (item: {
               id: string;
@@ -261,14 +220,9 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
           )
         );
       } else {
-        setConsultant([]);
+        setConsultants([]);
       }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "เกิดข้อผิดพลาดในการโหลดข้อมูลที่ปรึกษา"
-      );
       addToast({
         title: "Error",
         description:
@@ -280,470 +234,95 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     }
   }, []);
 
-  const ChangeHN = async () => {
-    const json = JSON.stringify({
-      id: questionData?.profile?.id || data?.profile?.id,
-      hn: questionData.hn,
-      schedule_telemed:
-        questionData?.schedule_telemed || data?.schedule_telemed,
-      consult: questionData?.consult || data?.consult,
-      subjective: questionData?.subjective || data?.subjective,
-      objective: questionData?.objective || data?.objective,
-      assessment: questionData?.assessment || data?.assessment,
-      plan: questionData?.plan || data?.plan,
-    });
+  const defaultConsultId =
+    questionData?.assigneeUserId ??
+    questionData?.assigneeAdminId ??
+    data?.assigneeUserId ??
+    data?.assigneeAdminId ??
+    null;
+  const assigneeDisplayName =
+    questionData?.assigneeName ?? data?.assigneeName ?? null;
+  const consultantsForPanel = useMemo(() => {
+    if (!defaultConsultId) return consultants;
+    if (consultants.some((c) => c.id === defaultConsultId)) return consultants;
+    if (!assigneeDisplayName?.trim()) return consultants;
 
-    setHnIsloading(true);
-    try {
-      const response = await fetch("/api/profile/user", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: json,
-      });
+    return [
+      ...consultants,
+      { id: defaultConsultId, name: assigneeDisplayName.trim() },
+    ];
+  }, [consultants, defaultConsultId, assigneeDisplayName]);
 
-      if (response.ok) {
-        await refreshDrawerData();
+  const validateQuestionnaire = useCallback(() => {
+    setError(null);
 
-        addToast({
-          title: "สำเร็จ",
-          description: "บันทึก HN สำเร็จ",
-          color: "success",
-        });
-      } else {
-        throw new Error("เกิดข้อผิดพลาดในการบันทึก HN");
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก HN"
-      );
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก HN",
-        color: "danger",
-      });
-    } finally {
-      setHnIsloading(false);
-    }
-  };
+    if (!questionData) {
+      setError("ไม่พบข้อมูลที่จะตรวจสอบ");
 
-  const handleSendMessage = async () => {
-    const questionId = questionData?.id || data?.id;
-
-    if (!questionId) {
-      addToast({
-        title: "Error",
-        description: "ไม่พบรหัสเคสสำหรับส่งข้อความ",
-        color: "danger",
-      });
-
-      return;
+      return false;
     }
 
-    setSendMessageLoading(true);
-    try {
-      const res = await fetch("/api/question/send-consult-message", {
-        method: "POST",
-        body: JSON.stringify({ questionId }),
-      });
-      const result = await res.json();
+    if (!questionData.q2 || questionData.q2.length === 0) {
+      setError("กรุณากรอกข้อมูลแบบประเมิน 2Q");
 
-      if (!res.ok) {
-        throw new Error(
-          typeof result?.error === "string"
-            ? result.error
-            : "ไม่สามารถส่งข้อความ LINE ได้"
-        );
-      }
-
-      addToast({
-        title: "สำเร็จ",
-        description: "ส่งข้อความรับคำปรึกษาไปยังผู้ใช้แล้ว",
-        color: "success",
-      });
-    } catch (err) {
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการส่งข้อความ",
-        color: "danger",
-      });
-    } finally {
-      setSendMessageLoading(false);
-    }
-  };
-
-  const handleSendRegisterHnMessage = async () => {
-    const questionId = questionData?.id || data?.id;
-
-    if (!questionId) {
-      addToast({
-        title: "Error",
-        description: "ไม่พบรหัสเคสสำหรับส่งข้อความ",
-        color: "danger",
-      });
-
-      return;
+      return false;
     }
 
-    setSendMessageLoading(true);
-    try {
-      const res = await fetch("/api/question/send-consult-message", {
-        method: "POST",
-        body: JSON.stringify({ questionId, messageType: "hn-register" }),
-      });
-      const result = await res.json();
+    if (!questionData.phqa || questionData.phqa.length === 0) {
+      setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A");
 
-      if (!res.ok) {
-        throw new Error(
-          typeof result?.error === "string"
-            ? result.error
-            : "ไม่สามารถส่งข้อความ LINE ได้"
-        );
-      }
-
-      addToast({
-        title: "สำเร็จ",
-        description: "ส่งข้อความลงทะเบียน HN ไปยังผู้ใช้แล้ว",
-        color: "success",
-      });
-    } catch (err) {
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการส่งข้อความ",
-        color: "danger",
-      });
-    } finally {
-      setSendMessageLoading(false);
-    }
-  };
-
-  const handleSearchHN = async () => {
-    const citizenId = (
-      questionData?.profile?.citizenId ||
-      data?.profile?.citizenId ||
-      ""
-    ).trim();
-
-    if (!citizenId) {
-      setShowRegisterHnLineButton(false);
-      addToast({
-        title: "ไม่พบเลขบัตรประชาชน",
-        description: "กรุณาตรวจสอบข้อมูลเลขบัตรประชาชนก่อนค้นหา HN",
-        color: "warning",
-      });
-
-      return;
+      return false;
     }
 
-    setHnIsloading(true);
-    try {
-      const response = await fetch("/api/his/patient", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ cardno: citizenId }),
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-        hn?: string;
-      };
+    if (!questionData.addon || questionData.addon.length === 0) {
+      setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A Addon");
 
-      if (!response.ok) {
-        throw new Error(payload.error || "เกิดข้อผิดพลาดในการค้นหา HN");
-      }
-
-      const foundHn = payload.hn?.trim();
-
-      if (!foundHn) {
-        setShowRegisterHnLineButton(true);
-        addToast({
-          title: "ไม่พบข้อมูล HN",
-          description: `ไม่พบข้อมูลผู้ป่วยจากเลขบัตร ${citizenId}`,
-          color: "warning",
-        });
-
-        return;
-      }
-
-      setQuestionData((prev) => ({
-        ...prev,
-        hn: foundHn,
-      }));
-      setShowRegisterHnLineButton(false);
-
-      addToast({
-        title: "ค้นหา HN สำเร็จ",
-        description: `พบ HN: ${foundHn}`,
-        color: "success",
-      });
-    } catch (err) {
-      setShowRegisterHnLineButton(false);
-      setError(
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการค้นหา HN"
-      );
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการค้นหา HN",
-        color: "danger",
-      });
-    } finally {
-      setHnIsloading(false);
-    }
-  };
-
-  const refreshDrawerData = async () => {
-    try {
-      if (!data?.id) {
-        return;
-      }
-
-      const response = await fetch(`/api/question/${data.id}`);
-
-      if (response.ok) {
-        const updatedData = await response.json();
-
-        if (updatedData) {
-          setQuestionData(
-            Array.isArray(updatedData) ? updatedData[0] : updatedData
-          );
-        }
-      } else {
-        // หาก API ล้มเหลว ให้ใช้ data เดิม
-        setQuestionData(data);
-      }
-    } catch (err) {
-      // หากเกิด error ให้ใช้ data เดิม
-      setQuestionData(data);
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error
-            ? err.message
-            : "เกิดข้อผิดพลาดในการดึงข้อมูลล่าสุด",
-        color: "danger",
-      });
-    }
-  };
-
-  type ChangeEventLike =
-    | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    | { target: { name: string; value: string | number | boolean | null } };
-
-  const HandleChange = (e: ChangeEventLike) => {
-    const { name, value } = e.target;
-
-    if (
-      name === "unreachable" ||
-      name === "unreachable2" ||
-      name === "unreachable3"
-    ) {
-      const boolVal = value === true || value === "true";
-
-      const roundIdx = roundIndexFromScheduleOrConsult(
-        name === "unreachable"
-          ? "consult"
-          : name === "unreachable2"
-            ? "consult2"
-            : "consult3"
-      );
-
-      setQuestionData((prev) => {
-        if (!boolVal && roundIdx !== null) {
-          const round = CONSULT_TELEMED_ROUNDS[roundIdx];
-          const followRound = FOLLOW_UP_ROUNDS[roundIdx];
-
-          return {
-            ...prev,
-            [name]: boolVal,
-            [round.schedule]: null,
-            [followRound.followUp]: null,
-          };
-        }
-
-        return { ...prev, [name]: boolVal };
-      });
-
-      if (roundIdx !== null) {
-        setConsultantRoundSaved((prev) => {
-          const next: [boolean, boolean, boolean] = [...prev];
-
-          next[roundIdx] = false;
-
-          return next;
-        });
-      }
-
-      if (mode === "edit-consultation") {
-        setConsultationSaved(false);
-      }
-
-      return;
+      return false;
     }
 
-    const valueStr = value != null ? String(value) : "";
+    return true;
+  }, [questionData]);
 
-    if (
-      (name === "consult" && valueStr !== "") ||
-      (name === "status" && valueStr !== "2")
-    ) {
-      setIsError(false);
-    }
-
-    if (
-      name === "schedule_telemed" ||
-      name === "schedule_telemed2" ||
-      name === "schedule_telemed3"
-    ) {
-      setQuestionData((prev) => ({
-        ...prev,
-        [name]: valueStr ? dateTimePickerValueToDate(valueStr) : null,
-      }));
-    } else if (
-      name === "follow_up" ||
-      name === "follow_up2" ||
-      name === "follow_up3"
-    ) {
-      setQuestionData((prev) => ({
-        ...prev,
-        [name]: valueStr ? new Date(valueStr) : null,
-      }));
-    } else if (name === "status") {
-      setQuestionData((prev) => ({
-        ...prev,
-        status: valueStr ? parseInt(valueStr, 10) : 0,
-      }));
-    } else {
-      setQuestionData((prev) => ({
-        ...prev,
-        [name]: valueStr,
-      }));
-    }
-
-    const roundIdx = roundIndexFromScheduleOrConsult(name);
-
-    if (roundIdx !== null) {
-      setConsultantRoundSaved((prev) => {
-        const next: [boolean, boolean, boolean] = [...prev];
-
-        next[roundIdx] = false;
-
-        return next;
-      });
-    }
-
-    if (mode === "edit-consultation") {
-      setConsultationSaved(false);
-    }
-  };
-
-  const onSubmit = async (e: FormEvent) => {
+  const onSubmitQuestionnaire = async (e: FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateQuestionnaire()) return;
 
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นครบหรือไม่
     if (!questionData?.id) {
       setError("ไม่พบข้อมูลคำถาม");
 
       return;
     }
 
-    // ตั้งค่า loading state ตาม mode
-    if (mode === "edit-questionnaire") {
-      setQuestionnaireLoading(true);
-    } else if (mode === "edit-consultation") {
-      setConsultationLoading(true);
-    }
-
+    setQuestionnaireLoading(true);
     setError(null);
 
     try {
-      let updateData;
-
-      if (mode === "edit-questionnaire") {
-        updateData = {
-          id: questionData.id,
-          q2: questionData.q2,
-          phqa: questionData.phqa,
-          addon: questionData.addon,
-          q8: questionData.q8,
-          status: questionData.status,
-        };
-      } else {
-        updateData = {
-          id: questionData.id,
-          consult: questionData.consult,
-          consult2: questionData.consult2,
-          consult3: questionData.consult3,
-          schedule_telemed: questionData.schedule_telemed,
-          schedule_telemed2: questionData.schedule_telemed2,
-          schedule_telemed3: questionData.schedule_telemed3,
-          subjective: questionData.subjective,
-          subjective2: questionData.subjective2,
-          subjective3: questionData.subjective3,
-          objective: questionData.objective,
-          objective2: questionData.objective2,
-          objective3: questionData.objective3,
-          assessment: questionData.assessment,
-          assessment2: questionData.assessment2,
-          assessment3: questionData.assessment3,
-          plan: questionData.plan,
-          plan2: questionData.plan2,
-          plan3: questionData.plan3,
-          note: questionData.note,
-          note2: questionData.note2,
-          note3: questionData.note3,
-          close_case_reason: questionData.close_case_reason,
-          follow_up: questionData.follow_up,
-          follow_up2: questionData.follow_up2,
-          follow_up3: questionData.follow_up3,
-          unreachable: questionData.unreachable,
-          unreachable2: questionData.unreachable2,
-          unreachable3: questionData.unreachable3,
-          status: questionData.status,
-          q2: questionData.q2,
-          phqa: questionData.phqa,
-          addon: questionData.addon,
-          q8: questionData.q8,
-        };
-      }
-
       const response = await fetch("/api/question/", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: questionData.id,
+          q2: questionData.q2,
+          phqa: questionData.phqa,
+          addon: questionData.addon,
+          q8: questionData.q8,
+          status: questionData.status,
+        }),
       });
 
-      if (response.ok) {
-        await refreshDrawerData();
-
-        addToast({
-          title: "Success",
-          description: "บันทึกข้อมูลสำเร็จ",
-          color: "success",
-        });
-
-        // ตั้งค่าสถานะการบันทึกสำเร็จตาม mode
-        if (mode === "edit-consultation") {
-          setConsultationSaved(true);
-        }
-
-        // ปิด drawer อัตโนมัติเมื่อบันทึกในโหมด edit-questionnaire
-        if (mode === "edit-questionnaire") {
-          onClose();
-        }
-      } else {
+      if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
         throw new Error(errorData.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
+
+      await actions.refresh();
+      addToast({
+        title: "Success",
+        description: "บันทึกข้อมูลสำเร็จ",
+        color: "success",
+      });
+      onClose();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล"
@@ -757,405 +336,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         color: "danger",
       });
     } finally {
-      // ตั้งค่า loading state กลับเป็น false ตาม mode
-      if (mode === "edit-questionnaire") {
-        setQuestionnaireLoading(false);
-      } else if (mode === "edit-consultation") {
-        setConsultationLoading(false);
-      }
-    }
-  };
-
-  const validateForm = useCallback(() => {
-    setError(null);
-    setIsError(false);
-    setConsultValidationRound(null);
-
-    if (!questionData) {
-      setError("ไม่พบข้อมูลที่จะตรวจสอบ");
-
-      return false;
-    }
-
-    if (mode === "edit-consultation") {
-      const statusVal = questionData.status;
-
-      // Round 1
-      if (statusVal === 2 && !questionData.consult) {
-        setIsError(true);
-        setConsultValidationRound(0);
-        setError("กรุณาเลือกผู้ให้คำปรึกษาเมื่อสถานะเป็น 'เสร็จสิ้น'");
-
-        return false;
-      }
-
-      if (isRoundUnreachable(questionData, 0)) {
-        if (!questionData.schedule_telemed) {
-          setIsError(true);
-          setConsultValidationRound(0);
-          setError("กรุณาระบุวันที่พยายามติดต่อ");
-
-          return false;
-        }
-      } else if (!questionData.schedule_telemed) {
-        setIsError(true);
-        setConsultValidationRound(0);
-        setError("กรุณาเลือกวันนัด Telemedicine");
-
-        return false;
-      }
-
-      const isPendingSummary = statusVal === 2;
-      const isCompleted = statusVal === 3;
-      const requiresRound2 = isPendingSummary || isCompleted;
-      const requiresRound3 = isCompleted;
-
-      // Discharge Summary SOAP
-      // status=2 ต้องครบรอบ 1-2, status=3 ต้องครบรอบ 1-3
-      if (requiresRound2) {
-        if (!questionData.subjective || questionData.subjective.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 1)");
-
-          return false;
-        }
-
-        if (!questionData.objective || questionData.objective.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Objective data (รอบที่ 1)");
-
-          return false;
-        }
-
-        if (!questionData.assessment || questionData.assessment.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Assessment (รอบที่ 1)");
-
-          return false;
-        }
-
-        if (!questionData.plan || questionData.plan.trim() === "") {
-          setIsError(true);
-          setConsultValidationRound(null);
-          setError("กรุณากรอกข้อมูล Plan (รอบที่ 1)");
-
-          return false;
-        }
-
-        if (isConsultTelemedRoundComplete(questionData, 1)) {
-          if (
-            !questionData.subjective2 ||
-            questionData.subjective2.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 2)");
-
-            return false;
-          }
-
-          if (
-            !questionData.objective2 ||
-            questionData.objective2.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Objective data (รอบที่ 2)");
-
-            return false;
-          }
-
-          if (
-            !questionData.assessment2 ||
-            questionData.assessment2.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Assessment (รอบที่ 2)");
-
-            return false;
-          }
-
-          if (!questionData.plan2 || questionData.plan2.trim() === "") {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Plan (รอบที่ 2)");
-
-            return false;
-          }
-        }
-      }
-
-      if (requiresRound3) {
-        if (isConsultTelemedRoundComplete(questionData, 2)) {
-          if (
-            !questionData.subjective3 ||
-            questionData.subjective3.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Subjective data (รอบที่ 3)");
-
-            return false;
-          }
-
-          if (
-            !questionData.objective3 ||
-            questionData.objective3.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Objective data (รอบที่ 3)");
-
-            return false;
-          }
-
-          if (
-            !questionData.assessment3 ||
-            questionData.assessment3.trim() === ""
-          ) {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Assessment (รอบที่ 3)");
-
-            return false;
-          }
-
-          if (!questionData.plan3 || questionData.plan3.trim() === "") {
-            setIsError(true);
-            setConsultValidationRound(null);
-            setError("กรุณากรอกข้อมูล Plan (รอบที่ 3)");
-
-            return false;
-          }
-        }
-      }
-    }
-
-    if (mode === "edit-questionnaire") {
-      // ตรวจสอบ Q2
-      if (!questionData.q2 || questionData.q2.length === 0) {
-        setError("กรุณากรอกข้อมูลแบบประเมิน 2Q");
-
-        return false;
-      }
-
-      // ตรวจสอบ PHQA
-      if (!questionData.phqa || questionData.phqa.length === 0) {
-        setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A");
-
-        return false;
-      }
-
-      // ตรวจสอบ Addon (ถ้ามี)
-      if (!questionData.addon || questionData.addon.length === 0) {
-        setError("กรุณากรอกข้อมูลแบบประเมิน PHQ-A Addon");
-
-        return false;
-      }
-    }
-
-    return true;
-  }, [questionData, mode]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit(e);
-  };
-
-  const openCloseCaseModal = () => {
-    setCloseCaseReason(questionData?.close_case_reason ?? "");
-    setIsCloseCaseModalOpen(true);
-  };
-
-  const handleCloseCase = async () => {
-    if (!questionData?.id) {
-      setError("ไม่พบข้อมูลคำถาม");
-
-      return;
-    }
-
-    const reason = closeCaseReason.trim();
-
-    if (!reason) {
-      addToast({
-        title: "แจ้งเตือน",
-        description: "กรุณาระบุเหตุผลการปิดเคสก่อนยืนยัน",
-        color: "warning",
-      });
-
-      return;
-    }
-
-    setConsultationLoading(true);
-    setError(null);
-
-    try {
-      const updatedPayload: QuestionsData = {
-        ...questionData,
-        close_case_reason: reason,
-      };
-      const saveReasonResponse = await fetch("/api/question/", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedPayload),
-      });
-
-      if (!saveReasonResponse.ok) {
-        const errorData = await saveReasonResponse.json().catch(() => ({}));
-
-        throw new Error(
-          errorData.message || "ไม่สามารถบันทึกเหตุผลการปิดเคสได้"
-        );
-      }
-
-      const statusResponse = await fetch("/api/question/update-status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          selectedIds: [questionData.id],
-          newStatus: 3,
-        }),
-      });
-
-      const statusResult = await statusResponse.json().catch(() => ({}));
-
-      if (!statusResponse.ok || !statusResult?.success) {
-        throw new Error(
-          statusResult?.error || "ไม่สามารถอัปเดตสถานะเป็นเสร็จสิ้นได้"
-        );
-      }
-
-      await refreshDrawerData();
-      setQuestionData((prev) => ({
-        ...prev,
-        status: 3,
-        close_case_reason: reason,
-      }));
-
-      addToast({
-        title: "Success",
-        description: "ปิดเคสสำเร็จ (สถานะเสร็จสิ้น)",
-        color: "success",
-      });
-      setIsCloseCaseModalOpen(false);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการปิดเคส";
-
-      setError(message);
-      addToast({
-        title: "Error",
-        description: message,
-        color: "danger",
-      });
-    } finally {
-      setConsultationLoading(false);
-    }
-  };
-
-  const handleSaveConsultant = async (roundIndex: 0 | 1 | 2) => {
-    if (!questionData?.id) {
-      setError("ไม่พบข้อมูลคำถาม");
-
-      return;
-    }
-
-    const unreachable = isRoundUnreachable(questionData, roundIndex);
-
-    if (unreachable) {
-      const round = CONSULT_TELEMED_ROUNDS[roundIndex];
-      const sched = questionData[round.schedule as keyof QuestionsData];
-
-      if (!sched) {
-        setError("กรุณาระบุวันที่พยายามติดต่อก่อนบันทึก");
-        addToast({
-          title: "แจ้งเตือน",
-          description: "กรุณาระบุวันที่พยายามติดต่อก่อนบันทึก",
-          color: "warning",
-        });
-
-        return;
-      }
-    } else if (!isConsultTelemedRoundComplete(questionData, roundIndex)) {
-      setError("กรุณากรอกวันที่ เวลา และผู้ให้คำปรึกษาให้ครบก่อนบันทึก");
-      addToast({
-        title: "แจ้งเตือน",
-        description: "กรุณากรอกวันที่ เวลา และผู้ให้คำปรึกษาให้ครบก่อนบันทึก",
-        color: "warning",
-      });
-
-      return;
-    }
-
-    setConsultantLoading(true);
-    setError(null);
-
-    try {
-      const updateData = {
-        ...questionData,
-        phqa: questionData.phqa,
-        q2: questionData.q2,
-        addon: questionData.addon,
-      };
-
-      const response = await fetch("/api/question/", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        // Refresh ข้อมูลหลังจากบันทึกเพื่อให้ SOAP fields เปิดใช้งาน
-        await refreshDrawerData();
-
-        addToast({
-          title: "Success",
-          description: unreachable
-            ? "บันทึกข้อมูลการติดต่อไม่ได้สำเร็จ"
-            : "บันทึกผู้ให้คำปรึกษาสำเร็จ",
-          color: "success",
-        });
-
-        setConsultantRoundSaved((prev) => {
-          const next: [boolean, boolean, boolean] = [...prev];
-
-          next[roundIndex] = true;
-
-          return next;
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-
-        throw new Error(
-          errorData.message || "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา"
-        );
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา"
-      );
-      addToast({
-        title: "Error",
-        description:
-          err instanceof Error
-            ? err.message
-            : "เกิดข้อผิดพลาดในการบันทึกผู้ให้คำปรึกษา",
-        color: "danger",
-      });
-    } finally {
-      setConsultantLoading(false);
+      setQuestionnaireLoading(false);
     }
   };
 
@@ -1167,133 +348,154 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
       ...prev,
       [field]: value,
     }));
-    const roundIdx = roundIndexFromScheduleOrConsult(field);
+  };
 
-    if (roundIdx !== null) {
-      setConsultantRoundSaved((prev) => {
-        const next: [boolean, boolean, boolean] = [...prev];
+  const openCloseCaseModal = () => {
+    setCloseCaseReason(questionData?.close_case_reason ?? "");
+    setIsCloseCaseModalOpen(true);
+  };
 
-        next[roundIdx] = false;
+  const handleCloseCase = async () => {
+    const ok = await actions.closeCase(closeCaseReason);
 
-        return next;
+    if (ok) setIsCloseCaseModalOpen(false);
+  };
+
+  const openTransferModal = async () => {
+    setTransferFacilityId("");
+    setTransferNote("");
+    setIsTransferModalOpen(true);
+    setTransferFacilitiesLoading(true);
+    try {
+      const res = await fetch("/api/data/healthcare-facility");
+
+      if (!res.ok) throw new Error("โหลดรายการหน่วยงานไม่สำเร็จ");
+      const rows = (await res.json()) as { id: string; name: string }[];
+
+      setTransferFacilities(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      addToast({
+        title: "โหลดหน่วยงานไม่สำเร็จ",
+        description: err instanceof Error ? err.message : "เกิดข้อผิดพลาด",
+        color: "danger",
       });
+      setTransferFacilities([]);
+    } finally {
+      setTransferFacilitiesLoading(false);
     }
   };
 
-  // โหลด list APIs พร้อมกันเพื่อลดเวลาเปิด drawer (async-parallel)
-  useEffect(() => {
-    void Promise.all([
-      GetProvinceList(),
-      GetDistrictList(),
-      GetSubdistrictList(),
-      GetConsultantList(),
-    ]);
-  }, [GetProvinceList, GetDistrictList, GetSubdistrictList, GetConsultantList]);
+  const handleTransferSubmit = async () => {
+    if (!transferFacilityId) {
+      addToast({
+        title: "กรุณาเลือกหน่วยงาน",
+        description: "เลือกหน่วยงานปลายทางก่อนส่งต่อ",
+        color: "warning",
+      });
 
-  // แยก useEffect สำหรับการจัดการข้อมูล
+      return;
+    }
+
+    if (!transferNote.trim()) {
+      addToast({
+        title: "กรุณาระบุหมายเหตุ",
+        description: "ต้องระบุหมายเหตุการส่งต่อ",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    const ok = await actions.requestTransfer(
+      transferFacilityId,
+      transferNote.trim()
+    );
+
+    if (ok) {
+      setIsTransferModalOpen(false);
+      setTransferFacilityId("");
+      setTransferNote("");
+    }
+  };
+
+  useEffect(() => {
+    void GetConsultantList();
+  }, [GetConsultantList]);
+
   useEffect(() => {
     if (isOpen && data) {
-      // อัปเดต modal key เพื่อให้ modal ถูกสร้างใหม่
       setModalKey((prev) => prev + 1);
     }
-  }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+  }, [isOpen, data?.id]);
 
   useEffect(() => {
     if (!isOpen) {
       setIsCloseCaseModalOpen(false);
       setCloseCaseReason("");
+      setIsTransferModalOpen(false);
+      setTransferFacilityId("");
+      setTransferNote("");
+    } else {
+      setConsultationMobilePane("consultation");
+      setConsultationProfileExpanded(false);
     }
   }, [isOpen]);
 
-  // useEffect เพิ่มเติมสำหรับ refresh ข้อมูลหลังจาก drawer เปิดแล้ว
-  useEffect(() => {
-    if (isOpen && data?.id) {
-      // เรียก refreshDrawerData หลังจาก drawer เปิดแล้ว
-      const timer = setTimeout(() => {
-        refreshDrawerData();
-      }, 200); // เพิ่มเวลารอเพื่อให้แน่ใจว่า drawer เปิดเสร็จแล้ว
-
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, data?.id]);
-
-  // useEffect สำหรับ reset ข้อมูลเมื่อ data เปลี่ยน
-  useEffect(() => {
-    if (data) {
-      setQuestionData(data);
-      setConsultantRoundSaved([
-        isConsultRoundSaved(data, 0),
-        isConsultRoundSaved(data, 1),
-        isConsultRoundSaved(data, 2),
-      ]);
-    }
-  }, [data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
-
-  // useEffect สำหรับรีเซ็ตสถานะการบันทึกเมื่อ drawer เปิดใหม่
+  // Sync local draft immediately when the selected case changes (before refresh)
   useEffect(() => {
     if (isOpen && data) {
-      setConsultantRoundSaved([
-        isConsultRoundSaved(data, 0),
-        isConsultRoundSaved(data, 1),
-        isConsultRoundSaved(data, 2),
-      ]);
-      setConsultationSaved(false);
-      if (mode === "edit-consultation") {
-        const q = data;
-        const r1Complete = isFollowUpRoundComplete(q, 0);
-        const r2Complete = isFollowUpRoundComplete(q, 1);
-
-        setFollowUpRoundTab(r1Complete ? (r2Complete ? "r3" : "r2") : "r1");
-      } else {
-        setFollowUpRoundTab("r1");
-      }
-    }
-  }, [isOpen, data?.id]);
-
-  // ถ้ารอบก่อนหน้าว่าง แท็บที่เลือกอยู่ไม่ถูกต้อง — ถอยกลับ
-  useEffect(() => {
-    const q = questionData ?? data;
-    const r1 = isFollowUpRoundComplete(q, 0);
-    const r2 = isFollowUpRoundComplete(q, 1);
-
-    if (followUpRoundTab === "r3" && !r2) {
-      setFollowUpRoundTab(r1 ? "r2" : "r1");
-    } else if (followUpRoundTab === "r2" && !r1) {
-      setFollowUpRoundTab("r1");
-    }
-  }, [questionData, data, followUpRoundTab]);
-
-  // useEffect สำหรับ reset ข้อมูลเมื่อ drawer เปิด
-  useEffect(() => {
-    if (isOpen && data) {
-      // Reset ข้อมูลเมื่อ drawer เปิดเฉพาะเมื่อเป็นข้อมูลใหม่
       setQuestionData(data);
-      setConsultantRoundSaved([
-        isConsultRoundSaved(data, 0),
-        isConsultRoundSaved(data, 1),
-        isConsultRoundSaved(data, 2),
-      ]);
-      // ล้าง error state
       setError(null);
-      setIsError(false);
-      setShowRegisterHnLineButton(false);
     } else if (!isOpen) {
-      // ล้าง error state เมื่อปิด drawer
       setError(null);
-      setIsError(false);
-      setShowRegisterHnLineButton(false);
     }
-  }, [isOpen, data?.id]); // เปลี่ยน dependency เป็น data?.id เพื่อให้ trigger เมื่อข้อมูลเปลี่ยน
+  }, [isOpen, data?.id]);
 
-  // ถ้า drawer ปิดแล้วให้ unmount เลย เพื่อกัน backdrop/overlay ค้างบังการใช้งาน
+  useEffect(() => {
+    if (!isOpen || !data?.id) return;
+
+    const openCaseId = data.id;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await fetch(`/api/question/${openCaseId}`);
+
+          if (!response.ok) return;
+          const updatedData = await response.json();
+
+          if (!updatedData) return;
+          const next = Array.isArray(updatedData)
+            ? updatedData[0]
+            : updatedData;
+
+          // Ignore late responses from a previously opened case
+          if (next?.id && next.id !== openCaseId) return;
+          setQuestionData(next);
+        } catch {
+          // Keep prop snapshot; toast only on explicit user actions
+        }
+      })();
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, data?.id]);
+
   if (!isOpen) return null;
+
+  const address =
+    questionData?.profile?.address?.[0] ?? data?.profile?.address?.[0];
+  const addressLine = formatAddress(address);
+  const districtName =
+    districts.find((x) => x.id == address?.districtId)?.nameInThai || "";
+  const provinceName =
+    provinces.find((x) => x.id == address?.provinceId)?.nameInThai || "";
+  const subdistrictName =
+    subdistricts.find((x) => x.id == address?.subdistrictId)?.nameInThai || "";
 
   const renderCloseCaseReasonBlock = (row: QuestionsData) => {
     const closeReasonText = (row.close_case_reason ?? "").trim();
 
-    if (!closeReasonText) {
-      return null;
-    }
+    if (!closeReasonText) return null;
 
     return (
       <div className="mt-4 rounded-medium border border-default-200 bg-content2/40 p-4">
@@ -1311,87 +513,110 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
     <>
       <Drawer
         key={`drawer-${data?.id || "default"}-${modalKey}`}
+        hideCloseButton
         classNames={{
           wrapper: "z-40",
           backdrop: "z-30",
+          base: isConsultationMode ? "w-full max-w-full" : undefined,
         }}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         placement="right"
-        size="5xl"
+        size={isConsultationMode ? "full" : "5xl"}
         onClose={onClose}
       >
         <DrawerContent className="flex h-full max-h-[100dvh] flex-col">
-          {(onClose) => (
+          {(drawerClose) => (
             <Form
-              className="flex min-h-0 flex-1 flex-col"
-              onReset={onClose}
-              onSubmit={handleSubmit}
+              className="flex h-full min-h-0 flex-1 flex-col"
+              onReset={drawerClose}
+              onSubmit={onSubmitQuestionnaire}
             >
-              <DrawerHeader className="w-full shrink-0">
-                <div className="flex flex-col lg:flex-row w-full justify-between gap-3 text-sm items-start lg:items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">วันที่ประเมิน:</span>
-                    <span>
-                      {formatThaiDateTime(
-                        questionData?.createdAt || (data?.createdAt as string)
-                      )}
+              <DrawerHeader className="w-full shrink-0 border-b border-default-200 px-4 py-3 sm:px-6">
+                <div className="flex w-full flex-col gap-2 text-sm lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                    {!isConsultationMode && (
+                      <span className="font-semibold text-foreground">
+                        {DRAWER_MODE_LABEL[mode] ?? mode}
+                      </span>
+                    )}
+                    <span className="text-default-500">
+                      สร้างเคส{" "}
+                      <span className="font-medium text-foreground">
+                        {formatThaiDateTime(
+                          questionData?.createdAt || (data?.createdAt as string)
+                        )}
+                      </span>
                     </span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">โหมด:</span>
-                      <span>{mode}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">สถานะ:</span>
-                      {(() => {
-                        const statusVal = questionData?.status ?? data?.status;
-                        const statusName =
-                          options.find((item) => item.uid === String(statusVal))
-                            ?.name ?? `สถานะ ${statusVal}`;
-
-                        const chipColor =
-                          statusVal === 0
-                            ? "default"
-                            : statusVal === 1
-                              ? "primary"
-                              : statusVal === 2
-                                ? "warning"
-                                : "success";
-
-                        return (
-                          <Chip color={chipColor} size="lg" variant="flat">
-                            <span className="text-xs">{statusName}</span>
-                          </Chip>
-                        );
-                      })()}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">ผลการประเมิน:</span>
-                      <Chip
-                        color={
-                          (questionData?.result || data?.result) === "Green"
-                            ? "success"
-                            : (questionData?.result || data?.result) ===
-                                "Green-Low"
-                              ? "success"
-                              : (questionData?.result || data?.result) ===
-                                  "Yellow"
-                                ? "warning"
-                                : (questionData?.result || data?.result) ===
-                                    "Orange"
-                                  ? "warning"
-                                  : "danger"
-                        }
-                        size="lg"
-                        variant="flat"
-                      >
-                        <span className="capitalize text-xs">
-                          {questionData?.result || data?.result}
+                    {(questionData?.assigneeName ?? data?.assigneeName) && (
+                      <span className="text-default-500">
+                        ผู้ดูแล:{" "}
+                        <span className="font-medium text-foreground">
+                          {questionData?.assigneeName ?? data?.assigneeName}
                         </span>
-                      </Chip>
-                    </div>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Chip
+                      color={caseStatusChipColor(
+                        questionData?.caseStatus ?? data?.caseStatus
+                      )}
+                      size="sm"
+                      variant="flat"
+                    >
+                      <span className="text-xs font-semibold">
+                        {(() => {
+                          const cs =
+                            questionData?.caseStatus ?? data?.caseStatus;
+
+                          return cs ? caseStatusLabel(cs) : "—";
+                        })()}
+                      </span>
+                    </Chip>
+                    {(() => {
+                      const result =
+                        questionData?.result || data?.result || null;
+
+                      if (!result || result === "INCOMPLETE") return null;
+
+                      const resultLabel =
+                        (
+                          {
+                            Green: "ไม่พบความเสี่ยง",
+                            "Green-Low": "พบความเสี่ยงเล็กน้อย",
+                            Yellow: "พบความเสี่ยงปานกลาง",
+                            Orange: "พบความเสี่ยงมาก",
+                            Red: "พบความเสี่ยงรุนแรง",
+                            NEGATIVE: "ไม่พบความเสี่ยง",
+                            POSITIVE_LOW: "พบความเสี่ยงเล็กน้อย",
+                            POSITIVE_MODERATE: "พบความเสี่ยงปานกลาง",
+                            POSITIVE_HIGH: "พบความเสี่ยงมาก",
+                            POSITIVE_SEVERE: "พบความเสี่ยงรุนแรง",
+                          } as Record<string, string>
+                        )[String(result)] ?? String(result);
+
+                      const color =
+                        result === "Green" ||
+                        result === "Green-Low" ||
+                        result === "NEGATIVE" ||
+                        result === "POSITIVE_LOW"
+                          ? "success"
+                          : result === "Yellow" ||
+                              result === "POSITIVE_MODERATE"
+                            ? "warning"
+                            : result === "Orange" || result === "POSITIVE_HIGH"
+                              ? "warning"
+                              : "danger";
+
+                      return (
+                        <Chip color={color} size="sm" variant="flat">
+                          <span className="text-xs font-medium">
+                            {resultLabel}
+                          </span>
+                        </Chip>
+                      );
+                    })()}
                   </div>
                 </div>
               </DrawerHeader>
@@ -1400,1306 +625,320 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                   {error}
                 </div>
               )}
-              <DrawerBody className="w-full min-h-0 flex-1 overflow-y-auto">
-                {mode !== "edit-questionnaire" ? (
-                  <div className="flex flex-col sm:flex-row gap-5 mx-auto justify-center w-full">
-                    <>
-                      <Card className="w-[400px]">
-                        <CardHeader className="flex gap-3">
-                          <Image
-                            key={`image-${questionData?.profile?.id || data?.profile?.id}-${questionData?.id || data?.id}`}
-                            alt={`รูปภาพ ${questionData?.profile?.id || data?.profile?.id}`}
-                            className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
-                            fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
-                            height={100}
-                            loading="eager"
-                            src={
-                              questionData?.profile?.user || data?.profile?.user
-                                ? questionData?.profile?.user?.image ||
-                                  data?.profile?.user?.image
-                                : undefined
+              <DrawerBody
+                className={
+                  isConsultationMode
+                    ? "flex min-h-0 flex-1 basis-0 flex-col overflow-hidden p-0"
+                    : "overflow-y-auto"
+                }
+              >
+                {isConsultationMode ? (
+                  <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="shrink-0 border-b border-default-200 px-3 py-2 lg:hidden">
+                      <Tabs
+                        fullWidth
+                        aria-label="สลับแผงแบบประเมินและคำปรึกษา"
+                        classNames={{
+                          tabList: "gap-1.5 p-1.5",
+                          tab: "h-9 text-sm",
+                          tabContent: "text-sm font-medium",
+                        }}
+                        selectedKey={consultationMobilePane}
+                        size="md"
+                        onSelectionChange={(key) =>
+                          setConsultationMobilePane(
+                            key as "assessment" | "consultation"
+                          )
+                        }
+                      >
+                        <Tab key="assessment" title="แบบประเมิน" />
+                        <Tab key="consultation" title="คำปรึกษา" />
+                      </Tabs>
+                    </div>
+
+                    <div className="consultation-split-panes grid min-h-0 flex-1 grid-cols-1 overflow-hidden">
+                      <aside
+                        className={
+                          consultationMobilePane === "assessment"
+                            ? "consultation-split-pane flex min-h-0 min-w-0 flex-col overflow-hidden border-default-200 bg-content2/30 lg:border-r"
+                            : "consultation-split-pane hidden min-h-0 min-w-0 flex-col overflow-hidden border-default-200 bg-content2/30 lg:flex lg:border-r"
+                        }
+                      >
+                        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto p-3 sm:p-4">
+                          <QuestionDetailDrawer data={questionData || data} />
+                        </div>
+                      </aside>
+
+                      <section
+                        className={
+                          consultationMobilePane === "consultation"
+                            ? "consultation-split-pane flex min-h-0 min-w-0 flex-col overflow-hidden bg-content1"
+                            : "consultation-split-pane hidden min-h-0 min-w-0 flex-col overflow-hidden bg-content1 lg:flex"
+                        }
+                      >
+                        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+                          <ConsultationCitizenHeader
+                            addressLine={addressLine}
+                            data={data}
+                            expanded={consultationProfileExpanded}
+                            hnLoading={actions.hnLoading}
+                            mode={mode}
+                            nhsoLoading={actions.nhsoLoading}
+                            questionData={questionData}
+                            sendMessageLoading={actions.sendMessageLoading}
+                            onEditProfile={() => setIsModalOpen(true)}
+                            onHnChange={(value) =>
+                              setQuestionData((prev) => ({
+                                ...prev,
+                                hn: value,
+                              }))
                             }
-                            width={100}
+                            onNhsoChange={(value) =>
+                              setQuestionData((prev) => ({
+                                ...prev,
+                                nhsoDraft: {
+                                  ...(prev.nhsoDraft ?? {}),
+                                  mainInsclName: value,
+                                  mainInsclCode:
+                                    prev.nhsoDraft?.mainInsclCode ?? null,
+                                },
+                              }))
+                            }
+                            onSaveHn={() => void actions.changeHn()}
+                            onSaveNhso={() => void actions.changeNhsoRights()}
+                            onSearchAndSave={(opts) =>
+                              void actions.searchAndSaveLookups(opts)
+                            }
+                            onSendLine={() => void actions.sendConsultMessage()}
+                            onToggleExpanded={() =>
+                              setConsultationProfileExpanded((v) => !v)
+                            }
                           />
-                          <div className="flex flex-col">
-                            <p className="text-md">
-                              HN:{" "}
-                              <b>
-                                {questionData?.profile?.hn || data?.profile?.hn}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              LINE :{" "}
-                              <b>
-                                {questionData?.profile?.user?.name ||
-                                  data?.profile?.user?.name ||
-                                  "-"}
-                              </b>
-                            </p>
-                            <p className="text-md">
-                              {
-                                prefix.find(
-                                  (val) =>
-                                    val.key ==
-                                    (questionData?.profile?.prefixId ||
-                                      data?.profile?.prefixId)
-                                )?.label
-                              }
-                              {questionData?.profile?.firstName ||
-                                data?.profile?.firstName}{" "}
-                              {questionData?.profile?.lastName ||
-                                data?.profile?.lastName}
-                            </p>
-                            <p className="text-small">
-                              เลขที่บัตรประชาชน :{" "}
-                              <b>
-                                {questionData?.profile?.citizenId ||
-                                  data?.profile?.citizenId}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              วัน/เดือน/ปี เกิด :{" "}
-                              <b>
-                                {moment(
-                                  questionData?.profile?.birthDate ||
-                                    data?.profile?.birthDate
-                                )
-                                  .add(543, "year")
-                                  .locale("th-TH")
-                                  .format("DD/MM/YYYY")}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              เชื้อชาติ :{" "}
-                              <b>
-                                {questionData?.profile?.ethnicity ||
-                                  data?.profile?.ethnicity}
-                              </b>{" "}
-                              สัญชาติ :{" "}
-                              <b>
-                                {questionData?.profile?.nationality ||
-                                  data?.profile?.nationality}
-                              </b>
-                            </p>
-                          </div>
-                        </CardHeader>
-                        <Divider />
-                        <CardBody>
-                          <div>
-                            <p className="text-small">
-                              ที่อยู่ :{" "}
-                              <b>
-                                {questionData?.profile?.address?.[0]?.houseNo ||
-                                  data?.profile?.address?.[0]?.houseNo}
-                              </b>{" "}
-                              หมู่ที่ :{" "}
-                              <b>
-                                {(questionData?.profile?.address?.[0]
-                                  ?.villageNo ||
-                                  data?.profile?.address?.[0]?.villageNo) == ""
-                                  ? "-"
-                                  : questionData?.profile?.address?.[0]
-                                      ?.villageNo ||
-                                    data?.profile?.address?.[0]?.villageNo}
-                              </b>{" "}
-                              ซอย :{" "}
-                              <b>
-                                {questionData?.profile?.address?.[0]?.soi ||
-                                  data?.profile?.address?.[0]?.soi}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              ถนน :{" "}
-                              <b>
-                                {questionData?.profile?.address?.[0]?.road ||
-                                  data?.profile?.address?.[0]?.road}
-                              </b>{" "}
-                              ตำบล :{" "}
-                              <b>
-                                {
-                                  subdistrince?.find(
-                                    (x) =>
-                                      x.id ==
-                                      (questionData?.profile?.address?.[0]
-                                        ?.subdistrictId ||
-                                        data?.profile?.address?.[0]
-                                          ?.subdistrictId)
-                                  )?.nameInThai
-                                }
-                              </b>{" "}
-                              อำเภอ :{" "}
-                              <b>
-                                {
-                                  distrince?.find(
-                                    (x) =>
-                                      x.id ==
-                                      (questionData?.profile?.address?.[0]
-                                        ?.districtId ||
-                                        data?.profile?.address?.[0]?.districtId)
-                                  )?.nameInThai
-                                }
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              จังหวัด :{" "}
-                              <b>
-                                {
-                                  province?.find(
-                                    (x) =>
-                                      x.id ==
-                                      (questionData?.profile?.address?.[0]
-                                        ?.provinceId ||
-                                        data?.profile?.address?.[0]?.provinceId)
-                                  )?.nameInThai
-                                }
-                              </b>{" "}
-                              โทรศัพท์ :{" "}
-                              <b>
-                                {questionData?.profile?.phone ||
-                                  data?.profile?.phone}
-                              </b>
-                            </p>
-                          </div>
-                        </CardBody>
-                        <Divider />
-                        <CardBody>
-                          <div>
-                            <p className="text-small">
-                              ชื่อผู้ติดต่อฉุกเฉิน :{" "}
-                              <b>
-                                {questionData?.profile?.emergency?.[0]?.name ||
-                                  data?.profile?.emergency?.[0]?.name}
-                              </b>{" "}
-                            </p>
-                            <p className="text-small">
-                              โทรศัพท์ :{" "}
-                              <b>
-                                {questionData?.profile?.emergency?.[0]?.phone ||
-                                  data?.profile?.emergency?.[0]?.phone}
-                              </b>{" "}
-                              ความสัมพันธ์ :{" "}
-                              <b>
-                                {questionData?.profile?.emergency?.[0]
-                                  ?.relation ||
-                                  data?.profile?.emergency?.[0]?.relation}
-                              </b>
-                            </p>
-                          </div>
-                        </CardBody>
-                        <Divider />
-                        <CardFooter>
-                          {!(questionData?.profile?.hn || data?.profile?.hn) ? (
-                            <div className="flex w-full flex-col gap-3">
-                              <div className="flex flex-row gap-4">
-                                <Input
-                                  endContent={
-                                    <Button
-                                      isIconOnly
-                                      aria-label="ค้นหา HN"
-                                      isDisabled={
-                                        mode == "view-questionnaire" ||
-                                        mode == "view-consultation"
+
+                          <div className="flex flex-col gap-4 px-3 py-4 sm:px-5">
+                            <CaseTransferPanel
+                              busy={actions.transferLoading}
+                              data={questionData || data}
+                              section="pending"
+                              viewerFacilityId={viewerFacilityId}
+                              onAccept={async () => {
+                                await actions.acceptTransfer();
+                              }}
+                              onCancel={async (reason) => {
+                                await actions.cancelTransfer(reason);
+                              }}
+                              onReject={async (reason) => {
+                                await actions.rejectTransfer(reason);
+                              }}
+                            />
+                            {(() => {
+                              const q = questionData ?? data;
+                              const statusVal = q?.status ?? data?.status;
+                              const cs =
+                                q?.caseStatus ?? data?.caseStatus ?? null;
+                              const needsClaim = cs === "PENDING";
+                              const isClosed = cs === "CLOSED";
+                              const isTransferPending =
+                                cs === "TRANSFER_PENDING";
+                              const consultationReadOnly =
+                                mode === "view-consultation" ||
+                                isClosed ||
+                                isTransferPending;
+                              const isLocked = statusVal === 0 || needsClaim;
+                              const id = q?.id ?? data?.id ?? "";
+
+                              return (
+                                <>
+                                  {mode === "edit-consultation" &&
+                                    needsClaim && (
+                                      <div className="flex flex-col gap-3 rounded-lg border border-primary-200 bg-primary-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex flex-col gap-1">
+                                          <p className="text-sm font-semibold text-foreground">
+                                            ขั้นตอนที่ 1: รับเคส
+                                          </p>
+                                          <p className="text-sm text-default-600">
+                                            รับดูแลเคสนี้ก่อน
+                                            จึงจะบันทึกการให้คำปรึกษาได้
+                                          </p>
+                                        </div>
+                                        {canClaimCase ? (
+                                          <Button
+                                            className="h-10 min-w-[6rem] text-sm font-medium"
+                                            color="primary"
+                                            isLoading={actions.claimLoading}
+                                            size="md"
+                                            onPress={() =>
+                                              void actions.runClaim()
+                                            }
+                                          >
+                                            รับเคส
+                                          </Button>
+                                        ) : (
+                                          <p className="text-sm text-warning-600">
+                                            เฉพาะ Consult เท่านั้นที่รับเคสได้
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  {mode === "edit-consultation" && isClosed && (
+                                    <p className="rounded-lg border border-default-200 bg-default-50 px-3 py-2 text-sm text-default-600">
+                                      เคสนี้ปิดแล้ว ดูประวัติได้อย่างเดียว —
+                                      หากต้องการติดตามต่อให้สร้างเคสใหม่
+                                    </p>
+                                  )}
+                                  <ConsultationRoundsPanel
+                                    ref={consultationRoundsRef}
+                                    caseId={id}
+                                    consultants={consultantsForPanel}
+                                    defaultConsultId={defaultConsultId}
+                                    locked={
+                                      mode === "edit-consultation"
+                                        ? isLocked
+                                        : false
+                                    }
+                                    notes={
+                                      q?.treatmentNotes as
+                                        | Parameters<
+                                            typeof ConsultationRoundsPanel
+                                          >[0]["notes"]
+                                        | undefined
+                                    }
+                                    readOnly={consultationReadOnly}
+                                    onNotesChange={(notes) => {
+                                      setQuestionData((prev) => ({
+                                        ...prev,
+                                        ...(flattenTreatmentNotes(
+                                          notes
+                                        ) as Partial<QuestionsData>),
+                                        treatmentNotes: notes,
+                                      }));
+                                    }}
+                                    onSaveFooterChange={
+                                      setConsultationSaveFooter
+                                    }
+                                    onSoapSaved={({ prompt }) => {
+                                      if (prompt === "transfer") {
+                                        addToast({
+                                          title: "แผนหลัง: ส่งต่อ",
+                                          description:
+                                            "บันทึกโน้ตแล้ว — กรุณาสร้าง CaseTransfer ถ้าต้องการส่งต่อหน่วยงาน",
+                                          color: "primary",
+                                        });
+                                        void openTransferModal();
+
+                                        return;
                                       }
-                                      size="sm"
-                                      variant="light"
-                                      onPress={handleSearchHN}
-                                    >
-                                      <MagnifyingGlassIcon className="w-4 h-4" />
-                                    </Button>
-                                  }
-                                  isDisabled={
-                                    mode == "view-questionnaire" ||
-                                    mode == "view-consultation"
-                                  }
-                                  name="hn"
-                                  startContent={<p> HN:</p>}
-                                  value={
-                                    questionData?.hn ||
-                                    questionData?.profile?.hn ||
-                                    data?.profile?.hn ||
-                                    ""
-                                  }
-                                  variant="bordered"
-                                  onChange={HandleChange}
-                                />
-                                <Button
-                                  color="primary"
-                                  isDisabled={
-                                    mode == "view-questionnaire" ||
-                                    mode == "view-consultation"
-                                  }
-                                  isLoading={hnIsloading}
-                                  type="button"
-                                  onPress={() => ChangeHN()}
-                                >
-                                  บันทึก HN
-                                </Button>
-                              </div>
-                              {showRegisterHnLineButton && (
-                                <Button
-                                  color="success"
-                                  isDisabled={sendMessageLoading}
-                                  isLoading={sendMessageLoading}
-                                  startContent={
-                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
-                                      LINE
-                                    </span>
-                                  }
-                                  variant="flat"
-                                  onPress={handleSendRegisterHnMessage}
-                                >
-                                  ส่ง Line ลงทะเบียน HN
-                                </Button>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex flex-row gap-4 justify-center w-full">
-                              <Button
-                                color="success"
-                                isDisabled={sendMessageLoading}
-                                isLoading={sendMessageLoading}
-                                startContent={
-                                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
-                                    LINE
-                                  </span>
-                                }
-                                variant="flat"
-                                onPress={handleSendMessage}
-                              >
-                                ส่งข้อความ
-                              </Button>
-                              <Button
-                                color="warning"
-                                variant="flat"
-                                onPress={() => setIsModalOpen(true)}
-                              >
-                                แก้ไขข้อมูลส่วนตัว
-                              </Button>
-                            </div>
-                          )}
-                        </CardFooter>
-                      </Card>
-                      <Card className="w-[400px]">
-                        <CardBody>
-                          <div className="mx-auto w-[352px] h-[265px]">
-                            <MapContainer
-                              center={[latitude, longitude]}
-                              doubleClickZoom={false}
-                              dragging={false}
-                              scrollWheelZoom={false}
-                              style={{ height: "100%", width: "100%" }}
-                              zoom={17}
-                              zoomControl={false}
-                            >
-                              <TileLayer
-                                attribution=""
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              />
-                              <Marker
-                                draggable={false}
-                                position={[latitude, longitude]}
-                              >
-                                <Popup>Hey ! I study here</Popup>
-                              </Marker>
-                            </MapContainer>
+                                      if (prompt === "closeCase") {
+                                        addToast({
+                                          title: "แผนหลัง: ยุติการติดตาม",
+                                          description:
+                                            "บันทึกโน้ตแล้ว — กดปิดเคสเมื่อพร้อม (ไม่บังคับทันที)",
+                                          color: "primary",
+                                        });
+                                        openCloseCaseModal();
+
+                                        return;
+                                      }
+                                      if (mode === "edit-consultation") {
+                                        onClose();
+                                      }
+                                    }}
+                                  />
+                                  {renderCloseCaseReasonBlock(q)}
+                                </>
+                              );
+                            })()}
+                            <CaseTransferPanel
+                              busy={actions.transferLoading}
+                              data={questionData || data}
+                              section="history"
+                              viewerFacilityId={viewerFacilityId}
+                              onAccept={async () => {
+                                await actions.acceptTransfer();
+                              }}
+                              onCancel={async (reason) => {
+                                await actions.cancelTransfer(reason);
+                              }}
+                              onReject={async (reason) => {
+                                await actions.rejectTransfer(reason);
+                              }}
+                            />
                           </div>
-                        </CardBody>
-                        <Divider />
-                        <CardFooter>
-                          <Link
-                            isExternal
-                            showAnchorIcon
-                            href={`https://www.google.co.th/maps/place/${questionData?.latitude || data?.latitude},${questionData?.longitude || data?.longitude}`}
-                          >
-                            ดูบนแผนที่
-                          </Link>
-                        </CardFooter>
-                      </Card>
-                    </>
+                        </div>
+                      </section>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col sm:flex-row gap-5 mx-auto justify-center w-full">
-                    <>
-                      <Card className="w-[400px]">
-                        <CardHeader className="flex gap-3">
-                          <Image
-                            key={`image-${questionData?.profile?.id || data?.profile?.id}-${questionData?.id || data?.id}`}
-                            alt={`รูปภาพ ${questionData?.profile?.id || data?.profile?.id}`}
-                            className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity min-w-[100px] h-[100px]"
-                            fallbackSrc="https://placehold.co/100x100?text=NO+IMAGE\\nAVAILABLE"
-                            height={100}
-                            loading="eager"
-                            src={
-                              questionData?.profile?.user || data?.profile?.user
-                                ? questionData?.profile?.user?.image ||
-                                  data?.profile?.user?.image
-                                : undefined
-                            }
-                            width={100}
-                          />
-                          <div className="flex flex-col">
-                            <p className="text-small">
-                              LINE :{" "}
-                              <b>
-                                {questionData?.profile?.user?.name ||
-                                  data?.profile?.user?.name ||
-                                  "-"}
-                              </b>
-                            </p>
-                            <p className="text-md">
-                              {
-                                prefix.find(
-                                  (val) =>
-                                    val.key ==
-                                    (questionData?.profile?.prefixId ||
-                                      data?.profile?.prefixId)
-                                )?.label
-                              }{" "}
-                              {questionData?.profile?.firstName ||
-                                data?.profile?.firstName}{" "}
-                              {questionData?.profile?.lastName ||
-                                data?.profile?.lastName}
-                            </p>
-                            <p className="text-small">
-                              เลขที่บัตรประชาชน :{" "}
-                              <b>
-                                {questionData?.profile?.citizenId ||
-                                  data?.profile?.citizenId}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              วัน/เดือน/ปี เกิด :{" "}
-                              <b>
-                                {moment(
-                                  questionData?.profile?.birthDate ||
-                                    data?.profile?.birthDate
-                                )
-                                  .add(543, "year")
-                                  .locale("th-TH")
-                                  .format("DD/MM/YYYY")}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              เชื้อชาติ :{" "}
-                              <b>
-                                {questionData?.profile?.ethnicity ||
-                                  data?.profile?.ethnicity}
-                              </b>{" "}
-                              สัญชาติ :{" "}
-                              <b>
-                                {questionData?.profile?.nationality ||
-                                  data?.profile?.nationality}
-                              </b>
-                            </p>
-                          </div>
-                        </CardHeader>
-                        <Divider />
-                        <CardBody>
-                          <div>
-                            <p className="text-small">
-                              ที่อยู่ :{" "}
-                              <b>
-                                {questionData?.profile.address?.[0]?.houseNo ||
-                                  "-"}
-                              </b>{" "}
-                              หมู่ที่ :{" "}
-                              <b>
-                                {questionData?.profile.address?.[0]
-                                  ?.villageNo == ""
-                                  ? "-"
-                                  : questionData?.profile.address?.[0]
-                                      ?.villageNo || "-"}
-                              </b>{" "}
-                              ซอย :{" "}
-                              <b>
-                                {questionData?.profile.address?.[0]?.soi || "-"}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              ถนน :{" "}
-                              <b>
-                                {questionData?.profile.address?.[0]?.road ||
-                                  "-"}
-                              </b>{" "}
-                              ตำบล :{" "}
-                              <b>
-                                {subdistrince?.find(
-                                  (x) =>
-                                    x.id ==
-                                    questionData?.profile.address?.[0]
-                                      ?.subdistrictId
-                                )?.nameInThai || "-"}
-                              </b>{" "}
-                              อำเภอ :{" "}
-                              <b>
-                                {distrince?.find(
-                                  (x) =>
-                                    x.id ==
-                                    questionData?.profile.address?.[0]?.districtId
-                                )?.nameInThai || "-"}
-                              </b>
-                            </p>
-                            <p className="text-small">
-                              จังหวัด :{" "}
-                              <b>
-                                {province?.find(
-                                  (x) =>
-                                    x.id ==
-                                    questionData?.profile.address?.[0]?.provinceId
-                                )?.nameInThai || "-"}
-                              </b>{" "}
-                              โทรศัพท์ :{" "}
-                              <b>{questionData?.profile.phone || "-"}</b>
-                            </p>
-                          </div>
-                        </CardBody>
-                        <Divider />
-                        <CardBody>
-                          <div>
-                            <p className="text-small">
-                              ชื่อผู้ติดต่อฉุกเฉิน :{" "}
-                              <b>
-                                {questionData?.profile.emergency?.[0]?.name ||
-                                  "-"}
-                              </b>{" "}
-                            </p>
-                            <p className="text-small">
-                              โทรศัพท์ :{" "}
-                              <b>
-                                {questionData?.profile.emergency?.[0]?.phone ||
-                                  "-"}
-                              </b>{" "}
-                              ความสัมพันธ์ :{" "}
-                              <b>
-                                {questionData?.profile.emergency?.[0]
-                                  ?.relation || "-"}
-                              </b>
-                            </p>
-                          </div>
-                        </CardBody>
-                        <Divider />
-                        <CardFooter>
-                          <div className="flex flex-row gap-4 justify-center w-full">
-                            <Button
-                              color="primary"
-                              isDisabled={sendMessageLoading}
-                              isLoading={sendMessageLoading}
-                              startContent={
-                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#06C755] px-1 text-[10px] font-semibold text-white">
-                                  LINE
-                                </span>
-                              }
-                              variant="flat"
-                              onPress={handleSendMessage}
-                            >
-                              ส่งข้อความ
-                            </Button>
-                            <Button
-                              color="warning"
-                              variant="flat"
-                              onPress={() => setIsModalOpen(true)}
-                            >
-                              แก้ไขข้อมูลส่วนตัว
-                            </Button>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                      <Card className="w-[400px]">
-                        <CardBody>
-                          <div className="mx-auto w-[352px] h-[265px]">
-                            <MapContainer
-                              center={[latitude, longitude]}
-                              doubleClickZoom={false}
-                              dragging={false}
-                              scrollWheelZoom={false}
-                              style={{ height: "100%", width: "100%" }}
-                              zoom={17}
-                              zoomControl={false}
-                            >
-                              <TileLayer
-                                attribution=""
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              />
-                              <Marker
-                                draggable={false}
-                                position={[latitude, longitude]}
-                              >
-                                <Popup>Hey ! I study here</Popup>
-                              </Marker>
-                            </MapContainer>
-                          </div>
-                        </CardBody>
-                        <Divider />
-                        <CardFooter>
-                          <Link
-                            isExternal
-                            showAnchorIcon
-                            href={`https://www.google.co.th/maps/place/${questionData?.latitude},${questionData?.longitude}`}
-                          >
-                            ดูบนแผนที่
-                          </Link>
-                        </CardFooter>
-                      </Card>
-                    </>
-                  </div>
-                )}
+                  <div>
+                    {mode === "edit-questionnaire" ? (
+                      <QuestionnaireProfileCards
+                        addressLine={addressLine}
+                        data={data}
+                        districtName={districtName}
+                        provinceName={provinceName}
+                        questionData={questionData}
+                        sendMessageLoading={actions.sendMessageLoading}
+                        subdistrictName={subdistrictName}
+                        onEditProfile={() => setIsModalOpen(true)}
+                        onSendLine={() => void actions.sendConsultMessage()}
+                      />
+                    ) : null}
 
-                {mode === "view-questionnaire" ? (
-                  <QuestionDetailDrawer data={questionData || data} />
-                ) : mode === "view-consultation" ? (
-                  <div className="flex flex-col gap-6">
-                    <Card className="rounded-xl border border-default-200 shadow-sm">
-                      <CardBody className="flex flex-col gap-4 p-4 sm:p-6">
-                        {(() => {
-                          const q = questionData ?? data;
-                          const followTab2Disabled = !isFollowUpRoundComplete(
-                            q,
-                            0
-                          );
-                          const followTab3Disabled = !isFollowUpRoundComplete(
-                            q,
-                            1
-                          );
-
-                          return (
-                            <>
-                              <h2 className={subtitle()}>
-                                บันทึกการให้คำปรึกษา
-                              </h2>
-                              <Tabs
-                                fullWidth
-                                aria-label="รอบติดตาม (Consultant/Telemedicine + Discharge Summary)"
-                                className="w-full"
-                                color="primary"
-                                selectedKey={followUpRoundTab}
-                                variant="bordered"
-                                onSelectionChange={(key) =>
-                                  setFollowUpRoundTab(String(key))
-                                }
-                              >
-                                {CONSULT_TELEMED_ROUNDS.map((round, idx) => {
-                                  const schedVal = q?.[
-                                    round.schedule as keyof QuestionsData
-                                  ] as Date | string | null | undefined;
-                                  const consultVal = q?.[
-                                    round.consult as keyof QuestionsData
-                                  ] as string | null | undefined;
-                                  const tabKey = `r${idx + 1}`;
-                                  const dischargeRound =
-                                    DISCHARGE_SUMMARY_ROUNDS[idx];
-                                  const followUpVal = q?.[
-                                    FOLLOW_UP_ROUNDS[idx]
-                                      .followUp as keyof QuestionsData
-                                  ] as Date | string | null | undefined;
-                                  const isRoundComplete =
-                                    isFollowUpRoundComplete(
-                                      q,
-                                      idx as 0 | 1 | 2
-                                    );
-                                  const isUnreachable = isRoundUnreachable(
-                                    q,
-                                    idx as 0 | 1 | 2
-                                  );
-
-                                  return (
-                                    <Tab
-                                      key={tabKey}
-                                      isDisabled={
-                                        (idx === 1 && followTab2Disabled) ||
-                                        (idx === 2 && followTab3Disabled)
-                                      }
-                                      title={
-                                        isRoundComplete ? (
-                                          <span className="inline-flex items-center gap-1.5">
-                                            <span>{round.label}</span>
-                                            <CheckCircleIcon className="size-4 text-success" />
-                                          </span>
-                                        ) : (
-                                          round.label
-                                        )
-                                      }
-                                    >
-                                      <div className="mt-2 flex flex-col gap-4">
-                                        {isUnreachable && (
-                                          <Chip
-                                            color="danger"
-                                            size="sm"
-                                            variant="flat"
-                                          >
-                                            ติดต่อไม่ได้ (ไม่นับเป็นการพบจริง)
-                                          </Chip>
-                                        )}
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                                          <ConsultScheduleDateTimePicker
-                                            isDisabled={true}
-                                            label={
-                                              isUnreachable
-                                                ? "วันที่และเวลาที่พยายามติดต่อ"
-                                                : "วันที่และเวลาพบนักจิตวิทยา"
-                                            }
-                                            name={round.schedule}
-                                            value={schedVal}
-                                          />
-                                          {isUnreachable ? (
-                                            <DatePicker
-                                              showMonthAndYearPickers
-                                              defaultValue={parseDateForPicker(
-                                                followUpVal
-                                              )}
-                                              isDisabled={true}
-                                              label="นัดติดต่อครั้งถัดไป"
-                                              labelPlacement="outside"
-                                              name={
-                                                FOLLOW_UP_ROUNDS[idx].followUp
-                                              }
-                                              selectorButtonPlacement="start"
-                                              variant="bordered"
-                                            />
-                                          ) : (
-                                            <Autocomplete
-                                              defaultItems={Consultant}
-                                              defaultSelectedKey={
-                                                consultVal ?? undefined
-                                              }
-                                              isDisabled={true}
-                                              label="ผู้ให้คำปรึกษา"
-                                              labelPlacement="outside"
-                                              placeholder="เลือกผู้ให้คำปรึกษา"
-                                              radius="md"
-                                              variant="bordered"
-                                            >
-                                              {(item) => (
-                                                <AutocompleteItem key={item.id}>
-                                                  {item.name}
-                                                </AutocompleteItem>
-                                              )}
-                                            </Autocomplete>
-                                          )}
-                                        </div>
-
-                                        {isUnreachable && (
-                                          <Autocomplete
-                                            defaultItems={Consultant}
-                                            defaultSelectedKey={
-                                              consultVal ?? undefined
-                                            }
-                                            isDisabled={true}
-                                            label="ผู้รับผิดชอบติดต่อ"
-                                            labelPlacement="outside"
-                                            placeholder="เลือกผู้รับผิดชอบ"
-                                            radius="md"
-                                            variant="bordered"
-                                          >
-                                            {(item) => (
-                                              <AutocompleteItem key={item.id}>
-                                                {item.name}
-                                              </AutocompleteItem>
-                                            )}
-                                          </Autocomplete>
-                                        )}
-
-                                        <Divider className="bg-default-200" />
-
-                                        <div className="flex flex-col gap-4">
-                                          <Textarea
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.subjective as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={true}
-                                            label="1. Subjective data"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.subjective}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                          />
-                                          <Textarea
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.objective as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={true}
-                                            label="2. Objective data"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.objective}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                          />
-                                          <Textarea
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.assessment as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={true}
-                                            label="3. Assessment"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.assessment}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                          />
-                                          <Textarea
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.plan as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={true}
-                                            label="4. Plan"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.plan}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                          />
-                                          <Textarea
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.note as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={true}
-                                            label="5. หมายเหตุ"
-                                            labelPlacement="outside"
-                                            minRows={2}
-                                            name={dischargeRound.note}
-                                            placeholder="หมายเหตุเพิ่มเติม"
-                                            variant="bordered"
-                                          />
-                                          {!isUnreachable && (
-                                            <DatePicker
-                                              showMonthAndYearPickers
-                                              className="max-w-xs"
-                                              defaultValue={parseDateForPicker(
-                                                followUpVal
-                                              )}
-                                              isDisabled={true}
-                                              label="นัดพบครั้งถัดไป"
-                                              labelPlacement="outside"
-                                              name={
-                                                FOLLOW_UP_ROUNDS[idx].followUp
-                                              }
-                                              selectorButtonPlacement="start"
-                                              variant="bordered"
-                                            />
-                                          )}
-                                        </div>
-                                      </div>
-                                    </Tab>
-                                  );
-                                })}
-                              </Tabs>
-                              {renderCloseCaseReasonBlock(q)}
-                            </>
-                          );
-                        })()}
-                      </CardBody>
-                    </Card>
-                  </div>
-                ) : mode === "edit-questionnaire" ? (
-                  <QuestionDetailDrawer
-                    data={questionData || data}
-                    mode="edit-questionnaire"
-                    onQuestionChange={handleQuestionChange}
-                  />
-                ) : (
-                  <div className="flex flex-col gap-6">
-                    <Card className="rounded-xl border border-default-200 shadow-sm">
-                      <CardBody className="flex flex-col gap-4 p-4 sm:p-6">
-                        {(() => {
-                          const q = questionData ?? data;
-                          const statusVal = q?.status ?? data?.status;
-                          const isLocked = statusVal === 0;
-                          const soapDisabled =
-                            statusVal !== 2 && statusVal !== 3;
-                          const followTab2Disabled = !isFollowUpRoundComplete(
-                            q,
-                            0
-                          );
-                          const followTab3Disabled = !isFollowUpRoundComplete(
-                            q,
-                            1
-                          );
-
-                          return (
-                            <>
-                              <h2 className={subtitle()}>
-                                บันทึกการให้คำปรึกษา
-                              </h2>
-                              <Tabs
-                                fullWidth
-                                aria-label="รอบ Consultant และ Telemedicine"
-                                className="w-full"
-                                color="primary"
-                                selectedKey={followUpRoundTab}
-                                variant="bordered"
-                                onSelectionChange={(key) =>
-                                  setFollowUpRoundTab(String(key))
-                                }
-                              >
-                                {CONSULT_TELEMED_ROUNDS.map((round, idx) => {
-                                  const schedVal = q?.[
-                                    round.schedule as keyof QuestionsData
-                                  ] as Date | string | null | undefined;
-                                  const consultVal = q?.[
-                                    round.consult as keyof QuestionsData
-                                  ] as string | null | undefined;
-                                  const tabKey = `r${idx + 1}`;
-                                  const dischargeRound =
-                                    DISCHARGE_SUMMARY_ROUNDS[idx];
-                                  const followUpVal = q?.[
-                                    FOLLOW_UP_ROUNDS[idx]
-                                      .followUp as keyof QuestionsData
-                                  ] as Date | string | null | undefined;
-                                  const isRoundComplete =
-                                    isFollowUpRoundComplete(
-                                      q,
-                                      idx as 0 | 1 | 2
-                                    );
-                                  const isUnreachable = isRoundUnreachable(
-                                    q,
-                                    idx as 0 | 1 | 2
-                                  );
-                                  const soapSectionLocked =
-                                    soapDisabled ||
-                                    !consultantRoundSaved[idx] ||
-                                    isUnreachable;
-
-                                  return (
-                                    <Tab
-                                      key={tabKey}
-                                      isDisabled={
-                                        (idx === 1 && followTab2Disabled) ||
-                                        (idx === 2 && followTab3Disabled)
-                                      }
-                                      title={
-                                        isRoundComplete ? (
-                                          <span className="inline-flex items-center gap-1.5">
-                                            <span>{round.label}</span>
-                                            <CheckCircleIcon className="size-4 text-success" />
-                                          </span>
-                                        ) : (
-                                          round.label
-                                        )
-                                      }
-                                    >
-                                      <div className="mt-2 flex flex-col gap-4">
-                                        <div className="flex flex-col gap-1 rounded-medium border border-default-200 bg-content2/40 p-3">
-                                          <Switch
-                                            color="danger"
-                                            isDisabled={isLocked}
-                                            isSelected={isUnreachable}
-                                            name={round.unreachable}
-                                            size="sm"
-                                            onValueChange={(selected) =>
-                                              HandleChange({
-                                                target: {
-                                                  name: round.unreachable,
-                                                  value: selected,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <span className="text-small font-medium">
-                                              ติดต่อผู้รับบริการไม่ได้
-                                            </span>
-                                          </Switch>
-                                          <span className="text-tiny text-default-500">
-                                            ทำเครื่องหมายเมื่อไม่สามารถติดต่อผู้รับบริการได้
-                                            ระบุวันที่พยายามติดต่อและนัดครั้งถัดไปได้
-                                            (ไม่นับเป็นการพบจริง)
-                                          </span>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                                          <ConsultScheduleDateTimePicker
-                                            isDisabled={isLocked}
-                                            isRequired={!isLocked}
-                                            label={
-                                              isUnreachable
-                                                ? "วันที่และเวลาที่พยายามติดต่อ"
-                                                : "วันที่และเวลาพบนักจิตวิทยา"
-                                            }
-                                            name={round.schedule}
-                                            value={schedVal}
-                                            onChange={(fieldName, value) => {
-                                              HandleChange({
-                                                target: {
-                                                  name: fieldName,
-                                                  value,
-                                                },
-                                              });
-                                            }}
-                                          />
-                                          {isUnreachable ? (
-                                            <DatePicker
-                                              key={`${FOLLOW_UP_ROUNDS[idx].followUp}-${followUpVal?.toString() ?? ""}`}
-                                              showMonthAndYearPickers
-                                              defaultValue={parseDateForPicker(
-                                                followUpVal
-                                              )}
-                                              isDisabled={isLocked}
-                                              label="นัดติดต่อครั้งถัดไป"
-                                              labelPlacement="outside"
-                                              name={
-                                                FOLLOW_UP_ROUNDS[idx].followUp
-                                              }
-                                              selectorButtonPlacement="start"
-                                              variant="bordered"
-                                              onChange={(date) => {
-                                                HandleChange({
-                                                  target: {
-                                                    name: FOLLOW_UP_ROUNDS[idx]
-                                                      .followUp,
-                                                    value: date
-                                                      ? date.toString()
-                                                      : "",
-                                                  },
-                                                });
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
-                                              <Autocomplete
-                                                className="min-w-0 flex-1"
-                                                defaultItems={Consultant}
-                                                defaultSelectedKey={
-                                                  consultVal ?? undefined
-                                                }
-                                                errorMessage="กรุณาระบุผู้ให้คำปรึกษา"
-                                                isDisabled={isLocked}
-                                                isInvalid={
-                                                  isError &&
-                                                  consultValidationRound === idx
-                                                }
-                                                isRequired={!isLocked}
-                                                label="ผู้ให้คำปรึกษา"
-                                                labelPlacement="outside"
-                                                placeholder="เลือกผู้ให้คำปรึกษา"
-                                                radius="md"
-                                                variant="bordered"
-                                                onSelectionChange={(val) =>
-                                                  HandleChange({
-                                                    target: {
-                                                      name: round.consult,
-                                                      value:
-                                                        val != null
-                                                          ? String(val)
-                                                          : null,
-                                                    },
-                                                  })
-                                                }
-                                              >
-                                                {(item) => (
-                                                  <AutocompleteItem
-                                                    key={item.id}
-                                                  >
-                                                    {item.name}
-                                                  </AutocompleteItem>
-                                                )}
-                                              </Autocomplete>
-                                              <Button
-                                                className="w-full shrink-0 md:w-auto"
-                                                color={
-                                                  consultantRoundSaved[idx]
-                                                    ? "success"
-                                                    : "primary"
-                                                }
-                                                isDisabled={
-                                                  consultantLoading ||
-                                                  consultantRoundSaved[idx]
-                                                }
-                                                isLoading={consultantLoading}
-                                                type="button"
-                                                variant="flat"
-                                                onPress={() =>
-                                                  handleSaveConsultant(
-                                                    idx as 0 | 1 | 2
-                                                  )
-                                                }
-                                              >
-                                                {consultantRoundSaved[idx]
-                                                  ? "บันทึกแล้ว"
-                                                  : "บันทึกผู้ให้คำปรึกษา"}
-                                              </Button>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {isUnreachable && (
-                                          <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
-                                            <Autocomplete
-                                              className="min-w-0 flex-1"
-                                              defaultItems={Consultant}
-                                              defaultSelectedKey={
-                                                consultVal ?? undefined
-                                              }
-                                              isDisabled={isLocked}
-                                              label="ผู้รับผิดชอบติดต่อ"
-                                              labelPlacement="outside"
-                                              placeholder="เลือกผู้รับผิดชอบ (ไม่บังคับ)"
-                                              radius="md"
-                                              variant="bordered"
-                                              onSelectionChange={(val) =>
-                                                HandleChange({
-                                                  target: {
-                                                    name: round.consult,
-                                                    value:
-                                                      val != null
-                                                        ? String(val)
-                                                        : null,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              {(item) => (
-                                                <AutocompleteItem key={item.id}>
-                                                  {item.name}
-                                                </AutocompleteItem>
-                                              )}
-                                            </Autocomplete>
-                                            <Button
-                                              className="w-full shrink-0 md:w-auto"
-                                              color={
-                                                consultantRoundSaved[idx]
-                                                  ? "success"
-                                                  : "primary"
-                                              }
-                                              isDisabled={
-                                                consultantLoading ||
-                                                consultantRoundSaved[idx]
-                                              }
-                                              isLoading={consultantLoading}
-                                              type="button"
-                                              variant="flat"
-                                              onPress={() =>
-                                                handleSaveConsultant(
-                                                  idx as 0 | 1 | 2
-                                                )
-                                              }
-                                            >
-                                              {consultantRoundSaved[idx]
-                                                ? "บันทึกแล้ว"
-                                                : "บันทึกการติดต่อ"}
-                                            </Button>
-                                          </div>
-                                        )}
-
-                                        <Divider className="bg-default-200" />
-
-                                        {!soapDisabled &&
-                                          !consultantRoundSaved[idx] &&
-                                          !isUnreachable && (
-                                            <p className="text-small text-default-500">
-                                              กรุณากรอกวันที่พบและผู้ให้คำปรึกษา
-                                              แล้วกด
-                                              &quot;บันทึกผู้ให้คำปรึกษา&quot;
-                                              ก่อนกรอก Discharge Summary
-                                              ด้านล่าง
-                                            </p>
-                                          )}
-                                        {!soapDisabled &&
-                                          !consultantRoundSaved[idx] &&
-                                          isUnreachable && (
-                                            <p className="text-small text-default-500">
-                                              กรุณาระบุวันที่พยายามติดต่อ แล้วกด
-                                              &quot;บันทึกการติดต่อ&quot;
-                                              (สามารถระบุนัดติดต่อครั้งถัดไปได้)
-                                            </p>
-                                          )}
-
-                                        <div className="flex flex-col gap-4">
-                                          <Textarea
-                                            isClearable
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.subjective as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={soapSectionLocked}
-                                            isRequired={true}
-                                            label="1. Subjective data"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.subjective}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                            onChange={HandleChange}
-                                            onClear={() =>
-                                              HandleChange({
-                                                target: {
-                                                  name: dischargeRound.subjective,
-                                                  value: "",
-                                                },
-                                              })
-                                            }
-                                          />
-                                          <Textarea
-                                            isClearable
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.objective as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={soapSectionLocked}
-                                            isRequired={true}
-                                            label="2. Objective data"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.objective}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                            onChange={HandleChange}
-                                            onClear={() =>
-                                              HandleChange({
-                                                target: {
-                                                  name: dischargeRound.objective,
-                                                  value: "",
-                                                },
-                                              })
-                                            }
-                                          />
-                                          <Textarea
-                                            isClearable
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.assessment as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={soapSectionLocked}
-                                            isRequired={true}
-                                            label="3. Assessment"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.assessment}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                            onChange={HandleChange}
-                                            onClear={() =>
-                                              HandleChange({
-                                                target: {
-                                                  name: dischargeRound.assessment,
-                                                  value: "",
-                                                },
-                                              })
-                                            }
-                                          />
-                                          <Textarea
-                                            isClearable
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.plan as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={soapSectionLocked}
-                                            isRequired={true}
-                                            label="4. Plan"
-                                            labelPlacement="outside"
-                                            minRows={3}
-                                            name={dischargeRound.plan}
-                                            placeholder="Description"
-                                            variant="bordered"
-                                            onChange={HandleChange}
-                                            onClear={() =>
-                                              HandleChange({
-                                                target: {
-                                                  name: dischargeRound.plan,
-                                                  value: "",
-                                                },
-                                              })
-                                            }
-                                          />
-                                          <Textarea
-                                            isClearable
-                                            defaultValue={
-                                              (q?.[
-                                                dischargeRound.note as keyof QuestionsData
-                                              ] as string | null | undefined) ??
-                                              ""
-                                            }
-                                            isDisabled={soapSectionLocked}
-                                            label="5. หมายเหตุ"
-                                            labelPlacement="outside"
-                                            minRows={2}
-                                            name={dischargeRound.note}
-                                            placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)"
-                                            variant="bordered"
-                                            onChange={HandleChange}
-                                            onClear={() =>
-                                              HandleChange({
-                                                target: {
-                                                  name: dischargeRound.note,
-                                                  value: "",
-                                                },
-                                              })
-                                            }
-                                          />
-                                          {!isUnreachable && (
-                                            <DatePicker
-                                              showMonthAndYearPickers
-                                              className="max-w-xs"
-                                              defaultValue={parseDateForPicker(
-                                                followUpVal
-                                              )}
-                                              isDisabled={soapSectionLocked}
-                                              label="นัดพบครั้งถัดไป"
-                                              labelPlacement="outside"
-                                              name={
-                                                FOLLOW_UP_ROUNDS[idx].followUp
-                                              }
-                                              selectorButtonPlacement="start"
-                                              variant="bordered"
-                                              onChange={(date) => {
-                                                HandleChange({
-                                                  target: {
-                                                    name: FOLLOW_UP_ROUNDS[idx]
-                                                      .followUp,
-                                                    value: date
-                                                      ? date.toString()
-                                                      : "",
-                                                  },
-                                                });
-                                              }}
-                                            />
-                                          )}
-                                        </div>
-                                      </div>
-                                    </Tab>
-                                  );
-                                })}
-                              </Tabs>
-                              {renderCloseCaseReasonBlock(q)}
-                            </>
-                          );
-                        })()}
-                      </CardBody>
-                    </Card>
+                    {mode === "edit-questionnaire" ? (
+                      <QuestionDetailDrawer
+                        data={questionData || data}
+                        mode="edit-questionnaire"
+                        onQuestionChange={handleQuestionChange}
+                      />
+                    ) : null}
                   </div>
                 )}
               </DrawerBody>
               <DrawerFooter className="sticky bottom-0 z-10 flex w-full shrink-0 flex-wrap items-center justify-end gap-2 border-t border-default-200 bg-content1 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] sm:px-6">
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button
+                  className={consultationFooterBtnClass}
+                  color="default"
+                  size="md"
+                  variant="light"
+                  onPress={onClose}
+                >
                   ปิด
                 </Button>
                 {mode === "edit-consultation" && (
                   <Button
+                    className={consultationFooterBtnClass}
+                    color="secondary"
+                    isDisabled={
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "PENDING" ||
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "TRANSFER_PENDING" ||
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "CLOSED"
+                    }
+                    size="md"
+                    type="button"
+                    variant="flat"
+                    onPress={() => void openTransferModal()}
+                  >
+                    ส่งต่อ
+                  </Button>
+                )}
+                {mode === "edit-consultation" && (
+                  <Button
+                    className={consultationFooterBtnClass}
                     color="warning"
-                    isDisabled={consultationLoading}
-                    isLoading={consultationLoading}
+                    isDisabled={
+                      actions.closeCaseLoading ||
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "PENDING" ||
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "TRANSFER_PENDING" ||
+                      (questionData?.caseStatus ?? data?.caseStatus) ===
+                        "CLOSED"
+                    }
+                    isLoading={actions.closeCaseLoading}
+                    size="md"
                     type="button"
                     variant="flat"
                     onPress={openCloseCaseModal}
@@ -2707,33 +946,35 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
                     ปิดเคส
                   </Button>
                 )}
+                {mode === "edit-consultation" &&
+                  consultationSaveFooter.visible &&
+                  (questionData?.caseStatus ?? data?.caseStatus) !== "CLOSED" &&
+                  (questionData?.caseStatus ?? data?.caseStatus) !==
+                    "TRANSFER_PENDING" && (
+                    <Button
+                      className={consultationFooterBtnClass}
+                      color={consultationSaveFooter.color}
+                      isDisabled={consultationSaveFooter.disabled}
+                      isLoading={consultationSaveFooter.loading}
+                      size="md"
+                      type="button"
+                      variant={consultationSaveFooter.variant}
+                      onPress={() => void consultationRoundsRef.current?.save()}
+                    >
+                      {consultationSaveFooter.label}
+                    </Button>
+                  )}
                 {mode === "edit-questionnaire" && (
                   <Button
+                    className={consultationFooterBtnClass}
                     color="primary"
                     isDisabled={questionnaireLoading}
                     isLoading={questionnaireLoading}
+                    size="md"
                     type="submit"
-                    variant="flat"
+                    variant="solid"
                   >
                     บันทึกแบบประเมิน
-                  </Button>
-                )}
-                {mode === "edit-consultation" && (
-                  <Button
-                    color={consultationSaved ? "success" : "primary"}
-                    isDisabled={
-                      consultationLoading ||
-                      (!questionData?.consult &&
-                        !questionData?.unreachable &&
-                        !questionData?.unreachable2 &&
-                        !questionData?.unreachable3) ||
-                      consultationSaved
-                    }
-                    isLoading={consultationLoading}
-                    type="submit"
-                    variant="flat"
-                  >
-                    {consultationSaved ? "บันทึกแล้ว" : "บันทึกการให้คำปรึกษา"}
                   </Button>
                 )}
               </DrawerFooter>
@@ -2748,7 +989,7 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
         isOpen={isModalOpen}
         mode="edit"
         onClose={() => setIsModalOpen(false)}
-        onSuccess={refreshDrawerData}
+        onSuccess={actions.refresh}
       />
 
       <Modal
@@ -2780,10 +1021,71 @@ export const QuestionEditDrawer = ({ isOpen, onClose, data, mode }: Props) => {
             </Button>
             <Button
               color="danger"
-              isLoading={consultationLoading}
+              isLoading={actions.closeCaseLoading}
               onPress={handleCloseCase}
             >
               ยืนยันปิดเคส
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isTransferModalOpen}
+        placement="center"
+        size="lg"
+        onClose={() => setIsTransferModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <span>ส่งต่อเคส</span>
+          </ModalHeader>
+          <ModalBody className="gap-4">
+            <Autocomplete
+              isRequired
+              defaultItems={transferFacilities}
+              isLoading={transferFacilitiesLoading}
+              label="หน่วยงานปลายทาง"
+              labelPlacement="outside"
+              placeholder="เลือกหน่วยงานที่ต้องการส่งต่อ"
+              selectedKey={transferFacilityId || null}
+              variant="bordered"
+              onSelectionChange={(key) =>
+                setTransferFacilityId(key ? String(key) : "")
+              }
+            >
+              {(item) => (
+                <AutocompleteItem key={item.id} textValue={item.name}>
+                  {item.name}
+                </AutocompleteItem>
+              )}
+            </Autocomplete>
+            <Textarea
+              isRequired
+              label="หมายเหตุการส่งต่อ"
+              labelPlacement="outside"
+              minRows={3}
+              placeholder="ระบุเหตุผลหรือรายละเอียดการส่งต่อ"
+              value={transferNote}
+              variant="bordered"
+              onChange={(e) => setTransferNote(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              variant="light"
+              onPress={() => setIsTransferModalOpen(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              color="secondary"
+              isDisabled={transferFacilitiesLoading}
+              isLoading={actions.transferLoading}
+              onPress={() => void handleTransferSubmit()}
+            >
+              ยืนยันส่งต่อ
             </Button>
           </ModalFooter>
         </ModalContent>

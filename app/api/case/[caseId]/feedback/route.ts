@@ -35,10 +35,7 @@ export async function POST(
       );
     }
 
-    if (
-      systemRating !== undefined &&
-      (systemRating < 1 || systemRating > 5)
-    ) {
+    if (systemRating !== undefined && (systemRating < 1 || systemRating > 5)) {
       return NextResponse.json(
         { error: "systemRating must be an integer between 1 and 5" },
         { status: 400 }
@@ -82,10 +79,11 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("[API Case Feedback Error]:", error);
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
+      },
       { status: 500 }
     );
   }
@@ -109,9 +107,11 @@ export async function GET(
     }
 
     return NextResponse.json({ feedback });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
+      },
       { status: 500 }
     );
   }

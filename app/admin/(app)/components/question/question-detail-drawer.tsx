@@ -1,15 +1,22 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
+  Chip,
   Radio,
   RadioGroup,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableColumn,
   TableHeader,
   TableRow,
+  Tabs,
 } from "@heroui/react";
 
-import { subtitle } from "@/components/primitives";
+import { consultationRoundTabClassNames } from "./consultation-ui";
+
 import {
   q2,
   q8,
@@ -19,6 +26,15 @@ import {
   phqaAddon,
   teenMindProblems,
 } from "@/app/data";
+import { getAssessmentResultLabel } from "@/lib/assessment-result-colors";
+import { calculateMainAssessmentResult } from "@/lib/assessment-scale";
+import { sum8Q } from "@/lib/assessment-scoring";
+import { isTwoQPositive } from "@/lib/depression-flow";
+import { getEightQRiskLabel } from "@/lib/liff-assessment-history";
+import {
+  filterQuestionByAssessmentRound,
+  listAssessmentRoundsFromQuestion,
+} from "@/lib/question-assessment-rounds";
 import {
   Addon,
   Phqa,
@@ -27,20 +43,91 @@ import {
   Questions2Q,
   QuestionsData,
 } from "@/types";
+import { formatThaiDateTime } from "@/utils/helper";
 
-/** คะแนนรวม 8Q สอดคล้อง SumValue8Q ใน API */
-function sumQ8Payload(row: Q8Data): number {
+/** หัวข้อส่วนแบบประเมิน — ให้ใกล้ขนาดเนื้อหา (ไม่ใช้ subtitle หน้า landing) */
+const sectionTitleClass =
+  "mb-1 block w-full text-base font-semibold text-foreground";
+const sectionMetaClass = "text-sm text-default-600";
+const answerOptionClass =
+  "inline-flex max-w-full cursor-pointer items-center justify-between pr-3 text-sm";
+const tableTextClassNames = {
+  base: "w-full max-w-full min-w-0",
+  wrapper: "w-full max-w-full min-w-0 overflow-x-auto",
+  table: "min-w-full table-fixed",
+  th: "text-sm font-medium text-default-600",
+  td: "text-sm text-foreground",
+};
+
+type ResultChipColor = "default" | "success" | "warning" | "danger";
+
+function legacyResultChipColor(result: string): ResultChipColor {
+  if (result === "Green" || result === "Green-Low") return "success";
+  if (result === "Yellow" || result === "Orange") return "warning";
+  if (result === "Red") return "danger";
+
+  return "default";
+}
+
+function eightQChipColor(sum: number): ResultChipColor {
+  if (sum === 0) return "success";
+  if (sum <= 16) return "warning";
+
+  return "danger";
+}
+
+function ScoreResultMeta({
+  scoreLabel,
+  score,
+  chipLabel,
+  chipColor,
+}: {
+  scoreLabel?: string;
+  score: number;
+  chipLabel: string;
+  chipColor: ResultChipColor;
+}) {
   return (
-    Number(row.q1 ?? 0) +
-    Number(row.q2 ?? 0) +
-    Number(row.q3 ?? 0) +
-    Number(row.q4 ?? 0) +
-    Number(row.q5 ?? 0) +
-    Number(row.q6 ?? 0) +
-    Number(row.q7 ?? 0) +
-    Number(row.q8 ?? 0) +
-    Number(row.q8Addon ?? 0)
+    <div className="mb-2 flex flex-wrap items-center gap-2">
+      <p className={sectionMetaClass}>
+        {scoreLabel ?? "คะแนนที่ทำได้"}: {score}
+      </p>
+      <Chip color={chipColor} size="sm" variant="flat">
+        {chipLabel}
+      </Chip>
+    </div>
   );
+}
+
+function rowCreatedAt(row: unknown): string | null {
+  if (!row || typeof row !== "object") return null;
+  const value = (row as { createdAt?: string | Date }).createdAt;
+
+  if (value == null || value === "") return null;
+
+  return String(value);
+}
+
+/** เวลาทำรอบ — ใช้แถวแรกที่มี createdAt (ลำดับ 2Q → หลัก → addon → 8Q → ปัญหา) */
+function pickRoundCompletedAt(
+  data: QuestionsData | undefined | null
+): string | null {
+  if (!data) return null;
+
+  return (
+    rowCreatedAt(data.q2?.[0]) ??
+    rowCreatedAt(data.phqa?.[0]) ??
+    rowCreatedAt(data.q9?.[0]) ??
+    rowCreatedAt(data.addon?.[0]) ??
+    rowCreatedAt(data.q8?.[0]) ??
+    rowCreatedAt(data.problem?.[0]) ??
+    (data.createdAt ? String(data.createdAt) : null)
+  );
+}
+
+/** คะแนนรวม 8Q สอดคล้อง sum8Q ใน lib/assessment-scoring */
+function sumQ8Payload(row: Q8Data): number {
+  return sum8Q(row);
 }
 
 /** อ่านค่าข้อที่ n (1-based) จากแถวแบบประเมิน — ห้ามใช้ Object.entries (ลำดับฟิลด์ไม่คงที่หลัง migrate) */
@@ -60,6 +147,8 @@ function getAnswerValue(
 interface Props {
   data: QuestionsData | undefined;
   mode?: string;
+  /** เปิดแท็บรอบประเมินนี้เมื่อดูผล (เช่น จากตารางสถานะเคส) */
+  initialAssessmentRound?: number | null;
   onQuestionChange?: (
     field: string,
     value: string | number | Questions2Q[] | Phqa[] | Addon[] | Q8Data[]
@@ -69,13 +158,37 @@ interface Props {
 export const QuestionDetailDrawer = ({
   data,
   mode,
+  initialAssessmentRound,
   onQuestionChange,
 }: Props) => {
-  const hasQ9Data = Boolean(data?.q9 && data.q9.length > 0);
-  const hasQ8Data = Boolean(data?.q8 && data.q8.length > 0);
+  const isEditMode = mode === "edit-questionnaire";
+  const assessmentRounds = listAssessmentRoundsFromQuestion(data);
+  const latestRound =
+    assessmentRounds.length > 0
+      ? assessmentRounds[assessmentRounds.length - 1]!
+      : 1;
+  const preferredRound =
+    initialAssessmentRound != null &&
+    assessmentRounds.includes(initialAssessmentRound)
+      ? initialAssessmentRound
+      : latestRound;
+  const [selectedRound, setSelectedRound] = useState(String(preferredRound));
+
+  useEffect(() => {
+    setSelectedRound(String(preferredRound));
+  }, [data?.id, preferredRound]);
+
+  const viewRound = Number(selectedRound) || latestRound;
+  const viewData =
+    !isEditMode && data
+      ? filterQuestionByAssessmentRound(data, viewRound)
+      : data;
+
+  const hasQ9Data = Boolean(viewData?.q9 && viewData.q9.length > 0);
+  const hasQ8Data = Boolean(viewData?.q8 && viewData.q8.length > 0);
 
   const getQ9Value = (questionIndex: number): string | undefined => {
-    const item = data?.q9?.[0];
+    const item = viewData?.q9?.[0];
 
     if (!item) return undefined;
 
@@ -85,7 +198,7 @@ export const QuestionDetailDrawer = ({
   };
 
   const getQ8Value = (questionIndex: number): string | undefined => {
-    const item = data?.q8?.[0];
+    const item = viewData?.q8?.[0];
 
     if (!item) return undefined;
 
@@ -95,7 +208,7 @@ export const QuestionDetailDrawer = ({
   };
 
   const getQ8AddonValue = (): string | undefined => {
-    const item = data?.q8?.[0];
+    const item = viewData?.q8?.[0];
 
     if (!item) return undefined;
 
@@ -134,11 +247,11 @@ export const QuestionDetailDrawer = ({
     return total;
   };
 
-  const q2Row = data?.q2?.[0];
+  const q2Row = viewData?.q2?.[0];
   const q2TotalScore =
     q2Row != null ? Number(q2Row.q1 ?? 0) + Number(q2Row.q2 ?? 0) : null;
 
-  const phqaOrQ9Row = hasQ9Data ? data?.q9?.[0] : data?.phqa?.[0];
+  const phqaOrQ9Row = hasQ9Data ? viewData?.q9?.[0] : viewData?.phqa?.[0];
   const phqaQ9TotalScore =
     phqaOrQ9Row != null
       ? (() => {
@@ -151,7 +264,7 @@ export const QuestionDetailDrawer = ({
         })()
       : null;
 
-  const q8Row = data?.q8?.[0];
+  const q8Row = viewData?.q8?.[0];
   const q8TotalScore =
     q8Row != null
       ? (() => {
@@ -167,14 +280,26 @@ export const QuestionDetailDrawer = ({
   const q8AddonScoreParen =
     q8Row != null ? formatScoreParen(Number(q8Row.q8Addon)) : null;
 
-  const addonPhqaRow = data?.addon?.[0];
+  const addonPhqaRow = viewData?.addon?.[0];
   const addonPhqaTotalScore =
     addonPhqaRow != null
       ? Number(addonPhqaRow.q1 ?? 0) + Number(addonPhqaRow.q2 ?? 0)
       : null;
-  const problemRow = data?.problem?.[0];
+  const problemRow = viewData?.problem?.[0];
   const problemTotalScore =
     problemRow != null ? Number(problemRow.sum ?? 0) : null;
+
+  const roundCompletedAt = pickRoundCompletedAt(viewData);
+
+  const q2Positive =
+    q2Row != null
+      ? isTwoQPositive(Number(q2Row.q1 ?? 0), Number(q2Row.q2 ?? 0))
+      : false;
+  const mainScale = hasQ9Data ? "9Q" : "PHQA";
+  const mainResultMeta =
+    phqaQ9TotalScore != null
+      ? calculateMainAssessmentResult(phqaQ9TotalScore, mainScale)
+      : null;
 
   const handleQ2Change = (questionIndex: number, value: string) => {
     if (onQuestionChange) {
@@ -300,15 +425,43 @@ export const QuestionDetailDrawer = ({
   };
 
   return (
-    <div>
-      <div>
-        <h2 className={subtitle()}>แบบประเมิน 2Q</h2>
+    <div className="box-border w-full max-w-full min-w-0 flex flex-col gap-4 overflow-x-hidden">
+      {!isEditMode && assessmentRounds.length > 1 && (
+        <Tabs
+          aria-label="รอบแบบประเมิน"
+          className="w-full max-w-full"
+          classNames={consultationRoundTabClassNames}
+          color="primary"
+          selectedKey={selectedRound}
+          size="md"
+          variant="solid"
+          onSelectionChange={(key) => setSelectedRound(String(key))}
+        >
+          {assessmentRounds.map((round) => (
+            <Tab key={String(round)} title={`รอบที่ ${round}`} />
+          ))}
+        </Tabs>
+      )}
+
+      {roundCompletedAt ? (
+        <p className="text-sm text-default-500">
+          {assessmentRounds.length > 1 ? `รอบที่ ${viewRound} · ` : null}
+          ทำเมื่อ {formatThaiDateTime(roundCompletedAt)}
+        </p>
+      ) : null}
+
+      <div className="w-full max-w-full min-w-0">
+        <h2 className={sectionTitleClass}>แบบประเมิน 2Q</h2>
         {q2TotalScore !== null && (
-          <p className="text-small text-default-600 mb-2">
-            คะแนนที่ทำได้: {q2TotalScore}
-          </p>
+          <ScoreResultMeta
+            chipColor={q2Positive ? "warning" : "success"}
+            chipLabel={
+              q2Positive ? "เข้าเกณฑ์ประเมินต่อ" : "ไม่เข้าเกณฑ์ (ปกติ)"
+            }
+            score={q2TotalScore}
+          />
         )}
-        <Table aria-label="Question Anwser 2Q">
+        <Table aria-label="Question Anwser 2Q" classNames={tableTextClassNames}>
           <TableHeader>
             <TableColumn>คำถาม</TableColumn>
             <TableColumn align="center">คำตอบ</TableColumn>
@@ -321,13 +474,13 @@ export const QuestionDetailDrawer = ({
 
               return (
                 <TableRow key={index}>
-                  <TableCell className="min-w-[250px]">
+                  <TableCell className="min-w-0">
                     {index + 1}. {val}
                   </TableCell>
-                  <TableCell className="min-w-[250px]">
-                    <div className="flex flex-row flex-nowrap items-center justify-center gap-1">
-                      {(data?.q2 && data.q2.length > 0
-                        ? data.q2
+                  <TableCell className="min-w-0">
+                    <div className="flex max-w-full flex-row flex-wrap items-center justify-center gap-1">
+                      {(viewData?.q2 && viewData.q2.length > 0
+                        ? viewData.q2
                         : [undefined]
                       ).map((item, i) => {
                         return (
@@ -345,23 +498,17 @@ export const QuestionDetailDrawer = ({
                               handleQ2Change(index, value)
                             }
                           >
-                            <Radio
-                              className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                              value="1"
-                            >
+                            <Radio className={answerOptionClass} value="1">
                               ใช่
                             </Radio>
-                            <Radio
-                              className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                              value="0"
-                            >
+                            <Radio className={answerOptionClass} value="0">
                               ไม่ใช่
                             </Radio>
                           </RadioGroup>
                         );
                       })}
                       {q2ScoreParen != null && (
-                        <span className="text-small text-default-600 shrink-0 whitespace-nowrap">
+                        <span className="shrink-0 whitespace-nowrap text-sm text-default-600">
                           {q2ScoreParen}
                         </span>
                       )}
@@ -374,19 +521,22 @@ export const QuestionDetailDrawer = ({
         </Table>
       </div>
       <div>
-        <h2 className={subtitle()}>
+        <h2 className={sectionTitleClass}>
           {hasQ9Data ? "แบบประเมิน 9Q" : "แบบประเมิน PHQ-A"}
         </h2>
-        {phqaQ9TotalScore !== null && (
-          <p className="text-small text-default-600 mb-2">
-            คะแนนที่ทำได้: {phqaQ9TotalScore}
-          </p>
+        {phqaQ9TotalScore !== null && mainResultMeta && (
+          <ScoreResultMeta
+            chipColor={legacyResultChipColor(mainResultMeta.result)}
+            chipLabel={getAssessmentResultLabel(mainResultMeta.result)}
+            score={phqaQ9TotalScore}
+          />
         )}
         <div className="flex flex-col gap-4">
           <Table
             aria-label={
               hasQ9Data ? "Question Answer 9Q" : "Question Answer PHQ-A"
             }
+            classNames={tableTextClassNames}
           >
             <TableHeader>
               <TableColumn>คำถาม</TableColumn>
@@ -407,14 +557,14 @@ export const QuestionDetailDrawer = ({
 
                 return (
                   <TableRow key={index}>
-                    <TableCell className="min-w-[250px]">
+                    <TableCell className="min-w-0">
                       {index + 1}. {val}
                     </TableCell>
-                    <TableCell className="min-w-[250px]">
-                      <div className="flex flex-row flex-nowrap items-center justify-center gap-1">
+                    <TableCell className="min-w-0">
+                      <div className="flex max-w-full flex-row flex-wrap items-center justify-center gap-1">
                         {!hasQ9Data &&
-                          (data?.phqa && data.phqa.length > 0
-                            ? data.phqa
+                          (viewData?.phqa && viewData.phqa.length > 0
+                            ? viewData.phqa
                             : [undefined]
                           ).map((item, i) => {
                             return (
@@ -432,28 +582,16 @@ export const QuestionDetailDrawer = ({
                                   handlePhqaChange(index, value)
                                 }
                               >
-                                <Radio
-                                  className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                  value="0"
-                                >
+                                <Radio className={answerOptionClass} value="0">
                                   0
                                 </Radio>
-                                <Radio
-                                  className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                  value="1"
-                                >
+                                <Radio className={answerOptionClass} value="1">
                                   1
                                 </Radio>
-                                <Radio
-                                  className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                  value="2"
-                                >
+                                <Radio className={answerOptionClass} value="2">
                                   2
                                 </Radio>
-                                <Radio
-                                  className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                                  value="3"
-                                >
+                                <Radio className={answerOptionClass} value="3">
                                   3
                                 </Radio>
                               </RadioGroup>
@@ -467,34 +605,22 @@ export const QuestionDetailDrawer = ({
                             orientation="horizontal"
                             value={getQ9Value(index)}
                           >
-                            <Radio
-                              className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                              value="0"
-                            >
+                            <Radio className={answerOptionClass} value="0">
                               0
                             </Radio>
-                            <Radio
-                              className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                              value="1"
-                            >
+                            <Radio className={answerOptionClass} value="1">
                               1
                             </Radio>
-                            <Radio
-                              className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                              value="2"
-                            >
+                            <Radio className={answerOptionClass} value="2">
                               2
                             </Radio>
-                            <Radio
-                              className="inline-flex items-center text-nowrap justify-between max-w-full cursor-pointer pr-5"
-                              value="3"
-                            >
+                            <Radio className={answerOptionClass} value="3">
                               3
                             </Radio>
                           </RadioGroup>
                         )}
                         {phqaScoreParen != null && (
-                          <span className="text-small text-default-600 shrink-0 whitespace-nowrap">
+                          <span className="shrink-0 whitespace-nowrap text-sm text-default-600">
                             {phqaScoreParen}
                           </span>
                         )}
@@ -509,13 +635,18 @@ export const QuestionDetailDrawer = ({
       </div>
       {hasQ8Data ? (
         <div>
-          <h2 className={subtitle()}>แบบประเมิน 8Q</h2>
+          <h2 className={sectionTitleClass}>แบบประเมิน 8Q</h2>
           {q8TotalScore !== null && (
-            <p className="text-small text-default-600 mb-2">
-              คะแนนที่ทำได้: {q8TotalScore}
-            </p>
+            <ScoreResultMeta
+              chipColor={eightQChipColor(q8TotalScore)}
+              chipLabel={getEightQRiskLabel(q8TotalScore)}
+              score={q8TotalScore}
+            />
           )}
-          <Table aria-label="Question Answer 8Q">
+          <Table
+            aria-label="Question Answer 8Q"
+            classNames={tableTextClassNames}
+          >
             <TableHeader>
               <TableColumn>คำถาม</TableColumn>
               <TableColumn align="center">คำตอบ</TableColumn>
@@ -537,11 +668,11 @@ export const QuestionDetailDrawer = ({
 
                 return (
                   <TableRow key={index}>
-                    <TableCell className="min-w-[250px]">
+                    <TableCell className="min-w-0">
                       {index + 1}. {val}
                     </TableCell>
-                    <TableCell className="min-w-[250px]">
-                      <div className="flex flex-row flex-nowrap items-center justify-center gap-1">
+                    <TableCell className="min-w-0">
+                      <div className="flex max-w-full flex-row flex-wrap items-center justify-center gap-1">
                         <RadioGroup
                           className="items-center shrink-0"
                           isDisabled={mode !== "edit-questionnaire"}
@@ -550,21 +681,15 @@ export const QuestionDetailDrawer = ({
                           value={getQ8Value(index)}
                           onValueChange={(v) => handleQ8Change(index, v)}
                         >
-                          <Radio
-                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                            value="0"
-                          >
+                          <Radio className={answerOptionClass} value="0">
                             ไม่ใช่
                           </Radio>
-                          <Radio
-                            className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                            value={yesValue}
-                          >
+                          <Radio className={answerOptionClass} value={yesValue}>
                             ใช่
                           </Radio>
                         </RadioGroup>
                         {q8ScoreParen != null && (
-                          <span className="text-small text-default-600 shrink-0 whitespace-nowrap">
+                          <span className="shrink-0 whitespace-nowrap text-sm text-default-600">
                             {q8ScoreParen}
                           </span>
                         )}
@@ -575,44 +700,39 @@ export const QuestionDetailDrawer = ({
               })}
             </TableBody>
           </Table>
-          <Table aria-label="Question Answer 8Q Addon">
+          <Table
+            aria-label="Question Answer 8Q Addon"
+            classNames={tableTextClassNames}
+          >
             <TableHeader>
               <TableColumn>คำถาม</TableColumn>
               <TableColumn align="center">คำตอบ</TableColumn>
             </TableHeader>
             <TableBody>
               <TableRow>
-                <TableCell className="min-w-[250px]">
-                  addon. {q8Addon[0]}
-                </TableCell>
-                <TableCell className="min-w-[250px]">
-                  <div className="flex flex-row flex-nowrap items-center justify-center gap-1">
+                <TableCell className="min-w-0">addon. {q8Addon[0]}</TableCell>
+                <TableCell className="min-w-0">
+                  <div className="flex max-w-full flex-row flex-wrap items-center justify-center gap-1">
                     <RadioGroup
                       className="items-center shrink-0"
                       isDisabled={
                         mode !== "edit-questionnaire" ||
-                        (data?.q8?.[0]?.q3 ?? 0) !== 6
+                        (viewData?.q8?.[0]?.q3 ?? 0) !== 6
                       }
                       name="8q-addon"
                       orientation="horizontal"
                       value={getQ8AddonValue()}
                       onValueChange={handleQ8AddonChange}
                     >
-                      <Radio
-                        className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                        value="0"
-                      >
+                      <Radio className={answerOptionClass} value="0">
                         ได้
                       </Radio>
-                      <Radio
-                        className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                        value="8"
-                      >
+                      <Radio className={answerOptionClass} value="8">
                         ไม่ได้
                       </Radio>
                     </RadioGroup>
                     {q8AddonScoreParen != null && (
-                      <span className="text-small text-default-600 shrink-0 whitespace-nowrap">
+                      <span className="shrink-0 whitespace-nowrap text-sm text-default-600">
                         {q8AddonScoreParen}
                       </span>
                     )}
@@ -624,13 +744,16 @@ export const QuestionDetailDrawer = ({
         </div>
       ) : (
         <div>
-          <h2 className={subtitle()}>แบบประเมิน PHQ-A Addon</h2>
+          <h2 className={sectionTitleClass}>แบบประเมิน PHQ-A Addon</h2>
           {addonPhqaTotalScore !== null && (
-            <p className="text-small text-default-600 mb-2">
+            <p className={`${sectionMetaClass} mb-2`}>
               คะแนนที่ทำได้: {addonPhqaTotalScore}
             </p>
           )}
-          <Table aria-label="Question Anwser PHQ-A-Addon">
+          <Table
+            aria-label="Question Anwser PHQ-A-Addon"
+            classNames={tableTextClassNames}
+          >
             <TableHeader>
               <TableColumn>คำถาม</TableColumn>
               <TableColumn align="center">คำตอบ</TableColumn>
@@ -650,13 +773,13 @@ export const QuestionDetailDrawer = ({
 
                 return (
                   <TableRow key={index}>
-                    <TableCell className="min-w-[250px]">
+                    <TableCell className="min-w-0">
                       {index + 1}. {val}
                     </TableCell>
-                    <TableCell className="min-w-[250px]">
-                      <div className="flex flex-row flex-nowrap items-center justify-center gap-1">
-                        {(data?.addon && data.addon.length > 0
-                          ? data.addon
+                    <TableCell className="min-w-0">
+                      <div className="flex max-w-full flex-row flex-wrap items-center justify-center gap-1">
+                        {(viewData?.addon && viewData.addon.length > 0
+                          ? viewData.addon
                           : [undefined]
                         ).map((item, i) => {
                           return (
@@ -674,23 +797,17 @@ export const QuestionDetailDrawer = ({
                                 handleAddonChange(index, value)
                               }
                             >
-                              <Radio
-                                className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                                value="1"
-                              >
+                              <Radio className={answerOptionClass} value="1">
                                 ใช่
                               </Radio>
-                              <Radio
-                                className="inline-flex items-center justify-between max-w-full cursor-pointer pr-5"
-                                value="0"
-                              >
+                              <Radio className={answerOptionClass} value="0">
                                 ไม่ใช่
                               </Radio>
                             </RadioGroup>
                           );
                         })}
                         {addonScoreParen != null && (
-                          <span className="text-small text-default-600 shrink-0 whitespace-nowrap">
+                          <span className="shrink-0 whitespace-nowrap text-sm text-default-600">
                             {addonScoreParen}
                           </span>
                         )}
@@ -704,13 +821,16 @@ export const QuestionDetailDrawer = ({
         </div>
       )}
       <div>
-        <h2 className={subtitle()}>แบบประเมินปัญหา</h2>
+        <h2 className={sectionTitleClass}>แบบประเมินปัญหา</h2>
         {problemTotalScore !== null && (
-          <p className="text-small text-default-600 mb-2">
+          <p className={`${sectionMetaClass} mb-2`}>
             จำนวนหัวข้อที่เลือก: {problemTotalScore}
           </p>
         )}
-        <Table aria-label="Question Answer Problem">
+        <Table
+          aria-label="Question Answer Problem"
+          classNames={tableTextClassNames}
+        >
           <TableHeader>
             <TableColumn>หมวด</TableColumn>
             <TableColumn>หัวข้อที่เลือก</TableColumn>
@@ -733,9 +853,7 @@ export const QuestionDetailDrawer = ({
 
               return (
                 <TableRow key={section.category}>
-                  <TableCell className="min-w-[220px]">
-                    {section.category}
-                  </TableCell>
+                  <TableCell className="min-w-0">{section.category}</TableCell>
                   <TableCell>
                     {selectedItems.length > 0
                       ? selectedItems.join(", ")

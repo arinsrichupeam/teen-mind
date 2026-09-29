@@ -19,10 +19,10 @@ export default function AboutLayout({
         <ProfileAvatar />
       </header>
       <main className="w-full flex-grow">{children}</main>
-      <footer className="w-full max-h-[48px] text-xs flex items-center justify-center py-3">
+      <footer className="absolute bottom-0 inset-x-0 z-10 w-full max-h-[48px] text-xs flex items-center justify-center py-3 bg-transparent pointer-events-none">
         <Link
           isExternal
-          className="flex items-center gap-1 text-sm"
+          className="pointer-events-auto flex items-center gap-1 text-sm"
           href={siteConfig.links.rpp}
           title="heroui.com homepage"
         >

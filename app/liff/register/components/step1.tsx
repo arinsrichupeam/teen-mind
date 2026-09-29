@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Autocomplete,
   AutocompleteItem,
+  Checkbox,
   Modal,
   ModalBody,
   ModalContent,
@@ -37,6 +38,7 @@ type ProfileWithGradeYear = Omit<
   | "birthDate"
   | "sex"
   | "gradeYear"
+  | "isStudent"
   | "mainInsclCode"
   | "mainInsclName"
   | "subInsclCode"
@@ -48,6 +50,7 @@ type ProfileWithGradeYear = Omit<
   | "nhsoVerifiedAt"
 > & {
   gradeYear?: number | null;
+  isStudent?: boolean;
   birthDate: Date | null;
   sex: Profile["sex"] | number;
   mainInsclCode?: string | null;
@@ -65,7 +68,7 @@ type StepName = "Profile" | "Address" | "Emergency";
 
 /** เหตุการณ์เปลี่ยนค่า (รองรับทั้ง event จริงและ synthetic object จาก DatePicker/Autocomplete) */
 export type ChangeEventLike = {
-  target: { name: string; value: string | number | null };
+  target: { name: string; value: string | number | boolean | null };
 };
 
 interface Props {
@@ -93,6 +96,11 @@ export const Step1 = ({
   const { status: sessionStatus } = useSession();
   const request = true;
   const [school, setSchool] = useState<School[]>([]);
+  const [facilities, setFacilities] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [facilityError, setFacilityError] = useState("");
+  const [studentSchoolError, setStudentSchoolError] = useState("");
   const [error, setError] = useState<string>("");
   const [birthdayError, setBirthdayError] = useState<string>("");
   const [gradeYearError, setGradeYearError] = useState<string>("");
@@ -106,6 +114,23 @@ export const Step1 = ({
   const citizenIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCheckingCitizenId, setIsCheckingCitizenId] = useState(false);
   const [hnLookupWarning, setHnLookupWarning] = useState("");
+  const [nhsoLookupMessage, setNhsoLookupMessage] = useState("");
+
+  const clearNhsoFields = useCallback(() => {
+    for (const name of [
+      "mainInsclCode",
+      "mainInsclName",
+      "subInsclCode",
+      "subInsclName",
+      "hmainCode",
+      "hmainName",
+      "hsubCode",
+      "hsubName",
+      "nhsoVerifiedAt",
+    ] as const) {
+      HandleChange({ target: { name, value: null } });
+    }
+  }, [HandleChange]);
   const {
     isOpen: isLinkLineModalOpen,
     onOpen: onOpenLinkLineModal,
@@ -127,9 +152,26 @@ export const Step1 = ({
 
       setBirthdayError("");
 
+      if (!Result?.healthcareFacilityId?.trim()) {
+        setFacilityError("กรุณาเลือกสถานพยาบาล");
+
+        return;
+      }
+
+      setFacilityError("");
+
+      const isStudent = Result?.isStudent === true;
       const hasSchool = Result?.schoolId != null && Number(Result.schoolId) > 0;
       const hasGradeYear =
         Result?.gradeYear != null && Number(Result.gradeYear) > 0;
+
+      if (isStudent && !hasSchool) {
+        setStudentSchoolError("นักเรียนต้องระบุสถานศึกษา");
+
+        return;
+      }
+
+      setStudentSchoolError("");
 
       if (hasSchool && !hasGradeYear) {
         setGradeYearError("กรุณาเลือกชั้นปี");
@@ -140,7 +182,14 @@ export const Step1 = ({
       setGradeYearError("");
       NextStep("Profile");
     },
-    [NextStep, Result?.birthDate, Result?.gradeYear, Result?.schoolId]
+    [
+      NextStep,
+      Result?.birthDate,
+      Result?.gradeYear,
+      Result?.schoolId,
+      Result?.isStudent,
+      Result?.healthcareFacilityId,
+    ]
   );
 
   const validateCitizenId = async (value: string) => {
@@ -237,7 +286,6 @@ export const Step1 = ({
 
   const searchAndSetHn = useCallback(
     async (citizenId: string) => {
-      latestCitizenIdRef.current = citizenId;
       try {
         const response = await fetch("/api/his/patient", {
           method: "POST",
@@ -281,6 +329,105 @@ export const Step1 = ({
     [HandleChange]
   );
 
+  const searchAndSetNhso = useCallback(
+    async (citizenId: string) => {
+      try {
+        const response = await fetch("/api/profile/nhso", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ citizenId }),
+        });
+        const payload = (await response.json()) as {
+          error?: string;
+          nhsoResult?: {
+            status: string;
+            mainInsclCode?: string;
+            mainInsclName?: string;
+            subInsclCode?: string;
+            subInsclName?: string;
+            hmainCode?: string;
+            hmainName?: string;
+            hsubCode?: string;
+            hsubName?: string;
+            verifiedAt?: string;
+            errorMessage?: string;
+          };
+        };
+
+        if (latestCitizenIdRef.current !== citizenId) {
+          return;
+        }
+
+        if (!response.ok || !payload.nhsoResult) {
+          clearNhsoFields();
+          setNhsoLookupMessage(
+            response.status === 404
+              ? "ไม่พบข้อมูลสิทธิ สปสช. สามารถลงทะเบียนต่อได้"
+              : "ไม่สามารถตรวจสอบสิทธิ สปสช. ได้ในขณะนี้ สามารถลงทะเบียนต่อได้"
+          );
+
+          return;
+        }
+
+        const result = payload.nhsoResult;
+        const rightsLabel =
+          result.mainInsclName?.trim() ||
+          result.mainInsclCode?.trim() ||
+          "พบข้อมูลสิทธิ";
+
+        HandleChange({
+          target: {
+            name: "mainInsclCode",
+            value: result.mainInsclCode ?? null,
+          },
+        });
+        HandleChange({
+          target: {
+            name: "mainInsclName",
+            value: result.mainInsclName ?? null,
+          },
+        });
+        HandleChange({
+          target: { name: "subInsclCode", value: result.subInsclCode ?? null },
+        });
+        HandleChange({
+          target: { name: "subInsclName", value: result.subInsclName ?? null },
+        });
+        HandleChange({
+          target: { name: "hmainCode", value: result.hmainCode ?? null },
+        });
+        HandleChange({
+          target: { name: "hmainName", value: result.hmainName ?? null },
+        });
+        HandleChange({
+          target: { name: "hsubCode", value: result.hsubCode ?? null },
+        });
+        HandleChange({
+          target: { name: "hsubName", value: result.hsubName ?? null },
+        });
+        HandleChange({
+          target: {
+            name: "nhsoVerifiedAt",
+            value: result.verifiedAt
+              ? new Date(result.verifiedAt).toISOString()
+              : null,
+          },
+        });
+        setNhsoLookupMessage(`สิทธิ: ${rightsLabel}`);
+      } catch {
+        if (latestCitizenIdRef.current === citizenId) {
+          clearNhsoFields();
+          setNhsoLookupMessage(
+            "ไม่สามารถตรวจสอบสิทธิ สปสช. ได้ในขณะนี้ สามารถลงทะเบียนต่อได้"
+          );
+        }
+      }
+    },
+    [HandleChange, clearNhsoFields]
+  );
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
@@ -295,24 +442,38 @@ export const Step1 = ({
 
     if (value.length === 13) {
       setIsCheckingCitizenId(true);
+      latestCitizenIdRef.current = value;
       citizenIdTimerRef.current = setTimeout(async () => {
-        setIsCheckingCitizenId(false);
-        const isValid = await validateCitizenId(value);
+        try {
+          const isValid = await validateCitizenId(value);
 
-        if (isValid) {
-          await searchAndSetHn(value);
-        } else {
-          setHnLookupWarning("");
-          HandleChange({ target: { name: "hn", value: "" } });
+          if (latestCitizenIdRef.current !== value) {
+            return;
+          }
+
+          if (isValid) {
+            await Promise.all([searchAndSetHn(value), searchAndSetNhso(value)]);
+          } else {
+            setHnLookupWarning("");
+            setNhsoLookupMessage("");
+            HandleChange({ target: { name: "hn", value: "" } });
+            clearNhsoFields();
+          }
+        } finally {
+          if (latestCitizenIdRef.current === value) {
+            setIsCheckingCitizenId(false);
+          }
         }
       }, 500);
     } else {
       setIsCheckingCitizenId(false);
       setError("");
       setHnLookupWarning("");
+      setNhsoLookupMessage("");
       setReferentDuplicate(false);
       setReferentDuplicateHasLine(false);
       HandleChange({ target: { name: "hn", value: "" } });
+      clearNhsoFields();
     }
 
     HandleChange({ target: { name: "citizenId", value } });
@@ -332,7 +493,28 @@ export const Step1 = ({
       .then((val) => {
         setSchool(val);
       });
+    fetch("/api/data/healthcare-facility")
+      .then((res) => res.json())
+      .then((val) => {
+        if (Array.isArray(val)) setFacilities(val);
+      })
+      .catch(() => setFacilities([]));
   }, []);
+
+  useEffect(() => {
+    if (isCheckingCitizenId || nhsoLookupMessage) return;
+    const label =
+      Result?.mainInsclName?.trim() || Result?.mainInsclCode?.trim() || "";
+
+    if (label) {
+      setNhsoLookupMessage(`สิทธิ: ${label}`);
+    }
+  }, [
+    Result?.mainInsclCode,
+    Result?.mainInsclName,
+    isCheckingCitizenId,
+    nhsoLookupMessage,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -349,75 +531,134 @@ export const Step1 = ({
       onSubmit={onSubmit}
     >
       <Autocomplete
+        isRequired
         className="w-full"
-        defaultItems={school}
-        errorMessage="กรุณากรอกสถานศึกษา"
-        isRequired={false}
-        label="สถานศึกษา"
+        defaultItems={facilities}
+        errorMessage={facilityError || "กรุณาเลือกสถานพยาบาล"}
+        isInvalid={!!facilityError}
+        label="สถานพยาบาล"
         labelPlacement="inside"
         menuTrigger="input"
-        name="school"
-        placeholder="โรงเรียน (กรณีที่เป็นนักเรียน)"
+        name="healthcareFacilityId"
+        placeholder="เลือก ศบส. / สถานพยาบาล"
         popoverProps={liffPopoverProps}
         radius="md"
         scrollShadowProps={{
           isEnabled: false,
         }}
-        selectedKey={
-          Result?.schoolId != null && Result.schoolId > 0
-            ? String(Result.schoolId)
-            : null
-        }
+        selectedKey={Result?.healthcareFacilityId ?? null}
         size="sm"
         variant="faded"
         onSelectionChange={(val) => {
-          const schoolId = val != null ? Number(val) : 0;
-
-          HandleChange({ target: { name: "school", value: schoolId } });
-          if (schoolId === 0) {
-            HandleChange({ target: { name: "gradeYear", value: "" } });
-            setGradeYearError("");
-          }
+          setFacilityError("");
+          HandleChange({
+            target: {
+              name: "healthcareFacilityId",
+              value: val != null ? String(val) : null,
+            },
+          });
         }}
       >
         {(item) => (
           <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
         )}
       </Autocomplete>
-      {Result?.schoolId != null && Result.schoolId > 0 && (
-        <Select
-          isRequired
-          errorMessage={gradeYearError || "กรุณาเลือกชั้นปี"}
-          isInvalid={!!gradeYearError}
-          label="ชั้นปี"
-          labelPlacement="inside"
-          name="gradeYear"
-          placeholder="เลือกชั้นปี"
-          popoverProps={liffPopoverProps}
-          radius="md"
-          selectedKeys={
-            Result?.gradeYear != null ? [Result.gradeYear.toString()] : []
-          }
-          size="sm"
-          variant="faded"
-          onChange={(e) => {
-            setGradeYearError("");
-            HandleChange({
-              target: {
-                name: "gradeYear",
-                value: e.target.value ? parseInt(e.target.value, 10) : "",
-              },
-            } as React.ChangeEvent<HTMLSelectElement>);
-          }}
-        >
-          {gradeYearLevels.map((level) => (
-            <SelectItem key={level.key}>{level.label}</SelectItem>
-          ))}
-        </Select>
+      <Checkbox
+        classNames={{
+          base: "w-full max-w-full m-0 inline-flex items-center justify-start gap-2 px-3 py-2 bg-default-100 border-2 border-default-200 rounded-md hover:bg-default-200 cursor-pointer",
+          label: "text-sm text-foreground",
+        }}
+        isSelected={Result?.isStudent === true}
+        size="sm"
+        onValueChange={(checked) => {
+          setStudentSchoolError("");
+          HandleChange({
+            target: { name: "isStudent", value: checked },
+          });
+        }}
+      >
+        เป็นนักเรียน
+      </Checkbox>
+      {Result?.isStudent === true && (
+        <>
+          <Autocomplete
+            isRequired
+            className="w-full"
+            defaultItems={school}
+            errorMessage={studentSchoolError || "กรุณากรอกสถานศึกษา"}
+            isInvalid={!!studentSchoolError}
+            label="สถานศึกษา"
+            labelPlacement="inside"
+            menuTrigger="input"
+            name="school"
+            placeholder="โรงเรียน"
+            popoverProps={liffPopoverProps}
+            radius="md"
+            scrollShadowProps={{
+              isEnabled: false,
+            }}
+            selectedKey={
+              Result?.schoolId != null && Result.schoolId > 0
+                ? String(Result.schoolId)
+                : null
+            }
+            size="sm"
+            variant="faded"
+            onSelectionChange={(val) => {
+              const schoolId = val != null ? Number(val) : 0;
+
+              setStudentSchoolError("");
+              HandleChange({ target: { name: "school", value: schoolId } });
+              if (schoolId === 0) {
+                HandleChange({ target: { name: "gradeYear", value: "" } });
+                setGradeYearError("");
+              }
+            }}
+          >
+            {(item) => (
+              <AutocompleteItem key={item.id}>{item.name}</AutocompleteItem>
+            )}
+          </Autocomplete>
+          {Result?.schoolId != null && Result.schoolId > 0 && (
+            <Select
+              isRequired
+              errorMessage={gradeYearError || "กรุณาเลือกชั้นปี"}
+              isInvalid={!!gradeYearError}
+              label="ชั้นปี"
+              labelPlacement="inside"
+              name="gradeYear"
+              placeholder="เลือกชั้นปี"
+              popoverProps={liffPopoverProps}
+              radius="md"
+              selectedKeys={
+                Result?.gradeYear != null ? [Result.gradeYear.toString()] : []
+              }
+              size="sm"
+              variant="faded"
+              onChange={(e) => {
+                setGradeYearError("");
+                HandleChange({
+                  target: {
+                    name: "gradeYear",
+                    value: e.target.value ? parseInt(e.target.value, 10) : "",
+                  },
+                });
+              }}
+            >
+              {gradeYearLevels.map((item) => (
+                <SelectItem key={item.key}>{item.label}</SelectItem>
+              ))}
+            </Select>
+          )}
+        </>
       )}
       <Input
         description={
-          isCheckingCitizenId ? "กำลังตรวจสอบ..." : hnLookupWarning || undefined
+          isCheckingCitizenId
+            ? "กำลังตรวจสอบ HN และสิทธิ สปสช...."
+            : [hnLookupWarning, nhsoLookupMessage]
+                .filter(Boolean)
+                .join(" · ") || undefined
         }
         errorMessage={error}
         isInvalid={!!error}

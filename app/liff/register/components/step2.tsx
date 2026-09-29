@@ -387,7 +387,9 @@ export const Step2 = ({
         onSelectionChange={onProvinceChange}
       >
         {(item) => (
-          <AutocompleteItem key={item.id}>{item.nameInThai}</AutocompleteItem>
+          <AutocompleteItem key={String(item.id)} textValue={item.nameInThai}>
+            {item.nameInThai}
+          </AutocompleteItem>
         )}
       </Autocomplete>
       {provinceLoadError && (
@@ -428,7 +430,9 @@ export const Step2 = ({
         onSelectionChange={onDistrictChange}
       >
         {(item) => (
-          <AutocompleteItem key={item.id}>{item.nameInThai}</AutocompleteItem>
+          <AutocompleteItem key={String(item.id)} textValue={item.nameInThai}>
+            {item.nameInThai}
+          </AutocompleteItem>
         )}
       </Autocomplete>
       <Autocomplete
@@ -458,7 +462,9 @@ export const Step2 = ({
         onSelectionChange={onSubDistrictChange}
       >
         {(item) => (
-          <AutocompleteItem key={item.id}>{item.nameInThai}</AutocompleteItem>
+          <AutocompleteItem key={String(item.id)} textValue={item.nameInThai}>
+            {item.nameInThai}
+          </AutocompleteItem>
         )}
       </Autocomplete>
       <div className="flex flex-col pt-5 gap-2 w-full">

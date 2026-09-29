@@ -66,31 +66,44 @@ interface UserData {
     id: number;
     name: string;
   } | null;
-  questions: {
+  healthcareFacility?: {
+    id: string;
+    name: string;
+  } | null;
+  cases: {
     id: string;
     createdAt: string;
     result: string;
-    result_text?: string;
-    q2?: { q1: number; q2: number }[];
-    phqa?: { sum: number }[];
-    addon?: { q1: number; q2: number }[];
-    q9?: { sum: number }[];
-    q8?: { sum: number }[];
-    referent?: {
-      id: number;
+    questions2Q?: { q1: number; q2: number }[];
+    questionsPhqa?: { sum: number }[];
+    questionsPhqaAddon?: { q1: number; q2: number }[];
+    questions9Q?: { sum: number }[];
+    questions8Q?: { sum: number }[];
+    volunteer?: {
+      id: string;
       firstName: string;
       lastName: string;
       affiliation: {
         name: string;
       };
-      agency?: string;
-      healthcareFacilityId?: string;
-    };
+    } | null;
   }[];
   birthDate?: string;
   birthday?: string;
   ethnicity?: string;
   nationality?: string;
+  addresses?: {
+    houseNo?: string;
+    villageNo?: string;
+    soi?: string;
+    road?: string;
+    subdistrictId?: number;
+    districtId?: number;
+    provinceId?: number;
+    subdistrict?: number;
+    district?: number;
+    province?: number;
+  }[];
   address?: {
     houseNo?: string;
     villageNo?: string;
@@ -102,6 +115,12 @@ interface UserData {
     subdistrict?: number;
     district?: number;
     province?: number;
+  }[];
+  emergencyContacts?: {
+    name?: string;
+    phone?: string;
+    tel?: string;
+    relation?: string;
   }[];
   emergency?: {
     name?: string;
@@ -144,6 +163,20 @@ export default function UserDetailDrawer({
   const [isResettingLine, setIsResettingLine] = useState(false);
 
   const isLineLinked = Boolean(user?.user?.accounts?.length);
+  const cases = user?.cases ?? [];
+  const rawAddress = user?.addresses?.[0] ?? user?.address?.[0];
+  const address = rawAddress
+    ? {
+        houseNo: rawAddress.houseNo,
+        villageNo: rawAddress.villageNo,
+        soi: rawAddress.soi,
+        road: rawAddress.road,
+        subdistrictId: rawAddress.subdistrictId ?? rawAddress.subdistrict,
+        districtId: rawAddress.districtId ?? rawAddress.district,
+        provinceId: rawAddress.provinceId ?? rawAddress.province,
+      }
+    : undefined;
+  const emergency = user?.emergencyContacts?.[0] ?? user?.emergency?.[0];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -332,31 +365,22 @@ export default function UserDetailDrawer({
                   </div>
                   <div className="md:col-span-2">
                     <span className="text-default-500">ที่อยู่:</span>
-                    {user.address &&
-                    Array.isArray(user.address) &&
-                    user.address[0] ? (
+                    {address ? (
                       <span className="font-medium ml-2">
-                        {user.address[0].houseNo
-                          ? `${user.address[0].houseNo} `
+                        {address.houseNo ? `${address.houseNo} ` : ""}
+                        {address.villageNo
+                          ? `หมู่ที่ ${address.villageNo} `
                           : ""}
-                        {user.address[0].villageNo
-                          ? `หมู่ที่ ${user.address[0].villageNo} `
+                        {address.soi ? `ซอย ${address.soi} ` : ""}
+                        {address.road ? `ถนน ${address.road} ` : ""}
+                        {address.subdistrictId
+                          ? `ตำบล${getSubdistrictName(address.subdistrictId)} `
                           : ""}
-                        {user.address[0].soi
-                          ? `ซอย ${user.address[0].soi} `
+                        {address.districtId
+                          ? `อำเภอ${getDistrictName(address.districtId)} `
                           : ""}
-                        {user.address[0].road
-                          ? `ถนน ${user.address[0].road} `
-                          : ""}
-                        {user.address[0].subdistrictId ??
-                        user.address[0].subdistrict
-                          ? `ตำบล${getSubdistrictName(user.address[0].subdistrictId ?? user.address[0].subdistrict!)} `
-                          : ""}
-                        {user.address[0].districtId ?? user.address[0].district
-                          ? `อำเภอ${getDistrictName(user.address[0].districtId ?? user.address[0].district!)} `
-                          : ""}
-                        {user.address[0].provinceId ?? user.address[0].province
-                          ? `จังหวัด${getProvinceName(user.address[0].provinceId ?? user.address[0].province!)}`
+                        {address.provinceId
+                          ? `จังหวัด${getProvinceName(address.provinceId)}`
                           : ""}
                       </span>
                     ) : (
@@ -365,7 +389,15 @@ export default function UserDetailDrawer({
                   </div>
                   <div>
                     <span className="text-default-500">เบอร์โทรศัพท์:</span>
-                    <span className="font-medium ml-2">{user.phone || "-"}</span>
+                    <span className="font-medium ml-2">
+                      {user.phone || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-default-500">หน่วยงาน:</span>
+                    <span className="font-medium ml-2">
+                      {user.healthcareFacility?.name?.trim() || "-"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-default-500">โรงเรียน:</span>
@@ -375,24 +407,20 @@ export default function UserDetailDrawer({
                   </div>
                   <div className="md:col-span-2">
                     <span className="text-default-500">ผู้ติดต่อฉุกเฉิน:</span>
-                    {user.emergency &&
-                    Array.isArray(user.emergency) &&
-                    user.emergency[0] ? (
+                    {emergency ? (
                       <>
                         <span className="font-medium ml-2">
-                          {user.emergency[0].name || "-"}
+                          {emergency.name || "-"}
                         </span>
                         <span className="text-default-500 ml-4">โทรศัพท์:</span>
                         <span className="font-medium ml-2">
-                          {user.emergency[0].phone ||
-                            user.emergency[0].tel ||
-                            "-"}
+                          {emergency.phone || emergency.tel || "-"}
                         </span>
                         <span className="text-default-500 ml-4">
                           ความสัมพันธ์:
                         </span>
                         <span className="font-medium ml-2">
-                          {user.emergency[0].relation || "-"}
+                          {emergency.relation || "-"}
                         </span>
                       </>
                     ) : (
@@ -474,25 +502,30 @@ export default function UserDetailDrawer({
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-default-500">จำนวนแบบประเมิน:</span>
+                <span className="text-default-500">จำนวนเคส:</span>
                 <Chip
-                  color={user.questions.length > 0 ? "primary" : "default"}
+                  color={cases.length > 0 ? "primary" : "default"}
                   size="sm"
                   variant="flat"
                 >
-                  {user.questions.length} รายการ
+                  {cases.length} รายการ
                 </Chip>
               </div>
               <div className="flex flex-col gap-2 mt-3">
-                {user.questions.length > 0 ? (
-                  user.questions.map((question) => {
+                {cases.length > 0 ? (
+                  cases.map((caseItem) => {
                     const formattedDate = formatThaiDateTime(
-                      question.createdAt
+                      caseItem.createdAt
                     );
+                    const q2 = caseItem.questions2Q;
+                    const phqa = caseItem.questionsPhqa;
+                    const addon = caseItem.questionsPhqaAddon;
+                    const q9 = caseItem.questions9Q;
+                    const q8 = caseItem.questions8Q;
 
                     return (
                       <div
-                        key={question.id}
+                        key={caseItem.id}
                         className="flex flex-col md:flex-row items-start justify-between gap-2 p-2 bg-default-100 rounded-md border border-default-200"
                       >
                         <div className="flex flex-col flex-1 gap-1">
@@ -500,28 +533,27 @@ export default function UserDetailDrawer({
                             <span className="text-sm text-default-600">
                               {formattedDate}
                             </span>
-                            {question.referent && (
+                            {caseItem.volunteer && (
                               <span className="text-xs text-default-500">
-                                ผู้แนะนำ: {question.referent.firstName}{" "}
-                                {question.referent.lastName}
-                                {question.referent.affiliation && (
+                                อาสาสมัคร: {caseItem.volunteer.firstName}{" "}
+                                {caseItem.volunteer.lastName}
+                                {caseItem.volunteer.affiliation && (
                                   <span className="ml-1">
-                                    ({question.referent.affiliation.name})
+                                    ({caseItem.volunteer.affiliation.name})
                                   </span>
                                 )}
                               </span>
                             )}
                           </div>
-                          {question.q2?.length ||
-                          question.phqa?.length ||
-                          question.addon?.length ||
-                          question.q9?.length ||
-                          question.q8?.length ? (
+                          {q2?.length ||
+                          phqa?.length ||
+                          addon?.length ||
+                          q9?.length ||
+                          q8?.length ? (
                             <div className="flex flex-wrap gap-2 mt-0.5">
-                              {question.q2?.[0] &&
+                              {q2?.[0] &&
                                 (() => {
-                                  const score =
-                                    question.q2[0].q1 + question.q2[0].q2;
+                                  const score = q2[0].q1 + q2[0].q2;
 
                                   return (
                                     <Chip
@@ -539,38 +571,36 @@ export default function UserDetailDrawer({
                                     </Chip>
                                   );
                                 })()}
-                              {question.q9?.[0] ? (
+                              {q9?.[0] ? (
                                 <Chip
                                   color={resultToColor(
-                                    getNineQRiskLevel(question.q9[0].sum)
+                                    getNineQRiskLevel(q9[0].sum)
                                   )}
                                   size="sm"
                                   variant="flat"
                                 >
-                                  9Q: {question.q9[0].sum} คะแนน
+                                  9Q: {q9[0].sum} คะแนน
                                   {" · "}
-                                  {getNineQRiskText(question.q9[0].sum)}
+                                  {getNineQRiskText(q9[0].sum)}
                                 </Chip>
                               ) : (
                                 <>
-                                  {question.phqa?.[0] && (
+                                  {phqa?.[0] && (
                                     <Chip
                                       color={resultToColor(
-                                        getPhqaRiskLevel(question.phqa[0].sum)
+                                        getPhqaRiskLevel(phqa[0].sum)
                                       )}
                                       size="sm"
                                       variant="flat"
                                     >
-                                      PHQ-A: {question.phqa[0].sum} คะแนน
+                                      PHQ-A: {phqa[0].sum} คะแนน
                                       {" · "}
-                                      {getPhqaRiskText(question.phqa[0].sum)}
+                                      {getPhqaRiskText(phqa[0].sum)}
                                     </Chip>
                                   )}
-                                  {question.addon?.[0] &&
+                                  {addon?.[0] &&
                                     (() => {
-                                      const score =
-                                        question.addon[0].q1 +
-                                        question.addon[0].q2;
+                                      const score = addon[0].q1 + addon[0].q2;
 
                                       return (
                                         <Chip
@@ -590,19 +620,15 @@ export default function UserDetailDrawer({
                                     })()}
                                 </>
                               )}
-                              {question.q8?.[0] && (
+                              {q8?.[0] && (
                                 <Chip
-                                  color={
-                                    question.q8[0].sum > 0
-                                      ? "danger"
-                                      : "success"
-                                  }
+                                  color={q8[0].sum > 0 ? "danger" : "success"}
                                   size="sm"
                                   variant="flat"
                                 >
-                                  8Q: {question.q8[0].sum} คะแนน
+                                  8Q: {q8[0].sum} คะแนน
                                   {" · "}
-                                  {question.q8[0].sum > 0
+                                  {q8[0].sum > 0
                                     ? "พบความเสี่ยง"
                                     : "ไม่พบความเสี่ยง"}
                                 </Chip>
@@ -624,9 +650,7 @@ export default function UserDetailDrawer({
                     );
                   })
                 ) : (
-                  <span className="text-default-400 italic">
-                    ไม่มีแบบประเมิน
-                  </span>
+                  <span className="text-default-400 italic">ไม่มีเคส</span>
                 )}
               </div>
             </div>
@@ -643,8 +667,8 @@ export default function UserDetailDrawer({
         data={{
           profile: {
             ...user,
-            address: user.address ?? [],
-            emergency: user.emergency ?? [],
+            address: user.addresses ?? user.address ?? [],
+            emergency: user.emergencyContacts ?? user.emergency ?? [],
           },
         }}
         isOpen={isModalOpen}

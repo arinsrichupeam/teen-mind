@@ -2,14 +2,20 @@
 
 import { createContext, useContext } from "react";
 
-interface SidebarContext {
+interface SidebarContextValue {
+  /** Mobile drawer open state */
+  mobileOpen: boolean;
+  toggleMobile: () => void;
+  /** Desktop icon-rail collapsed state */
   collapsed: boolean;
-  setCollapsed: () => void;
+  toggleCollapsed: () => void;
 }
 
-export const SidebarContext = createContext<SidebarContext>({
+export const SidebarContext = createContext<SidebarContextValue>({
+  mobileOpen: false,
+  toggleMobile: () => {},
   collapsed: false,
-  setCollapsed: () => {},
+  toggleCollapsed: () => {},
 });
 
 export const useSidebarContext = () => {

@@ -94,11 +94,14 @@ export function buildRecalculatePreview(
   let resultWouldChange = 0;
 
   for (const question of questions) {
-    if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
+    if (!question.questionsPhqa || question.questionsPhqa.length === 0)
+      continue;
 
-    const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
+    const hasQ9Row =
+      Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
     const hasPhqaAddon =
-      Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
+      Array.isArray(question.questionsPhqaAddon) &&
+      question.questionsPhqaAddon.length > 0;
 
     if (hasQ9Row) scaleByStructure.nineq += 1;
     else scaleByStructure.phqa += 1;
@@ -125,7 +128,9 @@ export function buildRecalculatePreview(
     if (issue === "missing_age") mismatchSummary.missingAge += 1;
     if (issue !== "ok") mismatchSummary.total += 1;
 
-    const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
+    const sourceData = hasQ9Row
+      ? question.questions9Q[0]
+      : question.questionsPhqa[0];
     const sum = calculateSum(sourceData);
     const scale =
       age !== null
@@ -178,11 +183,14 @@ export function listRecalculateMismatches(
   const mismatches: RecalculatePreviewMismatch[] = [];
 
   for (const question of questions) {
-    if (!question.questionsPhqa || question.questionsPhqa.length === 0) continue;
+    if (!question.questionsPhqa || question.questionsPhqa.length === 0)
+      continue;
 
-    const hasQ9Row = Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
+    const hasQ9Row =
+      Array.isArray(question.questions9Q) && question.questions9Q.length > 0;
     const hasPhqaAddon =
-      Array.isArray(question.questionsPhqaAddon) && question.questionsPhqaAddon.length > 0;
+      Array.isArray(question.questionsPhqaAddon) &&
+      question.questionsPhqaAddon.length > 0;
 
     const age = getAgeAtAssessment(
       question.profile?.birthDate,
@@ -193,7 +201,9 @@ export function listRecalculateMismatches(
 
     if (issue === "ok") continue;
 
-    const sourceData = hasQ9Row ? question.questions9Q[0] : question.questionsPhqa[0];
+    const sourceData = hasQ9Row
+      ? question.questions9Q[0]
+      : question.questionsPhqa[0];
     const sum = calculateSum(sourceData);
     const scale =
       age !== null

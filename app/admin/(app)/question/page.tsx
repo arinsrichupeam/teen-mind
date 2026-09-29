@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -18,22 +19,19 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Tabs,
+  Tab,
   useDisclosure,
   Selection,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   addToast,
   Chip,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
-import {
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  PlusCircleIcon,
-  DevicePhoneMobileIcon,
-} from "@heroicons/react/24/outline";
+import { EyeIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -47,6 +45,9 @@ import { prefix } from "@/utils/data";
 import { QuestionsData, ProfileAdminData, TableSortDescriptor } from "@/types";
 import Loading from "@/app/loading";
 import { formatThaiDateTime, calculateAge } from "@/utils/helper";
+import { getAssessmentResultLabel } from "@/lib/assessment-result-colors";
+import { canClaimCase } from "@/lib/admin-roles";
+import { readStoredAdminProfile } from "@/lib/admin-profile-client";
 
 interface Column {
   key: string;
@@ -74,7 +75,7 @@ export default function QuestionPage() {
     column: "createdAt",
     direction: "descending",
   });
-  const [mode, setMode] = useState("view-questionnaire");
+  const [mode, setMode] = useState("view-consultation");
   const { data: session, status } = useSession();
   const [error] = useState("");
 
@@ -92,10 +93,11 @@ export default function QuestionPage() {
   const [q8Filter, setQ8Filter] = useState<Selection>(new Set([]));
   const [mainScaleFilter, setMainScaleFilter] = useState<string>("all");
   const [referentTypeFilter, setReferentTypeFilter] = useState<string>("all");
+  const [listMode, setListMode] = useState<"all" | "transferInbox">("all");
 
-  // เพิ่ม state สำหรับ profile admin
+  // เพิ่ม state สำหรับ profile admin — hydrate จาก sessionStorage ก่อน SWR
   const [adminProfile, setAdminProfile] = useState<ProfileAdminData | null>(
-    null
+    () => readStoredAdminProfile()
   );
 
   const prefixMap = useMemo(
@@ -133,17 +135,23 @@ export default function QuestionPage() {
   useEffect(() => {
     if (adminData) {
       setAdminProfile(adminData);
+      sessionStorage.setItem("adminProfile", JSON.stringify(adminData));
     }
   }, [adminData]);
 
   const referentCitizenId =
     adminProfile?.roleId === 2 ? (adminProfile?.citizenId ?? "") : "";
+  const canClaimCases = canClaimCase(
+    adminProfile?.roleId,
+    adminProfile?.roleCode
+  );
 
   const filterKey = useMemo(() => {
     const statusKey =
       statusFilter === "all"
         ? "all"
         : Array.from(statusFilter as Set<string>)
+            .filter((s) => s !== "TRANSFER_PENDING")
             .sort()
             .join(",");
     const resultNineq = Array.from(nineqResultFilter as Set<string>)
@@ -195,6 +203,7 @@ export default function QuestionPage() {
       referentType,
       referentCitizenId,
       excludeSchools,
+      transferInbox: listMode === "transferInbox" ? "1" : "",
     };
   }, [
     filterValue,
@@ -209,6 +218,7 @@ export default function QuestionPage() {
     referentTypeFilter,
     referentCitizenId,
     hiddenSchools,
+    listMode,
   ]);
 
   const { data, mutate } = useSWR(
@@ -221,7 +231,7 @@ export default function QuestionPage() {
         });
 
         if (key.search) params.set("search", key.search);
-        if (key.status && key.status !== "all")
+        if (!key.transferInbox && key.status && key.status !== "all")
           params.set("status", key.status);
         if (key.school) params.set("school", key.school);
         if (key.resultNineq) params.set("resultNineq", key.resultNineq);
@@ -235,6 +245,7 @@ export default function QuestionPage() {
           params.set("referentCitizenId", key.referentCitizenId);
         if (key.excludeSchools)
           params.set("excludeSchools", key.excludeSchools);
+        if (key.transferInbox) params.set("transferInbox", key.transferInbox);
 
         const res = await fetch(`${url}?${params}`, {
           next: { revalidate: 60 },
@@ -281,6 +292,58 @@ export default function QuestionPage() {
       dedupingInterval: 5000,
     }
   );
+
+  const { data: transferInboxCount = 0, mutate: mutateTransferCount } = useSWR(
+    session?.user?.id
+      ? [
+          "/api/question",
+          "transfer-inbox-count",
+          adminProfile?.healthcareFacilityId ?? "",
+        ]
+      : null,
+    async () => {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "10",
+        transferInbox: "1",
+      });
+      const res = await fetch(`/api/question?${params}`);
+
+      if (!res.ok) return 0;
+      const json = await res.json();
+
+      return Number(json.pagination?.total ?? 0);
+    },
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 5000,
+    }
+  );
+
+  const transferAlertShownRef = useRef(false);
+  const {
+    isOpen: isTransferAlertOpen,
+    onOpen: onTransferAlertOpen,
+    onClose: onTransferAlertClose,
+  } = useDisclosure();
+
+  useEffect(() => {
+    if (transferAlertShownRef.current) return;
+    if (transferInboxCount <= 0) return;
+    transferAlertShownRef.current = true;
+    onTransferAlertOpen();
+  }, [transferInboxCount, onTransferAlertOpen]);
+
+  const goToTransferInbox = useCallback(() => {
+    setListMode("transferInbox");
+    setPage(1);
+    onTransferAlertClose();
+  }, [onTransferAlertClose]);
+
+  const refreshLists = useCallback(() => {
+    void mutate();
+    void mutateTransferCount();
+  }, [mutate, mutateTransferCount]);
 
   const questionsList = data?.questionsList ?? [];
   const serverPagination = data?.pagination;
@@ -379,19 +442,6 @@ export default function QuestionPage() {
     []
   );
 
-  const onRowDetailPress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("view-questionnaire");
-          onOpen();
-        });
-    },
-    [onOpen, setSelectedQuestion]
-  );
-
   const onRowConsultationPress = useCallback(
     (e: string) => {
       fetch("/api/question/" + e)
@@ -405,36 +455,33 @@ export default function QuestionPage() {
     [onOpen, setSelectedQuestion]
   );
 
-  const onRowEditQuestionnairePress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("edit-questionnaire");
-          onOpen();
-        });
-    },
-    [onOpen, setSelectedQuestion]
-  );
-
   const onRowEditConsultationPress = useCallback(
-    (e: string) => {
-      fetch("/api/question/" + e)
-        .then((res) => res.json())
-        .then((val: QuestionsData | QuestionsData[]) => {
-          setSelectedQuestion(val);
-          setMode("edit-consultation");
-          onOpen();
+    async (e: string, caseStatus?: string | null) => {
+      if (caseStatus === "PENDING" && !canClaimCases) {
+        addToast({
+          color: "warning",
+          title: "รอ Consult รับเคส",
+          description: "เฉพาะ Consult เท่านั้นที่รับเคสได้",
+          timeout: 4000,
         });
+
+        return;
+      }
+
+      const res = await fetch("/api/question/" + e);
+      const val: QuestionsData | QuestionsData[] = await res.json();
+
+      setSelectedQuestion(val);
+      setMode("edit-consultation");
+      onOpen();
     },
-    [onOpen, setSelectedQuestion]
+    [onOpen, setSelectedQuestion, canClaimCases]
   );
 
   const onDrawerClose = useCallback(() => {
     onClose();
-    mutate();
-  }, [onClose, mutate]);
+    refreshLists();
+  }, [onClose, refreshLists]);
 
   useEffect(() => {
     if (status !== "loading") {
@@ -463,18 +510,17 @@ export default function QuestionPage() {
         case "name":
           const prefixLabel =
             prefixMap.get(item.profile?.prefixId?.toString() ?? "") || "";
+          const facilityName = item.healthcareFacility?.name?.trim() || "";
 
           return (
-            <div className="flex items-center gap-2">
-              {item.referentId ? (
-                <PlusCircleIcon className="size-5 text-danger-500" />
-              ) : (
-                <DevicePhoneMobileIcon className="size-5 text-primary-500" />
-              )}
+            <div className="flex flex-col gap-0.5">
               <p className="text-bold text-small">
                 {prefixLabel} {item.profile?.firstName || ""}{" "}
                 {item.profile?.lastName || ""}
               </p>
+              {facilityName ? (
+                <p className="text-tiny text-default-500">{facilityName}</p>
+              ) : null}
             </div>
           );
         case "age":
@@ -495,11 +541,11 @@ export default function QuestionPage() {
               ? school.name
               : typeof school === "string"
                 ? school
-                : "-";
+                : null;
 
           return (
             <div className="flex flex-col">
-              <p className="text-bold text-small">{schoolName}</p>
+              <p className="text-bold text-small">{schoolName || "-"}</p>
             </div>
           );
         }
@@ -527,7 +573,7 @@ export default function QuestionPage() {
             </Chip>
           );
         case "phqa":
-          let phqaScore: string | number = "-";
+          let phqaScore: string | number | null = null;
 
           if (Array.isArray(item.q9) && item.q9.length > 0) {
             phqaScore = item.q9[0].sum;
@@ -535,8 +581,12 @@ export default function QuestionPage() {
             phqaScore = item.phqa[0].sum;
           }
 
-          if (!item.result_text || phqaScore === "-") {
-            return "-";
+          if (!item.result || phqaScore == null) {
+            return (
+              <span className="text-default-500 text-small">
+                ไม่เข้าเกณฑ์ประเมิน
+              </span>
+            );
           }
 
           return (
@@ -556,7 +606,7 @@ export default function QuestionPage() {
               size="sm"
               variant="flat"
             >
-              {`${item.result_text} (${phqaScore})`}
+              {getAssessmentResultLabel(String(item.result))}
             </Chip>
           );
         case "2q":
@@ -576,7 +626,11 @@ export default function QuestionPage() {
             );
           }
 
-          return "-";
+          return (
+            <span className="text-default-500 text-small">
+              ไม่เข้าเกณฑ์ประเมิน
+            </span>
+          );
 
         case "addon":
           if (Array.isArray(item.q8) && item.q8.length > 0) {
@@ -595,7 +649,11 @@ export default function QuestionPage() {
             );
           }
 
-          return "-";
+          return (
+            <span className="text-default-500 text-small">
+              ไม่เข้าเกณฑ์ประเมิน
+            </span>
+          );
         case "screeningDate":
         case "createdAt": {
           return (
@@ -610,66 +668,40 @@ export default function QuestionPage() {
         }
         case "status":
           return <QuestionTableStatusCell row={item} />;
+        case "assignee":
+          return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">
+                {item.assigneeName?.trim() || "—"}
+              </p>
+            </div>
+          );
         case "actions":
           return (
             <div className="relative flex items-center gap-2">
               <div className="flex justify-center gap-2">
-                <div>
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button
-                        isIconOnly
-                        name="Detail"
-                        size="sm"
-                        variant="light"
-                      >
-                        <EyeIcon className="size-6 text-primary-400" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Detail options">
-                      <DropdownItem
-                        key="view-questionnaire"
-                        onPress={() => onRowDetailPress(item.id)}
-                      >
-                        รายละเอียดแบบประเมิน
-                      </DropdownItem>
-                      <DropdownItem
-                        key="view-consultation"
-                        onPress={() => onRowConsultationPress(item.id)}
-                      >
-                        รายละเอียดการให้คำปรึกษา
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </div>
-                <div>
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button isIconOnly name="Edit" size="sm" variant="light">
-                        <PencilIcon className="size-6 text-warning-400" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Edit options">
-                      <DropdownItem
-                        key="edit-questionnaire"
-                        onPress={() => onRowEditQuestionnairePress(item.id)}
-                      >
-                        แก้ไขแบบประเมิน
-                      </DropdownItem>
-                      <DropdownItem
-                        key="edit-consultation"
-                        onPress={() => onRowEditConsultationPress(item.id)}
-                      >
-                        บันทึกการให้คำปรึกษา
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </div>
-                <div>
-                  <Button isIconOnly size="sm" variant="light">
-                    <TrashIcon className="size-6 text-danger-500" />
-                  </Button>
-                </div>
+                <Button
+                  isIconOnly
+                  aria-label="ดูรายละเอียดเคส"
+                  name="Detail"
+                  size="sm"
+                  variant="light"
+                  onPress={() => onRowConsultationPress(item.id)}
+                >
+                  <EyeIcon className="size-6 text-primary-400" />
+                </Button>
+                <Button
+                  isIconOnly
+                  aria-label="บันทึกการให้คำปรึกษา"
+                  name="Edit"
+                  size="sm"
+                  variant="light"
+                  onPress={() =>
+                    void onRowEditConsultationPress(item.id, item.caseStatus)
+                  }
+                >
+                  <DocumentTextIcon className="size-6 text-warning-400" />
+                </Button>
               </div>
             </div>
           );
@@ -683,9 +715,8 @@ export default function QuestionPage() {
     },
     [
       prefixMap,
-      onRowDetailPress,
+      canClaimCases,
       onRowConsultationPress,
-      onRowEditQuestionnairePress,
       onRowEditConsultationPress,
     ]
   );
@@ -716,7 +747,7 @@ export default function QuestionPage() {
         setSchoolFilter={setSchoolFilterAndResetPage}
         setStatusFilter={setStatusFilterAndResetPage}
         statusFilter={statusFilter}
-        onDataUpdate={mutate}
+        onDataUpdate={refreshLists}
         onSearchChange={onSearchChange}
       />
     ),
@@ -744,7 +775,7 @@ export default function QuestionPage() {
       q8Filter,
       setQ8FilterAndResetPage,
       questionsList,
-      mutate,
+      refreshLists,
     ]
   );
 
@@ -792,21 +823,78 @@ export default function QuestionPage() {
   return (
     <Suspense fallback={<Loading />}>
       <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-        <div className="flex justify-between items-end ">
-          <h3 className="text-lg font-semibold">จัดการแบบประเมิน</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <h3 className="text-lg font-semibold">จัดการเคส</h3>
+          <Tabs
+            aria-label="โหมดรายการเคส"
+            selectedKey={listMode}
+            size="sm"
+            onSelectionChange={(key) => {
+              setListMode(key as "all" | "transferInbox");
+              setPage(1);
+            }}
+          >
+            <Tab key="all" title="เคสทั้งหมด" />
+            <Tab
+              key="transferInbox"
+              title={
+                <div className="flex items-center gap-2">
+                  <span>คำขอรับส่งต่อ</span>
+                  {transferInboxCount > 0 ? (
+                    <Chip color="danger" size="sm" variant="solid">
+                      {transferInboxCount}
+                    </Chip>
+                  ) : null}
+                </div>
+              }
+            />
+          </Tabs>
         </div>
+
+        <Modal
+          backdrop="blur"
+          isOpen={isTransferAlertOpen}
+          placement="center"
+          onClose={onTransferAlertClose}
+        >
+          <ModalContent>
+            <ModalHeader className="flex flex-col gap-1 text-danger">
+              มีคำขอรับส่งต่อรอตรวจสอบ
+            </ModalHeader>
+            <ModalBody>
+              <p>
+                มีเคสที่อยู่ระหว่างส่งต่อ{" "}
+                <span className="font-semibold text-danger">
+                  {transferInboxCount}
+                </span>{" "}
+                รายการ กรุณาตรวจสอบและตอบรับหรือจัดการคำขอ
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="light" onPress={onTransferAlertClose}>
+                ปิด
+              </Button>
+              <Button color="danger" onPress={goToTransferInbox}>
+                ไปที่คำขอรับส่งต่อ
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
 
         <div className="max-w-[95rem] mx-auto w-full">
           <QuestionEditDrawer
+            key={selectedKeys?.id ?? "closed"}
+            canClaimCase={canClaimCases}
             data={selectedKeys!}
             isOpen={isOpen}
             mode={mode}
+            viewerFacilityId={adminProfile?.healthcareFacilityId ?? null}
             onClose={onDrawerClose}
           />
           <div className="w-full flex flex-col gap-4 text-nowrap">
             <Table
               isStriped
-              aria-label="Question List Table"
+              aria-label="รายการเคส"
               bottomContent={bottomContent}
               bottomContentPlacement="outside"
               sortDescriptor={sortDescriptor}
@@ -826,7 +914,7 @@ export default function QuestionPage() {
                 )}
               </TableHeader>
               <TableBody
-                emptyContent={"ไม่พบข้อมูล"}
+                emptyContent={"ไม่พบเคส"}
                 items={sortedItems}
                 loadingContent={<Spinner label="Loading..." />}
               >

@@ -25,6 +25,7 @@ enum CaseTransferStatus {
   PENDING
   ACCEPTED
   REJECTED
+  CANCELLED // ต้นทางถอนคำขอ (คนละความหมายกับ REJECTED)
 }
 
 enum FacilityStatus {
@@ -38,13 +39,44 @@ enum AdminStatus {
   DISABLED
 }
 
-// คนละชุดกับ Case.result (ผลคัดกรอง) — ความเสี่ยงตามนักจิตบน TreatmentNote
-// NONE = ประเมินแล้วไม่เสี่ยง; null = ไม่ประเมิน (คนละความหมาย)
+// Visibility radius for ProfileAdmin (ADR 0007) — distinct from Role capabilities
+enum AdminDataScope {
+  SYSTEM
+  ZONE
+  AFFILIATION
+  FACILITY
+}
+
+// ระดับความเสี่ยงที่นักจิตประเมินบน TreatmentNote (คนละชุดกับ ScreeningResult / SessionSelfHarmRisk)
 enum PsychRisk {
-  NONE
-  LOW
-  MODERATE
-  HIGH
+  NONE // ไม่มีความเสี่ยง
+  LOW // น้อย
+  MODERATE // ปานกลาง
+  HIGH // มาก
+  SEVERE // รุนแรง
+}
+
+// พบ/ไม่พบ/ประเมินไม่ได้ บนโน้ตที่คุยได้ — คนละชุดกับ ScreeningResult / PsychRisk
+enum SessionSelfHarmRisk {
+  FOUND
+  NOT_FOUND
+  NOT_ASSESSABLE
+}
+
+enum SessionOutcome {
+  IMPROVED
+  WORSENED
+  UNCHANGED
+  NOT_ASSESSABLE
+}
+
+enum AfterCarePlan {
+  END_FOLLOWUP
+  PSYCHOLOGIST_FOLLOWUP
+  PSYCHIATRIST
+  TRANSFER_FACILITY
+  TRANSFER_EMERGENCY
+  OTHER
 }
 
 // ผลคัดกรองสรุปล่าสุดของ Case (analytics / filter)
@@ -122,20 +154,21 @@ model User {
 // OAuth/OIDC link — provider เช่น "line" | "thaid"; providerAccountId = OIDC sub (ไม่ใช้ pid)
 // ThaiD: เทียบ pid ↔ Profile.citizenId / ProfileAdmin.citizenId ที่แอปเมื่อสมัครหรือ link
 model Account {
-  id                    String  @id @default(cuid())
-  userId                String // 1 user → N providers (NextAuth/Auth.js)
-  type                  String
-  provider              String
-  providerAccountId     String
-  refreshToken          String? @db.Text
-  accessToken           String? @db.Text
-  expiresAt             Int?
-  tokenType             String?
-  scope                 String?
-  idToken               String? @db.Text
-  sessionState          String?
-  refreshTokenExpiresIn Int?
-  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String  @id @default(cuid())
+  userId                   String // 1 user → N providers (NextAuth/Auth.js)
+  type                     String
+  provider                 String
+  providerAccountId        String
+  // Auth.js adapter passes OAuth fields in snake_case; @map keeps camelCase DB columns
+  refresh_token            String? @map("refreshToken") @db.Text
+  access_token             String? @map("accessToken") @db.Text
+  expires_at               Int?    @map("expiresAt")
+  token_type               String? @map("tokenType")
+  scope                    String?
+  id_token                 String? @map("idToken") @db.Text
+  session_state            String? @map("sessionState")
+  refresh_token_expires_in Int?    @map("refreshTokenExpiresIn")
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -197,6 +230,8 @@ model Profile {
 
   schoolId             Int?
   gradeYear            Int?
+  // true = นักเรียน → ต้องมี schoolId (CONTEXT: Student)
+  isStudent            Boolean @default(false)
   // หน่วยงานที่ผู้ใช้เลือกต้องการรักษา (ตอนสมัคร)
   healthcareFacilityId String?
 
@@ -207,45 +242,54 @@ model Profile {
 }
 
 // สมัคร/login: ThaiD (ทางเลือก) | username/password — ดู User comment
+// One row per User (ADR 0007). Visibility = scopeLevel + anchors; Role = capabilities.
 model ProfileAdmin {
-  id                   String             @id @default(cuid())
-  userId               String
+  id                   String         @id @default(cuid())
+  userId               String         @unique
   // PII: encrypt at rest (KMS / column encrypt); format 13 หลักบังคับที่แอป; ถ้าใช้ ThaiD ต้องตรง pid
-  citizenId            String             @unique @db.VarChar(13)
+  citizenId            String         @unique @db.VarChar(13)
   prefixId             Int
-  firstName            String             @db.VarChar(100)
-  lastName             String             @db.VarChar(100)
-  phone                String?            @db.VarChar(20)
-  affiliationId        Int
+  firstName            String         @db.VarChar(100)
+  lastName             String         @db.VarChar(100)
+  phone                String?        @db.VarChar(20)
+  // AFFILIATION/FACILITY require; ZONE/SYSTEM null
+  affiliationId        Int?
   employeeTypeId       Int
-  profession           String?            @db.VarChar(100)
-  license              String?            @db.VarChar(50)
-  status               AdminStatus        @default(PENDING)
-  receiveAlert         Boolean            @default(false)
+  profession           String?        @db.VarChar(100)
+  license              String?        @db.VarChar(50)
+  status               AdminStatus    @default(PENDING)
+  receiveAlert         Boolean        @default(false)
   roleId               Int // require explicit role — ไม่ใช้ magic default
-  // หน่วยงาน = HealthcareFacility (ไม่เก็บชื่อซ้ำเป็น free-text)
-  // required — กัน MySQL UNIQUE+NULL ที่อนุญาตหลายแถว facility=null ต่อ user
-  healthcareFacilityId String
-  prefix               Prefix             @relation(fields: [prefixId], references: [id], onDelete: Restrict)
-  role                 Role               @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  affiliation          Affiliation        @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
-  employeeType         EmployeeType       @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
-  healthcareFacility   HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  scopeLevel           AdminDataScope @default(FACILITY)
+  // ZONE scope anchor; null otherwise
+  zoneId               Int?
+  // หน่วยงาน = HealthcareFacility; null allowed for elevated scopes (optional home facility)
+  healthcareFacilityId String?
+  // หน่วยงานย่อย — optional metadata (ไม่ใช่ Case ACL)
+  facilityUnitId       Int?
+  prefix               Prefix              @relation(fields: [prefixId], references: [id], onDelete: Restrict)
+  role                 Role                @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  affiliation          Affiliation?        @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
+  employeeType         EmployeeType        @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
+  healthcareFacility   HealthcareFacility? @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  facilityUnit         FacilityUnit?       @relation(fields: [facilityUnitId], references: [id], onDelete: SetNull)
+  zone                 Zone?               @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   treatmentNotes       TreatmentNote[]
-  assignedCases        Case[]             @relation("CaseAssignee")
+  assignedCases        Case[]              @relation("CaseAssignee")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, healthcareFacilityId])
-  @@index([userId])
   @@index([prefixId])
   @@index([healthcareFacilityId, status])
   @@index([status, createdAt])
   @@index([affiliationId])
   @@index([employeeTypeId])
   @@index([roleId])
+  @@index([facilityUnitId])
+  @@index([zoneId])
+  @@index([scopeLevel, status])
 }
 
 model Address {
@@ -452,14 +496,25 @@ model TreatmentNote {
 
   consult         String?   @db.VarChar(100)
   scheduleTelemed DateTime?
+  serviceEndedAt  DateTime?
   unreachable     Boolean   @default(false)
 
-  subjective String?    @db.Text
-  objective  String?    @db.Text
-  assessment String?    @db.Text
-  plan       String?    @db.Text
-  note       String?    @db.Text
-  psychRisk  PsychRisk? // optional — นัดที่ไม่ประเมินคลินิกเว้นว่างได้
+  subjective String? @db.Text
+  objective  String? @db.Text
+  assessment String? @db.Text
+  plan       String? @db.Text
+  note       String? @db.Text
+
+  // Session report (reached notes only) — ADR 0009
+  sessionSelfHarmRisk   SessionSelfHarmRisk?
+  psychRisk             PsychRisk? // ระดับที่นักจิตประเมิน — บังคับบน session report เมื่อคุยได้
+  presentingTopics      Json? // PresentingTopicCode[]
+  presentingTopicsOther String?             @db.Text
+  interventions         Json? // InterventionCode[]
+  interventionsOther    String?             @db.Text
+  sessionOutcome        SessionOutcome?
+  afterCarePlan         AfterCarePlan?
+  afterCarePlanOther    String?             @db.Text
 
   followUp DateTime?
 
@@ -718,8 +773,9 @@ model Zone {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
-  districts  District[]
-  facilities HealthcareFacility[] @relation("ZoneMembers")
+  districts     District[]
+  facilities    HealthcareFacility[] @relation("ZoneMembers")
+  profileAdmins ProfileAdmin[]
 }
 
 // หน่วยงานย่อย ของโรงพยาบาล / ศบส.
@@ -732,6 +788,8 @@ model FacilityUnit {
   updatedAt            DateTime @updatedAt
 
   healthcareFacility HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Cascade)
+  profileAdmins      ProfileAdmin[]
+  volunteers         Volunteer[]
 
   @@unique([healthcareFacilityId, name])
   @@index([healthcareFacilityId])
@@ -766,12 +824,15 @@ model Volunteer {
   affiliationId        Int
   // หน่วยงาน = HealthcareFacility (ไม่เก็บชื่อซ้ำเป็น free-text)
   healthcareFacilityId String
+  // หน่วยงานย่อย — optional
+  facilityUnitId       Int?
   status               Boolean            @default(true)
   prefix               Prefix             @relation(fields: [prefixId], references: [id], onDelete: Restrict)
   volunteerType        VolunteerType      @relation(fields: [volunteerTypeId], references: [id], onDelete: Restrict)
   employeeType         EmployeeType       @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
   affiliation          Affiliation        @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
   healthcareFacility   HealthcareFacility @relation(fields: [healthcareFacilityId], references: [id], onDelete: Restrict)
+  facilityUnit         FacilityUnit?      @relation(fields: [facilityUnitId], references: [id], onDelete: SetNull)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   cases                Case[]
@@ -781,6 +842,7 @@ model Volunteer {
   @@index([employeeTypeId])
   @@index([affiliationId])
   @@index([healthcareFacilityId])
+  @@index([facilityUnitId])
 }
 
 // สังกัด
